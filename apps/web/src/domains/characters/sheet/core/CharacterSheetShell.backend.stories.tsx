@@ -6,10 +6,14 @@ import {
   type CharacterSheetActionsDto
 } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Route } from '#routes/_authed/characters/$characterPublicId/$characterSlug/index'
-import { STORY_CHARACTERS } from '../../../../../../apis/tests/developmentReviewDataScenarios'
+import {
+  STORY_CHARACTERS,
+  STORY_HELD_EQUIPMENT
+} from '../../../../../../apis/tests/developmentReviewDataScenarios'
 import {
   findSeededSheetCharacter,
   openMobileSheetPage,
+  openSheetSection,
   sheetRouter,
   sheetSliceOverride,
   type StoryCharacter
@@ -58,6 +62,29 @@ export const TabletLandscape: Story = {
 export const DraftPending: Story = {
   ...opensCharacter(STORY_CHARACTERS.draftPending),
   parameters: { tanstack: { router: sheetRouter(STORY_CHARACTERS.draftPending) } }
+}
+
+const astralHolderRouter = { tanstack: { router: sheetRouter(STORY_CHARACTERS.astralHolder) } }
+
+// The seeded Astral holder carries a published weapon attuned, with one of its three charges spent.
+export const AstralTearInventory: Story = {
+  parameters: astralHolderRouter,
+  play: async ({ canvas, canvasElement }) => {
+    await findSeededSheetCharacter(canvasElement, STORY_CHARACTERS.astralHolder)
+    await openSheetSection(canvasElement, 'Inventory', false)
+    await expect(
+      await canvas.findByRole('button', { name: `Open ${STORY_HELD_EQUIPMENT.label} details` })
+    ).toBeVisible()
+  }
+}
+
+export const AstralTearFeatures: Story = {
+  parameters: astralHolderRouter,
+  play: async ({ canvas, canvasElement }) => {
+    await findSeededSheetCharacter(canvasElement, STORY_CHARACTERS.astralHolder)
+    await openSheetSection(canvasElement, 'Features', false)
+    await expect((await canvas.findAllByText('Warping Strike'))[0]).toBeVisible()
+  }
 }
 
 const abilityModifierStates = [

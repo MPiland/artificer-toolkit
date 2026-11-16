@@ -762,6 +762,9 @@ export function prepareRecurringActiveEffect(
           ...(contribution.fleesSource && { fleesSource: true })
         })
       })),
+      ...(plan.conditionEscapeContribution
+        ? [{ kind: 'CONDITION_ESCAPE' as const, ...plan.conditionEscapeContribution }]
+        : []),
       ...relationshipConditionIds.map((conditionId) => ({
         kind: 'CONDITION_OWNERSHIP' as const,
         conditionId,

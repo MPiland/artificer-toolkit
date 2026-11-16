@@ -2458,7 +2458,7 @@
             },
             {
               "id": "PLATFORM-28.T6d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2469,7 +2469,8 @@
               },
               "text": "Astral Tear Shell stories on a seeded holder, the Builder runtime story on the real contract manifest, the marketing capture stories on seeded Characters; story-only sheet modules deleted with a no-importer proof.",
               "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m838; slice tip 37b94d5b3: Tests 43946091925, Live 43946092223, Browser journeys 43946091846 green. Story Astral Holder holds a published Story Astral Tear (equipped, attuned, 2/3 charges) seeded through product commands; Astral Tear Inventory, Features and Item Inspector, the Builder runtime story (spied Save Draft and Finalize) and the Marketing captures run as backend stories; characterSheetStory.fixture.tsx, characterSheetNativeStory.fixture.ts and four fake story files are deleted with a no-importer proof. Proof: storyData.test (seeded holder through real reads)."
             },
             {
               "id": "PLATFORM-28.T7a",
@@ -2617,8 +2618,7 @@
             },
             {
               "id": "PLATFORM-28.T7c3d",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "text": "The push picker runs as a backend story on a seeded Shove; the movement-halo story is retired (D207 auto-declines REACTION_CHOICE; covered by CampaignVttPresentation.stories, vttTokenPresentation.model.test and live-backend encounterMovement.ts); the fake window stories and their harness are deleted with a no-importer proof.",
               "wsjf": {
@@ -2627,11 +2627,13 @@
                 "rr": 5,
                 "size": 5
               },
-              "note": "Registered 2026-11-16 from the T7c3c report as a resize in approved scope. First green tip 99bb073a7 (Tests 43928980832, Live 43928981114, Browser journeys 43928981276); re-syncing onto the phase tip after a developmentReviewData.ts conflict with T6c."
+              "note": "Registered 2026-11-16 from the T7c3c report as a resize in approved scope. First green tip 99bb073a7 (Tests 43928980832, Live 43928981114, Browser journeys 43928981276); re-syncing onto the phase tip after a developmentReviewData.ts conflict with T6c.",
+              "mergedAt": "2026-11-16",
+              "proof": "m838; slice tip 3adb522ac: Tests 43946209425, Live 43946209402, Browser journeys 43946209520 green. The push picker runs as a backend story on a seeded Shove (seedStoryShove, optionalCombatDefinitionId); the movement-halo story is retired; the fake window stories and their harness are deleted with a no-importer proof."
             },
             {
               "id": "PLATFORM-28.T7d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2648,7 +2650,8 @@
                 ]
               },
               "text": "The fake live transport harness, the fake Convex client and the story-only tabletop fixtures are deleted with a no-importer proof; data fixtures imported by unit tests stay.",
-              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T9",
@@ -2664,6 +2667,20 @@
               "note": "Registered 2026-11-16 as a resize in approved scope: the flake failed four slice and batch runs on 2026-11-16 (T3m twice, T3z, m828).",
               "mergedAt": "2026-11-16",
               "proof": "m835; slice tip f7a259bb1: Tests 43923939037, Live 43933710886, Browser journeys 43923939137 plus three dispatched storybook-backend-browser runs 43923938312, 43928560654, 43931100853 green with no rerun. Root cause: ConvexBetterAuthProvider reads a page-wide session store and calls clearAuth after an account switch; backend stories now fix auth per story (apps/web/.storybook/backend/preview.tsx). Also fixed three story races: SocialListingInvitations Focused Deep Link, the Tabletop encounterDescription wait, and CampaignEncounters Delete waiting for the enabled button."
+            },
+            {
+              "id": "PLATFORM-28.T10",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["PLATFORM-28.1"],
+              "text": "The passage browser proof is root-caused and stable: the \"Open pending decision\" button clears as the journey expects, proved by three consecutive green dispatched runs with no rerun.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 as a resize in approved scope: the passage proof failed batch runs 43891284200 and 43950526154 and passed on rerun both times."
             },
             {
               "id": "PLATFORM-28.T8",
@@ -7287,7 +7304,7 @@
                 "apps/apis/convex/scenes/showings.test.ts › D87 deleting a shown Scene ends the showing and the access",
                 "apps/apis/convex/scenes/showings.test.ts › D87 only the owner shows or stops, and the presented Scene cannot be shown",
                 "apps/apis/convex/campaigns/deletion.test.ts (Campaign deletion removes campaignSceneShowings)",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › GmShowsSceneToPlayers (the GM's \"Show to players\" menu) and PlayerSeesShownScene (the player's view-only modal) (REL-4; Storybook run local-validation/rel4/stories2)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx › GmShowsSceneToPlayers (the GM's \"Show to players\" menu) and PlayerSeesShownScene (the player's view-only modal) (REL-4; Storybook run local-validation/rel4/stories2)",
                 "impl: apps/apis/convex/scenes/showings.ts, liveDocuments.ts, fogReadDocuments.ts, recipientReads.ts, campaignDeletion.ts, definitions.ts; apps/apis/convex/media/vttMapAssets.ts; packages/schema/src/api/vttScenes.ts; apps/web/src/domains/campaigns/vtt/CampaignSceneShowingControl.tsx, CampaignShownSceneViewer.tsx, CampaignShownSceneCanvas.tsx"
               ],
               "origin": ["P14.7"],
@@ -24488,7 +24505,7 @@
           "title": "Tokens show identity, status and facing",
           "status": "DONE",
           "journeyTests": [
-            "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx",
+            "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx",
             "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx",
             "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts"
           ],
@@ -24500,7 +24517,7 @@
               "status": "DONE",
               "proof": [
                 "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx"
               ],
               "origin": ["G4-TOKEN-IDENTITY"],
               "note": "Q3 answered (lane 1): the inner ring shows disposition, drawn and proved per disposition; control no longer changes the ring and \"Yours\" is in the description. Art presentation proved by CampaignVttPresentation TokenArtIsPresented. Selection wired (lane 3): with the Select tool, a press on any token selects it (control is not required), a press on the empty map clears it, and Focus in Scene controls selects that token; the selection is derived from the Scene so it ends when its token leaves. The Workshop Teal outline and the \", selected\" description are proved by CampaignTabletopWindow SelectingATokenOutlinesIt; red `sel-red` (Stage wiring absent) and `sel-guard-red` (a press on a token the member cannot move cleared the selection). Accepted by lane 1 on 2026-10-12 (merged `d423a2d67`): disposition rings, art (TokenArtIsPresented), an outline distinct from the ring and halo (SelectionOutlineMarksOnlyTheSelectedToken), and selection journey SelectingATokenOutlinesIt.",
@@ -24514,8 +24531,8 @@
                 "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts",
                 "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts",
                 "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › SelectingATokenListsItsStatuses",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › HoveringAFocusItemListsEveryStatus"
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx › SelectingATokenListsItsStatuses",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx › HoveringAFocusItemListsEveryStatus"
               ],
               "origin": ["G4-STATUS-PRESENTATION"],
               "note": "Implemented in vttTokenPresentation.model.ts and CampaignVttPresentation stories; not accepted. Integration-owner ruling 2026-10-12: harmful and beneficial come from a polarity derived in rules-runtime from each grant's modifiers relative to its holder (an all-beneficial grant is beneficial; an all-harmful grant is harmful; a mixed or neutral grant is other), never an authored flag. Conditions are harmful. The derived polarity is carried on the active grant listing. Built (D110): b5a55b5da. Presentation stories build from the real presentation model over Encounter data: ordering, overflow, reaction halo over current turn, defeated. Window journeys GmSeesTokenStatuses and PlayerSeesTokenStatusesWithoutGmHealth. Journey stays partial: 1.1 waits on token selection, 1.3 is held. Lane 3: Two rings (decision Q3): an outer segmented status ring (model order, at most 8 segments, the last marks overflow at 9+), inset inside the footprint, and a DOM status list on hover or focus. Proved against drawn output (segment count and category colours, overflow, inner and outer ring bounds of neighbouring 1x1 and large tokens) in the presentation and window stories; category hues and disposition ring colours pinned to literal hexes in the model tests; at least 2 units of clearance between the two rings on every side (red with the old inset 9: local-validation/lane3/logs/tight-red.log). The pending-frame hover fix is proved in the real storybook runner: with its render disabled, HoveringATokenRebuiltBeforeTheNextFrameReportsIt fails (local-validation/lane3/logs/rv-hover-red.log and tight-red.log). Status list paths proved: canvas hover lists a token's statuses and leaving hides them (window HoveringATokenOnTheCanvasListsItsStatuses), and keyboard focus on a token's Focus item in Scene controls (FocusingATokenListsEveryStatus). Mouse hover on that menu item and the selected token's list are proved since 99bc56fba. Completed 2026-10-13, awaiting integration-owner acceptance: b5a55b5da derives polarity in rules-runtime (listActiveGrantListings carries it on every listing) and the ring draws HARMFUL amber, BENEFICIAL lime 0x94d82d, CONCENTRATION and OTHER (neutral grants); red p12-red-rules and p12-red-web. 99bc56fba lists the selected token's statuses (red sel-status-red) and proves mouse hover on a Focus item. Accepted 2026-10-13 by the integration owner after review (fold contract carries typed modifier kinds and value domains; unknown codes fail at the fold; hidden sources show polarity; precedence story), merged in 3b684b7f8; post-merge worker 560, packages 1844, focused Convex 388, vtt unit 216 and stories 94 green, codegen unchanged.",
@@ -24636,7 +24653,9 @@
           "id": "VTT_UI-3",
           "title": "Previews, perception and footprints",
           "status": "DONE",
-          "journeyTests": ["apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"],
+          "journeyTests": [
+            "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx"
+          ],
           "journeyStatus": "verified",
           "origin": [],
           "acs": [
@@ -24761,7 +24780,7 @@
               "text": "Close-out: AC 3.2 lists complete proof (lighting stories sampling resolveSceneIlluminationAt, GM see-all, token-view preview) and its note says only 'awaiting lane 1 acceptance of the review fixes'; verify the stories still pass and mark DONE, register CampaignTabletopWindow.stories.tsx as the PBI journey test (verified to drive the real flow, as VTT_UI-1 does). Ledger-only unless the verification fails.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m503.",
               "mergedAt": "2026-10-27T20:53:44Z",
-              "proof": "Tests 40574275609 and Browser journeys 40574275677 green on cc374ed71 (lighting stories, GM see-all and token-view preview pass; story fixture moved onto SRD_SYSTEM_ID); reviewed; merged in m503 (run 40580594593). Journey: apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"
+              "proof": "Tests 40574275609 and Browser journeys 40574275677 green on cc374ed71 (lighting stories, GM see-all and token-view preview pass; story fixture moved onto SRD_SYSTEM_ID); reviewed; merged in m503 (run 40580594593). Journey: apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx"
             }
           ]
         },
@@ -24769,7 +24788,9 @@
           "id": "VTT_UI-4",
           "title": "Accessible VTT",
           "status": "DONE",
-          "journeyTests": ["apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"],
+          "journeyTests": [
+            "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx"
+          ],
           "journeyStatus": "verified",
           "origin": [],
           "acs": [
@@ -24781,7 +24802,7 @@
                 "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts › focuses a token at a readable zoom, never zooming out and staying within the zoom bounds",
                 "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › CurrentTurnAndReactionHalosDifferByShape",
                 "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › LowZoom",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › FocusingATokenNamesItsDispositionAndZoomsIn"
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx › FocusingATokenNamesItsDispositionAndZoomsIn"
               ],
               "origin": ["G4-ACCESSIBILITY-PERFORMANCE"],
               "note": "Original PARTIAL: V15 covers performance only. Lane 3, completed 2026-10-13, accepted. Applies decision Q3 (colour is the at-a-glance cue; the token panel and the canvas description carry the exact one): the disposition ring is named in the presentation (dispositionLabel), in the canvas description and in the hover/focus/selection panel, which now shows for a token with no statuses; health bands, conditions and effects were already named statuses; the current-turn halo also draws a crosshair, so it differs from a reaction halo by shape (read back from drawn output); the selection outline is dashed and the overflow segment hollow. Low zoom: Focus in Scene controls zooms in, never out, until the token's larger footprint side is at least 64 screen px. The disposition follows the kind in the description (\"Goblin. Creature. Hostile. Current turn. …\"). Red proofs for every 4.1 behaviour are under local-validation/lane3/vtt-ui-4.1-red/. Finish: at the minimum zoom, LowZoom and FocusingATokenNamesItsDispositionAndZoomsIn prove every token is listed in Scene controls and Focus brings each to the readable size, so nothing is open for low zoom; DONE on integration-owner acceptance. Accepted 2026-10-13 by lane 1: lane 3 merged in 8dda19f80; post-merge builds, codegen, typechecks, root packages 2189/2190 (srd/import timeout flake only), session-worker 567/567, vtt and Sheet web unit 377/377 on the merged tree.",
@@ -24791,9 +24812,9 @@
               "text": "Evidence, conflicts, keyboard navigation, screen-reader output and selectors are covered by tests.",
               "status": "DONE",
               "proof": [
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › KeyboardOnlyTabletopJourney",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › KeyboardMoveRejectedAsStaleIsAnnounced",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › HoveringATokenListsItOverTheSelection",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx › KeyboardOnlyTabletopJourney",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx › KeyboardMoveRejectedAsStaleIsAnnounced",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx › HoveringATokenListsItOverTheSelection",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.stories.tsx › KeyboardOnlyEvidenceRoll",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.stories.tsx › KeyboardConflict"
               ],
@@ -27814,32 +27835,148 @@
               "proof": "m820 (0dcc6e21d); slice tip 6d3eaf86d: Tests 43817832151, Live 43817832077, Browser journeys 43817832069 green. Seven area rulings place as inert zones with SRD-cited shapes through the existing WALL, CIRCLE, CYLINDER and CUBE kinds (no contract change): Wall of Force, Ice and Stone as their straight ten-panel form, Gate at its 20 ft maximum, Magnificent Mansion's entrance, Forbiddance as the widest round floor within 40,000 sq ft, Mirage Arcane as a mile square. \"A placed zone needs a label and a shape\" no longer refuses any row. Proof: encounterInertZonePlacement.test places each real SRD spell. Dome, sphere and bent wall forms are not authored. Prismatic Wall and Oil keep their honest refusal (the manifest models only label, shape and entering components) and moved to T3v and T3w."
             },
             {
-              "id": "QUALITY-15.T3v",
-              "status": "TODO",
+              "id": "QUALITY-15.T3ag",
+              "status": "DONE",
+              "mergedAt": "2026-11-16",
               "closes": ["QUALITY-15.1"],
-              "text": "Prismatic Wall places as a layered zone: layers resolve and are destroyed in order and stay destroyed, a 20 ft sight proximity rule blinds, it sheds light, refuses an occupied placement and spends the casting when placed invalidly, and designated creatures pass, through generic zone manifest keys (encounterZonePlacement.ts MODELED_MANIFEST_KEYS).",
+              "text": "A placed zone without Concentration ends when its authored duration runs out: the plan carries a duration with a start hook (PLACEMENT), the room counts it down at its caster's turn start (or stamps the Campaign clock past the turn bound, D222) and removes the zone; Concentration zones are unchanged.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
-                "after": ["QUALITY-15.T2"]
+                "size": 5
               },
-              "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 as a resize in approved scope: the T3v and T3w seam traces found encounterPlacedZone.ts made every placed zone INDEFINITE.",
+              "proof": "m837; slice tip a4df0db7f: Tests 43953376433, Live 43953376407, Browser journeys 43953376349 green. Golden: 17 ZONE_PLACEMENT rows gain a timed duration. Proofs RED at the merge-base: placedZoneDuration.test (5/6; Moonbeam unchanged), nativeRoomHazardZoneSpells.test (Grease ends at its caster's turn start after 1 minute)."
             },
             {
-              "id": "QUALITY-15.T3w",
-              "status": "TODO",
+              "id": "QUALITY-15.T3ah",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
               "closes": ["QUALITY-15.1"],
-              "text": "Oil (flask) places as a zone that needs ignition before its components apply, on a level surface, with a per-turn application limit shared across its components, through generic zone manifest keys.",
+              "text": "Wall of Force, Wall of Ice, Wall of Stone and Gate carry the Concentration attribute the SRD gives them, so casting them takes Concentration and their zones are maintained by it.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-15.T3ag"]
+              },
+              "note": "Registered 2026-11-16 from the T3ag report (source-data rows lacked SPELL_ATTRIBUTE.CONCENTRATION)."
+            },
+            {
+              "id": "QUALITY-15.T3v1",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "A zone authored with ordered components places one spatial record per layer on the same area with a layer index, and a creature crossing it meets the layers in order; designated creatures are unaffected (D223).",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["QUALITY-15.T2"]
+                "after": ["QUALITY-15.T3ag"]
               },
-              "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace). First green tip cb6151784 (Tests 43954580157, Live 43954580120, Browser journeys 43954580045); re-syncing onto m837.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3v2",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Layers are destroyed in order and stay destroyed: the GM destroys the next layer by command, which shows its authored criterion, refuses out of order and can be undone (D223, user ruling 2026-11-16).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T3v1"]
+              },
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+            },
+            {
+              "id": "QUALITY-15.T3v3",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A 20 ft proximity rule blinds a creature that can see the zone, with a timed condition.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T3v2"]
+              },
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+            },
+            {
+              "id": "QUALITY-15.T3v4",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The zone sheds light into scene perception.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-15.T3v3"]
+              },
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+            },
+            {
+              "id": "QUALITY-15.T3v5",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A placement over an occupied space is refused and still spends the casting.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-15.T3v4"]
+              },
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+            },
+            {
+              "id": "QUALITY-15.T3v6",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Zone-held repeat saves for its Indigo and Violet layers.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T3v5"]
+              },
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+            },
+            {
+              "id": "QUALITY-15.T3v7",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Close-out: the Antimagic Field immunity key is treated as satisfied with a doc note, the golden row compiles, and a room journey runs on the real Prismatic Wall row.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-15.T3v6"]
+              },
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+            },
+            {
+              "id": "QUALITY-15.T3w",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "Oil (flask) places as one zone component that applies on entering and on ending a turn in it at most once per turn, only once the GM ignites it (IGNITE_ZONE command, user ruling 2026-11-16); its duration starts at ignition; the level-surface rule is left to the GM (placementSurfaceKind removed).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T3ag"]
+              },
+              "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13). Resized 3 -> 5 on 2026-11-16: ignition state and GM command (D223).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3x",
@@ -27897,7 +28034,7 @@
             },
             {
               "id": "QUALITY-15.T3ab",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A cast-time pick over an area (Antipathy/Sympathy) compiles and the room carries the pick to the creatures it catches.",
               "wsjf": {
@@ -27907,7 +28044,8 @@
                 "size": 3
               },
               "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m838; slice tip 6745cdfb8: Tests 43946187150, Live 43946186949, Browser journeys 43946187058 green. compileCastChoicePlans accepts area targets; POINT, CASTER_CENTERED and DIRECTED targets carry choiceOptions and the cast takes choiceOptionId; the web aimed-area flow sends the pick. Golden: Antipathy/Sympathy REFUSED -> SINGLE_GRAPH. Proofs RED at the merge-base: nativeRoomAreaCastChoice.test, characterSpellCastActions.test."
             },
             {
               "id": "QUALITY-15.T3ac",
@@ -28079,7 +28217,7 @@
             },
             {
               "id": "QUALITY-15.T3t",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A FOLLOW_UP_CHECK that ends its effect compiles as a generic escape on the conditions that effect holds (CONDITION_ESCAPE with an escape outcome); the captive escapes and a creature within reach frees it through the existing escape and rescue path (Create Whirlwind).",
               "wsjf": {
@@ -28090,11 +28228,12 @@
                 "after": ["QUALITY-15.T2", "QUALITY-15.T3c"]
               },
               "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13). Narrowed 5 -> 3 on 2026-11-16; attached-object turn damage moved to QUALITY-15.T3t2.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m838; slice tip 6f7d053a2: Tests 43946294067, Live 43946293998, Browser journeys 43946293964 green. A FOLLOW_UP_CHECK that ends its effect compiles as CONDITION_ESCAPE with an escapeOutcome {outcomeId, actorKinds}; a creature within reach can free the captive; chosenItemPlan moved to effectActionChosenItem.ts (compiler cap 3654 -> 3622). Golden: Create Whirlwind REFUSED -> TEST_OUTCOME. Proofs RED at the merge-base: nativeRoomConditionEscape.test (3/3), followUpCheckEscape.test."
             },
             {
               "id": "QUALITY-15.T3t2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "A MANIFEST object attached to its target deals damage at the start of the attached target's turn or the end of its next turn, with cast-level scaling frozen into the effect, and the attached target can escape it (Acid Arrow, Alchemist's Fire across its two ON_HIT paths).",
               "wsjf": {
@@ -28104,7 +28243,8 @@
                 "size": 5,
                 "after": ["QUALITY-15.T3t"]
               },
-              "note": "Registered 2026-11-16 from the T3t split as a resize in approved scope. Seams: effectActionObjectManifestation.ts and the plan chain in effectActionCompiler.ts."
+              "note": "Registered 2026-11-16 from the T3t split as a resize in approved scope. Seams: effectActionObjectManifestation.ts and the plan chain in effectActionCompiler.ts.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3f",

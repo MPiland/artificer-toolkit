@@ -250,11 +250,19 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
             message: 'A list that repeats creatures names its cap.'
           })
         ),
+      /**
+       * An area's aim, with the options the caster picks one of at cast for the creatures it
+       * catches (D148); absent for an area with none.
+       */
       z.extend(pointAreaTargetDtoSchema, {
         ...choosesUnaffectedShape(),
-        ...summonPickOptionsShape()
+        ...summonPickOptionsShape(),
+        choiceOptions: choiceOptionsSchema
       }),
-      z.extend(casterCenteredTargetSchema, choosesUnaffectedShape()),
+      z.extend(casterCenteredTargetSchema, {
+        ...choosesUnaffectedShape(),
+        choiceOptions: choiceOptionsSchema
+      }),
       z.extend(wallTargetSchema, choosesUnaffectedShape()),
       z.extend(ringTargetSchema, choosesUnaffectedShape()),
       /**
@@ -279,7 +287,7 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
           .check(z.minLength(2)),
         ...choosesUnaffectedShape()
       }),
-      directedAreaTargetDtoSchema
+      z.extend(directedAreaTargetDtoSchema, { choiceOptions: choiceOptionsSchema })
     ]),
     /**
      * The ammunition in stock that fits this weapon attack, for the client to pick from; absent for

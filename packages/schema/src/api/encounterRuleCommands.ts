@@ -179,7 +179,7 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       expectedSceneVersion: versionSchema,
       point: spatialPointDtoSchema,
       unaffectedActorIds: unaffectedActorIdsSchema,
-      /** The zone the caster picks at cast, for an action that offers several (D140). */
+      /** The zone or the option the caster picks at cast, for an action that offers several (D140, D148). */
       choiceOptionId: z.optional(postgresUuidSchema),
       ...summonPicksShape()
     }),
@@ -189,14 +189,16 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       expectedSceneVersion: versionSchema,
       origin: spatialPointDtoSchema,
       toward: spatialPointDtoSchema,
-      unaffectedActorIds: unaffectedActorIdsSchema
+      unaffectedActorIds: unaffectedActorIdsSchema,
+      /** The option the caster picks at cast, for an action that offers several (D148). */
+      choiceOptionId: z.optional(postgresUuidSchema)
     }),
     z.strictObject({
       kind: z.literal('CASTER_CENTERED'),
       sceneId: uuidSchema,
       expectedSceneVersion: versionSchema,
       unaffectedActorIds: unaffectedActorIdsSchema,
-      /** The zone the caster picks at cast, for an action that offers several (D140). */
+      /** The zone or the option the caster picks at cast, for an action that offers several (D140, D148). */
       choiceOptionId: z.optional(postgresUuidSchema)
     }),
     /** A straight wall from one endpoint to the other (D154). */
@@ -235,7 +237,7 @@ export type AreaActionTargetDto = Exclude<
   { kind: 'ACTOR' | 'ACTORS' }
 >
 
-/** The option or zone the caster picked at cast (D140, D148); a directed area takes none. */
+/** The option or zone the caster picked at cast (D140, D148). */
 export function castChoiceOptionId(target: ResolveEncounterActionTargetDto): string | undefined {
   return 'choiceOptionId' in target ? target.choiceOptionId : undefined
 }

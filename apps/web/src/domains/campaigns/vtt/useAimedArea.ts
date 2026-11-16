@@ -44,8 +44,7 @@ export function useAimedArea({
   drawnTarget,
   bandSide,
   needsBandSide,
-  zoneChoices,
-  sparedChoice,
+  areaChoices,
   summonChoices
 }: {
   scene: CampaignSceneStateDto | null
@@ -56,8 +55,8 @@ export function useAimedArea({
   drawnTarget: DrawnAreaTarget | null
   bandSide: SpatialWallSide | null
   needsBandSide: boolean
-  zoneChoices: { choiceOptionId?: string; unaffectedActorIds?: string[] }
-  sparedChoice: { unaffectedActorIds?: string[] }
+  /** The creatures the caster spares and the zone or option it picks at cast. */
+  areaChoices: { choiceOptionId?: string; unaffectedActorIds?: string[] }
   summonChoices: ReturnType<typeof summonPicks>
 }) {
   const sceneGrid = scene?.grid ?? null
@@ -109,7 +108,7 @@ export function useAimedArea({
             from: areaAim.origin,
             to: drawnShape.to,
             ...(bandSide === 'LEFT' || bandSide === 'RIGHT' ? { side: bandSide } : {}),
-            ...zoneChoices
+            ...areaChoices
           }
         : drawnShape.kind === 'RING'
           ? {
@@ -119,7 +118,7 @@ export function useAimedArea({
               center: areaAim.origin,
               outerRadius: drawnShape.outerRadius,
               ...(bandSide === 'INSIDE' || bandSide === 'OUTSIDE' ? { side: bandSide } : {}),
-              ...zoneChoices
+              ...areaChoices
             }
           : null
   const areaCommandTarget: CommandTarget | null =
@@ -131,7 +130,7 @@ export function useAimedArea({
             sceneId: scene.id,
             expectedSceneVersion: scene.version,
             point: areaAim.origin,
-            ...zoneChoices,
+            ...areaChoices,
             ...summonChoices
           }
         : areaAim.toward
@@ -141,7 +140,7 @@ export function useAimedArea({
               expectedSceneVersion: scene.version,
               origin: areaAim.origin,
               toward: areaAim.toward,
-              ...sparedChoice
+              ...areaChoices
             }
           : null
   return { areaSize, tokensInArea, drawnCommandTarget, areaCommandTarget }

@@ -16,7 +16,6 @@ import {
 
 import {
   buildCompiledActionCompilerSource,
-  buildCompiledActionTargetPolicy,
   compileCastChoicePlans
 } from '../encounterActionEntryPointCompiler.js'
 import { castChoiceOptions } from '../encounterCastChoice.js'
@@ -298,9 +297,9 @@ describe('the SRD Shove, a contest whose win its shover picks (D105)', () => {
       'ADVANTAGE'
     )
     const action = srdAction(uncontested)
-    expect(() =>
-      compileCastChoicePlans(adapter, action, buildCompiledActionTargetPolicy(action))
-    ).toThrow("Only a contested check's options influence the initiator's check.")
+    expect(() => compileCastChoicePlans(adapter, action)).toThrow(
+      "Only a contested check's options influence the initiator's check."
+    )
   })
 })
 

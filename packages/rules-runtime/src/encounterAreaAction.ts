@@ -365,11 +365,12 @@ export function encounterActionChoiceTarget(
   if (policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
     return {
       kind: 'CASTER_CENTERED',
-      area: area?.kind === 'RADIUS' ? area : { kind: 'OWN_SPACE' }
+      area: area?.kind === 'RADIUS' ? area : { kind: 'OWN_SPACE' },
+      ...choiceOptions
     }
-  if (area) return { kind: 'POINT', area }
+  if (area) return { kind: 'POINT', area, ...choiceOptions }
   const directedArea = policy ? authoredDirectedArea(policy) : null
-  if (directedArea) return { kind: 'DIRECTED', area: directedArea }
+  if (directedArea) return { kind: 'DIRECTED', area: directedArea, ...choiceOptions }
   if (targeting?.selectionKind === 'SELF') return { kind: 'SELF', ...choiceOptions }
   const single = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting : undefined
   return {
