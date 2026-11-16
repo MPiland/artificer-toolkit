@@ -265,6 +265,14 @@ export function immediateFollowUpSaveEntries(
   }
 }
 
+/** The authored duration of a hit's result block, which its follow-up save's condition lasts. */
+export function immediateFollowUpSaveDuration(
+  action: Dnd5eCompiledEffectActionSource
+): CompiledDuration | undefined {
+  const saveEntry = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry
+  return saveEntry && 'duration' in saveEntry ? saveEntry.duration : undefined
+}
+
 /**
  * A margin rider the nested save can gate: a bounded margin and identified conditions, which share
  * the failed-save path's immunity facts after the failure's own condition.
