@@ -64,18 +64,18 @@ describe('the settled decision on a player’s Encounter session frames (D39)', 
     await vi.waitFor(() => expect(frames().at(-1)?.settlement?.outcome).toBe('ANSWER'))
 
     // A later commit pushes the session again, and that frame must still carry the answer.
-    const mountToken = room.room.scene.tokens[1]
+    const climberToken = room.room.scene.tokens[0]
     const sceneVersion = (answer as { delta?: { result?: { version?: unknown } } }).delta?.result
       ?.version
     const latest = frames().at(-1)
-    if (!mountToken || typeof sceneVersion !== 'number' || !latest)
+    if (!climberToken || typeof sceneVersion !== 'number' || !latest)
       throw new Error('The answer published no Scene version.')
     const framesBefore = frames().length
     const moved = await room.room.move(
       [MOUNT_START, { x: 450, y: 150 }],
       latest.version,
       sceneVersion,
-      mountToken.id
+      climberToken.id
     )
     expect(moved.type).toBe('COMMAND_COMMITTED')
     await vi.waitFor(() => expect(frames().length).toBeGreaterThan(framesBefore))
