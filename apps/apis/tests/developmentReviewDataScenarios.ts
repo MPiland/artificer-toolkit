@@ -328,6 +328,8 @@ export const STORY_CAMPAIGN = {
   slug: 'story',
   name: 'Story Campaign',
   blueprintName: 'Story Encounter',
+  /** The next Encounter the GM has prepared beside the started one; its Run is never started. */
+  preparedBlueprintName: 'Story Next Encounter',
   enemyLabel: 'Story Cultist',
   scene: {
     name: 'Story Scene',
@@ -338,7 +340,10 @@ export const STORY_CAMPAIGN = {
   },
   playSettings: { normalCadenceDays: 14, expectedDurationMinutes: 240, quorum: 3 },
   lootTable: { name: 'Story pockets', coinAmount: 12 }
-} as const satisfies StoryCampaignSpec & { lootTable: { name: string; coinAmount: number } }
+} as const satisfies StoryCampaignSpec & {
+  preparedBlueprintName: string
+  lootTable: { name: string; coinAmount: number }
+}
 
 /**
  * The Campaign the story reader plays in rather than hosts (D221): hosted by REVIEW_STORY_HOST, joined

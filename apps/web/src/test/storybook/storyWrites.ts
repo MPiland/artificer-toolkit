@@ -6,6 +6,10 @@ import { fn } from 'storybook/test'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { definitionReferences } from '@artificer-toolkit/apis/convex/definition-references'
 import {
+  createEncounterInputDtoSchema,
+  encounterGmProjectionDtoSchema
+} from '@artificer-toolkit/schema/api/encounterData'
+import {
   getReusableDefinitionInputDtoSchema,
   reusableDefinitionWorkspaceDtoSchema
 } from '@artificer-toolkit/schema/api/reusableDefinitions'
@@ -40,19 +44,17 @@ function boundStoryQueryClient(): QueryClient {
   return storyQueryClient
 }
 
-/**
- * The story's own read client, for a write whose caller parses a stored record: that write answers
- * with the record as the deployment holds it. The preview binds it for each story.
- */
-let storyReads: Pick<ConvexReactClient, 'query'> | undefined
+/** The story's read client, bound by the preview, for responses that echo a record the deployment holds. */
+let storyReads: ConvexReactClient | undefined
 
-export function bindStoryReads(client: Pick<ConvexReactClient, 'query'>) {
+/** The preview binds the story's read client before each story; it is taken before any query override. */
+export function bindStoryReads(client: ConvexReactClient) {
   storyReads = client
 }
 
 /** The Social listing a listing write targets, exactly as `getOwned` returns it. */
 async function readOwnedListing(listingPublicId: string) {
-  if (!storyReads) throw new Error('A story write ran before its read client was bound.')
+  if (!storyReads) throw new Error('A story wrote before its preview bound the read client.')
   return socialListingDtoSchema.parse(
     await storyReads.query(api.social.listings.getOwned, { listingPublicId })
   )
@@ -105,6 +107,18 @@ async function writeResponse(reference: MutationReference, input: unknown): Prom
       contentPreference: preference.contentPreference,
       status: 'ACTIVE'
     })
+  }
+  if (name === getFunctionName(api.encounters.runs.create)) {
+    if (!storyReads) throw new Error('A story wrote before its preview bound the read client.')
+    const { campaignId, blueprintId } = createEncounterInputDtoSchema.parse(input)
+    // The created Run answers as the Campaign's seeded prepared Run: its real projection.
+    const runs = await storyReads.query(api.encounters.projectionReads.list, { campaignId })
+    const prepared = runs.find(({ status }) => status === 'PREPARED')
+    if (!prepared) throw new Error('The story Campaign has no prepared Run to answer a create.')
+    const projection = await storyReads.query(api.encounters.projectionReads.get, {
+      encounterId: prepared.id
+    })
+    return encounterGmProjectionDtoSchema.parse({ ...projection, campaignId, blueprintId })
   }
   if (
     getFunctionName(reference) === getFunctionName(definitionReferences.saveDraft) ||

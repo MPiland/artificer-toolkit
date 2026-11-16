@@ -26,6 +26,14 @@ const inertWatch: Watch<never> = {
   journal: () => undefined
 }
 
+/**
+ * A client whose reads keep the deployment's own `watchQuery`, taken before an override is installed.
+ * `client.query` waits on that subscription, so on the overridden client the inert one never answers.
+ */
+export function unoverriddenReads(client: ConvexReactClient): ConvexReactClient {
+  return Object.create(client, { watchQuery: { value: client.watchQuery.bind(client) } })
+}
+
 export function installQueryOverride(
   { query, args = {}, derive }: StoryQueryOverride,
   queryClient: QueryClient,
