@@ -2514,7 +2514,7 @@
             },
             {
               "id": "PLATFORM-28.T7b3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2525,7 +2525,8 @@
               },
               "text": "The backend preview spies the Scene renderer and records every client write frame (COMMAND and Scene fog writes) without sending it; GM and player window backend stories assert the presented Scene, tokens drawn, fog, the connection status and the Encounter, replacing RoomConnected and the base harness stories; DRAINING reconnect documented.",
               "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m813 (f9c2fe518); slice tip 23271da40 (contains m810): Tests 43797543384, Live 43797543309, Browser journeys 43797543341 green. CampaignTabletopWindow backend stories (GM window, edits the Scene, advances the turn, binds a creature to another token, reveals a player's fog; player window, player moves their token) connect to the stack's real Session Worker with product tickets; Session Worker commands and fog frames are spied writes (D218), the fog answer is a schema-parsed SCENE_FOG_PROGRESS, and the Scene renderer is spied so stories assert what it drew against the presented Scene. Player door assertions restated against the seeded Scene's DOOR barriers. seedStorySocial admits the story host as the Story Campaign's player and marks the acceptance notice seen so the reader's bell keeps its seeded count; storyData asserts the host seat. Fake-socket base stories deleted with a no-importer proof. DRAINING reconnect stays a unit-level proof (liveSessionClient reconnectDelay, terminal join refusals). Red proof: storyLiveSession.test ALREADY-PASSING (test-only addition)."
             },
             {
               "id": "PLATFORM-28.T7c",
