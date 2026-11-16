@@ -82,8 +82,15 @@ describe('room cast of an area pick (QUALITY-15.T3ab)', () => {
 
     const stored = await readRoomHistory(room.room.base.stub)
     const caught = areaReceipts(stored).children.map(({ outputs }) => outputs.targetActorId)
-    expect(caught).toEqual(expect.arrayContaining(WOLF_IDS))
-    const held = stored.activeEffects.map(({ targetActorId, definitionJson }) => ({
+    expect([...caught].sort()).toEqual([CHARACTER_ACTOR_ID, ...WOLF_IDS].sort())
+    // The 200-foot cube also catches its caster, whose effect the Character holds (by its id).
+    const held = [
+      ...stored.activeEffects,
+      ...stored.characterEffects.map(({ characterId, definitionJson }) => ({
+        targetActorId: characterId === CHARACTER_ID ? CHARACTER_ACTOR_ID : characterId,
+        definitionJson
+      }))
+    ].map(({ targetActorId, definitionJson }) => ({
       targetActorId,
       rulings: activeRuleEffectDefinitionDtoSchema
         .parse(JSON.parse(definitionJson))
@@ -112,5 +119,6 @@ describe('room cast of an area pick (QUALITY-15.T3ab)', () => {
     const after = await readRoomHistory(room.room.base.stub)
     expect(after.receipts).toEqual(before.receipts)
     expect(after.activeEffects).toEqual([])
+    expect(after.characterEffects).toEqual([])
   }, 120000)
 })
