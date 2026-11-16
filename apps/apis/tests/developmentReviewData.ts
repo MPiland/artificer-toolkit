@@ -12,6 +12,7 @@ import type {
   EncounterActionChoicesResponseDto,
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
@@ -53,6 +54,7 @@ import {
   STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
   STORY_DRAFT_ONLY,
+  STORY_HELD_EQUIPMENT,
   STORY_RECORDS,
   STORY_PREPARED_SPELLS,
   STORY_SPELL_NOTE,
@@ -649,7 +651,7 @@ async function presentStoryRun(
 
 /** Builds each story Character through the Builder commit once; a Character that exists is kept. */
 async function seedStoryCharacters(reader: StoryClient) {
-  const { fighter, multiclass, caster, draftPending } = STORY_CHARACTERS
+  const { fighter, multiclass, caster, draftPending, astralHolder } = STORY_CHARACTERS
   const exists = async (characterId: string) =>
     Boolean(await reader.query(api.characters.sheet.get, { id: characterId }))
   if (!(await exists(fighter.characterId)))
@@ -722,6 +724,61 @@ async function seedStoryCharacters(reader: StoryClient) {
       id: draftPending.characterId,
       systemId: srdSystemRecord.id
     })
+  await seedStoryAstralHolder(reader, astralHolder.characterId, astralHolder.label)
+}
+
+/** A Sheet command without the fields the executor stamps. */
+type UnsentSheetCommand<Command = CharacterSheetCommandInputDto> = Command extends unknown
+  ? Omit<Command, 'commandId' | 'expectedVersion'>
+  : never
+
+/** The Inventory stories open a published homebrew weapon carried attuned with one charge spent, which a Character gains through the Sheet commands. */
+async function seedStoryAstralHolder(reader: StoryClient, characterId: string, label: string) {
+  const { subjectKind, subjectId, label: weaponLabel, payload } = STORY_HELD_EQUIPMENT
+  if (!(await reader.query(api.characters.sheet.get, { id: characterId })))
+    await createDevelopmentCharacter(reader, characterId, {}, label)
+  if (!(await reader.query(api.content.details.get, { subjectKind, id: subjectId }))?.item) {
+    const draft = await reader.mutation(api.content.drafts.save, {
+      subjectKind,
+      subjectId,
+      systemId: srdSystemRecord.id,
+      label: weaponLabel,
+      payload
+    })
+    assert.ok(draft.updatedAt, `Story weapon ${weaponLabel} has no draft to publish.`)
+    await reader.mutation(api.content.publication.publishDraft, {
+      subjectKind,
+      subjectId,
+      expectedDraftUpdatedAt: draft.updatedAt
+    })
+  }
+  const read = async () => {
+    const sheet = await reader.query(api.characters.sheet.get, { id: characterId })
+    assert.ok(sheet, 'The story Astral holder must read its Sheet.')
+    return sheet
+  }
+  const execute = async (command: UnsentSheetCommand) =>
+    reader.mutation(api.characters.sheetCommands.execute, {
+      id: characterId,
+      command: {
+        ...command,
+        commandId: crypto.randomUUID(),
+        expectedVersion: (await read()).meta.streamVersion
+      }
+    })
+  const held = () =>
+    read().then((sheet) => sheet.inventory.items.find((item) => item.equipmentId === subjectId))
+  if (!(await held()))
+    await execute({ type: 'ADD_INVENTORY_ITEM', equipmentId: subjectId, quantity: 1 })
+  const item = await held()
+  assert.ok(item, 'The story Astral holder lost its weapon.')
+  if (!item.equippedSlot) await execute({ type: 'EQUIP_ITEM', itemId: item.id })
+  if (!(await held())?.attuned) await execute({ type: 'ATTUNE_ITEM', itemId: item.id })
+  const charges = (await read()).resources.items.find(
+    ({ owner }) => owner.kind === 'ITEM_INSTANCE' && owner.itemInstanceId === item.id
+  )
+  assert.ok(charges, 'The story weapon grants no charges.')
+  if (charges.used === 0) await execute({ type: 'USE_SHEET_RESOURCE', owner: charges.owner })
 }
 
 /** The Extras stories open a companion and a vehicle, which a Character gains through the Sheet command. */

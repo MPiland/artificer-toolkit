@@ -284,20 +284,14 @@ const STORY_BOARD: ReviewBoard = {
 }
 
 const astralTearId = '4f37fd9c-8671-422b-b504-cf55c48fdbd1'
+const heldAstralTearId = 'b6a8d3e4-2c57-4b0e-9f1a-7d4c2e8a5b10'
 
-/**
- * A homebrew weapon the story account authored from scratch and saved without activating (D221):
- * the dense equipment structure the authoring stories walk, with an attack, its magic bonuses,
- * charges and features that spend them. The save stamps the account, System and draft status.
- */
-export const STORY_DRAFT_ONLY = {
-  subjectKind: 'EQUIPMENT' as const,
-  subjectId: astralTearId,
-  label: 'The Astral Tear Awakened',
-  payload: {
+/** The dense equipment structure the authoring and Sheet stories walk: an attack, its magic bonuses, charges and features that spend them. */
+function astralTearPayload(id: string, label: string) {
+  return {
     kind: 'EQUIPMENT',
-    id: astralTearId,
-    label: 'The Astral Tear Awakened',
+    id,
+    label,
     description:
       'This mighty blade belongs to the Astral Champion of Vedur. While attuned to it, its wielder can call it to hand from a special demiplane.',
     category: Equipment.EQUIPMENT_CATEGORY_CODE.WEAPON,
@@ -308,12 +302,12 @@ export const STORY_DRAFT_ONLY = {
       Equipment.EQUIPMENT_PROPERTY_CODE.VEX
     ],
     effects: Equipment.meleeWeaponEffects(
-      astralTearId,
+      id,
       'RADIANT',
       '1d6',
       Equipment.EQUIPMENT_GRIP.ONE_HANDED
     ),
-    modifiers: Equipment.meleeMagicWeaponModifiers(astralTearId, 1),
+    modifiers: Equipment.meleeMagicWeaponModifiers(id, 1),
     charges: {
       id: '7912761e-3fe6-4dc4-8bd7-d0e59e0e69cd',
       resetKind: 'DAWN',
@@ -360,6 +354,29 @@ export const STORY_DRAFT_ONLY = {
     systemId: Equipment.SRD_SYSTEM_ID
   } satisfies BaseEquipmentAuthoringInputDto
 }
+
+/**
+ * A homebrew weapon the story account authored from scratch and saved without activating (D221).
+ * The save stamps the account, System and draft status.
+ */
+export const STORY_DRAFT_ONLY = {
+  subjectKind: 'EQUIPMENT' as const,
+  subjectId: astralTearId,
+  label: 'The Astral Tear Awakened',
+  payload: astralTearPayload(astralTearId, 'The Astral Tear Awakened')
+}
+
+/**
+ * The same weapon, published, that the story Astral holder carries attuned and one charge spent
+ * (PLATFORM-28.T6d). It is a separate record so the draft-only story keeps its never-activated state.
+ */
+export const STORY_HELD_EQUIPMENT = {
+  subjectKind: 'EQUIPMENT' as const,
+  subjectId: heldAstralTearId,
+  label: 'Story Astral Tear',
+  payload: astralTearPayload(heldAstralTearId, 'Story Astral Tear')
+}
+
 /**
  * The Sense definitions the story account authors for the System detail stories (D221), one per
  * state a definition reaches through product commands. Their ids are random, so stories find them by
@@ -379,6 +396,11 @@ export const STORY_CHARACTERS = {
   fighter: { characterId: '823e1766-9a56-4d22-a512-4e655983c1fe', label: 'Story Fighter' },
   multiclass: { characterId: 'f1a6b1fc-d7f7-4942-bf6c-6c10e441c837', label: 'Story Multiclass' },
   caster: { characterId: 'ef327a5a-0c6f-44b2-8ccd-5548188c305a', label: 'Story Caster' },
+  /** Carries STORY_HELD_EQUIPMENT attuned, with one of its three charges spent. */
+  astralHolder: {
+    characterId: '3c1d9e52-7a64-4f08-b2d6-91e5a0c7f843',
+    label: 'Story Astral Holder'
+  },
   /** A Fighter reopened in the Builder, so a draft waits on top of its active Sheet. */
   draftPending: {
     characterId: 'ef0fc5fd-ee78-4d0d-aa52-18d54f218548',

@@ -38,6 +38,7 @@ import {
   STORY_CHARACTERS,
   STORY_DEFINITIONS,
   STORY_DRAFT_ONLY,
+  STORY_HELD_EQUIPMENT,
   STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
   STORY_RECORDS,
@@ -201,12 +202,13 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     roots: seeded.roots.filter((root) => !isCharacterCopy(root))
   }).toEqual({
     characters: characters.map(({ characterId, label }) => `${characterId} ${label}`).sort(),
-    roots: records
-      .flatMap(({ subjectKind, ownedActive, ownedDraft }) => [
+    roots: [
+      ...records.flatMap(({ subjectKind, ownedActive, ownedDraft }) => [
         `${subjectKind} ${ownedActive.label}`,
         `${subjectKind} ${ownedDraft.label}`
-      ])
-      .sort(),
+      ]),
+      `${STORY_HELD_EQUIPMENT.subjectKind} ${STORY_HELD_EQUIPMENT.label}`
+    ].sort(),
     drafts: [
       ...records.map(
         ({ subjectKind, ownedDraft }) => `${subjectKind} ${ownedDraft.label} ACTIVE_WITH_DRAFT`
@@ -247,6 +249,23 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(
     casterSheet?.spells.slots.map(({ remaining, used, max }) => [remaining, used, max])
   ).toEqual(casterSheet?.spells.slots.map(({ max }) => [0, max, max]))
+  // The Inventory stories open the Astral holder's published weapon, attuned, with one of its three charges spent.
+  const astralSheet = await reader.query(api.characters.sheet.get, {
+    id: STORY_CHARACTERS.astralHolder.characterId
+  })
+  const astralWeapon = astralSheet?.inventory.items.find(
+    ({ equipmentId }) => equipmentId === STORY_HELD_EQUIPMENT.subjectId
+  )
+  expect(astralWeapon).toMatchObject({
+    label: STORY_HELD_EQUIPMENT.label,
+    attuned: true,
+    equippedSlot: expect.any(String)
+  })
+  expect(
+    astralSheet?.resources.items.filter(
+      ({ owner }) => owner.kind === 'ITEM_INSTANCE' && owner.itemInstanceId === astralWeapon?.id
+    )
+  ).toMatchObject([{ used: 1, max: 3, remaining: 2 }])
   expect((await reader.query(api.accountEntitlements.get, {})).tier).toBe('FREE')
   expect(await stored()).toEqual(seeded)
 
