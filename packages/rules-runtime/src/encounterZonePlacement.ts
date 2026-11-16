@@ -74,6 +74,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'automaticSaveSuccessImmunityDamageTypeId',
   'occupantSaveBonus',
   'occupantConditionImmunity',
+  'requiresIgnition',
   'behaviors'
 ])
 
@@ -135,6 +136,11 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
   if (components[0]?.region || components.slice(1).some((component) => !component.region))
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A placed zone’s first component covers its shape, and each later one a region beside it.'
+    )
+  // Lighting is the zone's own state, so a zone waiting to be lit has nothing beside it.
+  if (components.length > 1 && components.some((component) => component.requiresIgnition))
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A zone that needs lighting has one component.'
     )
   const planned = components.map((component) => {
     if (hasUnmodeledField(component, MODELED_COMPONENT_KEYS))

@@ -142,10 +142,12 @@ function toSpatialInstance(
     requiresFullyWithin: effect.placement.requiresFullyWithin,
     retaliatesMeleeHits: effect.placement.retaliatesMeleeHits,
     distanceStep: effect.placement.distanceStep,
+    // A zone waiting to be lit rests like a defeated source's passive zone (QUALITY-15.T3w).
     suppressed:
-      isEncounterPassiveZone(effect) &&
-      sourceActorId !== null &&
-      defeatedActorIds.has(sourceActorId)
+      effect.spatialState.unlit === true ||
+      (isEncounterPassiveZone(effect) &&
+        sourceActorId !== null &&
+        defeatedActorIds.has(sourceActorId))
   } as const
 }
 

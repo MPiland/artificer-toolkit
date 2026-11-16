@@ -356,9 +356,10 @@ export const zoneDcDtoSchema = lazySchema(() =>
 )
 
 /**
- * Mutable presentation state; execution lifecycle remains separately frozen. A zone with
+ * Mutable presentation and GM-ruled state; execution lifecycle remains separately frozen. A zone with
  * `concealment` is drawn and listed only for the GM and the Characters in `knownByActorIds`; one
- * without it is in plain sight (MOVE-3.3).
+ * without it is in plain sight (MOVE-3.3). An `unlit` zone is drawn but catches no one until the GM
+ * lights it (QUALITY-15.T3w).
  */
 export const spatialRuleEffectStateDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -388,7 +389,9 @@ export const spatialRuleEffectStateDtoSchema = lazySchema(() =>
       })
     ),
     /** Shown only to the GM. */
-    disarmDc: z.optional(zoneDcDtoSchema)
+    disarmDc: z.optional(zoneDcDtoSchema),
+    /** The zone waits for the GM to light it; absent once lit or for a zone that needs no lighting. */
+    unlit: z.optional(z.literal(true))
   })
 )
 

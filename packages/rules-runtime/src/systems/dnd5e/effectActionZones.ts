@@ -4,12 +4,14 @@ import type {
   CompiledManifestComponent
 } from '@artificer-toolkit/shared/compilers'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import type {
   CharacterRuleActionActiveEffectPlan,
   CharacterRuleActionZoneChoicePlan,
   CharacterRuleActionZonePlacementPlan
 } from '../../characterRuleActionSystemAdapter.js'
 import { encounterZoneChoiceTarget } from '../../encounterAreaAction.js'
+import { effectOutcomeProposalNode, effectOutcomeProposalOutputs } from '../../effectOutcomeRegistry.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
   passiveMeleeRetaliationZone,
@@ -22,6 +24,7 @@ import { dnd5eAttackKind } from './attackKind.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY,
   DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+  DND5E_EFFECT_ACTION_FAMILY_KEY,
   UUID,
   damageMultiplier,
   damageTypeIdentity,
@@ -34,12 +37,15 @@ import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js
 import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import { durationPublishedGraph, maintenancePlan } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
+import { DND5E_OUTCOME_TARGET } from './effectActionOutcomeNodes.js'
+import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import { boundedTestOutcome, specializedTestOutcome } from './effectActionTestOutcomes.js'
 import { compileTestDefinition, withMovementInterruption } from './effectActionTestPhase.js'
 import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
 import { dnd5eEventVocabularyCapabilityAdapter } from './eventVocabulary.js'
 import { boundedDiceTerm } from './effectActionScalingFacts.js'
+import { DND5E_SYSTEM_ID } from './identity.js'
 
 /**
  * The zone an action places (D140, D153–D156): a passive melee trait's retaliating zone, the zones a
@@ -282,6 +288,7 @@ function occupantBonusZonePlacementPlan(
     component.choosesUnaffected ||
     component.maxApplicationsPerTurn !== undefined ||
     component.requiresFullyWithin ||
+    component.requiresIgnition ||
     component.requiredSight?.length ||
     component.movementCostMultiplier !== undefined ||
     component.perDistanceMoved ||
@@ -430,6 +437,7 @@ function zoneComponentPlan(
       ? { maxApplicationsPerTurn: component.maxApplicationsPerTurn }
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+    ...(component.requiresIgnition ? { requiresIgnition: true as const } : {}),
     ...(requiredSight?.length ? { requiredSight: [...new Set(requiredSight)].sort() } : {}),
     ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
     ...(perDistanceMoved
@@ -709,9 +717,9 @@ function sourceGrantPlan(
 }
 
 /**
- * A zone whose outcome needs no save (D144, D154): it rolls one unmodified damage dice row and deals
- * it in full, with no test node, at a turn boundary or when a mover enters it; its source rolls the
- * dice.
+ * A zone whose outcome needs no save (D144, D154): it deals one fixed damage row, or rolls one
+ * unmodified damage dice row, in full with no test node, at a turn boundary or when a mover enters
+ * it; its source rolls the dice.
  */
 function unsavedZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
@@ -733,8 +741,8 @@ function unsavedZonePlacementPlan(
     unsupported('A zone outcome with no save is direct damage on use.')
   const row = zoneDamageRow(entries, action.spellCastLevel)
   const outcome = zoneDamageOutcome(row, 'ON_USE')
-  if (outcome.kind !== 'ENTRY_DICE_DAMAGE' || !UUID.test(row.entryId))
-    unsupported('A zone outcome with no save rolls one damage dice row.')
+  if ((outcome.kind !== 'ENTRY_DICE_DAMAGE' && outcome.kind !== 'DAMAGE') || !UUID.test(row.entryId))
+    unsupported('A zone outcome with no save deals one fixed or dice damage row.')
   const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
     compiledEntryId: row.entryId,
@@ -748,12 +756,15 @@ function unsavedZonePlacementPlan(
     maintenance: null,
     marginRiders: []
   }
-  const definition = diceGraphDefinition({
-    action,
-    entry: row,
-    diceConfig: outcome.diceConfig,
-    recurring: entryPlan
-  })
+  const definition =
+    outcome.kind === 'ENTRY_DICE_DAMAGE'
+      ? diceGraphDefinition({
+          action,
+          entry: row,
+          diceConfig: outcome.diceConfig,
+          recurring: entryPlan
+        })
+      : fixedZoneDamageGraph(action, outcome, entryPlan)
   return {
     ...placement,
     entry: {
@@ -762,5 +773,33 @@ function unsavedZonePlacementPlan(
     },
     grant: null,
     maintenance: maintenancePlan(action, row)
+  }
+}
+
+/** The graph of a zone outcome with no save that deals a fixed amount: one direct damage proposal. */
+function fixedZoneDamageGraph(
+  action: Dnd5eCompiledEffectActionSource,
+  outcome: Extract<Outcome, { kind: 'DAMAGE' }>,
+  recurring: Pick<CharacterRuleActionActiveEffectPlan, 'compiledEntryId' | 'frozenGraphNodeId'>
+): RuleGraphDefinition {
+  const definition = dnd5eOutcomeDefinition('DAMAGE')
+  const nodeId = recurring.frozenGraphNodeId
+  return {
+    schemaVersion: 1,
+    id: action.effectId,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+    nodes: [
+      effectOutcomeProposalNode({
+        id: nodeId,
+        definition,
+        outcome,
+        context: { conditionImmuneFactKey: undefined },
+        target: DND5E_OUTCOME_TARGET,
+        phase: { kind: 'DIRECT', contractVersion: 1 }
+      })
+    ],
+    outputs: effectOutcomeProposalOutputs(definition, nodeId),
+    sourceEntryBindings: [{ sourceEntryId: recurring.compiledEntryId, nodeId }]
   }
 }

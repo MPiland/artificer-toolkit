@@ -149,29 +149,24 @@ export const oilFlask: EquipmentAuthored = {
                 manifestKind: 'ZONE' as const,
                 attachmentKind: 'PLACED_SPACE' as const,
                 label: 'Poured oil',
-                placementSurfaceKind: 'LEVEL' as const,
-                maxApplicationsPerTurn: 1,
                 shape: {
                   id: S.equipmentChildId(S.equipId(157), 0x235, 1),
                   shapeKind: S.SHAPE_KIND.CUBE,
                   edgeLength: { amount: 5, unit: S.MEASUREMENT_UNIT_CODE.FEET }
                 },
+                // The GM rules that the surface is level, and lights the oil (QUALITY-15.T3w).
                 components: [
                   {
                     id: S.equipmentChildId(S.equipId(157), 0x236, 1),
                     order: 1,
-                    label: 'Enter burning oil',
-                    interactionKinds: ['ENTER_OR_PASS_THROUGH' as const],
+                    label: 'Burning oil',
+                    interactionKinds: [
+                      'ENTER_OR_PASS_THROUGH' as const,
+                      'END_TURN_IN_SPACE' as const
+                    ],
+                    maxApplicationsPerTurn: 1,
                     requiresIgnition: true,
                     behaviors: [fireDamageBehavior(0x240)]
-                  },
-                  {
-                    id: S.equipmentChildId(S.equipId(157), 0x236, 2),
-                    order: 2,
-                    label: 'End turn in burning oil',
-                    interactionKinds: ['END_TURN_IN_SPACE' as const],
-                    requiresIgnition: true,
-                    behaviors: [fireDamageBehavior(0x250)]
                   }
                 ]
               }

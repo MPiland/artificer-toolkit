@@ -3,24 +3,27 @@ import { Button, Group, MultiSelect, Stack, Text } from '@mantine/core'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   DisarmZoneInputDto,
+  IgniteZoneInputDto,
   RevealZoneInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 
 /**
- * The GM's hand on each placed zone (MOVE-3.7): show a concealed zone to chosen Characters, or
- * disarm it. The disarm DC is the GM's own note; players never receive it.
+ * The GM's hand on each placed zone (MOVE-3.7): show a concealed zone to chosen Characters, light
+ * one that waits to be lit (QUALITY-15.T3w), or disarm it. The disarm DC is the GM's own note; players never receive it.
  */
 export function CampaignTabletopZoneControls({
   actors,
   disabled,
   zones,
   onDisarm,
+  onIgnite,
   onReveal
 }: {
   actors: readonly { id: string; label: string }[]
   disabled: boolean
   zones: EncounterSessionStateDto['placedZones']
   onDisarm: (disarm: Pick<DisarmZoneInputDto, 'spatialEffectId'>) => void
+  onIgnite: (ignite: Pick<IgniteZoneInputDto, 'spatialEffectId'>) => void
   onReveal: (reveal: Pick<RevealZoneInputDto, 'spatialEffectId' | 'actorIds'>) => void
 }) {
   const [chosen, setChosen] = useState<Readonly<Record<string, string[]>>>({})
@@ -36,16 +39,29 @@ export function CampaignTabletopZoneControls({
               <Text size='xs'>
                 {name}
                 {zone.disarmDc ? ` · disarm DC ${zone.disarmDc.value}` : ''}
+                {zone.unlit ? ' · unlit' : ''}
               </Text>
-              <Button
-                aria-label={`Disarm ${name}`}
-                disabled={disabled}
-                size='compact-xs'
-                variant='default'
-                onClick={() => onDisarm({ spatialEffectId: zone.id })}
-              >
-                Disarm
-              </Button>
+              <Group gap='xs' wrap='nowrap'>
+                {zone.unlit ? (
+                  <Button
+                    aria-label={`Ignite ${name}`}
+                    disabled={disabled}
+                    size='compact-xs'
+                    onClick={() => onIgnite({ spatialEffectId: zone.id })}
+                  >
+                    Ignite
+                  </Button>
+                ) : null}
+                <Button
+                  aria-label={`Disarm ${name}`}
+                  disabled={disabled}
+                  size='compact-xs'
+                  variant='default'
+                  onClick={() => onDisarm({ spatialEffectId: zone.id })}
+                >
+                  Disarm
+                </Button>
+              </Group>
             </Group>
             {zone.unawareActorIds.length > 0 ? (
               <Group align='end' gap='xs' wrap='nowrap'>

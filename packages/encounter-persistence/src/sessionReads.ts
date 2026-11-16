@@ -126,7 +126,8 @@ export async function readEncounterSessionState(
                 !spatialState.concealment.knownByActorIds.includes(id)
                   ? [id]
                   : []
-              )
+              ),
+              ...(spatialState.unlit ? { unlit: true as const } : {})
             }
           ]
         : []

@@ -122,7 +122,10 @@ export interface SpatialEffectInstance {
   readonly maxApplicationsPerTurn?: number
   /** At a turn boundary, catches only a creature whose whole space is inside the area. */
   readonly requiresFullyWithin?: boolean
-  /** Catches no one while it rests, still drawn: a Creature's passive zone whose source is defeated (D144). */
+  /**
+   * Catches no one while it rests, still drawn: a Creature's passive zone whose source is defeated
+   * (D144), or a zone waiting for the GM to light it (QUALITY-15.T3w).
+   */
   readonly suppressed?: boolean
   /** Catches a creature inside it that hits the effect's source with a melee attack (D153). */
   readonly retaliatesMeleeHits?: boolean

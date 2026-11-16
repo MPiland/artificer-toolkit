@@ -252,7 +252,7 @@ function placedZoneRecord(
         : {})
     }),
     spatialState: withZoneDcs(
-      { schemaVersion: 1, revealed: true },
+      { schemaVersion: 1, revealed: true, ...(zone.requiresIgnition ? { unlit: true } : {}) },
       {
         spotDc: zone.camouflage
           ? {

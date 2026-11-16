@@ -274,7 +274,11 @@ export async function revertLastEncounterAction(
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertPlaceZone(ctx, { ...scope, root })
   }
-  if (root?.commandType === 'SET_ZONE_DCS' || root?.commandType === 'REVEAL_ZONE') {
+  if (
+    root?.commandType === 'SET_ZONE_DCS' ||
+    root?.commandType === 'REVEAL_ZONE' ||
+    root?.commandType === 'IGNITE_ZONE'
+  ) {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertZoneDcs(ctx, { ...scope, root })
   }

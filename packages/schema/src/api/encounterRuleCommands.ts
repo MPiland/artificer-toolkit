@@ -735,6 +735,13 @@ export const disarmZoneInputDtoSchema = lazySchema(() =>
     spatialEffectId: postgresUuidSchema
   })
 )
+/** GM-only (QUALITY-15.T3w): lights a zone that waits to be lit, which then catches creatures. */
+export const igniteZoneInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('IGNITE_ZONE'),
+    spatialEffectId: postgresUuidSchema
+  })
+)
 /**
  * GM-only morale save (ENCOUNTER-6.1): checks one of the actor's offered or GM-declared triggers.
  * `leaderActorId` names the group's leader for a group trigger; null rolls the fallback roller. The
@@ -800,6 +807,7 @@ export type SetZoneDcsInputDto = z.infer<typeof setZoneDcsInputDtoSchema>
 export type DismissZoneSightingInputDto = z.infer<typeof dismissZoneSightingInputDtoSchema>
 export type RevealZoneInputDto = z.infer<typeof revealZoneInputDtoSchema>
 export type DisarmZoneInputDto = z.infer<typeof disarmZoneInputDtoSchema>
+export type IgniteZoneInputDto = z.infer<typeof igniteZoneInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
 export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>
