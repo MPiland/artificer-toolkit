@@ -3,7 +3,8 @@ import { useQuery } from 'convex/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { sceneFogAppendInputSchema } from '@artificer-toolkit/schema/api/sceneFog'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { expect, userEvent, waitFor, within } from 'storybook/test'
+import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test'
+import { writesTo } from '#app/test/storybook/storyWrites'
 import {
   latestEncounter,
   latestStateSync,
@@ -15,11 +16,14 @@ import {
   REVIEW_STORY_HOST,
   STORY_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
+  STORY_ZONES,
   type StoryCampaignSpec
 } from '../../../../../apis/tests/developmentReviewDataScenarios'
 import { SeededCampaign } from '../stories/SeededCampaign'
 import { CampaignTabletopWindow } from './CampaignTabletopWindow'
+import { createPlacedZoneDraft, placedZoneSize } from './campaignTabletopZoneTool.model'
 import { latestStageRenderer } from './vttSceneRenderer.assertions'
+import { placedZoneColor } from './vttSceneRenderer.model'
 
 /** The room activates from its checkpoint on the first socket, then syncs and the map loads. */
 const roomJoinTimeoutMs = 30_000
@@ -439,5 +443,181 @@ export const PlayerMovesTheirToken: Story = {
         })
       )
     )
+  }
+}
+
+/** The placed zones the stage draws, read from the renderer's drawn presentation overlays. */
+async function drawnZones(count: number) {
+  const renderer = await latestStageRenderer()
+  return waitFor(() => {
+    const drawn = renderer
+      .getDiagnostics()
+      .overlays.filter((overlay) => overlay.strokeColors.includes(placedZoneColor))
+    expect(drawn).toHaveLength(count)
+    return drawn
+  })
+}
+
+/** The zone as the seed placed it, drawn on the presented Scene's grid by the product's own geometry. */
+function seededZoneArea({ point, radiusFeet }: (typeof STORY_ZONES)[number]) {
+  const size = placedZoneSize(
+    {
+      shape: {
+        id: crypto.randomUUID(),
+        shapeKind: 'CIRCLE',
+        radius: { amount: radiusFeet, unit: 'FEET' }
+      }
+    },
+    presentedScene().grid
+  )
+  if (size?.kind !== 'RADIUS') throw new Error('A seeded zone is a circle.')
+  return { center: point, radius: size.radius }
+}
+
+function sceneDescription(page: ReturnType<typeof within>) {
+  return page
+    .getByRole('img', { name: 'Interactive campaign scene' })
+    .getAttribute('aria-description')
+}
+
+// The room lists every zone to the GM (MOVE-3.3), whose label names the hidden trap's spot DC.
+export const GmSeesEveryPlacedZone: Story = {
+  args: { campaign: STORY_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_CAMPAIGN)
+    await expectConnected(page)
+    const drawn = await drawnZones(STORY_ZONES.length)
+    for (const zone of STORY_ZONES) {
+      const overlay = drawn.find(({ label }) => label?.startsWith(zone.label))
+      await expect(overlay?.circles).toEqual([seededZoneArea(zone)])
+    }
+    const trap = STORY_ZONES[1]
+    await expect(drawn.map(({ label }) => label)).toContain(
+      `${trap.label} (hidden, spot DC ${trap.spotDc.value})`
+    )
+    await expect(await sceneDescription(page)).toContain('Zones:')
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// The room omits a trap concealed from every one of the player's Characters (MOVE-3.3) and carries no
+// spot DC to a player, so the map draws only the zone in plain sight.
+export const PlayerSeesOnlyZonesTheyKnowOf: Story = {
+  args: { campaign: STORY_PLAYER_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_PLAYER_CAMPAIGN)
+    await expectConnected(page)
+    const [hazard, trap] = STORY_ZONES
+    const drawn = await drawnZones(1)
+    await expect(drawn[0]!.label).toBe(hazard.label)
+    await expect(drawn[0]!.circles).toEqual([seededZoneArea(hazard)])
+    const description = await sceneDescription(page)
+    await expect(description).toContain(`Zones: ${hazard.label}`)
+    await expect(description).not.toContain(trap.label)
+  }
+}
+
+// MOVE-3.2 with VTT_UI-3.1: while the GM picks a zone's center, its area follows the pointer.
+export const PlacingAZonePreviewsItsArea: Story = {
+  args: { campaign: STORY_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_CAMPAIGN)
+    await expectConnected(page)
+    const renderer = await latestStageRenderer()
+    const size = placedZoneSize(createPlacedZoneDraft(), presentedScene().grid)
+    await expect(size).toMatchObject({ kind: 'RADIUS' })
+    await userEvent.click(await page.findByRole('button', { name: 'Place a zone' }))
+    const tool = await page.findByRole('dialog', { name: 'Place a zone' })
+    await userEvent.click(await within(tool).findByRole('button', { name: 'Pick on map' }))
+    await waitFor(() => expect(page.queryByRole('dialog', { name: 'Place a zone' })).toBeNull())
+    await expect(renderer.getDiagnostics().areaAimOverlay).toBeNull()
+
+    const canvas = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const bounds = canvas.getBoundingClientRect()
+    const pointer = {
+      clientX: bounds.left + 4,
+      clientY: bounds.top + 4,
+      pointerId: 42,
+      pointerType: 'mouse'
+    }
+    fireEvent.pointerMove(canvas, pointer)
+    await waitFor(() => {
+      const aimed = renderer.getDiagnostics().areaAimOverlay
+      expect(aimed?.label).toBe('Area origin')
+      expect(aimed?.circles.map(({ radius }) => radius)).toEqual([
+        size?.kind === 'RADIUS' ? size.radius : null
+      ])
+    })
+
+    // Pressing empty map (the centre holds a door, which a press would operate) sets the center and reopens the tool; the aim preview ends.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    fireEvent.pointerDown(canvas, { ...pointer, button: 0, buttons: 1, pointerId: 1 })
+    fireEvent.pointerUp(canvas, { ...pointer, button: 0, buttons: 0, pointerId: 1 })
+    const reopened = await page.findByRole('dialog', { name: 'Place a zone' })
+    // The drawer fades in, so the text is in the tree before it is visible.
+    const centered = await within(reopened).findByText(/^Centered at/)
+    await waitFor(() => expect(centered).toBeVisible())
+    await expect(renderer.getDiagnostics().areaAimOverlay).toBeNull()
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// D87: the GM shows another Scene's map to players without changing the presented Scene.
+export const GmShowsSceneToPlayers: Story = {
+  args: { campaign: STORY_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_CAMPAIGN)
+    await expectConnected(page)
+    const campaignId = (await page.findByTestId('seeded-campaign')).dataset.campaignId
+    await userEvent.click(await page.findByRole('button', { name: 'Show to players' }))
+    const presented = await page.findByRole('menuitem', { name: STORY_CAMPAIGN.scene.name })
+    await expect(presented).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.click(
+      await page.findByRole('menuitem', { name: STORY_CAMPAIGN.shownScene!.name })
+    )
+    await waitFor(() => expect(writesTo(api.scenes.showings.show)).toHaveLength(1))
+    // The showing names the other Scene, never the presented one, and changes no live Scene.
+    await expect(writesTo(api.scenes.showings.show)).toEqual([
+      { campaignId, sceneId: expect.not.stringMatching(presentedScene().id) }
+    ])
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// Sibling of the window: the turn order drawer the GM opens, with its controls.
+export const GmOpensTheTurnOrderDrawer: Story = {
+  args: { campaign: STORY_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_CAMPAIGN)
+    await expectConnected(page)
+    await expectTurnOrderListsEncounter(
+      page,
+      await waitFor(roomEncounter, { timeout: roomJoinTimeoutMs })
+    )
+    const drawer = within(await page.findByRole('dialog', { name: 'Turn order' }))
+    await expect(drawer.getByRole('button', { name: 'Next turn' })).toBeVisible()
+    await expect(
+      drawer.getByLabelText(`Scene token for ${STORY_CAMPAIGN.enemyLabel}`)
+    ).toBeVisible()
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// Sibling of the window: the live scene object editor opens from Edit mode and closes without a write.
+export const GmOpensTheLiveSceneObjectEditor: Story = {
+  args: { campaign: STORY_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_CAMPAIGN)
+    await expectConnected(page)
+    await userEvent.click(page.getByRole('radio', { name: /^Edit$/ }))
+    await userEvent.click(await page.findByRole('button', { name: 'Edit objects' }))
+    const editor = await page.findByRole('dialog', { name: 'Edit live scene object' })
+    // The drawer slides in, so the dialog is in the tree before it is visible.
+    await waitFor(() => expect(editor).toBeVisible())
+    await userEvent.click(page.getByRole('button', { name: 'Close live scene editor' }))
+    await waitFor(() =>
+      expect(page.queryByRole('dialog', { name: 'Edit live scene object' })).not.toBeInTheDocument()
+    )
+    await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
 }
