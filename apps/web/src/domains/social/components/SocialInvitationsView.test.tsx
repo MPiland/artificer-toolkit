@@ -68,6 +68,33 @@ describe('SocialInvitationsView', () => {
     expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Decline' })).not.toBeInTheDocument()
   })
+  it.each(['EXPIRED', 'REVOKED'] as const)(
+    'explains a %s invitation opened by its link and offers no actions',
+    (status) => {
+      const invitation = campaignInviteDtoSchema.parse({
+        invitePublicId: 'aaaaaaaa-0000-4000-8000-000000000004',
+        listingPublicId: '00000000-0000-4000-8000-000000000002',
+        listingTitle: 'The Glass Harbor',
+        hostProfilePublicId: '00000000-0000-4000-8000-000000000005',
+        hostUsername: 'harbormaster',
+        recipientUsername: 'pathfinder',
+        status,
+        expiresAt: '2024-04-08T18:30:00.000Z',
+        respondedAt: null,
+        createdAt: '2024-04-01T11:30:00.000Z',
+        version: 1
+      })
+      mocks.direct = invitation
+      renderWithAppProviders(
+        <SocialInvitationsView invitePublicId={invitation.invitePublicId.toUpperCase()} />
+      )
+      expect(screen.getByRole('article')).toBeVisible()
+      expect(
+        screen.getByText('Sorry, this invitation has either been revoked or expired.')
+      ).toBeVisible()
+      expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument()
+    }
+  )
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.pending.results = []
