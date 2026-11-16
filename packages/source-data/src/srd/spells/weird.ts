@@ -10,6 +10,7 @@ import {
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SCALING,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -64,6 +65,11 @@ export const weird: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        },
+        shape: {
+          id: spellChildId(SPELL_IDS.WEIRD, 0x219, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
         }
       },
       paths: [
@@ -75,7 +81,7 @@ export const weird: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.WEIRD, 0x213, 1) + '__result',
+            id: spellChildId(SPELL_IDS.WEIRD, 0x215, 1),
             resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.WEIRD, 0x214, 1),

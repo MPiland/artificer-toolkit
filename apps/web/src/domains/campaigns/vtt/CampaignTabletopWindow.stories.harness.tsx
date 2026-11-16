@@ -18,8 +18,7 @@ import {
   sceneFogChunksPageInputSchema,
   sceneFogChunksPageSchema,
   sceneFogLayersPageInputSchema,
-  sceneFogLayersPageSchema,
-  type SceneFogPatchInput
+  sceneFogLayersPageSchema
 } from '@artificer-toolkit/schema/api/sceneFog'
 import {
   liveSessionWebSocketClientMessageDtoSchema,
@@ -36,8 +35,6 @@ import {
   sceneRecipientPageSchema
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
-  campaignSceneShowingDtoSchema,
-  type CampaignSceneShowingDto,
   type CampaignSceneStateDto,
   setCampaignLiveScenePresentationInputDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema
@@ -59,16 +56,7 @@ import { CampaignTabletopWindow } from './CampaignTabletopWindow'
 const recipientRevision = 'a'.repeat(64)
 export const mapReadyTimeoutMs = 10_000
 export const liveCommand = fn()
-export const mediaGetDelivery = fn()
-export const fogBegin = fn()
-export const fogAppend = fn()
-export const storyFogSaveId = '77777777-7777-4777-8777-777777777799'
-export const showScene = fn()
-export const shownScene = validated(campaignSceneShowingDtoSchema)({
-  sceneId: '77777777-7777-4777-8777-777777777798',
-  sceneName: 'The Ashen Stair',
-  shownAt: '2099-08-15T20:00:00.000Z'
-})
+const mediaGetDelivery = fn()
 export type TabletopFixtures = {
   /** The auras the server lists for the rendered viewer (it omits a source the viewer cannot see). */
   auras?: EncounterSessionStateDto['auras']
@@ -86,20 +74,10 @@ const defaultTabletopFixtures: TabletopFixtures = {
   playerEncounter: tabletopPlayerEncounter
 }
 
-// Replaces the room's presented Scene with a later state, as a Scene edit does mid-session.
-let pushStoryScene: ((scene: CampaignSceneStateDto) => void) | null = null
-
-export function syncStoryScene(scene: CampaignSceneStateDto): void {
-  if (!pushStoryScene) throw new Error('The story live session transport is not installed.')
-  pushStoryScene(scene)
-}
-
 export function renderWindow(
   args: ComponentProps<typeof CampaignTabletopWindow>,
   campaign: CampaignDetailDto,
-  showing: CampaignSceneShowingDto | null = null,
-  fixtures: TabletopFixtures = defaultTabletopFixtures,
-  sceneCommandRejection: string | null = null
+  fixtures: TabletopFixtures = defaultTabletopFixtures
 ): JSX.Element {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -188,20 +166,13 @@ export function renderWindow(
   const presentationQuery = convexQuery(convexApi.scenes.presentations.get, {
     campaignId: tabletopCampaignId
   })
-  const shownHeaderQuery = convexQuery(convexApi.scenes.recipientReads.header, {
-    sceneId: shownScene.sceneId,
-    includeSnapshot: false
-  })
-  queryClient.setQueryDefaults(showingQuery.queryKey, { queryFn: async () => showing })
+  queryClient.setQueryDefaults(showingQuery.queryKey, { queryFn: async () => null })
   queryClient.setQueryDefaults(presentationQuery.queryKey, {
     queryFn: async () => ({
       campaignId: tabletopCampaignId,
       sceneId: scene.id,
       version: presentationVersion
     })
-  })
-  queryClient.setQueryDefaults(shownHeaderQuery.queryKey, {
-    queryFn: async () => ({ ...header, id: shownScene.sceneId, name: shownScene.sceneName })
   })
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
   seedTabletopSystem(queryClient, campaign)
@@ -226,12 +197,6 @@ export function renderWindow(
               id: tabletopLiveScene.id,
               name: tabletopLiveScene.name,
               version: tabletopLiveScene.version
-            },
-            {
-              definitionId: shownScene.sceneId,
-              id: shownScene.sceneId,
-              name: shownScene.sceneName,
-              version: 0
             }
           ],
           isDone: true,
@@ -363,18 +328,10 @@ export function renderWindow(
     })
   })
   Object.defineProperty(convex, 'mutation', {
-    value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference, args]) => {
-      const name = getFunctionName(reference)
-      if (name === getFunctionName(convexApi.scenes.showings.show)) {
-        showScene(args)
-        return null
-      }
-      throw new Error(`Unexpected story fixture mutation: ${name}`)
+    value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference]) => {
+      throw new Error(`Unexpected story fixture mutation: ${getFunctionName(reference)}`)
     })
   })
-  showScene.mockReset()
-  fogBegin.mockReset()
-  fogAppend.mockReset()
 
   const recipientState = validated(liveSessionRecipientStateDtoSchema)({
     presentationVersion,
@@ -383,11 +340,7 @@ export function renderWindow(
   })
   liveCommand.mockReset()
   return (
-    <StoryLiveSessionTransport
-      encounterResult={encounterResult}
-      sceneCommandRejection={sceneCommandRejection}
-      state={recipientState}
-    >
+    <StoryLiveSessionTransport encounterResult={encounterResult} state={recipientState}>
       <StoryConvexFixture client={convex}>
         <QueryClientProvider client={queryClient}>
           <CampaignTabletopWindow campaignId={args.campaignId} currentUserId={args.currentUserId} />
@@ -448,13 +401,10 @@ function StoryConvexFixture({
 function StoryLiveSessionTransport({
   children,
   encounterResult,
-  sceneCommandRejection,
   state
 }: {
   children: ReactNode
   encounterResult: EncounterCommandResultDto
-  /** When set, the room rejects every Scene command as stale with this message. */
-  sceneCommandRejection: string | null
   state: LiveSessionRecipientStateDto
 }) {
   const [installed, setInstalled] = useState(false)
@@ -471,24 +421,11 @@ function StoryLiveSessionTransport({
       state,
       type: 'STATE_SYNC'
     })
-    let fogInput: SceneFogPatchInput | null = null
     class StoryWebSocket extends EventTarget {
       readyState = 0
 
       constructor() {
         super()
-        pushStoryScene = (scene) =>
-          this.dispatchEvent(
-            new MessageEvent('message', {
-              data: JSON.stringify(
-                validated(liveSessionWebSocketServerMessageDtoSchema)({
-                  ...stateSyncMessage,
-                  sequence: stateSyncMessage.sequence + 1,
-                  state: { ...state, scene }
-                })
-              )
-            })
-          )
         queueMicrotask(() => {
           if (this.readyState !== 0) return
           this.readyState = 1
@@ -504,47 +441,8 @@ function StoryLiveSessionTransport({
 
       send(data: string): void {
         const message = liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(data))
-        // The room stages a GM fog patch and reports each step's progress (D79).
-        if (message.type === 'SCENE_FOG_BEGIN' || message.type === 'SCENE_FOG_APPEND') {
-          if (message.type === 'SCENE_FOG_BEGIN') {
-            fogBegin(message.input)
-            fogInput = message.input
-          } else {
-            fogAppend(message.input)
-            if (message.input.saveId !== storyFogSaveId)
-              throw new Error('Unexpected story fog append.')
-          }
-          if (!fogInput) throw new Error('Story fog append arrived before its begin.')
-          const progress = validated(liveSessionWebSocketServerMessageDtoSchema)({
-            progress: {
-              commandId: fogInput.commandId,
-              receivedChunks:
-                message.type === 'SCENE_FOG_APPEND'
-                  ? message.input.offset + message.input.chunks.length
-                  : 0,
-              saveId: storyFogSaveId,
-              sceneId: fogInput.sceneId,
-              status: 'RECEIVING',
-              totalChunks: fogInput.chunkManifest.length
-            },
-            type: 'SCENE_FOG_PROGRESS'
-          })
-          this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(progress) }))
-        }
         if (message.type === 'COMMAND') {
           liveCommand(message)
-          if (message.command.scope === 'SCENE' && sceneCommandRejection) {
-            const rejected = validated(liveSessionWebSocketServerMessageDtoSchema)({
-              code: 'STALE_STATE',
-              commandId: message.command.command.commandId,
-              currentSequence: message.expectedSessionSequence,
-              message: sceneCommandRejection,
-              reason: null,
-              type: 'COMMAND_REJECTED',
-              warnings: null
-            })
-            this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(rejected) }))
-          }
           // The room acknowledges an Encounter command to its initiator, which settles the command.
           if (message.command.scope === 'ENCOUNTER') {
             const committed = validated(liveSessionWebSocketServerMessageDtoSchema)({
@@ -595,10 +493,9 @@ function StoryLiveSessionTransport({
     Reflect.set(globalThis, 'WebSocket', StoryWebSocket)
     setInstalled(true)
     return () => {
-      pushStoryScene = null
       Reflect.set(globalThis, 'WebSocket', originalWebSocket)
     }
-  }, [encounterResult, sceneCommandRejection, state])
+  }, [encounterResult, state])
 
   return installed ? children : null
 }

@@ -3,7 +3,8 @@ import {
   equipmentEffectDtoSchema,
   featureEffectDtoSchema
 } from '@artificer-toolkit/schema/effects/effect'
-import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { compileSpellEffect } from '@artificer-toolkit/shared/compilers'
+import { SPELL_ATTRIBUTE, type SpellAttribute } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -11,10 +12,14 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import type { EffectActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
 import type { CharacterRuleActionExecutionPlan } from '../characterRuleActionSystemAdapter.js'
 import {
-  buildCompiledActionCompilerSource,
+  buildCompiledActionTargetPolicy,
+  compileActionPlacement,
+  compileCastChoicePlans,
   compileEncounterFeatureActionPlan
 } from '../encounterActionEntryPointCompiler.js'
+import { castChoiceOptions } from '../encounterCastChoice.js'
 import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
+import { isActivatedEffect } from '../spellCastCandidates.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
@@ -65,7 +70,12 @@ type Found = {
   siblings: AuthoredEffect[]
   label: string
   spellLevel: number | undefined
+  /** The owning spell's own attributes, which the compiler reads for each of its Effects. */
+  attributes: SpellAttribute[]
 }
+
+const isSpellAttribute = (value: unknown): value is SpellAttribute =>
+  typeof value === 'string' && Object.hasOwn(SPELL_ATTRIBUTE, value)
 
 /** Every authored Effect under a subject, with the label and spell level of its owner. */
 function collectEffects(node: unknown, owner: Omit<Found, 'effect' | 'siblings'>, found: Found[]) {
@@ -84,7 +94,11 @@ function collectEffects(node: unknown, owner: Omit<Found, 'effect' | 'siblings'>
   }
   const next = {
     label: typeof node.label === 'string' ? node.label : owner.label,
-    spellLevel: typeof node.level === 'number' ? node.level : owner.spellLevel
+    spellLevel: typeof node.level === 'number' ? node.level : owner.spellLevel,
+    attributes:
+      typeof node.level === 'number' && Array.isArray(node.attributes)
+        ? node.attributes.filter(isSpellAttribute)
+        : owner.attributes
   }
   for (const value of Object.values(node)) collectEffects(value, next, found)
 }
@@ -114,6 +128,8 @@ function describePlan(plan: CharacterRuleActionExecutionPlan) {
 type Compiled = {
   action: EffectActionCapabilityDescriptor
   plan: CharacterRuleActionExecutionPlan
+  /** The options a cast pick (D148) compiles to, one plan pair each; absent for an action with no pick. */
+  choice?: ReturnType<typeof compileCastChoicePlans>['choice']
 }
 
 const refusal = (error: unknown) => {
@@ -126,13 +142,23 @@ const refusal = (error: unknown) => {
 const checksumOf = (value: unknown) => checksumRuleDocument(JSON.parse(JSON.stringify(value)))
 
 /** The action's active-effect plans in the System's order: each one's recurrence stage and checksum. */
-function describeActiveEffectPlans({ action, plan }: Compiled) {
+function describeActiveEffectPlans({ action, plan, choice }: Compiled) {
+  const describe = (entry: { recurrenceStage: string }) =>
+    `${entry.recurrenceStage}=${checksumOf(entry)}`
+  // A pick compiles one plan pair per option; the action's own plans are its first option's.
+  if (choice)
+    return `[${choice.options
+      .map(
+        ({ label, activeEffectPlan }) =>
+          `${label}:${activeEffectPlan ? describe(activeEffectPlan) : 'NONE'}`
+      )
+      .join(',')}]`
   const plans =
     dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
       action,
       published: publishedOf(plan)
     }) ?? []
-  return `[${plans.map((entry) => `${entry.recurrenceStage}=${checksumOf(entry)}`).join(',')}]`
+  return `[${plans.map(describe).join(',')}]`
 }
 
 /** The facts the action's first graph is bound with against the fixed target, and its d20 mode. */
@@ -170,6 +196,10 @@ function outcomeOf(compile: () => Compiled): Outcome {
   try {
     compiled = compile()
     graph = describePlan(compiled.plan)
+    if (compiled.choice)
+      graph += ` choice=[${compiled.choice.options
+        .map(({ label, executionPlan }) => `${label}=${describePlan(executionPlan)}`)
+        .join(' ; ')}]`
   } catch (error) {
     return { compiled: refusal(error), facts: null }
   }
@@ -192,25 +222,43 @@ function outcomeOf(compile: () => Compiled): Outcome {
  * checksum does not depend on the Effect's own id.
  */
 function characterOutcome(
-  { effect, siblings }: Pick<Found, 'effect' | 'siblings'>,
+  { effect, siblings, attributes }: Pick<Found, 'effect' | 'siblings' | 'attributes'>,
   spellCastLevel: number | undefined,
   characterLevel: number
 ) {
-  return outcomeOf(() => {
-    const action = {
-      ...characterActionDescriptor(
-        compileEffect({ ...effect, id: ACTION_EFFECT_ID }, siblings),
-        spellCastLevel,
-        characterLevel
+  const action = {
+    ...characterActionDescriptor(
+      compileSpellEffect(
+        { attributes, effects: siblings },
+        {
+          ...effect,
+          id: ACTION_EFFECT_ID
+        }
       ),
-      conditionDefinitionIds
+      spellCastLevel,
+      characterLevel
+    ),
+    conditionDefinitionIds
+  }
+  // The product places a zone or a summon before it plans a cast, so the golden pins the same
+  // order. Only an activated action is discovered as a Character action at all.
+  if (isActivatedEffect(effect)) {
+    try {
+      const placement = compileActionPlacement(dnd5eCharacterRuleActionSystemAdapter, action)
+      if (placement)
+        return { compiled: `${placement.kind}_PLACEMENT ${checksumOf(placement)}`, facts: null }
+    } catch (error) {
+      return { compiled: refusal(error), facts: null }
     }
-    const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+  }
+  // The product compiles the plans of an action, and of each option of a cast pick, in one place.
+  return outcomeOf(() => {
+    const { executionPlan, choice } = compileCastChoicePlans(
+      dnd5eCharacterRuleActionSystemAdapter,
       action,
-      compilerSource: buildCompiledActionCompilerSource(action)
-    })
-    if (!plan) throw new Error('The System adapter has no execution plan.')
-    return { action, plan }
+      buildCompiledActionTargetPolicy(action)
+    )
+    return { action, plan: executionPlan, choice }
   })
 }
 
@@ -262,13 +310,25 @@ function creatureLines(creatureIndex: number): Line[] {
     spells: new Map()
   })
   const found: Found[] = []
-  collectEffects(creature, { label: creature.label, spellLevel: undefined }, found)
+  collectEffects(creature, { label: creature.label, spellLevel: undefined, attributes: [] }, found)
   return found.map(({ effect, label }) => {
     const capability = discovery.available.find((candidate) => candidate.effectId === effect.id)
+    // A pick (D148) runs the option its user names, so its plans are pinned per option, as they
+    // are for a Character action; the action's own plan is the first option's no-prompt default.
     const outcome = capability
       ? outcomeOf(() => ({
           action: capability,
-          plan: compileEncounterFeatureActionPlan(dnd5eCharacterRuleActionSystemAdapter, capability)
+          plan: compileEncounterFeatureActionPlan(
+            dnd5eCharacterRuleActionSystemAdapter,
+            capability
+          ),
+          ...(castChoiceOptions(capability.compiledEffect) && {
+            choice: compileCastChoicePlans(
+              dnd5eCharacterRuleActionSystemAdapter,
+              capability,
+              buildCompiledActionTargetPolicy(capability)
+            ).choice
+          })
         }))
       : { compiled: 'NOT_A_DISCOVERED_ACTION', facts: null }
     return line(effect.id, 0, ownerKey('CREATURE', label), outcome)
@@ -282,7 +342,7 @@ function goldenLines(): Line[] {
     ...creatures.flatMap((_creature, index) => creatureLines(index)),
     ...Object.entries(characterSubjects).flatMap(([subject, records]) => {
       const found: Found[] = []
-      collectEffects(records, { label: '', spellLevel: undefined }, found)
+      collectEffects(records, { label: '', spellLevel: undefined, attributes: [] }, found)
       return found.flatMap((entry) => characterLines(entry, `CHARACTER:${subject}`))
     })
   ]
@@ -311,16 +371,25 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D dice healing requires one exact resolved healing expression.': 'INVALID_INPUT',
   'D&D spent healing requires one exact resolved amount and the units spent.': 'INVALID_INPUT',
   'D&D recurring healing requires one exact resolved fixed amount.': 'INVALID_INPUT',
+  'D&D bonus healing requires one exact resolved amount.': 'INVALID_INPUT',
   'D&D subtract-from-triggering-roll action requires one exact resolved die.': 'INVALID_INPUT',
 
-  'D&D area with no hit-point pool tests each creature it catches with a save.': 'UNBUILT',
+  // A cast pick made once over the creatures an area catches (Antipathy/Sympathy) has no room
+  // path: the pick is carried only by a chosen-creature or Self cast (D148).
+  'Only a cast at chosen creatures or at its user carries a pick.': 'UNBUILT',
+  'A placed zone models only its label, shape and entering components.': 'UNBUILT',
+  // Rows whose maintained effect has no plan type yet (QUALITY-15.T3n): Animate Objects (animated
+  // objects with no stat block), Clairvoyance (a stationary sensor), Dancing Lights (lights with no
+  // summon light or count), Conjure Elemental and Conjure Fey (the creature stays, hostile, when
+  // Concentration breaks), Barkskin (an Armor Class floor), Tree Stride (tree-to-tree travel), Call
+  // Lightning (a repeat bolt each turn), Delayed Blast Fireball (detonates when the spell ends),
+  // Flaming Sphere (a movable damaging sphere) and Resilient Sphere (a zone attached to its target).
+  'D&D Concentration spell has no supported maintained effect.': 'UNBUILT',
   'D&D Effect action must have one fixed direct result without lifecycle overrides. Its duration, lifecycle or maintenance has no plan that holds it.':
     'UNBUILT',
   'D&D Effect action must have one fixed direct result without lifecycle overrides. It applies more than one result.':
     'UNBUILT',
   'D&D test action paths must be unique direct outcomes. Its duration, lifecycle or maintenance has no plan that holds it.':
-    'UNBUILT',
-  'D&D test action paths must be unique direct outcomes. Its choice has no plan that holds its options.':
     'UNBUILT',
   'D&D Effect action outcome is not a supported hit-point or condition outcome. It is no timed creature form.':
     'UNBUILT',
@@ -328,13 +397,7 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
     'UNBUILT',
   'D&D test action has an unsupported bounded shape.': 'UNBUILT',
   'D&D test action outcome is not supported.': 'UNBUILT',
-  'D&D reaction must name a registered trigger.': 'UNBUILT',
-  'D&D direct results of one kind cannot share a cast.': 'UNBUILT',
-  'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.': 'UNBUILT',
-  'D&D relationship outcomes need a bounded hit, failed save, contest win or use.': 'UNBUILT',
-  'D&D willing target needs an outcome a creature accepts.': 'UNBUILT',
-  'D&D repeat offer needs a maintained chosen-item grant it can ride.': 'UNBUILT',
-  'D&D action activation must take exactly one action, bonus action or reaction.': 'UNBUILT'
+  'D&D reaction must name a registered trigger.': 'UNBUILT'
 }
 
 describe('SRD effect compile golden', () => {

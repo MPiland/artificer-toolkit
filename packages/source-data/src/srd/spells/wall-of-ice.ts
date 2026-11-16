@@ -8,6 +8,7 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -72,7 +73,16 @@ export const wallOfIce: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.WALL_OF_ICE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Wall of Ice',
+                // "a flat surface made up of ten 10-foot-square panels", "1 foot thick"
+                shape: {
+                  id: spellChildId(SPELL_IDS.WALL_OF_ICE, 0x214, 1),
+                  shapeKind: SHAPE_KIND.WALL,
+                  length: { amount: 100, unit: MEASUREMENT_UNIT_CODE.FEET },
+                  height: { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET },
+                  thickness: { amount: 1, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }

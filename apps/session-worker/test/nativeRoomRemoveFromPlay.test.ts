@@ -12,6 +12,7 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { banishment } from '@artificer-toolkit/source-data/srd/spells/banishment.js'
 import { etherealness } from '@artificer-toolkit/source-data/srd/spells/etherealness.js'
+import { imprisonment } from '@artificer-toolkit/source-data/srd/spells/imprisonment.js'
 import { maze } from '@artificer-toolkit/source-data/srd/spells/maze.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -48,18 +49,19 @@ const character = {
 
 /**
  * The Character (first in the order) who prepares `spell`, a Wolf to remove from play, and any
- * other actors the case stands on the Scene.
+ * other actors the case stands on the Scene. `rolls` are the room's next zero-based dice.
  */
 async function spellRoom(
   spell: typeof maze,
   positions?: Record<string, { x: number; y: number }>,
-  others: readonly EncounterRunActorState[] = []
+  others: readonly EncounterRunActorState[] = [],
+  rolls: readonly number[] = [14]
 ) {
   const room = await actionRoom({
     ...(positions && { positions }),
     actors: [character, srdCreatureActor({ id: WOLF_ID, creature: plainWolf }), ...others],
     autoRoll: 'BOTH',
-    rolls: [14],
+    rolls,
     fallbackRoll: 3,
     characterSpellcasting: { spells: [spell], prepared: [spell.id] },
     characterAction: (action) => action.label.startsWith(spell.label)
@@ -82,11 +84,11 @@ const absenceOf = (room: MazeRoom, actorId: string) =>
 
 const wolfAbsence = (room: MazeRoom) => absenceOf(room, WOLF_ID)
 
-const streamVersionOf = (room: MazeRoom) =>
+const streamVersionOf = (room: MazeRoom, characterId = CHARACTER_ID) =>
   runInDurableObject(room.room.base.stub, (_instance, context) => {
     const row = new RoomEncounterStore(context.storage)
       .documents('characterPlayStates')
-      .find((candidate) => candidate.characterId === CHARACTER_ID)
+      .find((candidate) => candidate.characterId === characterId)
     if (!row) throw new Error('Missing room Character play state.')
     return row.streamVersion
   })
@@ -99,6 +101,42 @@ const returnEntries = async (room: MazeRoom) =>
       presentTimelineEntry(encounterStoredRunCommandSchema.parse(row))
     )
     .map(({ label, ruleOverrides }) => ({ label, ruleOverrides }))
+
+/** The GM ends `characterId`'s one active effect through that Character's Sheet. */
+async function gmEndsActiveEffect(room: MazeRoom, characterId: string) {
+  const [effect] = (await readRoomHistory(room.room.base.stub)).characterEffects.filter(
+    (row) => row.characterId === characterId
+  )
+  if (!effect) throw new Error('Expected the Character to hold an active effect.')
+  const commandId = crypto.randomUUID()
+  return room.room.send(commandId, {
+    scope: 'CHARACTER_SHEET',
+    characterId,
+    encounterId: room.room.encounterId,
+    command: {
+      type: 'END_ACTIVE_EFFECT',
+      commandId,
+      expectedVersion: await streamVersionOf(room, characterId),
+      effectId: effect.id
+    }
+  })
+}
+
+/** The GM ends the one active effect the Run actor `actorId` holds, from the encounter drawer. */
+async function gmEndsActorEffect(room: MazeRoom, actorId: string) {
+  const [effect] = (await readRoomHistory(room.room.base.stub)).activeEffects.filter(
+    (row) => row.targetActorId === actorId
+  )
+  if (!effect) throw new Error('Expected the actor to hold an active effect.')
+  return room.send({
+    type: 'UPDATE_ACTOR',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version(),
+    actorId,
+    endActiveEffectId: effect.id
+  })
+}
 
 /** The GM ends the caster's Concentration through the Character's Sheet. */
 async function gmEndsConcentration(room: MazeRoom) {
@@ -202,7 +240,9 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
   }, 120000)
 
   it('Banishment removes a Wolf that fails its save and returns it when the Concentration ends (T2h4)', async () => {
-    const { room } = await spellRoom(banishment)
+    // A natural 1. The default 15 made the Wolf's save (QUALITY-15.T3u): only the ungated removal
+    // took it out of play.
+    const { room } = await spellRoom(banishment, undefined, [], [0])
     const cast = await room.startAction(WOLF_ID, RANGE)
     expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
     expect(await wolfAbsence(room)).toBe('EFFECT')
@@ -212,26 +252,82 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
     expect(await wolfAbsence(room)).toBeNull()
   }, 120000)
 
+  it('Imprisonment removes a Wolf that fails its save until the GM ends it (QUALITY-15.T3ae)', async () => {
+    // A natural 1.
+    const { room } = await spellRoom(imprisonment, undefined, [], [0])
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBe('EFFECT')
+
+    const ended = await gmEndsActorEffect(room, WOLF_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBeNull()
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toEqual([])
+  }, 120000)
+
+  it('refuses the GM ending a Maze its Concentration maintains on a Wolf (QUALITY-15.T3ae)', async () => {
+    const { room } = await spellRoom(maze)
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+
+    const refused = await gmEndsActorEffect(room, WOLF_ID)
+    expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
+    expect(await wolfAbsence(room)).toBe('EFFECT')
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toHaveLength(1)
+  }, 120000)
+
   it('Etherealness takes the caster out of play and keeps their turn (T2h4)', async () => {
     const { room } = await spellRoom(etherealness)
     const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
     expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
     expect(await absenceOf(room, CHARACTER_ACTOR_ID)).toBe('EFFECT_KEEPS_TURN')
 
-    const [effect] = (await readRoomHistory(room.room.base.stub)).characterEffects
-    const commandId = crypto.randomUUID()
-    const ended = await room.room.send(commandId, {
-      scope: 'CHARACTER_SHEET',
-      characterId: CHARACTER_ID,
-      encounterId: room.room.encounterId,
-      command: {
-        type: 'END_ACTIVE_EFFECT',
-        commandId,
-        expectedVersion: await streamVersionOf(room),
-        effectId: effect!.id
-      }
-    })
+    const ended = await gmEndsActiveEffect(room, CHARACTER_ID)
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect(await absenceOf(room, CHARACTER_ACTOR_ID)).toBeNull()
+  }, 120000)
+
+  it('Banishment leaves a Wolf that makes its save in play (QUALITY-15.T3u)', async () => {
+    // A natural 20.
+    const { room } = await spellRoom(banishment, undefined, [], [19])
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBeNull()
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toEqual([])
+  }, 120000)
+
+  it('Imprisonment removes a Character that fails its save until the GM ends it (QUALITY-15.T3u)', async () => {
+    const TARGET_ACTOR_ID = testUuid(0x7f4)
+    const TARGET_CHARACTER_ID = testUuid(0x7f5)
+    const room = await actionRoom({
+      actors: [
+        character,
+        characterActor({ id: TARGET_ACTOR_ID, characterId: TARGET_CHARACTER_ID })
+      ],
+      autoRoll: 'BOTH',
+      rolls: [0],
+      fallbackRoll: 3,
+      characterSpellcasting: { spells: [imprisonment], prepared: [imprisonment.id] },
+      characterAction: (action) => action.label.startsWith(imprisonment.label),
+      secondCharacter: { characterId: TARGET_CHARACTER_ID }
+    })
+    const cast = await room.startAction(TARGET_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    // The target's player rolls its save: a natural 1 fails it.
+    const save = await room.pendingDecision()
+    expect((await room.rollDice(save)).type).toBe('COMMAND_COMMITTED')
+    const held = (await readRoomHistory(room.room.base.stub)).evidenceRolls.at(-1)
+    if (!held || !('request' in save.pending)) throw new Error('The save roll was not held.')
+    const settled = await room.resolve(save, {
+      kind: 'SYSTEM_ROLL',
+      requestId: save.pending.request.requestId,
+      rollId: held.id
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect(await absenceOf(room, TARGET_ACTOR_ID)).toBe('EFFECT')
+
+    const ended = await gmEndsActiveEffect(room, TARGET_CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await absenceOf(room, TARGET_ACTOR_ID)).toBeNull()
   }, 120000)
 })

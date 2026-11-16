@@ -357,7 +357,15 @@ export const unicorn: CreatureAuthored = {
             },
             range: {
               id: S.actionId(276, 18),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              // The unicorn and up to three willing creatures it can see within 5 feet of it.
+              maxTargets: 4
             }
           },
           paths: [
@@ -476,7 +484,7 @@ export const unicorn: CreatureAuthored = {
                 kind: 'ACTION',
                 triggerCode: 'ACTIVATED',
                 activation: { code: 'FREE' },
-                range: { id: '00000000-0005-000a-0070-011400000000', rangeKind: 'SPECIAL' },
+                range: { id: '00000000-0005-000a-0070-011400000000', rangeKind: 'SELF' },
                 resourceUse: { chargeId: '00000000-0005-0001-0070-011400000000', cost: 3 }
               },
               paths: [

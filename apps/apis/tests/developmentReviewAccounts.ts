@@ -2,7 +2,11 @@ import assert from 'node:assert/strict'
 import { createHash, randomBytes } from 'node:crypto'
 import { authInvitationRedeemInputSchema } from '@artificer-toolkit/schema/api/auth'
 import type { AuthRequest } from './developmentAuthRequest'
-import { REVIEW_PASSWORD, type ReviewAccountSpec } from './developmentReviewDataScenarios'
+import {
+  REVIEW_PASSWORD,
+  reviewAccountEmail,
+  type ReviewAccountSpec
+} from './developmentReviewDataScenarios'
 
 type InvitationVerification = {
   identifier: string
@@ -31,7 +35,7 @@ export async function reviewAccountSession(
   issueInvitation: (verification: InvitationVerification) => Promise<unknown>,
   password = REVIEW_PASSWORD
 ): Promise<string> {
-  const email = spec.email ?? `${spec.username.toLowerCase()}@example.invalid`
+  const email = reviewAccountEmail(spec)
   const signIn = async () => {
     const response = await auth('/sign-in/email', { email, password })
     if (response.status === 401) return null

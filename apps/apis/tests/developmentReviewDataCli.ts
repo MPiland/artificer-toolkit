@@ -84,7 +84,7 @@ const result = await seedReviewData(
     players,
     admin,
     spares,
-    grantGmTier: steps.grantGmTier,
+    setTier: steps.setTier,
     grantSuperadmin: steps.grantSuperadmin,
     checkpoint: (campaignId) =>
       awaitCampaignCheckpoint(
@@ -98,9 +98,12 @@ const result = await seedReviewData(
 )
 // Storybook backend stories run against the local deployment only.
 if (target.mode === 'local')
-  await seedStoryData(async (spec) => (await connect(spec)).client, {
-    checkpoint: (campaignId) => awaitCampaignCheckpoint(gm.client, campaignId)
-  })
+  await seedStoryData(
+    async (spec) => (await connect(spec)).client,
+    steps.setTier,
+    { checkpoint: (campaignId) => awaitCampaignCheckpoint(gm.client, campaignId) },
+    steps.grantSuperadmin
+  )
 console.log(
   `Review data: ${result.created.length} Campaign(s) created, ${result.skipped.length} already finished.`
 )

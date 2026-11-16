@@ -16,6 +16,10 @@ import {
   dnd5eRollTableRowGateOperation
 } from './effectActionOperationRegistry.js'
 
+type RuleTrace = Parameters<
+  CharacterRuleActionSystemAdapter['interpret']
+>[0]['execution']['evidence']['trace'][number]
+
 const ROLL_TABLE_TEST_OPERATIONS = new Map<
   string,
   { execute: (inputs: Readonly<Record<string, RuleValue>>) => Record<string, RuleValue> }
@@ -35,9 +39,9 @@ const ROLL_TABLE_TEST_OPERATIONS = new Map<
  * `rollTableFace_*` outputs, which the OUTCOME's specialisation reads.
  */
 export function requireRollTableTestTraces(input: {
-  traces: Parameters<
-    CharacterRuleActionSystemAdapter['interpret']
-  >[0]['execution']['evidence']['trace']
+  /** The test whose result the table's nodes read. */
+  testTrace: RuleTrace
+  traces: readonly RuleTrace[]
   published: ServerPublishedRuleDefinitionDto
   occurrenceId: string
   outputs: Readonly<Record<string, RuleValue>>
@@ -46,7 +50,8 @@ export function requireRollTableTestTraces(input: {
   const invalid = () =>
     new Dnd5eEffectActionCompilerError('The committed D&D roll table dice topology is invalid.')
   const nodeIds = published.definition.nodes.map((node) => node.id)
-  const traceOf = (nodeId: string) => traces.find((trace) => trace.nodeId === nodeId)
+  const traceOf = (nodeId: string) =>
+    [input.testTrace, ...traces].find((trace) => trace.nodeId === nodeId)
   const resolve = (
     binding: ServerPublishedRuleDefinitionDto['definition']['nodes'][number]['inputs'][string]
   ) => {
@@ -59,7 +64,6 @@ export function requireRollTableTestTraces(input: {
     throw invalid()
   }
   for (const trace of traces) {
-    if (trace.nodeId === 'test') continue
     const node = published.definition.nodes.find(({ id }) => id === trace.nodeId)
     if (!node) throw invalid()
     const inputs = Object.fromEntries(

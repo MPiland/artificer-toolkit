@@ -224,16 +224,7 @@ export const androsphinx: CreatureAuthored = {
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(24, 114),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 500,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            ...S.selfSphere(S.actionId(24, 114), S.actionId(24, 3841), 500)
           },
           paths: [
             {
@@ -244,7 +235,7 @@ export const androsphinx: CreatureAuthored = {
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
-                id: `${S.actionId(24, 115)}__result`,
+                id: S.actionId(24, 141),
                 resultKind: 'SEQUENCE',
                 duration: {
                   id: S.actionId(24, 116),
@@ -297,16 +288,7 @@ export const androsphinx: CreatureAuthored = {
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(24, 123),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 500,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            ...S.selfSphere(S.actionId(24, 123), S.actionId(24, 3842), 500)
           },
           paths: [
             {
@@ -317,7 +299,7 @@ export const androsphinx: CreatureAuthored = {
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
-                id: `${S.actionId(24, 124)}__result`,
+                id: S.actionId(24, 142),
                 resultKind: 'SEQUENCE',
                 duration: {
                   id: S.actionId(24, 125),
@@ -380,16 +362,7 @@ export const androsphinx: CreatureAuthored = {
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(24, 134),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 500,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            ...S.selfSphere(S.actionId(24, 134), S.actionId(24, 3843), 500)
           },
           paths: [
             {

@@ -1,4 +1,8 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type {
+  ConfirmMoraleInputDto,
+  MoraleSaveInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type { AuthoredSubjectKind } from '@artificer-toolkit/schema/projections/identity'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
@@ -6,6 +10,7 @@ import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
 import { dragonborn } from '@artificer-toolkit/source-data/srd/races/dragonborn.js'
 import { acolyte as acolyteCreature } from '@artificer-toolkit/source-data/srd/creatures/acolyte.js'
+import { balor } from '@artificer-toolkit/source-data/srd/creatures/balor.js'
 import { goblin } from '@artificer-toolkit/source-data/srd/creatures/goblin.js'
 import { ogre } from '@artificer-toolkit/source-data/srd/creatures/ogre.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
@@ -26,6 +31,11 @@ import type { BaseEquipmentAuthoringInputDto } from '@artificer-toolkit/schema/s
 export const REVIEW_PASSWORD = 'Review_Local_1!pass'
 
 export type ReviewAccountSpec = { key: string; username: string; email?: string }
+
+/** The sign-in email of a review account: its own, or the local default derived from its username. */
+export function reviewAccountEmail(spec: ReviewAccountSpec): string {
+  return spec.email ?? `${spec.username.toLowerCase()}@example.invalid`
+}
 
 export const REVIEW_GM: ReviewAccountSpec = { key: 'gm', username: 'Review_Gm_Rowan' }
 export const REVIEW_PLAYERS: readonly ReviewAccountSpec[] = [
@@ -49,6 +59,52 @@ export const REVIEW_STORY_READER = {
   username: 'Review_Story_Reader',
   email: 'review_story_reader@example.invalid'
 } satisfies ReviewAccountSpec
+/** Hosts the player Campaign the story reader joins; a separate account because the FREE tier hosts one Campaign. */
+export const REVIEW_STORY_HOST = {
+  key: 'storyHost',
+  username: 'Review_Story_Host'
+} satisfies ReviewAccountSpec
+
+/** Hosts the open-fog Campaign the story reader joins; a third host because the FREE tier hosts one Campaign. */
+export const REVIEW_STORY_OPEN_HOST = {
+  key: 'storyOpenHost',
+  username: 'Review_Story_Open_Host'
+} satisfies ReviewAccountSpec
+
+/** Hosts the Campaign whose GM has a Scene on show to the story reader; a fourth host for the same reason. */
+export const REVIEW_STORY_SHOWING_HOST = {
+  key: 'storyShowingHost',
+  username: 'Review_Story_Showing_Host'
+} satisfies ReviewAccountSpec
+
+/** Strangers to the story account: one applies to its listing and is invited, one it reports and blocks. */
+export const REVIEW_STORY_PEER = {
+  key: 'storyPeer',
+  username: 'Review_Story_Peer'
+} satisfies ReviewAccountSpec
+export const REVIEW_STORY_BLOCKED = {
+  key: 'storyBlocked',
+  username: 'Review_Story_Blocked'
+} satisfies ReviewAccountSpec
+
+/** The accounts a backend story may sign in as; the reader is the default (D221). */
+export const STORY_ACCOUNTS = {
+  reader: REVIEW_STORY_READER,
+  peer: REVIEW_STORY_PEER,
+  /** The GM of the open-fog Campaign, which the reader plays in. */
+  openHost: REVIEW_STORY_OPEN_HOST,
+  admin: REVIEW_ADMIN
+} satisfies Record<string, ReviewAccountSpec>
+
+export type StoryAccountKey = keyof typeof STORY_ACCOUNTS
+
+/** The Social Hub state around the story Campaign, which the reader hosts: see seedStorySocial. */
+export const STORY_SOCIAL = {
+  applicationMessage: 'Our Rogue would love a seat at your table.',
+  /** The peer's own Campaign, whose listing stays a draft. */
+  peerTableName: 'Story Peer Table',
+  reportDetails: 'Seeded report for the moderation queue.'
+} as const
 
 /** An owned record the story account copies from master content, at a fixed id its stories open. */
 export type StoryRecordSpec = { subjectId: string; label: string }
@@ -128,6 +184,72 @@ export const STORY_RECORDS = {
     ownedDraft: StoryRecordSpec
   }
 >
+
+/** What a story Campaign's seed needs: its Run's ids derive from slug. */
+export type StoryCampaignSpec = {
+  slug: string
+  name: string
+  blueprintName: string
+  enemyLabel: string
+  scene: {
+    name: string
+    allyLabel: string
+    allyPosition: { x: number; y: number }
+    enemyPosition: { x: number; y: number }
+    board: ReviewBoard
+  }
+  playSettings: { normalCadenceDays: number; expectedDurationMinutes: number; quorum: number }
+  /** Zones the GM places on the presented Scene once the Run is bound to it (MOVE-3.2). */
+  zones: readonly StoryZoneSpec[]
+  /** A second Scene the GM can show to players without presenting it (D87). */
+  shownScene?: { name: string }
+  /** What the GM does to the creature once the Run is presented: conditions and damage. */
+  enemyState?: { conditionCodes: readonly string[]; currentHitPoints: number }
+  /** The first creature's token sight, which the GM previews. */
+  enemyVision?: NonNullable<SceneDefinitionDto['tokens'][number]['vision']>
+  /** More creatures in the Run, in blueprint order after the first, each bound to its own token. */
+  creatures?: readonly StoryCreatureSpec[]
+}
+
+export type StoryCreatureSpec = {
+  enemy:
+    | { kind: 'CUSTOM'; label: string; maxHitPoints: number }
+    | { kind: 'CREATURE'; sourceId: string }
+  position: { x: number; y: number }
+  /** The token's own label, where several creatures share a name. */
+  tokenLabel?: string
+  /** The token starts hidden from players. */
+  hidden?: true
+  /** Conditions the GM gives the creature once the Run is presented. */
+  conditionCodes?: readonly string[]
+  /**
+   * The Morale rule is on for the Run (set before START), and the GM checks this creature for
+   * `triggerKind` and confirms `disposition`. The creature must have a saving throw to roll.
+   */
+  morale?: {
+    triggerKind: MoraleSaveInputDto['triggerKind']
+    disposition: ConfirmMoraleInputDto['disposition']
+  }
+}
+
+/** A circular zone placed at point; a spot DC conceals it from every player (MOVE-3.3). */
+export type StoryZoneSpec = {
+  label: string
+  point: { x: number; y: number }
+  radiusFeet: number
+  spotDc?: { value: number; source: 'FLAT' }
+}
+
+/** A hazard in plain sight and a GM's hidden trap, placed in each story Campaign's Run. */
+export const STORY_ZONES = [
+  { label: 'Story Burning Oil', point: { x: 300, y: 450 }, radiusFeet: 10 },
+  {
+    label: 'Story Caltrops',
+    point: { x: 200, y: 350 },
+    radiusFeet: 10,
+    spotDc: { value: 15, source: 'FLAT' }
+  }
+] as const satisfies readonly StoryZoneSpec[]
 
 /** A fogged board split by a wall with a closed door, as the Sandbox review board is. */
 const STORY_BOARD: ReviewBoard = {
@@ -238,6 +360,31 @@ export const STORY_DRAFT_ONLY = {
     systemId: Equipment.SRD_SYSTEM_ID
   } satisfies BaseEquipmentAuthoringInputDto
 }
+/**
+ * The Sense definitions the story account authors for the System detail stories (D221), one per
+ * state a definition reaches through product commands. Their ids are random, so stories find them by
+ * label.
+ */
+export const STORY_DEFINITIONS = {
+  fresh: { label: 'Story Keen Sight', description: 'A homebrew visual sense, not yet drafted.' },
+  drafted: { label: 'Story Dim Sight', description: 'A homebrew visual sense with a saved draft.' },
+  published: { label: 'Story Sharp Sight', description: 'A homebrew visual sense, published.' }
+} as const
+/**
+ * The played Characters Storybook backend sheet stories read (PLATFORM-28.T6), owned by the story
+ * account at fixed ids. `seedStoryData` builds each through the Builder commit; the stories open
+ * them by id and find them by label.
+ */
+export const STORY_CHARACTERS = {
+  fighter: { characterId: '823e1766-9a56-4d22-a512-4e655983c1fe', label: 'Story Fighter' },
+  multiclass: { characterId: 'f1a6b1fc-d7f7-4942-bf6c-6c10e441c837', label: 'Story Multiclass' },
+  caster: { characterId: 'ef327a5a-0c6f-44b2-8ccd-5548188c305a', label: 'Story Caster' },
+  /** A Fighter reopened in the Builder, so a draft waits on top of its active Sheet. */
+  draftPending: {
+    characterId: 'ef0fc5fd-ee78-4d0d-aa52-18d54f218548',
+    label: 'Story Draft Pending'
+  }
+} as const
 
 /**
  * The Campaign Storybook backend stories open by name (D221), because its id is random: the story
@@ -247,8 +394,11 @@ export const STORY_DRAFT_ONLY = {
  * story account's own. The FREE tier hosts one Campaign, so every story shares it.
  */
 export const STORY_CAMPAIGN = {
+  slug: 'story',
   name: 'Story Campaign',
   blueprintName: 'Story Encounter',
+  /** The next Encounter the GM has prepared beside the started one; its Run is never started. */
+  preparedBlueprintName: 'Story Next Encounter',
   enemyLabel: 'Story Cultist',
   scene: {
     name: 'Story Scene',
@@ -258,7 +408,96 @@ export const STORY_CAMPAIGN = {
     board: STORY_BOARD
   },
   playSettings: { normalCadenceDays: 14, expectedDurationMinutes: 240, quorum: 3 },
+  zones: STORY_ZONES,
+  shownScene: { name: 'Story Shown Scene' },
+  enemyState: { conditionCodes: ['POISONED', 'FRIGHTENED'], currentHitPoints: 10 },
   lootTable: { name: 'Story pockets', coinAmount: 12 }
+} as const satisfies StoryCampaignSpec & {
+  preparedBlueprintName: string
+  lootTable: { name: string; coinAmount: number }
+}
+
+/**
+ * The Campaign the story reader plays in rather than hosts (D221): hosted by REVIEW_STORY_HOST, joined
+ * through the invitation commands, with a started Run and a presented Scene whose ally token the reader controls.
+ */
+export const STORY_PLAYER_CAMPAIGN = {
+  slug: 'story-player',
+  name: 'Story Player Campaign',
+  blueprintName: 'Story Player Encounter',
+  enemyLabel: 'Story Player Cultist',
+  scene: { ...STORY_CAMPAIGN.scene, name: 'Story Player Scene', allyLabel: 'Story Reader Hero' },
+  playSettings: STORY_CAMPAIGN.playSettings,
+  zones: STORY_ZONES
+} as const satisfies StoryCampaignSpec
+
+/**
+ * The Campaign the story reader plays in on an open board (D221): hosted by REVIEW_STORY_OPEN_HOST, who
+ * is also the GM the tabletop stories read as. Fog is off, so a player sees every token the GM has not
+ * hidden. The Run has Morale on and holds a hurt, poisoned, frightened Warden with sight, a prone
+ * Sentry, an unhurt Hound and two Balors, each carrying a Fire Aura, one of them on a hidden token.
+ * The GM confirmed the visible Balor fled.
+ */
+export const STORY_OPEN_CAMPAIGN = {
+  slug: 'story-open',
+  name: 'Story Open Campaign',
+  blueprintName: 'Story Open Encounter',
+  enemyLabel: 'Vault Warden',
+  scene: {
+    name: 'Story Open Scene',
+    allyLabel: 'Story Open Hero',
+    allyPosition: { x: 100, y: 200 },
+    enemyPosition: { x: 550, y: 250 },
+    board: {
+      fogMode: 'OFF',
+      ambientIllumination: 'BRIGHT',
+      barriers: [],
+      lights: []
+    }
+  },
+  playSettings: STORY_CAMPAIGN.playSettings,
+  zones: [],
+  enemyState: { conditionCodes: ['POISONED', 'FRIGHTENED'], currentHitPoints: 10 },
+  enemyVision: {
+    angleDegrees: 360,
+    brightRange: 60,
+    dimRange: 120,
+    directionDegrees: 0,
+    enabled: true
+  },
+  creatures: [
+    {
+      enemy: { kind: 'CUSTOM', label: 'Vault Sentry', maxHitPoints: 22 },
+      position: { x: 700, y: 300 },
+      conditionCodes: ['PRONE']
+    },
+    {
+      enemy: { kind: 'CUSTOM', label: 'Vault Hound', maxHitPoints: 22 },
+      position: { x: 650, y: 450 }
+    },
+    {
+      enemy: { kind: 'CREATURE', sourceId: balor.id },
+      tokenLabel: 'Balor in the Hall',
+      position: { x: 250, y: 450 },
+      morale: { triggerKind: 'INDIVIDUAL_SURPRISED', disposition: 'FLEE' }
+    },
+    {
+      enemy: { kind: 'CREATURE', sourceId: balor.id },
+      tokenLabel: 'Balor in the Dark',
+      position: { x: 250, y: 100 },
+      hidden: true
+    }
+  ]
+} as const satisfies StoryCampaignSpec
+
+/**
+ * The Campaign the story reader plays in whose GM is showing a Scene (D87), through the real showing
+ * command: hosted by REVIEW_STORY_SHOWING_HOST, with no Run and no presented Scene, so the showing
+ * covers nothing another story reads.
+ */
+export const STORY_SHOWING_CAMPAIGN = {
+  name: 'Story Showing Campaign',
+  shownScene: { name: 'Story Showing Scene' }
 } as const
 
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */

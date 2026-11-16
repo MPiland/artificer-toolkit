@@ -67,7 +67,9 @@ export const massHeal: SpellAuthored = {
                 effectKind: EFFECT_KIND.HEAL,
                 valueKind: 'POOL',
                 scalingKind: SCALING.NONE,
-                amount: 700
+                amount: 700,
+                // SRD: "divided as you choose among any number of creatures".
+                splitKind: 'CASTER_DIVIDES'
               }
             ]
           }

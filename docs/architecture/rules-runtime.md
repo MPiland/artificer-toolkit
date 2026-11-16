@@ -164,7 +164,9 @@ limits the aspects admit combinations the shape ladders refused: a save its user
 action, a single-target save at a Sight range, and a reaction's save at a Touch, Sight or unlimited range
 (`effectActionAspectAdmissions.test.ts`, with the room journey in `nativeRoomAreaAction.test.ts`). An area refuses with the one part it breaks:
 its disposition, its hit-point pool or save, a zone save's creature-type filter, a missing shape, a shape its range does not
-place, its range, or a size that is not fixed. A reaction over an area stays refused as an unbuilt path, not a game rule:
+place, its range, or a size that is not fixed. An area that rolls no save and no hit-point pool is a GM ruling on each
+creature it catches: its outcome must be a GM ruling, and the room commits it at once over the creatures its area catches, as it
+does a hit-point pool (QUALITY-15.T3m, `nativeRoomAreaRuling.test.ts`). A reaction over an area stays refused as an unbuilt path, not a game rule:
 the rules let a reaction catch an area, but its trigger's pending decision carries no aim yet (no SRD record authors one). The test aspect (`compileDnd5eTest`) owns what an action rolls and the result paths each test resolves to
 (`DND5E_TEST_RESULT_PATHS`): a check lists the one check its user rolls, and a contest the checks its target may roll. The test
 paths, the direct and check path, the outcome-path guards and the relationship hold paths (`dnd5eTestHoldPaths`) all read it; a
@@ -189,7 +191,49 @@ an attack or save result authored as instantaneous (`effectActionOutcomeAspect.t
 **Refusal classes (current, QUALITY-15.T2).** The SRD golden harness (`srdEffectCompileGolden.test.ts`) classes every
 refusal message the corpus meets as a game rule, invalid input (incomplete or contradictory authoring, or a fact binding
 given no resolved roll) or an unbuilt path, and fails on a message it has not classed. The unbuilt list may only shrink:
-building a path removes its message from the list.
+building a path removes its message from the list. QUALITY-15.T3d removed three: a bonus-only heal (`RESOLVED_HEAL`), a
+willing list with a timed ruling, and a creature's two-action activation (authored as the free, charged use its
+sibling Androsphinx already is).
+
+**Cast picks and ruling sequences (current, QUALITY-15.T3c).** The golden plans a Character action through
+`compileCastChoicePlans` with `buildCompiledActionTargetPolicy`, as the cast entry does, so a cast pick (D148) pins one
+plan pair per option (`choice=[...]`) instead of refusing as "choice has no plan". `rulingSequence` also accepts a
+SEQUENCE made only of GM rulings (Awaken, Contingency, Glyph of Warding): its first ruling leads as the action's result
+and the rest sit beside it as manual-adjudication nodes bound to their own entries. Irresistible Dance's authored path is
+a SEQUENCE (grant plus ruling), which the same split compiles. Imprisonment now refuses as UNBUILT: its remove-from-play
+outcome has no plan, which the earlier golden hid. Timed-manifestation rows (object and creature forms) stay refused:
+their data names no component or needs a new plan type, so they are not a lifetime-aspect gap.
+
+**Creature picks in the golden (current, QUALITY-15.T3s).** A Creature row whose action authors a pick (D148) pins
+`choice=[...]` through `compileCastChoicePlans`, as discovery compiles it. The Vampire Spawn Claws and the Vampire's
+Unarmed Strike were refused as "relationship outcomes need a bounded hit" only because the golden planned the whole,
+unpicked action. Each option's Grapple hold already compiles through `relationshipPlan` on the hit, so that UNBUILT
+message left the list. `relationshipPlan` still refuses a relationship in an unpicked `CHOICE` group: until the pick is
+made, the hit alone does not bound the hold.
+
+**Golden fidelity and inert zones (current, QUALITY-15.T3b).** The golden compiles a Character spell Effect as the
+product does: through `compileSpellEffect` (which carries the spell's Concentration onto the Effect, the one rule
+`compileSpell` also uses) and, for an activated action, through `compileActionPlacement` (zone, then summon) before the
+execution plan, the order of `compileCharacterActionEntryPoints`. A placed row pins as `ZONE_PLACEMENT` or
+`SUMMON_PLACEMENT` with a checksum of the placement. Carrying Concentration exposed 15 spells whose Concentration has no
+supported maintained effect (class UNBUILT); the golden had hidden them. A PLACED_SPACE or SOURCE zone that authors a
+label and a shape but no component and no appear save is an inert zone: `inertZonePlacementPlan` places it with no trigger
+modes, held for its duration by the cast's Concentration (`lastingZoneEntry`), so the table sees the area and a GM rules
+what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input. (QUALITY-15.T3o) The
+corpus authors a shape for every inert SRD zone from its own text, with the existing shape kinds: Wall of Force, Ice and
+Stone as a straight `WALL` of ten 10-foot panels, Gate as a `CIRCLE`, Forbiddance and the Magnificent Mansion entrance as
+a `CYLINDER`, Mirage Arcane as a `CUBE` a mile on a side. Prismatic Wall and Oil (flask) stay refused as UNBUILT: they
+author zone fields the placement does not model (ordered layers and their destruction, proximity rule, light, placement
+surface and occupancy, ignition, application limits), and each needs room behavior, not data.
+
+**Concentration spells re-authored onto existing plans (current, QUALITY-15.T3n).** Four of the 15 now compile with
+their effect held by the cast's Concentration, through data alone: Silent Image is an inert 15-foot-cube zone, Arcane
+Eye a stat-block summon (Tiny, flying, invisible, invulnerable, taking no space), Conjure Celestial a form summon on its
+own initiative (Couatl or Pegasus; the 9th-level challenge rating 5 is not offered), and Calm Emotions a Charisma save
+over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. The other 11 stay refused (UNBUILT,
+cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary
+sensor, summoned lights, a creature that stays hostile after Concentration breaks, an Armor Class floor, tree travel, a
+repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to its target).
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
@@ -1733,7 +1777,10 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   offer is answered and run as the post-commit reaction offer ([persistence](persistence.md)); the SRD Hunter's
   Giant Killer is its first consumer, authored from core options (a Large or larger attacker within 5 feet, seen,
   a bare Feature weapon attack paired with each wielded weapon) with no pending record or timer of its own
-  (SPELLS-31.T4k1c, D217). Transitional: `MOVEMENT` has a null moment because the movement path still discovers a `MOVEMENT` reaction itself
+  (SPELLS-31.T4k1c, D217). Its optional `attackRange` (`MELEE` or `RANGED`, the same check `ATTACKED_SELF` uses)
+  admits only that kind of attack, read from the attack's source; the SRD Hunter's Stand Against the Tide answers a
+  missed melee attack this way and hands the redirected attack to the GM (QUALITY-15.T3p, D217). Falling has no
+  trigger: the engine raises no fall event. Transitional: `MOVEMENT` has a null moment because the movement path still discovers a `MOVEMENT` reaction itself
   (QUALITY-9). Target: every row names a moment and the one shared offer serves them all.
   Given `zones` (RULES-2.T5d), it returns the zones a creature's contact event sets off, in the order given. A zone's
   persisted `triggerModes`, `turnTriggers` and `retaliatesMeleeHits` are its subscription: `ZONE_MOVEMENT` (`ENTER`,
@@ -3229,6 +3276,19 @@ from these core options; nothing in code names it.
   points and bonuses are not allowed with a split.
 - The action's `resourceUse` is spent once for the whole use, so one undo restores every share and the
   charge. Creature-type exclusions are the target filter's `excludedCreatureTypeIds`.
+- Mass Heal (QUALITY-15.T3d) authors the same option on a spell: its 700-point pool carries
+  `splitKind: 'CASTER_DIVIDES'` ("divided as you choose among any number of creatures"), so it
+  compiles as `SPENT_HEAL` like Preserve Life.
+
+## Bonus-amount heal (current, QUALITY-15.T3d)
+
+A non-temporary `FIXED` `HEAL` with amount 0, no scaling and `bonuses` is a heal its own bonuses give
+(Wholeness of Body: three times the monk level). The compiler's `RESOLVED_HEAL` outcome binds
+`dnd5e.resolved-heal-amount` into the heal proposal; `resolvedHealAmountFacts` reads the one resolved
+row, which the Sheet resolves to a whole number (`characterActionMechanics.ts` `resolveOutcome`), and
+refuses any other row as invalid input. A heal with a base amount, scaling or a temporary amount keeps
+its own paths. The same change lets a willing list pair with a timed GM ruling (Water Walk), since
+the ruling is what a willing creature accepts.
 
 ## Which slot a spell-slot cast candidate may spend (current, SPELLS-8.T17)
 
@@ -3743,7 +3803,9 @@ without a Scene write. The GM clears it with `UPDATE_ACTOR returnToInitiative`. 
 outright (no acknowledgement overrides) and area resolution (`planNativeLiveEncounterAreaAction`) catches nothing absent.
 `REMOVE_FROM_PLAY { keepsTurn }` is an active-effect-plan outcome that compiles to a `PLAY_ABSENCE` state contribution
 (Banishment: incapacitated condition plus removal; Etherealness: `keepsTurn`; Imprisonment and Maze: removal, the
-ending conditions stay `MANUAL_ADJUDICATION`). The effect store alone sets and clears the holder's absence
+ending conditions stay `MANUAL_ADJUDICATION`). A removal on a test's result path carries that path as its plan's
+`resultGate` (QUALITY-15.T3u), so it joins a TEST/OUTCOME execution and exists only when the target fails its save;
+held alone and until dispelled (Imprisonment), it lasts until the GM ends the effect. The effect store alone sets and clears the holder's absence
 (`syncPlayAbsence`, called from `create` and every delete path): `EFFECT` skips initiative, `EFFECT_KEEPS_TURN` keeps it,
 and the value is recomputed from the removals still held so overlapping ones return the actor only when the last ends.
 `GM_REMOVED` and `DEPARTED` are never overwritten or cleared by an effect ending. A return onto an occupied space is not
@@ -3809,10 +3871,15 @@ source (a mark reads "Mark from <marker>", VTT_UI-1.3).
 Polarity is BENEFICIAL or HARMFUL only when every piece of the grant reads that way for its holder, otherwise
 NEUTRAL; it is derived from the frozen modifiers and senses, never authored, and the VTT status ring colours by it. Encounter actors carry them as `activeGrants`
 (none on a COMPLETED Run, which reads no effects), shown on the token, the turn tracker and the drawer; the
-Sheet overview carries them too. The Campaign owner ends one by hand: a Character's through
-`END_ACTIVE_EFFECT` (gated on Campaign ownership, not on the Sheet viewer, so it works on the GM's own
-Character per D92; a maintained grant is refused, end its Concentration instead) and a Creature's through
-`UPDATE_ACTOR.endActiveEffectId`. Ending a grant has no GM undo.
+Sheet overview carries them too. The Campaign owner ends an active effect by hand, of any kind, under one
+rule (`isEndableByHand`, QUALITY-15.T3ae): any effect but one a Concentration maintains, which ends only
+with that Concentration. A Character's ends through `END_ACTIVE_EFFECT` (gated on Campaign ownership, not
+on the Sheet viewer, so it works on the GM's own Character per D92) and a Creature's through
+`UPDATE_ACTOR.endActiveEffectId` (`endEncounterActorEffect`). Both end through the effect store's
+`deleteCas`, so its end hooks run (a removal from play ends, `syncPlayAbsence`). Each listing carries
+`endable` from the same rule, and the drawer and Sheet offer End only on an endable grant. Only grants are
+listed: an effect with no grant (a removal from play) carries no label to list it by. Ending an effect has
+no GM undo.
 
 **Hit grants and reactions (D99).** An attack's `ON_HIT` or `ON_CRIT` `APPLY_GRANT` stays out of the
 two-phase TEST/OUTCOME graphs, like an on-hit relationship: `modifierGrantPlan` makes it the attack's one
@@ -4186,6 +4253,20 @@ rolls, counts and ends it, so the grant tick planner neither adds its extra tick
 either case the lead applies only on `ON_SAVE_FAIL` (`reachesAuthoredPath`), so an area breath leaves nothing on a
 creature that passes. Gold Dragon Weakening Breath is the grant-led case: Strength check, Strength save and
 Strength attack disadvantage, ended by the repeated Strength save.
+
+**A repeated save whose failure deals damage (QUALITY-15.T3z).** A once-per-turn `TARGET_TURN_END` repeat save,
+ungated, whose failure outcomes are only plain dice damage (Weird, Phantasmal Killer) compiles through
+`repeatingDirectFollowUpSavePlan`. The test template is compiled once for every cast level, so admission
+(`repeatSaveFailureDamageRows` in `effectActionNestedSave.ts`) checks only the shape; `dnd5eActiveEffectPlans`
+then picks the row for the action's `spellCastLevel` (`repeatSaveFailureDamage`) and freezes its dice into the
+effect's graph. The persisted active-effect contract is unchanged: the cast level's dice are graph nodes
+(`entryDiceDamageNodes`, gated on `repeat-save-test`'s path) and the damage proposal
+`proposal-on_save_fail` is a `sourceEntryBindings` entry bound to the authored damage row. At the holder's turn
+end, `settleRepeatedSave` (`effectActionRepeatSaveEvidence.ts`) yields `DAMAGE` applications for a failed save
+from that proposal through the shared `testApplications`, and
+the effect holds; a made save ends it as before. The turn-effect batch schema and
+`persistEncounterTurnEffects` accept an application whose source is the frozen node or a bound proposal. A
+repeat save may roll failure damage or propose GM rulings, never both, and never behind a gate.
 
 **Ability-scoped and fractional grants (SPELLS-19.T3b).** `ATTACK_ROLL` may name an `ability`; a grant naming one
 covers only attacks made with it. A Character folds it through `dnd5eAttackRollContributors` (the action's

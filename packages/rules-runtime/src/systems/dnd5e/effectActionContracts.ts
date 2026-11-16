@@ -171,6 +171,8 @@ export const DND5E_HEALING_MAXIMIZED_FACT_KEY = 'dnd5e.heal-max'
 export const DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY = 'dnd5e.recurring-heal-amount'
 /** The hit points a heal gives that the caster sized at use: units spent from the pool, or a share of a divided pool. */
 export const DND5E_SPENT_HEAL_AMOUNT_FACT_KEY = 'dnd5e.spent-heal-amount'
+/** The hit points a bonus-only heal gives (three times a monk level), which the use resolves from the actor. */
+export const DND5E_RESOLVED_HEAL_AMOUNT_FACT_KEY = 'dnd5e.resolved-heal-amount'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 /**
@@ -243,6 +245,8 @@ export type Outcome =
   | { kind: 'HEAL' | 'TEMPORARY_HIT_POINTS'; amount: number }
   /** A heal the caster sizes at use (units spent from the pool, or a share of a divided pool): its amount is the bound spent-heal fact. */
   | { kind: 'SPENT_HEAL' }
+  /** A heal whose authored bonuses give its amount (a class level times a multiplier): its amount is the bound resolved-heal fact. */
+  | { kind: 'RESOLVED_HEAL' }
   | { kind: 'DAMAGE'; amount: number; damageTypeId: string }
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }

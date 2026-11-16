@@ -17,11 +17,10 @@ import { attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
   compileConditionEffect,
-  type CompiledDuration,
   type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
-import { recurringHealAmountFacts, spentHealAmountFacts } from './effectActionHealAmountFacts.js'
+import { bindsFact, healFacts, recurringHealAmountFacts } from './effectActionHealAmountFacts.js'
 import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import {
   checksumRuleDocument,
@@ -95,9 +94,11 @@ import {
   fixedAmountDiceConfiguration,
   resolvedDiceMatchAuthored,
   positiveFixedAmount,
+  isBonusAmountHeal,
   isChosenAmountHeal,
   validateHealBonuses,
-  type SpecializedOutcome
+  type SpecializedOutcome,
+  type TestPhaseOutcome
 } from './effectActionTestOutcomes.js'
 import {
   authoredAlike,
@@ -172,7 +173,6 @@ import {
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
   DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
-  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY,
@@ -192,7 +192,7 @@ import {
   unsupported,
   multipliedDamageAmount
 } from './effectActionContracts.js'
-import { repeatSaveConditionIds, conditionImmunityFacts } from './effectActionEvidenceChecks.js'
+import { conditionImmunityFacts } from './effectActionEvidenceChecks.js'
 import {
   canonicalEndTriggers,
   marginRiderPlan,
@@ -227,11 +227,10 @@ import {
   interpretSpatial
 } from './effectActionInterpretation.js'
 import {
-  countRepeatSave,
   repeatedFollowUpSaveResultPath,
   repeatSaveAttemptAllowed,
   repeatSaveGated,
-  tallyEnds
+  settleRepeatedSave
 } from './effectActionRepeatSaveEvidence.js'
 import { compileDnd5eActivation } from './effectActionActivation.js'
 import { compileDnd5eTargeting, type Dnd5eTargeting } from './effectActionTargetPolicy.js'
@@ -268,9 +267,12 @@ import {
   escalationCondition,
   escalatingImmediateSave,
   immediateFollowUpSaveEntries,
+  immediateFollowUpSaveDuration,
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition,
   repeatCadenceSupported,
+  repeatSaveFailureDamage,
+  repeatSaveFailureDamageRows,
   repeatSaveHeldTurns,
   sourceTurnStartSave
 } from './effectActionNestedSave.js'
@@ -389,7 +391,8 @@ function isCheckOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean 
  * an attack's result (Shocking Grasp's "can't take reactions"), a grant a failed save applies beside
  * the timed conditions the same effect owns (Hypnotic Pattern's speed of 0), a save's grant the plan
  * holds alone (see `saveGrantPlan`; Enthrall's disadvantage on Perception, Vicious Mockery's on an
- * attack), and a bond or a creature form its plan carries on a test's result path. Any other save
+ * attack), a failed save's repeated save (see `repeatingDirectFollowUpSavePlan`), and a bond or a
+ * creature form its plan carries on a test's result path. Any other save
  * grant, bond or form stays a test outcome, which refuses it. A source immunity and a chosen item's
  * release are always the plan's (see `sourceImmunityPlan` and `chosenItemPlan`). An equipment
  * degradation is the resolver's (see `planEncounterEquipmentDegradation`).
@@ -413,6 +416,9 @@ function isActiveEffectPlanOutcome(
       entry.pathCode === 'ON_SAVE_FAIL' &&
       timedConditionPlan(action) !== null) ||
     (entry.outcome.effectKind === 'REMOVE_FROM_PLAY' && timedConditionPlan(action) !== null) ||
+    (entry.outcome.effectKind === 'FOLLOW_UP_SAVE' &&
+      entry.pathCode === 'ON_SAVE_FAIL' &&
+      repeatingDirectFollowUpSavePlan(action) !== null) ||
     (entry.outcome.effectKind === 'TELEPATHIC_LINK' &&
       entry.pathCode !== 'ON_USE' &&
       actorLinkPlan(action) !== null) ||
@@ -761,14 +767,6 @@ function repeatingImmediateFollowUpSavePlan(
   }
 }
 
-/** The authored duration of a hit's result block, which its follow-up save's condition lasts. */
-function immediateFollowUpSaveDuration(
-  action: Dnd5eCompiledEffectActionSource
-): CompiledDuration | undefined {
-  const saveEntry = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry
-  return saveEntry && 'duration' in saveEntry ? saveEntry.duration : undefined
-}
-
 /**
  * A one-time save's condition with a duration (D62.2, "poisoned for 1 minute"): the condition the
  * failed save applies is owned by an Encounter active effect that counts the target's turns and
@@ -906,6 +904,10 @@ function timedConditionPlan(
   const initialRemaining = duration && !untilDispelled ? conditionDurationTurns(duration) : null
   const indefinite = !duration || untilDispelled
   const grantEntry = grantEntries[0]
+  const [removal] = removalEntries
+  // A removal applies no stored state at cast, so its effect exists exactly when its plan does: it is
+  // gated on the test's result path (Banishment's failed save), not on a condition being applied.
+  const resultGate = removal ? entryResultGate(action, lead.entry.pathCode) : null
   const { failureMarginRider: rider } = lead.entry
   // The rider's conditions share the failure's path, so together they fit its immunity facts.
   const riderUnsupported =
@@ -934,6 +936,7 @@ function timedConditionPlan(
         !endTriggers.some((trigger) => trigger.event === 'LIFECYCLE' && trigger.timing === 'END')
       : initialRemaining === null) ||
     (grantEntry && (indefinite || !grantContribution)) ||
+    resultGate === undefined ||
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
     // conditions is counted with them by the turn-effect kernel, on the holder's turns.
     (turnAnchor && (indefinite || grantEntry)) ||
@@ -952,7 +955,7 @@ function timedConditionPlan(
       effectId: action.effectId,
       entryId: lead.entry.entryId,
       minimumRoll: turnEndGate.minimumRoll,
-      keepsTurn: removalEntries[0]?.outcome.keepsTurn,
+      keepsTurn: removal?.outcome.keepsTurn,
       heldAlone: outcomeEntries.length === 1 && !turnAnchor && !rider && !maintenance,
       initialRemaining,
       lifecycle
@@ -973,9 +976,8 @@ function timedConditionPlan(
     ...(grantContribution && {
       modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
     }),
-    ...(removalEntries[0] && {
-      playAbsenceContribution: { keepsTurn: removalEntries[0].outcome.keepsTurn }
-    }),
+    ...(removal && { playAbsenceContribution: { keepsTurn: removal.outcome.keepsTurn } }),
+    ...(resultGate && { resultGate }),
     lifecycle,
     // A removal held with no condition (Etherealness) has no condition to remove at its end.
     adapterFacts:
@@ -1024,7 +1026,8 @@ function ownsTimedSaveCondition(
 
 /**
  * Whether a plan holds a test outcome's lifetime: a failed save's timed condition, a timed ruling on
- * its result path, or the save's recurring result its recurring plan repeats.
+ * its result path, the save's recurring result its recurring plan repeats, or the result block a
+ * repeated save holds (a ruling in that block is proposed once, for the GM to time).
  */
 function testOutcomeLifetimeHeld(action: Dnd5eCompiledEffectActionSource) {
   return (entry: Dnd5eOutcomeEntry) => {
@@ -1032,7 +1035,10 @@ function testOutcomeLifetimeHeld(action: Dnd5eCompiledEffectActionSource) {
     if (timedRulingPlan(action)?.compiledEntryId === entry.entryId) return true
     if (dnd5eTestKind(action.compiledEffect.invocation) !== 'SAVE') return false
     const lifetime = dnd5eLifetime(action, LIFETIME_CANDIDATES)
-    return lifetime?.kind === 'RECURRING' && lifetime.plan.compiledEntryId === entry.resultBlockId
+    return (
+      (lifetime?.kind === 'RECURRING' || lifetime?.kind === 'REPEAT_SAVE') &&
+      lifetime.plan.compiledEntryId === entry.resultBlockId
+    )
   }
 }
 
@@ -1305,13 +1311,14 @@ function repeatingDirectFollowUpSavePlan(
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { invocation } = action.compiledEffect
   const entries = entriesBesideSourceImmunity(action)
-  const leadEntries = entries.slice(0, -1)
+  const { saveEntry, leadEntries } = directRepeatSaveEntries(entries)
   const leadEntry = leadEntries[0]
-  const saveEntry = entries.at(-1)
   const pathCode = triggerCode === 'ACTIVATED' ? 'ON_USE' : 'ON_SAVE_FAIL'
   if (
     invocation.kind !== 'ACTION' ||
     invocation.triggerCode !== triggerCode ||
+    // A cast with no save of its own applies only what its save repeats (Power Word Stun).
+    (triggerCode === 'ACTIVATED' && leadEntries.length + 1 !== entries.length) ||
     !leadEntry ||
     !saveEntry ||
     !('outcome' in leadEntry) ||
@@ -1380,6 +1387,8 @@ function repeatingDirectFollowUpSavePlan(
         })
       : null
   const grantContribution = grantPlan?.modifierGrantContribution
+  // The test template is compiled once for every cast level; the effect's plan picks the row.
+  const failsWithDamage = repeatSaveFailureDamageRows(save) !== null
   const contribution =
     leadConditions.length > 0 &&
     leadConditions.every(
@@ -1408,7 +1417,10 @@ function repeatingDirectFollowUpSavePlan(
     (!sourceTurn && !repeatCadenceSupported(save, escalation !== null)) ||
     !repeatSave ||
     save.onSuccess.kind !== 'END' ||
-    (escalation === null && !sourceTurn && save.onFailure.kind !== 'CONTINUE') ||
+    (escalation === null &&
+      !sourceTurn &&
+      !failsWithDamage &&
+      save.onFailure.kind !== 'CONTINUE') ||
     (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
     (save.repeatAttemptGate && save.repeatRollInfluence)
   ) {
@@ -1446,13 +1458,56 @@ function repeatingDirectFollowUpSavePlan(
   }
 }
 
-/** The entries the repeat-save effect holds (its condition or grant), without the follow-up save. */
-function repeatingDirectFollowUpSaveLeadEntries(
+/**
+ * A direct follow-up save and the entries of its own result block it repeats. A GM ruling in that
+ * block (an Androsphinx roar's lasting effect) is proposed once, as the failed save's other results
+ * are (Sunburst's damage in a block of its own): the repeat-save effect holds neither.
+ */
+function directRepeatSaveEntries(entries: CompiledEffectGroup['entries']) {
+  const saves = entries.flatMap((entry) =>
+    'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE' ? [entry] : []
+  )
+  const saveEntry = saves.length === 1 ? saves[0] : undefined
+  const leadEntries = saveEntry
+    ? entries.filter(
+        (entry) =>
+          entry !== saveEntry &&
+          'outcome' in entry &&
+          entry.outcome.effectKind !== 'MANUAL_ADJUDICATION' &&
+          entry.resultBlockId === saveEntry.resultBlockId
+      )
+    : []
+  return { saveEntry, leadEntries }
+}
+
+/**
+ * A test result's outcome as its OUTCOME phase proposes it. A grant a repeated save holds is the
+ * repeat-save effect's; the occurrence only proposes it.
+ */
+function testPathOutcome(
+  entry: CompiledEffectGroup['entries'][number],
+  action: Dnd5eCompiledEffectActionSource,
+  facts: Dnd5eEffectScalingFacts
+): SpecializedOutcome
+function testPathOutcome(
+  entry: CompiledEffectGroup['entries'][number],
   action: Dnd5eCompiledEffectActionSource
-): CompiledEffectGroup['entries'] | null {
-  return repeatingDirectFollowUpSavePlan(action)
-    ? entriesBesideSourceImmunity(action).slice(0, -1)
-    : null
+): TestPhaseOutcome
+function testPathOutcome(
+  entry: CompiledEffectGroup['entries'][number],
+  action: Dnd5eCompiledEffectActionSource,
+  facts?: Dnd5eEffectScalingFacts
+): TestPhaseOutcome {
+  if (
+    'outcome' in entry &&
+    entry.outcome.effectKind === 'APPLY_GRANT' &&
+    repeatingDirectFollowUpSavePlan(action) !== null &&
+    directRepeatSaveEntries(entriesBesideSourceImmunity(action)).leadEntries.includes(entry)
+  )
+    return { kind: 'MODIFIER_GRANT' }
+  return facts
+    ? specializedTestOutcome(entry, action, facts)
+    : specializedTestOutcome(entry, action)
 }
 
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
@@ -1805,6 +1860,7 @@ const DND5E_DIRECT_OUTCOMES: {
       return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
     }
     if (isChosenAmountHeal(outcome)) return { kind: 'SPENT_HEAL' }
+    if (isBonusAmountHeal(outcome)) return { kind: 'RESOLVED_HEAL' }
     const amount = fixedHealAmount(outcome, action.spellCastLevel)
     return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
   },
@@ -1874,12 +1930,14 @@ function supported(
     unsupported('D&D Self action range of distance bounds only its user teleporting.')
   // A willing target only warns when unwilling, and the table can override it. One creature may be
   // asked to accept a grant (Help), a timed condition (Invisibility) or a check (First Aid); a list
-  // a grant, a bond (Telepathic Bond) or a form. Widening either set is QUALITY-15.T2 triage. Both
-  // refuse with one reason, so a list is refused for the reason its single-target cast is.
+  // a grant, a bond (Telepathic Bond) or a form. A timed GM ruling (Water Walk) is held the same way
+  // for either. Both refuse with one reason, so a list is refused for the reason its single-target
+  // cast is.
   if (
     (targeting.kind === 'SINGLE' || targeting.kind === 'CHOSEN') &&
     targeting.willing &&
     grantPlan === null &&
+    timedRulingPlan(action) === null &&
     (targeting.kind === 'SINGLE'
       ? conditionPlan === null && !checkAction
       : linkPlan === null && formPlan === null)
@@ -1908,8 +1966,8 @@ function supported(
       'D&D Effect action resource use must use a normalized charge identity and positive safe cost.'
     )
   const outcome = entry.outcome
-  if (targeting.kind === 'AREA' && outcome.effectKind !== 'CONDITION')
-    unsupported('D&D hit-point pool area outcome must be a timed condition.')
+  if (targeting.kind === 'AREA' && outcome.effectKind !== targeting.outcomeKind)
+    unsupported('D&D area that tests no one must land its timed pool condition or GM ruling.')
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -1966,14 +2024,15 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     immediateFollowUpSaveGraphDefinition(action)
     return 'ATTACK'
   }
-  if (repeatingDirectFollowUpSavePlan(action)) return 'SAVE'
   if (
-    // A table row's repeated save is held by the row's plan, which admitRollTablePaths requires.
+    // A table row's repeated save is held by the row's plan, which admitRollTablePaths requires; a
+    // failed save's own repeated save, by its repeat-save effect.
     action.compiledEffect.entries.some(
       (entry) =>
         entry.resolutionKind !== 'ROLL_TABLE' &&
         'outcome' in entry &&
-        entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
+        entry.outcome.effectKind === 'FOLLOW_UP_SAVE' &&
+        !isActiveEffectPlanOutcome(entry, action)
     )
   )
     unsupported('D&D test action has an unsupported bounded shape.')
@@ -1993,7 +2052,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   })
   for (const entry of outcomeEntries) {
     paths.add(entry.pathCode)
-    const outcome = specializedTestOutcome(entry, action)
+    const outcome = testPathOutcome(entry, action)
     if (outcome.kind === 'CONDITION_APPLY') {
       if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
         unsupported('D&D test action condition is not in the pinned System vocabulary.')
@@ -2412,38 +2471,6 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       templateChecksum: checksumRuleDocument(input.action.compiledEffect.entries)
     }
   }
-  if (
-    input.selectedPath === 'ON_SAVE_FAIL' &&
-    repeatingDirectFollowUpSavePlan(input.action) !== null
-  ) {
-    const entries = repeatingDirectFollowUpSaveLeadEntries(input.action)
-    if (!entries?.length) unsupported('D&D direct repeated save outcome is unavailable.')
-    const definitions = entries.map((entry, index) => {
-      // The grant is held by the repeat-save effect; the occurrence only proposes it.
-      const outcome: SpecializedOutcome =
-        'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT'
-          ? { kind: 'MODIFIER_GRANT' }
-          : specializedTestOutcome(entry, input.action, input.facts)
-      if (outcome.kind !== 'CONDITION_APPLY' && outcome.kind !== 'MODIFIER_GRANT')
-        unsupported('D&D direct repeated save outcome is unavailable.')
-      return fixedOutcomeGraphDefinition({
-        action: input.action,
-        entry,
-        outcome,
-        // Each condition binds its own immunity fact, as the conditions of any other result path.
-        ...(entries.length > 1
-          ? { nodePrefix: `outcome${index + 1}-`, conditionOrdinal: index + 1 }
-          : {})
-      })
-    })
-    const definition = mergedOutcomeGraphDefinition({ action: input.action, definitions })
-    const published = publishedGraph(definition)
-    return {
-      phase: 'OUTCOME',
-      published,
-      templateChecksum: checksumRuleDocument(entries)
-    }
-  }
   const authoredGroups = selectedOutcomeGroups(input.action, input.selectedPath)
   // A tiered result owes only the tier whose band holds the target's hit points, if any does.
   const tierCeilings = hitPointTierCeilings(authoredGroups.flat())
@@ -2468,7 +2495,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   const definitions = groups.map((entries, groupIndex): RuleGraphDefinition => {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
-    const outcome = specializedTestOutcome(entry, input.action, input.facts)
+    const outcome = testPathOutcome(entry, input.action, input.facts)
     const gate = 'gate' in entry ? entry.gate : undefined
     // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
     testPathGates(entry, outcome.kind)
@@ -2664,8 +2691,13 @@ function dnd5eActiveEffectPlans(
   if (!lifetime || !plan) return []
   // A turn-end gate is frozen as the d20 test it rolls, not as the duration its child holds.
   const savePlan = lifetime.kind === 'REPEAT_SAVE' || timedPlan?.turnEndGate ? plan : null
+  const repeatedSave = directRepeatSaveEntries(entriesBesideSourceImmunity(action)).saveEntry
+  const failureDamage =
+    lifetime.kind === 'REPEAT_SAVE' && repeatedSave?.outcome.effectKind === 'FOLLOW_UP_SAVE'
+      ? repeatSaveFailureDamage(repeatedSave.outcome, action.spellCastLevel)
+      : null
   const frozenGraph = savePlan
-    ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan })
+    ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan, failureDamage })
     : timedPlan
       ? durationPublishedGraph({
           effectId: action.effectId,
@@ -2995,20 +3027,6 @@ export function dndSourceFromCompilerSource(
 }
 
 function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) {
-  const directRepeatLeadEntries = repeatingDirectFollowUpSaveLeadEntries(action)
-  if (directRepeatLeadEntries) {
-    return [
-      {
-        pathCode: 'ON_SAVE_FAIL',
-        template: {
-          definitionId: action.effectId,
-          gameSystemId: DND5E_SYSTEM_ID,
-          definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-          checksum: checksumRuleDocument(directRepeatLeadEntries)
-        }
-      }
-    ]
-  }
   const paths = new Set<SpecializedPath>()
   for (const entry of action.compiledEffect.entries) paths.add(entry.pathCode as SpecializedPath)
   // An attack critical includes the ordinary hit branch when one exists. It
@@ -3036,7 +3054,7 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
     // Validate every reachable outcome at source compilation time. The
     // specialized graph itself is intentionally deferred until locked
     // runtime scaling facts are available.
-    if (!followUpSave) for (const entry of groups.flat()) specializedTestOutcome(entry, action)
+    if (!followUpSave) for (const entry of groups.flat()) testPathOutcome(entry, action)
     const authored = followUpSave ? action.compiledEffect.entries : groups
     outcomes.push({
       pathCode,
@@ -3284,12 +3302,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         resolvedDamageExpressionFacts[key] = expression
       }
     }
-    const requiresHealModifier = published.definition.nodes.some((node) =>
-      Object.values(node.inputs).some(
-        (binding) =>
-          binding.kind === 'FACT' && binding.factKey === DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY
-      )
-    )
+    const requiresHealModifier = bindsFact(published, DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY)
     const resolvedHealOutcomes = Array.isArray(actionOutcomes)
       ? actionOutcomes.filter(
           (outcome): outcome is Record<string, unknown> & { expression: string } =>
@@ -3379,7 +3392,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         : {}),
       ...resolvedHealModifierFacts,
       ...recurringHealFacts,
-      ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic),
+      ...healFacts(published, resolvedHealOutcomes, actionMechanic),
       ...triggeringRollDieFacts(published, actionOutcomes, classLevels),
       ...(spellCastLevel === undefined
         ? {}
@@ -3992,88 +4005,17 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       graph,
       targetActorId: target.targetActorId
     })
-    if (repeatedSavePath !== null) {
-      // The gate's d20 only decides whether its child is made; the effect lasts out its duration.
-      if (definition.recurrence.turnEndGate)
-        return {
-          applications: [],
-          terminal: lifecycle.remainingTicks === 1,
-          emptyApplicationAllowed: true
-        }
-      const conditionIds = repeatSaveConditionIds(definition.adapterFacts)
-      const thresholds = definition.recurrence.saveThresholds
-      const escalationConditionId =
-        definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]
-      const saveTally =
-        thresholds && repeatedSavePath !== 'ATTEMPT_REFUSED'
-          ? countRepeatSave(thresholds, lifecycle.saveTally, repeatedSavePath)
-          : undefined
-      // A failed or refused attempt on the last counted turn ends the effect with its duration. A
-      // thresholds effect ends on its last success instead, and on its last failure when that
-      // escalates; one that does not escalate settles there.
-      const terminal =
-        (thresholds
-          ? tallyEnds(thresholds, saveTally, escalationConditionId !== undefined)
-          : repeatedSavePath === 'ON_SAVE_SUCCESS') || lifecycle.remainingTicks === 1
-      // Grants held by the effect leave with it; only held conditions need removing.
-      if (conditionIds === null)
-        return {
-          applications: [],
-          terminal,
-          emptyApplicationAllowed: true,
-          ...(saveTally ? { saveTally } : {})
-        }
-      if (
-        escalationConditionId !== undefined &&
-        (typeof escalationConditionId !== 'string' || !UUID.test(escalationConditionId))
-      ) {
-        throw new Dnd5eEffectActionCompilerError(
-          'D&D repeat-save escalation condition identity is invalid.'
-        )
-      }
-      const path = repeatedSavePath === 'ATTEMPT_REFUSED' ? null : repeatedSavePath
-      const application = {
-        sourceActiveEffectId: activeEffectId,
-        targetActorId: target.targetActorId,
-        sourceNodeId: definition.frozenGraphNodeId,
-        sourceOperationKey: DND5E_SAVE_TEST_OPERATION_KEY,
-        authoredPath: path,
-        resolvedPath: path
-      }
-      return terminal
-        ? {
-            applications: [
-              ...conditionIds.map((conditionId) => ({
-                ...application,
-                kind: 'CONDITION_REMOVE' as const,
-                conditionId
-              })),
-              // A failed save leaves the escalated condition, unless the target cannot hold it.
-              ...(escalationConditionId !== undefined &&
-              repeatedSavePath === 'ON_SAVE_FAIL' &&
-              !(target.conditionImmunityIds ?? []).includes(escalationConditionId)
-                ? [
-                    {
-                      kind: 'CONDITION_APPLY' as const,
-                      conditionId: escalationConditionId,
-                      sourceNodeId: application.sourceNodeId,
-                      sourceOperationKey: application.sourceOperationKey,
-                      authoredPath: application.authoredPath,
-                      resolvedPath: application.resolvedPath,
-                      targetActorId: application.targetActorId
-                    }
-                  ]
-                : [])
-            ],
-            terminal: true
-          }
-        : {
-            applications: [],
-            terminal: false,
-            emptyApplicationAllowed: true,
-            ...(saveTally ? { saveTally } : {})
-          }
-    }
+    if (repeatedSavePath !== null)
+      return settleRepeatedSave({
+        execution,
+        activeEffectId,
+        definition,
+        lifecycle,
+        graph,
+        ...target,
+        path: repeatedSavePath,
+        published
+      })
     const resolvedTest = testApplications({
       execution,
       published,

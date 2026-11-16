@@ -1,9 +1,12 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { skipToken } from '@tanstack/react-query'
 import { getFunctionName } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import { api } from '@artificer-toolkit/apis/convex/api'
+import { campaignSummaryDtoSchema } from '@artificer-toolkit/schema/api/campaignCore'
 import { socialListingDtoSchema } from '@artificer-toolkit/schema/api/socialHub'
+import { getCampaignCapabilities } from '@artificer-toolkit/shared/campaign/capabilities'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 
 const baseListing = socialListingDtoSchema.parse({
@@ -49,6 +52,33 @@ const otherListing = {
   title: 'The Iron Vault',
   summary: 'A heist campaign under the mountain.'
 }
+const laterCampaign = campaignSummaryDtoSchema.parse({
+  id: 'dddddddd-4444-4444-8444-444444444444',
+  publicId: 'glass-harbor',
+  name: baseListing.title,
+  description: null,
+  format: 'ONGOING',
+  toneTags: ['HEROIC'],
+  toneDetails: null,
+  contentMaturity: 'STANDARD',
+  gameSystemId: baseListing.system.systemId,
+  primaryRulesCatalogueId: '77777777-7777-4777-8777-777777777701',
+  additionalRulesCatalogueIds: [],
+  status: 'ACTIVE',
+  role: 'OWNER',
+  version: 1,
+  memberCount: 1,
+  playerCount: 0,
+  createdAt: '2026-08-01T12:00:00.000Z',
+  updatedAt: '2026-08-01T12:00:00.000Z',
+  capabilities: getCampaignCapabilities('ACTIVE', 'OWNER'),
+  assignedCharacter: null
+})
+const campaignPages = vi.hoisted(() => ({
+  results: [] as unknown[],
+  status: 'Exhausted' as 'CanLoadMore' | 'Exhausted' | 'LoadingFirstPage',
+  loadMore: vi.fn()
+}))
 const listings = new Map([baseListing, otherListing].map((entry) => [entry.listingPublicId, entry]))
 
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
@@ -56,6 +86,7 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
   convexQuery: (reference: Parameters<typeof getFunctionName>[0], args: unknown) => {
     if (getFunctionName(reference) !== getFunctionName(api.social.listings.getOwned))
       throw new Error(`Unexpected query ${getFunctionName(reference)}`)
+    if (args === 'skip') return { queryKey: ['listing', 'skip'], queryFn: skipToken }
     const { listingPublicId } = args as { listingPublicId: string }
     return {
       queryKey: ['listing', listingPublicId],
@@ -67,12 +98,7 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
 
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
-  usePaginatedQuery: () => ({
-    results: [],
-    isLoading: false,
-    status: 'Exhausted',
-    loadMore: vi.fn()
-  }),
+  usePaginatedQuery: () => ({ ...campaignPages, isLoading: false }),
   useMutation: () => vi.fn()
 }))
 
@@ -141,5 +167,42 @@ describe('SocialListingFormPage', () => {
 
     expect(await screen.findByDisplayValue(otherListing.summary)).toBeInTheDocument()
     expect(screen.queryByDisplayValue(/Unsaved/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the Campaign select disabled until the first page of Campaigns arrives', async () => {
+    campaignPages.status = 'LoadingFirstPage'
+    try {
+      const { rerender } = renderWithAppProviders(<SocialListingFormPage />)
+      expect(await screen.findByRole('combobox', { name: 'Campaign' })).toBeDisabled()
+
+      campaignPages.results = [laterCampaign]
+      campaignPages.status = 'Exhausted'
+      rerender(<SocialListingFormPage />)
+      expect(screen.getByRole('combobox', { name: 'Campaign' })).toBeEnabled()
+    } finally {
+      campaignPages.results = []
+      campaignPages.status = 'Exhausted'
+    }
+  })
+
+  it('loads a later page of Campaigns and offers the Campaign found there', async () => {
+    const user = userEvent.setup()
+    campaignPages.status = 'CanLoadMore'
+    try {
+      const { rerender } = renderWithAppProviders(<SocialListingFormPage />)
+      await screen.findByRole('textbox', { name: /Summary/ })
+      await user.click(await screen.findByRole('button', { name: 'Load more Campaigns' }))
+      await waitFor(() => expect(campaignPages.loadMore).toHaveBeenCalledWith(8))
+
+      campaignPages.results = [laterCampaign]
+      campaignPages.status = 'Exhausted'
+      rerender(<SocialListingFormPage />)
+      await user.click(screen.getByRole('combobox', { name: 'Campaign' }))
+      expect(await screen.findByRole('option', { name: laterCampaign.name })).toBeVisible()
+      expect(screen.queryByRole('button', { name: 'Load more Campaigns' })).not.toBeInTheDocument()
+    } finally {
+      campaignPages.results = []
+      campaignPages.status = 'Exhausted'
+    }
   })
 })

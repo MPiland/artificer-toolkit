@@ -8,10 +8,11 @@ import type {
 import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { CatchBoundary } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { formatEnumLabel } from '#components/AuthoredDetail'
 import { formatSocialTimestamp } from '../../socialModels'
 import { admissionPageSize, mergeAdmissionRows } from '../../hooks/admissionLists'
+import { useFocusLinkedRow } from '../../hooks/useFocusLinkedRow'
 import { useInvitationExpiry } from '../../hooks/useInvitationExpiry'
 import { AdmissionListFooter } from '../AdmissionListFooter'
 import { SocialEmptyState } from '../SocialEmptyState'
@@ -67,7 +68,6 @@ function SocialListingInvitationsList({
   const revoke = useMutation({
     mutationFn: (input: CampaignInviteVersionInput) => revokeInvite(input)
   })
-  const focused = useRef<string | null>(null)
   const { rows, loadingFirstPage, exhaustedEmpty } = mergeAdmissionRows<CampaignInviteDto>({
     pending,
     history,
@@ -77,14 +77,7 @@ function SocialListingInvitationsList({
   })
   useInvitationExpiry(asOf, setAsOf, rows)
   const target = rows.some((item) => item.invitePublicId === invitePublicId) ? invitePublicId : null
-  useEffect(() => {
-    if (!target || direct.isError || focused.current === target) return
-    const row = document.getElementById(`invitation-${target}`)
-    if (!row) return
-    focused.current = target
-    row.focus({ preventScroll: true })
-    row.scrollIntoView({ block: 'center' })
-  }, [direct.isError, target])
+  useFocusLinkedRow(target && !direct.isError ? `invitation-${target}` : null)
   return (
     <>
       {loadingFirstPage ? <Loader aria-label='Loading sent invitations' size='sm' /> : null}

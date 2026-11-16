@@ -193,8 +193,8 @@ export function reviewTargetSteps(
         (data) => adminCall('adapter:create', { input: { model: 'verification', data } }, true),
         target.mode === 'local' ? undefined : password
       ),
-    grantGmTier: async (userId: string) => {
-      await adminCall('accountEntitlements:setTier', { userId, tier: 'GM' })
+    setTier: async (userId: string, tier: 'GM' | 'FREE') => {
+      await adminCall('accountEntitlements:setTier', { userId, tier })
     },
     grantSuperadmin: async (userId: string) => {
       assert.equal(target.mode, 'local', 'Superadmin is granted only to the local review admin.')

@@ -495,7 +495,7 @@
           "status": "DONE",
           "journeyTests": [
             "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx",
-            "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.stories.tsx"
+            "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.backend.stories.tsx"
           ],
           "journeyStatus": "verified",
           "origin": [],
@@ -506,7 +506,7 @@
               "proof": [
                 "apps/web/src/domains/fixtureContracts.test.ts",
                 "apps/web/src/test/validatedFixture.test.ts",
-                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.stories.tsx",
+                "apps/web/src/domains/characters/sheet/rest/CharacterSheetRest.backend.stories.tsx",
                 "apps/web/src/marketing/stories/MarketingProductCapture.stories.tsx",
                 "apps/web/src/domains/characters/builder/core/CharacterBuilderAuthoringRuntime.stories.tsx",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx",
@@ -2282,7 +2282,7 @@
             },
             {
               "id": "PLATFORM-28.T3d2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2293,40 +2293,44 @@
               },
               "text": "EquipmentParentPreview reads the seeded SRD shortsword; SystemDetailPage reads a seeded reusable definition with after-write states as composed stories (D218); SystemDefinitionWorkspace.fixtures is replaced.",
               "note": "Registered 2026-11-15 from the T3d seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m806 (c81bee194); slice tip 5cca93717 (re-synced with m805): Tests 43771390338, Live 43771390365, Browser journeys 43771390307 green (storybook-backend-browser). System definition authoring stories read the seeded drafted and published definitions through the real paged queries (they page forward until the seeded label shows); writes go through the shared spies; storyData.test asserts the seed (assertions added only). SystemDefinitionWorkspace.fixtures stays because unit tests import it (D221). No enforced 20-story quota, so no new shard. No assertion weakened; no D196 change."
             },
             {
               "id": "PLATFORM-28.T4a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["PLATFORM-28.T2", "PLATFORM-28.T5a"]
               },
               "text": "Per-story sign-in in the backend Storybook preview (seeded second account and superadmin, sign-in reused to stay under the rate limit) and the seed extension through product commands (second account, an application and invitation, a block, a report and the notifications they trigger); SocialProfilePage, MatureContentPreference and NotificationShell stories read seeded data. NotificationFeedView and NotificationPreferencesView stay props-only.",
               "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (14 story files, whole about 18): listing stories to T4b, second-account views to T4c, moderation to T4d; depends on T5a for the single-query override and write spies (D218 amendments).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m807 (1a8079afb; T4a landed through T4b, which built on it); slice tip 186186453 (re-synced with m803): Tests 43743445567, Live 43743445566, Browser journeys 43743445606 green; earlier tip 0062b8e3f Browser journeys 43730323012 green (storybook-backend-browser). An earlier Browser journeys run 43728044682 was red on a real failure (another account's profile page resolves only for a PUBLIC profile), fixed in the seed. The backend preview signs in per story (storyAccount reader, peer or admin; one sign-in per identity, reused). seedStorySocial runs through product commands and is idempotent (storyData.test): three profiles, the peer made PUBLIC through account.setProfileVisibility, the reader's listing (openReviewListing), the peer's application, the reader's invitation, a report and a block, and the notifications they deliver. updatePreference is answered through the real socialEligibilityDtoSchema. SocialProfilePage, MatureContentPreference and NotificationShell backend stories replace the fixture stories (deleted with no-importer proofs); the two notifications.spec Playwright checks moved into the Desktop Drawer and Mobile Page play functions. NotificationFeedView and NotificationPreferencesView stay props-only. Red proof: storyData.test ALREADY-PASSING (helpers kept). Restated: storyData accounts list (three accounts); SocialProfilePage after-write state checks become exact write inputs (blocks.create, reports.create, blocks.remove) under D218; MatureContentPreference call checks read writesTo. No D196 change. Risk: notification delivery in the seed waits on the minute dispatcher (polled)."
             },
             {
               "id": "PLATFORM-28.T4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["PLATFORM-28.T4a"]
               },
               "text": "SocialListingDetailPage, SocialListingFormPage, SocialNativeLists and SocialListingInvitations stories read the seeded listing; their hand-seeded caches and local shapes are deleted with a no-importer proof.",
-              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221). Resized 5 -> 8 at merge: a product fix and Vitest regression test, seed work and a three-way re-sync.",
+              "mergedAt": "2026-11-15",
+              "proof": "m807 (1a8079afb); slice tip 75040480a (re-synced with m806): Tests 43774720773, Live 43774720772, Browser journeys 43774720771 green. FocusedDeepLink root cause: the invitation list's focus-driven horizon refresh remounts the deep-linked row and the id-keyed focused ref blocked refocusing it; SocialListingInvitations now keeps the row element, with a Vitest regression test (focuses the linked row again when a horizon refresh remounts it). ExhaustedSearch types a query no seeded term matches. Listing detail, form, native lists and invitations stories read the seeded listing (SeededHostedListing, SeededAppliedListing); listing writes go through storyMutation and answer with getOwned parsed by socialListingDtoSchema; the old fixture stories are deleted with a no-importer proof; paging assertions moved to Vitest (SocialListingFormPage.test, SocialDiscoveryHostingViews.test). Restated: storyData counts the peer's invitations and feed items per account and kind (the player Campaign adds the reader's own). Known stopgap: the signInStoryAccount 429 retry in the backend preview stays until T6b's per-file client address replaces it."
             },
             {
               "id": "PLATFORM-28.T4c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2336,11 +2340,13 @@
                 "after": ["PLATFORM-28.T4a"]
               },
               "text": "SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog stories read the second account seed under its own sign-in; writes go through the shared write spies.",
-              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221).",
+              "mergedAt": "2026-11-15",
+              "proof": "m810 (46dfa58fb); slice tip 597576f99: Tests 43786127443, Live 43786127399, Browser journeys 43786127424 green. SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog backend stories read the existing seedStorySocial data (no seed additions); writes are spied with real product errors for failure stories; old fixture stories deleted with a no-importer proof. Product fix: one useFocusLinkedRow hook (runs each commit, element-identity guard) replaces three inline deep-link focus copies; SocialApplicationsView had the same remount bug. Red proof: SocialApplicationsView.test and SocialInvitationsView.test RED (focuses the deep-linked row again when a list reload remounts it), useFocusLinkedRow.test RED-IMPORT. Unreachable states (expired/revoked invitation, history ordering, paging) rest on real-component Vitest tests; simulated post-write transitions dropped per D218."
             },
             {
               "id": "PLATFORM-28.T4d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2350,7 +2356,9 @@
                 "after": ["PLATFORM-28.T4a"]
               },
               "text": "SocialModerationPage story signs in as the seeded superadmin and reads reports made through the report command; the moderation fakes are deleted.",
-              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221).",
+              "mergedAt": "2026-11-15",
+              "proof": "m809 (2e4c4956b); slice tip cab208dcf: Tests 43781282707, Live 43781282749, Browser journeys 43781282624 green. SocialModerationPage.backend.stories SeededReport signs in as the seeded REVIEW_ADMIN, which seedStorySocial gives a Social profile and superadmin through the existing operator step (authAdmin:setRole), and reads the reader's report; Open report is a spied write asserted with writesTo. storyData asserts the superadmin's queue. The fixture stories are deleted with a no-importer proof; paging, evidence, actions and failure checks rest on real-component Vitest tests, plus a new one (clears a failed action and its reason when the report is reopened). Ruling: open stays a spied write (D218), so the story ends at the recorded write."
             },
             {
               "id": "PLATFORM-28.T5a",
@@ -2370,7 +2378,7 @@
             },
             {
               "id": "PLATFORM-28.T5b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2381,11 +2389,12 @@
               },
               "text": "Encounter builder page and Blueprint route stories read the seeded Campaign; the empty, added and deleted Encounter states are composed stories (D218 amendment).",
               "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m808 (662910fe5); slice tip ff0ad2ee7 (contains m807): Tests 43779209029, Live 43779208969, Browser journeys 43779208974 green. Campaign stories read the seeded story Campaign; a second Blueprint \"Story Next Encounter\" with a never-started prepared Run gives the Run-create story a reachable state; the hung create spy behind the inert watchQuery override is fixed by one unoverridden read client (unoverriddenReads, taken before installQueryOverride, bound per story), which also replaced T4b's duplicate bindStoryReads. T6b owes folding its readServed into that client."
             },
             {
               "id": "PLATFORM-28.T5c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2395,11 +2404,13 @@
                 "after": ["PLATFORM-28.T5b"]
               },
               "text": "The Scene editor story reads a seeded Scene with a real map asset; its save is recorded through begin, append and publish spies (D218 amendment); the fake ConvexReactClient and hand-seeded caches in campaign stories are deleted with a no-importer proof.",
-              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221).",
+              "mergedAt": "2026-11-15",
+              "proof": "m815 (f231e370a); slice tip 784520745: Tests 43802889511, Live 43803581911, Browser journeys 43802889337 green. CampaignSceneEditor.backend.stories ConfiguredScene reads the seeded Story Scene (map uploaded through the real upload path, wall, door, two tokens) through the real list, loadSceneDefinition, map delivery and loot reads, draws a wall and saves; begin, append and publish are spied writes (D218 amendment) answered through sceneDefinitionSaveProgressSchema, and writesTo asserts the begin counts, append batches by saveId and the publish. storyData asserts the Scene editor input. The fake-client CampaignSceneEditor.stories is deleted (no importers); its unasserted MapLoadFailure render became a real-component test. The tabletop harness's fake ConvexReactClient stays with its importer, CampaignTabletopWindow.stories, which T7c/T7d convert and delete. Red proof: storyData.test and CampaignSceneEditor.test ALREADY-PASSING (seed and product already existed)."
             },
             {
               "id": "PLATFORM-28.T6a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2410,11 +2421,12 @@
               },
               "text": "Story Characters (single-class Fighter, Fighter/Wizard multiclass, a caster) built through Builder commands from SRD content, with the Character name-lookup harness; a backend sheet-story meta reads the real sheet subscription; the Shell base stories (Desktop, Mobile, Tablet, DraftPending, AbilityModifierStates) and the Status stories read them.",
               "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (7 files, about 57 stories, whole about 20): rest and composed Shell states to T6b, Inspector and Extras to T6c, Astral Tear, Builder runtime, marketing capture and the story-only module deletion to T6d. Data fixtures imported by unit tests stay (D221); only story-only modules are deleted.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m829; slice tip 6e9d09c00: Tests 43897227084, Live 43897227505, Browser journeys 43897227340 green. Delivered on the T6b branch. seedStoryCharacters (developmentReviewData.ts) builds Story Fighter, Story Multiclass and Story Caster through Builder commands from SRD content, plus a Builder draft for Story Draft Pending (Fighter Poisoned, Caster slots spent); storyData.test asserts each through real reads, including an idempotent re-seed. findSeededSheetCharacter and sheetRouter (characterSheetBackendStory.ts) open the real Sheet route; the Shell base stories (CharacterSheetShell.backend.stories.tsx) and StatusEditorDesktop/Mobile (CharacterSheetStatus.backend.stories.tsx) read them."
             },
             {
               "id": "PLATFORM-28.T6b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2424,11 +2436,13 @@
                 "after": ["PLATFORM-28.T6a", "PLATFORM-28.T5a"]
               },
               "text": "Rest stories on the real rest preview with roll spies built through the roll record schema; Shell ProficiencyStates, SpellStates, ActionTypes and ActiveBonusesMobile as composed stories, with the preview override naming a sheet slice.",
-              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221).",
+              "mergedAt": "2026-11-16",
+              "proof": "m829; slice tip 6e9d09c00: Tests 43897227084, Live 43897227505, Browser journeys 43897227340 green. Rest stories run on the real rest preview with roll spies parsed through the roll record schema; ProficiencyStates, SpellStates, ActionTypes and ActiveBonusesMobile are composed through sheetSliceOverride, which parses each Sheet slice through its own data schema. Story sign-in and client address handling follow the phase (bounded 429 retry); the Hosted Page story re-queries its dialog inside waitFor."
             },
             {
               "id": "PLATFORM-28.T6c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2438,7 +2452,8 @@
                 "after": ["PLATFORM-28.T6b"]
               },
               "text": "Inspector stories on the real panel query (variants composed) and Extras stories with a seeded companion and vehicle; the sheet command spy records a multi-mutation write and a failing variant.",
-              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221). Rider 2026-11-16 from the T6b review: AbilityModifierStates currently opens the Fighter with the same play as Desktop; it must assert the seeded Fighter's ability modifiers (a positive, zero and negative state) or be composed to show them.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T6d",
@@ -2488,7 +2503,7 @@
             },
             {
               "id": "PLATFORM-28.T7b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2499,11 +2514,12 @@
               },
               "text": "A story host account owns a player Campaign the reader joins through the invitation commands (admitPlayers takes its host and capacity); the local R2 fixture allows the Storybook origins with a CORS preflight test; storyData.test asserts the player seed.",
               "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m805 (998dba205); slice tip cddd7c8fc: Tests 43744621028, Live 43744620892, Browser journeys 43744620881 green."
             },
             {
               "id": "PLATFORM-28.T7b3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2513,21 +2529,88 @@
                 "after": ["PLATFORM-28.T7b2"]
               },
               "text": "The backend preview spies the Scene renderer and records every client write frame (COMMAND and Scene fog writes) without sending it; GM and player window backend stories assert the presented Scene, tokens drawn, fog, the connection status and the Encounter, replacing RoomConnected and the base harness stories; DRAINING reconnect documented.",
-              "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221).",
+              "mergedAt": "2026-11-15",
+              "proof": "m813 (f9c2fe518); slice tip 23271da40 (contains m810): Tests 43797543384, Live 43797543309, Browser journeys 43797543341 green. CampaignTabletopWindow backend stories (GM window, edits the Scene, advances the turn, binds a creature to another token, reveals a player's fog; player window, player moves their token) connect to the stack's real Session Worker with product tickets; Session Worker commands and fog frames are spied writes (D218), the fog answer is a schema-parsed SCENE_FOG_PROGRESS, and the Scene renderer is spied so stories assert what it drew against the presented Scene. Player door assertions restated against the seeded Scene's DOOR barriers. seedStorySocial admits the story host as the Story Campaign's player and marks the acceptance notice seen so the reader's bell keeps its seeded count; storyData asserts the host seat. Fake-socket base stories deleted with a no-importer proof. DRAINING reconnect stays a unit-level proof (liveSessionClient reconnectDelay, terminal join refusals). Red proof: storyLiveSession.test ALREADY-PASSING (test-only addition)."
             },
             {
               "id": "PLATFORM-28.T7c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 8,
+                "size": 5,
                 "after": ["PLATFORM-28.T7b3"]
               },
-              "text": "The renderer-heavy tabletop stories (auras, zones, morale, conditions, fog save, show scene, Encounter binding, command rejection) run as seeded or composed variants, with the drawer and live scene object editor siblings.",
-              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
+              "text": "The zone, shown-scene and placement-preview tabletop stories run on seeded state (zones placed through real PLACE_ZONE commands, a second unpresented Scene), with the turn order drawer and live scene object editor siblings.",
+              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221). Split 2026-11-16 (size 8 -> 5 + T7c2 5) from the slice's seam trace: auras, conditions and morale need seed work through real commands.",
+              "mergedAt": "2026-11-16",
+              "proof": "m819 (f366c9f7e); slice tip ea09f821b: Tests 43817179299, Live 43817179318, Browser journeys 43817179363 (storybook-backend-browser) green. The story seed places a hazard and a concealed trap (spot DC 15) in both story Campaigns through real PLACE_ZONE commands and adds an unpresented second Scene through createEncounterLifecycleScene; storyData asserts both through api.encounters.activeReads.active (the player reads only the hazard). Backend stories GmSeesEveryPlacedZone, PlayerSeesOnlyZonesTheyKnowOf, PlacingAZonePreviewsItsArea (no write), GmShowsSceneToPlayers (spied showings.show carries the second Scene) and the turn order drawer and live scene object editor siblings; the four replaced fake stories are deleted with a no-importer proof. storyData.test's reusableDefinitions read now collects and filters in memory instead of a database filter. Red proof: storyData.test ALREADY-PASSING (seed helpers kept)."
+            },
+            {
+              "id": "PLATFORM-28.T7c2",
+              "status": "DONE",
+              "closes": ["PLATFORM-28.1"],
+              "text": "Token-status, focus and keyboard tabletop stories run on a creature seeded through a real UPDATE_ACTOR command; the stale keyboard-move rejection is a real-component test whose COMMAND_REJECTED frame is the faked platform response parsed through the schema (spied writes stay unsent, D218).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T7c"]
+              },
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c in approved scope (D221). Widened 2026-11-16 (size 5 -> 8): the T7c report found the token-status, selection and keyboard stories still on the fake harness T7d deletes. Split 2026-11-16 (size 8 -> 5, with T7c3 8, T7c3b 5 and T7c3c 5) from the slice's seam trace: auras, morale, the player-visible creature board and the shown-scene modal need their own seed work.",
+              "mergedAt": "2026-11-16",
+              "proof": "m821 (45ea2bddb); slice tip eed3c24d2: Tests 43822388984, Browser journeys 43822388988, Live 43820853730 (on f335c8c19; eed3c24d2 changed only a story) green. The seed gives the Story Cultist POISONED, FRIGHTENED and 10 HP through a real UPDATE_ACTOR (developmentReviewData.ts, after the PLACE_ZONE loop); storyData.test asserts them through api.encounters.activeReads.active. Backend stories GmSeesTokenStatuses, FocusingATokenListsEveryStatus and KeyboardOnlyTabletopJourney (spied MOVE_SCENE_TOKEN carries the room's Encounter version) replace their fake stories. KeyboardMoveRejectedAsStaleIsAnnounced is a CampaignVttStage.stageState test that parses a COMMAND_REJECTED frame through liveSessionWebSocketServerMessageDtoSchema. The four fake stories and the harness's sceneCommandRejection option are deleted with a no-importer proof."
+            },
+            {
+              "id": "PLATFORM-28.T7c3",
+              "status": "DONE",
+              "closes": ["PLATFORM-28.1"],
+              "text": "The player-visible creature, aura, selection, hover and preview tabletop stories run on an open-fog player Campaign with its own story host, seeded through real commands (an SRD creature with a passive aura, statuses through UPDATE_ACTOR); the replaced fake stories are deleted.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T7c2"]
+              },
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221).",
+              "mergedAt": "2026-11-16",
+              "proof": "m825; slice tip 8b2a6365e: Tests 43844338164, Live 43844338162, Browser journeys 43844338319 green (one --failed rerun). Ten player-visible creature, aura, selection, hover and preview stories run on STORY_OPEN_CAMPAIGN with its own openHost account (Balors with auras, the Warden with statuses, the Sentry prone), seeded through real commands; prepareStoryRun finds actors by label; the replaced fake stories are deleted. Watch: the canvas-hover story was the rerun flake."
+            },
+            {
+              "id": "PLATFORM-28.T7c3b",
+              "status": "DONE",
+              "closes": ["PLATFORM-28.1"],
+              "text": "GmSeesMoraleOutcome runs on seeded state (REPLACE_OPTIONAL_COMBAT_RULES before START, then MORALE_SAVE and CONFIRM_MORALE), and PlayerSeesShownScene through a real showings.show in its own Campaign and host.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T7c2"]
+              },
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221).",
+              "mergedAt": "2026-11-16",
+              "proof": "m827; slice tip 79fbd65e7: Tests 43882581632, Live 43882581852, Browser journeys 43882581592 green. GmSeesMoraleOutcome and PlayerSeesShownScene are backend stories on seeded state with spied, unsent writes (D218): morale enabled through REPLACE_OPTIONAL_COMBAT_RULES before START, then MORALE_SAVE and CONFIRM_MORALE (FLEE) on the visible SRD Balor (the custom Warden has no Wisdom save, so the room refused it); the shown scene through a real showings.show in STORY_SHOWING_CAMPAIGN with its own host. storyData.test asserts the Balor's morale and the showing Campaign through real reads (RED at the merge-base). The fake stories, shownScene and the harness show branch are deleted with a no-importer proof."
+            },
+            {
+              "id": "PLATFORM-28.T7c3c",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-28.1"],
+              "text": "The tabletop stories that need a mid-play change (facing rotation, the marker, preview ending when the token leaves) become real-component tests fed live frames parsed through the schema; the reaction halo and the forced-movement picker run on a pending occurrence seeded through real commands from the seeded story Characters.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T7c2"]
+              },
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T7d",
@@ -2538,10 +2621,30 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 3,
-                "after": ["PLATFORM-28.T7c"]
+                "after": [
+                  "PLATFORM-28.T7c",
+                  "PLATFORM-28.T7c2",
+                  "PLATFORM-28.T7c3",
+                  "PLATFORM-28.T7c3b",
+                  "PLATFORM-28.T7c3c"
+                ]
               },
               "text": "The fake live transport harness, the fake Convex client and the story-only tabletop fixtures are deleted with a no-importer proof; data fixtures imported by unit tests stay.",
               "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T9",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["PLATFORM-28.1"],
+              "text": "Backend stories that read Campaign data stay signed in: the intermittent Unauthenticated from campaigns/queries:list (Create For Campaign With Listing, Delete Encounter) is root-caused and fixed, proved by repeated green storybook-backend-browser runs with no rerun.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 as a resize in approved scope: the flake failed four slice and batch runs on 2026-11-16 (T3m twice, T3z, m828)."
             },
             {
               "id": "PLATFORM-28.T8",
@@ -27628,7 +27731,7 @@
             },
             {
               "id": "QUALITY-15.T3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27638,11 +27741,210 @@
                 "after": ["QUALITY-15.T2"]
               },
               "text": "An untested area (no save, no hit-point pool) compiles as a placement or area ruling (88 golden rows; 13 already compile as zones in product, 25 need zone-placement data fixes).",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-15",
+              "proof": "m814 (f51d243ce); slice tip d7fb263d3 (contains m813): Tests 43801372791, Live 43801372795, Browser journeys 43801372826 green. One isActivatedEffect predicate (spellCastCandidates.ts) is shared by castableEffectGroups, the spell action rule facts and the golden; the golden passes each spell's own attributes to compileSpellEffect. Placement-first compile (compileActionPlacement shared by product and golden), compileSpellEffect owns the Concentration carry, and an inert zone (label and shape, no components, maintained by the cast's Concentration) let area rulings place: 53 placement lines, 16 SRD manifests given a label and shape copied from the spell's own invocation. Proofs: encounterInertZonePlacement.test (Darkness, Antimagic Field, Forbiddance refused) and a Session Worker room test that casts SRD Darkness over a Wolf and holds the zone through a turn. The golden now carries Concentration, which surfaced 15 product refusals (T3n)."
+            },
+            {
+              "id": "QUALITY-15.T3m",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "The 31 area rulings with no zone (Gust of Wind, Detect Magic, Zone of Truth, Major Image, Reverse Gravity, Storm of Vengeance, Hunting Trap, Planar Ally, Create Undead, Find Steed, Move Earth and the rest) compile: the room catches the creatures in an area ruling through a generic test plan instead of treating a no-save placement as catching nobody.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3n",
+              "status": "DONE",
+              "closes": ["QUALITY-15.1"],
+              "text": "The 15 Concentration spells the compiler refuses as having no supported maintained effect (Animate Objects, Arcane Eye, Barkskin, Call Lightning, Calm Emotions, Clairvoyance, Conjure Celestial, Elemental and Fey, Dancing Lights, Delayed Blast Fireball, Flaming Sphere, Resilient Sphere, Silent Image, Tree Stride) compile with their effect held by the cast's Concentration, through generic options.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-16",
+              "proof": "m825; slice tip e55a933da: Tests 43835516578, Live 43835516548, Browser journeys 43835516696 green. Four concentration rows compile through existing generic plans: Silent Image as a zone, Arcane Eye and Conjure Celestial as summons, Calm Emotions as a TEST_OUTCOME timed GM ruling. The 11 rows still UNBUILT moved to QUALITY-15.T3x and T3y."
+            },
+            {
+              "id": "QUALITY-15.T3o",
+              "status": "DONE",
+              "closes": ["QUALITY-15.1"],
+              "text": "Zones with no authored shape (Forbiddance, Gate, Magnificent Mansion, Mirage Arcane, Wall of Force, Ice and Stone) get SRD-cited shapes or a generic wall or panel shape, and the zone manifest models what Prismatic Wall and Oil author beyond label, shape and entering components.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-16",
+              "proof": "m820 (0dcc6e21d); slice tip 6d3eaf86d: Tests 43817832151, Live 43817832077, Browser journeys 43817832069 green. Seven area rulings place as inert zones with SRD-cited shapes through the existing WALL, CIRCLE, CYLINDER and CUBE kinds (no contract change): Wall of Force, Ice and Stone as their straight ten-panel form, Gate at its 20 ft maximum, Magnificent Mansion's entrance, Forbiddance as the widest round floor within 40,000 sq ft, Mirage Arcane as a mile square. \"A placed zone needs a label and a shape\" no longer refuses any row. Proof: encounterInertZonePlacement.test places each real SRD spell. Dome, sphere and bent wall forms are not authored. Prismatic Wall and Oil keep their honest refusal (the manifest models only label, shape and entering components) and moved to T3v and T3w."
+            },
+            {
+              "id": "QUALITY-15.T3v",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Prismatic Wall places as a layered zone: layers resolve and are destroyed in order and stay destroyed, a 20 ft sight proximity rule blinds, it sheds light, refuses an occupied placement and spends the casting when placed invalidly, and designated creatures pass, through generic zone manifest keys (encounterZonePlacement.ts MODELED_MANIFEST_KEYS).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3w",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Oil (flask) places as a zone that needs ignition before its components apply, on a level surface, with a per-turn application limit shared across its components, through generic zone manifest keys.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3x",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Summoned and animated creatures from Concentration spells: Animate Objects stat blocks per object size, Dancing Lights as several light-shedding objects, and Conjure Elemental and Conjure Fey creatures turning hostile when Concentration breaks, through generic summon and light plans.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3y",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Maintained Concentration effects with ongoing behavior: Barkskin AC floor, Call Lightning repeat bolt, Delayed Blast Fireball detonating when the spell ends, Flaming Sphere as a movable damaging sphere, Resilient Sphere as a zone attached to its target, Clairvoyance sensor, and Tree Stride, through generic plans.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8
+              },
+              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3z",
+              "status": "DONE",
+              "closes": ["QUALITY-15.1"],
+              "text": "A repeat save whose failure deals damage (Weird, Phantasmal Killer) compiles through the repeat-save-test plan: dice in the repeat-save graph, cast-level scaling frozen into the active effect, UUID result block ids, and the room applies the damage on each failed save.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3l report under the standing approval for QUALITY growth (2026-11-13). Widened 2026-11-16 (size 3 -> 5) from the T3r seam trace to include Phantasmal Killer and cast-level scaling.",
+              "mergedAt": "2026-11-16",
+              "proof": "m830; slice tip 06dae3207 (contains a69fff99c): Tests 43909082131, Live 43912826112, Browser journeys 43909082042 green. Weird and Phantasmal Killer compile as TEST_OUTCOME through the repeat-save-test plan with damage dice in the repeat-save graph and cast-level scaling frozen into the active effect; the golden changes only those rows. effectActionCompiler budget lowered to its real size (3654). Proofs (RED at the merge-base): srdRepeatSaveFailureDamage.test (rules-runtime) and nativeRoomRepeatSaveFailureDamage.test (the room applies the damage on each failed save)."
+            },
+            {
+              "id": "QUALITY-15.T3aa",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Area spells that create a creature or object (Create Undead, Find Steed, Planar Ally, Unseen Servant, Phantom Steed, Floating Disk, Hunting Trap, Create Food and Water) compile through generic summon or object plans the room places.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3ab",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A cast-time pick over an area (Antipathy/Sympathy) compiles and the room carries the pick to the creatures it catches.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3ac",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Areas with a Sight or Special range or a slot-scaled size (Storm of Vengeance, Control Weather, Create or Destroy Water) place, and Guards and Wards, Passwall and Find Traps get SRD-cited shapes, through generic placement data.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3ad",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A threshold escalation on an effect with its own duration, and a duration-complete outcome that applies a condition when the effect runs its full course (Flesh to Stone), compile and the room applies them.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3r report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3ae",
+              "status": "DONE",
+              "closes": ["QUALITY-15.1"],
+              "text": "The GM can end any active effect on a Creature that Concentration does not maintain (the Character rule), through UPDATE_ACTOR and the encounter drawer, so a Creature removed from play returns.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the T3u report as a resize in approved scope: the criterion says the GM can end the removal. The drawer lists only modifier grants, so a play-absence effect is ended through UPDATE_ACTOR but is not shown; QUALITY-15.T3af closes that.",
+              "mergedAt": "2026-11-16",
+              "proof": "m829; slice tip 3ff21c040 (contains T3u): Tests 43893318064, Live 43893318118, Browser journeys 43893318165 green. One rule, isEndableByHand (no Concentration maintains the effect), in activeGrantListings.ts serves the Character Sheet and the Creature path; endEncounterActorEffect (actorEffectEndPersistence.ts, renamed from grantEndPersistence.ts) ends any effect on a Creature through the same deleteCas store path, so syncPlayAbsence fires. ActiveGrantListingDto gains endable; the drawer shows End only when endable. Behavior aligned with Characters: ending a Concentration-maintained grant on a Creature is refused. Proofs (RED at the merge-base): activeGrantListings.test (rules-runtime and Convex), nativeRoomRemoveFromPlay.test (an imprisoned Wolf returns when the GM ends it; a Concentration-held Maze is refused), CampaignTabletopEncounterDrawer.test."
+            },
+            {
+              "id": "QUALITY-15.T3af",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "A play-absence effect freezes its source label on the PLAY_ABSENCE contribution (as SOURCE_IMMUNITY does), so the encounter drawer lists it and the GM can end it there.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the T3ae report as a resize in approved scope (the GM ends the removal from the drawer).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27652,11 +27954,29 @@
                 "after": ["QUALITY-15.T2"]
               },
               "text": "Several direct results, choice grants and timed manifestations compile (about 15 golden rows).",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-16",
+              "proof": "m818 (7a329c999); slice tip d4939744e (contains m817): Tests 43814175747, Live 43814175720, Browser journeys 43814175625 green. 12 golden rows change: 11 compile (Awaken, Contingency and Glyph of Warding as ruling-only sequences led by their first ruling; Enhance Ability, Fiendish Resilience and Elemental Affinity with one plan pair per cast-pick option through compileCastChoicePlans, which the golden now shares with the product; Enlarge/Reduce, Protection from Energy and Poison (vial); Irresistible Dance once its SRD path is SEQUENTIAL; Bestow Curse and Blindness/Deafness as TEST_OUTCOME) and Imprisonment, which the old golden showed compiling, now refuses honestly because its remove-from-play outcome has no plan (T3u). The \"choice has no plan\" and \"cannot share a cast\" UNBUILT reasons are gone. Proofs: srdDirectResultGroups.test and a Session Worker room test (Enhance Ability with a picked option commits one lasting character effect). The timed-manifestation rows the text named are bare data or need a new plan type, so they sit with T3t."
+            },
+            {
+              "id": "QUALITY-15.T3u",
+              "status": "DONE",
+              "closes": ["QUALITY-15.1"],
+              "text": "An outcome that removes its target from play (Imprisonment) compiles through a generic plan the room settles and the GM can end.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3c report under the standing approval for QUALITY growth (2026-11-13). The GM cannot yet end a non-grant effect on a Creature (endEncounterActorGrant and the drawer list only modifier grants); QUALITY-15.T3ae closes that gap in this criterion (resize in approved scope).",
+              "mergedAt": "2026-11-16",
+              "proof": "m829; slice tip cc3f29072: Tests 43884105353, Live 43884106015, Browser journeys 43884105474 green. Imprisonment compiles as TEST_OUTCOME through the existing PLAY_ABSENCE contribution (syncPlayAbsence sets and clears it); no contract change. Bug fixed: removal plans had no result gate, so Banishment removed a target that made its save; timedConditionPlan now carries entryResultGate for removals (ON_USE removals unchanged), and the T2h4 Banishment test's roll now matches its name (natural 1; assertions unchanged). Proofs (RED at the merge-base): srdEffectCompileGolden.test and nativeRoomRemoveFromPlay.test (Imprisonment removes a Character, the GM's END_ACTIVE_EFFECT returns it; Banishment on a made save leaves the Wolf in play)."
             },
             {
               "id": "QUALITY-15.T3d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27666,25 +27986,89 @@
                 "after": ["QUALITY-15.T2"]
               },
               "text": "Small unbuilt kinds compile: unregistered reaction triggers, FOLLOW_UP_SAVE, spell-slot exchange, test outcome kinds, scaled heals, relationship hold paths, willing-target outcomes, choice, repeat offer, cost-2 activation (about 20 golden rows).",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-16",
+              "proof": "m817 (f6480fed7); slice tip aa83ac209: Tests 43810656002, Live 43810656154, Browser journeys 43810655967 green. 4 golden rows compile and 3 UNBUILT reasons are gone: Wholeness of Body through a generic RESOLVED_HEAL outcome (a heal whose authored bonuses give its amount binds dnd5e.resolved-heal-amount), Mass Heal through SPENT_HEAL once its SRD pool carries CASTER_DIVIDES, Water Walk because the willing gate also accepts a timed GM ruling, and Gynosphinx Teleport (Costs 2 Actions) once its activation is FREE with resourceUse cost 2 like Androsphinx. Proofs: effectActionBonusHeal.test (RED), nativeRoomBonusHeal room test (Open Hand monk heals 3x level, one undo restores hit points and the use; RED), golden RED; the encounterStoreConformance snapshot gains only the new fact key. The rest of the ~20 rows are registered as T3p-T3t."
             },
             {
-              "id": "QUALITY-15.T3e",
-              "status": "TODO",
+              "id": "QUALITY-15.T3p",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
+              "text": "Reactions on a missed melee attack compile (Stand Against the Tide and similar) through an optional attack-range qualifier on the existing resolved-attack trigger, proved by a room test.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 8,
+                "size": 3,
                 "after": ["QUALITY-15.T2"]
               },
-              "text": "A reaction can aim an area: the trigger pending decision carries its aim across room, Worker and UI, removing the \"aims no area\" refusal.",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13). Narrowed 2026-11-16 (size 5 -> 3): falling reactions (Feather Fall, Slow Fall) stay refused until verticality ships; the user chose deferral on 2026-11-16 (future-enhancements, Falling damage).",
+              "mergedAt": "2026-11-16",
+              "proof": "m824 (6d4a6b1aa); slice tip e48635579: Tests 43834050083, Live 43834050026, Browser journeys 43834050151 green. ATTACK_RESOLVED_ON_SELF gains the optional attackRange qualifier ATTACKED_SELF already had, one attackRangeMet check shared by both, melee from isMeleeAttackSource; no new registry row (a MISS outcome already is that moment). Stand Against the Tide moves from REFUSED to SINGLE_GRAPH with its GM-ruling outcome unchanged (D217). Proofs (all RED at the merge-base): nativeRoomResolvedReactionOffer.test (a missed melee Bite offers it and the reaction commits; a hit or a ranged miss offers nothing), reactionTriggerCompile.test, encounterReactionHooks.test and attackReactionTriggersAuthoringParity.test (the node map keeps the qualifier)."
+            },
+            {
+              "id": "QUALITY-15.T3q",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Spell-slot exchange compiles as a generic registry outcome with its operation and room settlement, replacing the Sheet-only path in sheetSpellSlotExchange.ts.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3r",
+              "status": "DONE",
+              "closes": ["QUALITY-15.1"],
+              "text": "A repeating save whose held effect has no duration of its own holds until the save ends it (Vrock Spores), compiled through the repeat-save-test plan and proved in the room.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13). Narrowed 2026-11-16 (size 3 -> 2) from the slice's seam trace: damage on a failed repeat save (Phantasmal Killer, Weird) moved to QUALITY-15.T3z; a duration-complete condition (Flesh to Stone) to QUALITY-15.T3ad.",
+              "mergedAt": "2026-11-16",
+              "proof": "m826; slice tip 97a96617e (contains a9b45c14b): Tests 43881640954, Live 43881640984, Browser journeys 43881640887 green. repeatSaveHeldTurns returns MAX_ACTIVE_EFFECT_TURNS for a held effect with no duration (the cap a THRESHOLDS escalation already waits on) instead of null; the golden changes only the Vrock Spores row (REFUSED -> TEST_OUTCOME ON_SAVE_FAIL, END_OF_TURN). Proofs (RED at the merge-base): srdRepeatSaveUntilSaved.test (real SRD rows; Phantasmal Killer and Flesh to Stone pinned refused) and nativeRoomSrdRepeatSaveUntilSaved.test (Spores on two Wolves: the failing Wolf is poisoned with one END_OF_TURN repeat-save effect, one RESOLVE_ACTION commit)."
+            },
+            {
+              "id": "QUALITY-15.T3s",
+              "status": "DONE",
+              "closes": ["QUALITY-15.1"],
+              "text": "Relationship hold paths and their choices compile (Vampire Claws, Unarmed Strike grapple, Bestow Curse): relationship outcomes bounded by a hit, failed save, contest win or use.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["QUALITY-15.T2", "QUALITY-15.T3c"]
+              },
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13). Resized 2026-11-16 (3 -> 1): the refusal lived only in the golden.",
+              "mergedAt": "2026-11-16",
+              "proof": "m823 (f5d73c408); slice tip d03cb9bed (contains m822): Tests 43833461143, Live 43833461165, Browser journeys 43833461091 green. The relationship refusal lived only in the golden, which planned the whole unpicked action; creature rows with a pick now pin compileCastChoicePlans per option like Character rows, so Vampire Spawn Claws and Vampire Unarmed Strike show Grapple as SINGLE_GRAPH with an ON_HIT/ON_CRIT relationship plan (Grappled, held at once 1, escape check at the printed DC). relationshipPlan is unchanged: an unpicked choice stays refused. Bestow Curse already compiled since T3c. Proofs: creatureCastChoiceDiscovery.test (both creatures) and nativeRoomCreatureCastChoice.test (grapple, then an Athletics escape at DC 13 ends it). Red proof ALREADY-PASSING for all files (test-only change)."
+            },
+            {
+              "id": "QUALITY-15.T3t",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The MANIFEST and FOLLOW_UP_CHECK test outcome kinds compile through generic plans.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T2", "QUALITY-15.T3c"]
+              },
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3f",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27694,7 +28078,25 @@
                 "after": ["QUALITY-15.T2"]
               },
               "text": "SRD data-gap authoring fixes for INVALID_INPUT rows real content should author (no targeting off a Self range, area with no shape; about 27 rows), source data only.",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-15",
+              "proof": "m816 (9c02dd3f4); slice tip 4fe7e2ec7 (91445540d re-synced onto m814, golden regenerated from real code): Tests 43804520776, Live 43804520855, Browser journeys 43804520836 green. 17 SRD source files authored (source data only, each value cited to its SRD phrase) plus the srdEffectCompile golden: 18 rows leave INVALID_INPUT, 13 now compile (Flame Strike, Turn the Unholy, Magic Jar, Clone, Acid, Holy Water, Nalfeshnee Teleport, Androsphinx Roar 3rd, Ankheg Acid Spray, Dretch Fetid Cloud, Storm Giant Lightning Strike, Vrock Stunning Screech, Unicorn Heal Self) and 5 refuse as UNBUILT bounded shapes (Sunburst, Weird, Androsphinx Roar 1st and 2nd, Ghost Horrifying Visage), taken by T3l. selfSphere joins selfLine and selfCone in creatures/shared.ts. Rows left INVALID_INPUT have ambiguous or object targets in the SRD text (Blink Dog Teleport truncated, Scrying, Dream, Project Image, Symbol, Transport via Plants, Animate Trees and Chains, Reel, Nightmare Haunting, Children of the Night, Fire Storm, Wall of Fire and Thorns, Wind Wall shape lives on its manifest)."
+            },
+            {
+              "id": "QUALITY-15.T3l",
+              "status": "DONE",
+              "closes": ["QUALITY-15.1"],
+              "text": "Rows T3f authored that need code compile: bounded test shapes the compiler refuses (Sunburst, Weird, Androsphinx Roar 1st and 2nd, Ghost Horrifying Visage), an area shape on a Self or single target (Antilife Shell, Resilient Sphere), and the Self-plus-willing-creatures move (Ethereal Stride, Unicorn Teleport) through generic options.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3f report under the standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-16",
+              "proof": "m822 (c4ab0b971); slice tip 214618bde (contains m820): Tests 43824066781, Live 43824066710, Browser journeys 43824066697 green. Six rows convert: Ghost Horrifying Visage, Androsphinx Roar 1 and 2 and Sunburst compile as TEST_OUTCOME holding their conditions in one repeat-save-test plan (END_OF_TURN), with the GM-ruling entry beside the save still one manual proposal; Nightmare Ethereal Stride and Unicorn Teleport target up to four chosen creatures within 5 ft. The compiler rule is generic (one FOLLOW_UP_SAVE whose sibling entries are held and not manual becomes a plan outcome). Proofs: srdRepeatSaveBesideResults.test (RED 7 of 8 at the merge-base; the Weird refusal guard already passed) and nativeRoomSrdRepeatSaveBesideRuling.test (RED: the room rejected the action). Weird moved to T3z; Resilient Sphere sits with T3y. Willing-creature targeting is not enforced (ANY disposition plus the user's pick)."
             },
             {
               "id": "QUALITY-15.T3g",
@@ -28136,10 +28538,16 @@
           "acs": [
             {
               "id": "QUALITY-19.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
-              "text": "A failing proof prints its failing assertion in the job log, and the multi-actor live-backend proofs sign each actor in from its own client address, so a sign-in rate limit never fails a proof."
+              "text": "A failing proof prints its failing assertion in the job log, and the multi-actor live-backend proofs sign each actor in from its own client address, so a sign-in rate limit never fails a proof.",
+              "proof": [
+                "validatePreStagingLocal.test.mjs",
+                "encounterMovement.ts",
+                "sceneLive.ts",
+                "campaignMembership.ts"
+              ]
             },
             {
               "id": "QUALITY-19.2",
@@ -28152,8 +28560,7 @@
           "tasks": [
             {
               "id": "QUALITY-19.T1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-19.1"],
               "wsjf": {
                 "bv": 2,
@@ -28163,11 +28570,13 @@
                 "after": []
               },
               "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
-              "text": "The proof runner includes the tail of the proof log in its failure; one live-backend helper gives each browser context its own client address (campaignCollaboration moves onto it), used by every multi-actor proof (movement, passage and the others); no 429 diagnostic remains in those proofs."
+              "text": "The proof runner includes the tail of the proof log in its failure; one live-backend helper gives each browser context its own client address (campaignCollaboration moves onto it), used by every multi-actor proof (movement, passage and the others); no 429 diagnostic remains in those proofs.",
+              "mergedAt": "2026-11-15",
+              "proof": "m804 (80d221dec); slice tip ba48feff2: Tests 43742812940, Browser journeys 43742812873 green (no apps/apis change, so no Live run); dispatched proofs green on the tip: campaign-membership-custody 43743039084, campaign-membership-browser, campaign-custody-browser, social-browser, area-browser, effects-browser, disarm-browser, hide-browser, account-deletion-browser, recovery-browser (43745760495-43745808081); movement 43741365927 and passage 43742156117 green on 28447c542 (tip changed only a scripts unit test). routeFromClientAddress gives each browser context its own cf-connecting-ip; 13 multi-actor proofs use it; campaignMembership's sign-in 429 allow-list and v15WorkloadBrowser's 429 console filter are removed (the convex/token authRateLimit allow-list stays, cause unproven). validatePreStagingLocal run() appends the last 4000 characters of the proof log to its error; validatePreStagingLocal.test.mjs is RED against the old run(). runLocalConvexProof.ps1 already printed the tail."
             },
             {
               "id": "QUALITY-19.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-19.2"],
               "wsjf": {
                 "bv": 2,
@@ -28177,7 +28586,24 @@
                 "after": ["QUALITY-19.T1"]
               },
               "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
-              "text": "IsolateNotClean at the end of the custody and publication proofs is traced to the function that poisons the isolate and fixed at its cause."
+              "text": "IsolateNotClean at the end of the custody and publication proofs is traced to the function that poisons the isolate and fixed at its cause.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-19.T3",
+              "status": "DONE",
+              "closes": ["QUALITY-19.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["QUALITY-19.T1"]
+              },
+              "note": "Registered 2026-11-15 from the T4c report (flaked once on its first Browser journeys run, then passed twice) under the standing approval for QUALITY growth (2026-11-13). Grown 2026-11-15 (size 1 -> 3): the same race failed SocialBlocksPanel, SocialNativeLists, SocialListingDetailPage, SocialProfilePage and NotificationShell stories across slices.",
+              "text": "Social backend stories wait on the user-visible loaded state of the data they act on, not an unrelated seeded frame: the SocialListingFormPage Campaign select stays disabled until its first page loads, and every Social story waits on its view's own first visible load, so a cold backend cannot race the Campaign option, the Unblock row, listings, applications or profiles.",
+              "mergedAt": "2026-11-15",
+              "proof": "m816 (9c02dd3f4); slice tip 33c165103: Tests 43804032932, Live 43804032890, Browser journeys 43804032946 green on two attempts (storybook-backend-browser selected both times). Root cause: the Campaign options come from the paginated campaigns list while the story waited on the seeded-campaign frame from another query, and the combobox was enabled while its own query loaded. Product: the Campaign select is disabled while the first page loads (real-page Vitest test, RED on the earlier tip 22c618e86). The Blocks, Applications, Hosting, Discovery and Profile views already render loaders, so their stories now wait on each view's first visible load within one socialStoryLoadTimeout; NotificationShell Invited Peer re-queries its row inside waitFor."
             }
           ]
         }
@@ -29049,6 +29475,12 @@
       "origin": [],
       "reason": "Split into RELIABILITY-10.T1a, T1b and T1c (size 3 + 8 + 5).",
       "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "QUALITY-15.T3e",
+      "origin": ["QUALITY-15.1"],
+      "reason": "Reactions that aim an area convert no SRD row: no SRD reaction aims an area, the room offers reactions only to Characters, and system trigger admission admits only actor targets. Homebrew area reactions are a deferred edge case in future-enhancements.md.",
+      "decision": "Approved by the user on 2026-11-15."
     }
   ],
   "openQuestions": []

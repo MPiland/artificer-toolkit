@@ -167,24 +167,29 @@ export function requireEntryDamageTraces(input: {
   }
 }
 
+/**
+ * The applications of a committed attack or save test graph. A held effect's repeated save names its
+ * own d20 and test nodes (`testNodes`), whose result gates the damage its failure rolls.
+ */
 export function testApplications(
   input: Parameters<CharacterRuleActionSystemAdapter['interpret']>[0],
-  replacementPath?: 'ON_SAVE_SUCCESS'
+  replacementPath?: 'ON_SAVE_SUCCESS',
+  testNodes: { d20: string; test: string } = { d20: 'd20', test: 'test' }
 ): readonly CharacterRuleActionApplication[] | null {
   const { execution, published } = input
   const [d20Trace, addedDiceTrace, testTrace, ...remainingTraces] = execution.evidence.trace
   const containsRootTestTrace = input.execution.evidence.trace.some(
-    (trace) => trace.nodeId === 'd20' || trace.nodeId === 'test'
+    (trace) => trace.nodeId === testNodes.d20 || trace.nodeId === testNodes.test
   )
   if (
-    d20Trace?.nodeId !== 'd20' ||
+    d20Trace?.nodeId !== testNodes.d20 ||
     d20Trace?.operation.key !== 'evidence.integer-range' ||
     d20Trace.operation.contractVersion !== 1 ||
     d20Trace.inputs.min !== 1 ||
     d20Trace.inputs.max !== 20 ||
     d20Trace.evidence?.kind !== 'INTEGER_RANGE' ||
-    d20Trace.evidence.requestId !== `${input.occurrenceId}:0:d20` ||
-    testTrace?.nodeId !== 'test' ||
+    d20Trace.evidence.requestId !== `${input.occurrenceId}:0:${testNodes.d20}` ||
+    testTrace?.nodeId !== testNodes.test ||
     (testTrace.operation.key !== DND5E_ATTACK_TEST_OPERATION_KEY &&
       testTrace.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY)
   ) {
@@ -257,7 +262,7 @@ export function testApplications(
         DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY ||
       movementInterruptionNode?.operation.contractVersion !== 1 ||
       resultPathBinding?.kind !== 'NODE_OUTPUT' ||
-      resultPathBinding.nodeId !== 'test' ||
+      resultPathBinding.nodeId !== testNodes.test ||
       resultPathBinding.port !== 'resultPath' ||
       authoredPathBinding?.kind !== 'LITERAL' ||
       movementInterruptionTrace.inputs.resultPath !== resultPath ||
@@ -293,7 +298,7 @@ export function testApplications(
   const addedTotal = requireDnd5eAddedDiceTotal({
     trace: addedDiceTrace,
     facts: execution.evidence.facts,
-    d20NodeId: 'd20',
+    d20NodeId: testNodes.d20,
     nodeIndex: 1,
     occurrenceId: input.occurrenceId,
     invalid: () =>
@@ -383,7 +388,8 @@ export function testApplications(
     resultPath
   })
   requireRollTableTestTraces({
-    traces: [testTrace, ...rollTableTraces],
+    testTrace,
+    traces: rollTableTraces,
     published,
     occurrenceId: input.occurrenceId,
     outputs: execution.outputs
@@ -410,7 +416,7 @@ export function testApplications(
       proposal.inputs.targetActorId !== input.targetActorId ||
       proposal.outputs.targetActorId !== input.targetActorId ||
       expectedResolvedPath?.kind !== 'NODE_OUTPUT' ||
-      expectedResolvedPath.nodeId !== 'test' ||
+      expectedResolvedPath.nodeId !== testNodes.test ||
       expectedResolvedPath.port !== 'resultPath' ||
       proposal.inputs.resolvedPath !== resultPath ||
       proposal.outputs.resolvedPath !== resultPath ||

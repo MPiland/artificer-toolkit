@@ -150,13 +150,15 @@ export type EncounterEvent =
       holderEquippedCategories: readonly string[]
     }
   /**
-   * An attack on the holder has hit or missed: whether the holder sees the attacker, the attacker's
-   * size code, and the Scene from the holder to the attacker (null off a Scene).
+   * An attack on the holder has hit or missed: whether it was a melee attack, whether the holder sees
+   * the attacker, the attacker's size code, and the Scene from the holder to the attacker (null off a
+   * Scene).
    */
   | {
       kind: 'ATTACK_RESOLVED_ON_HOLDER'
       gameSystemId: string
       hit: boolean
+      melee: boolean
       attackerSeen: boolean
       attackerSizeCode: string | null
       attackerScene: EncounterActionSceneContext | null

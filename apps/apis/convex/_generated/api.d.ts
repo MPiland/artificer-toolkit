@@ -2975,6 +2975,7 @@ export declare const api: {
             }>;
             activeGrants: Array<{
               effectId: string;
+              endable: boolean;
               expiresAtCampaignMinute: number | null;
               label: string | null;
               polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -17869,6 +17870,7 @@ export declare const api: {
             }>;
             activeGrants: Array<{
               effectId: string;
+              endable: boolean;
               expiresAtCampaignMinute: number | null;
               label: string | null;
               polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -20099,6 +20101,7 @@ export declare const api: {
                 }>;
                 activeGrants: Array<{
                   effectId: string;
+                  endable: boolean;
                   expiresAtCampaignMinute: number | null;
                   label: string | null;
                   polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -27553,6 +27556,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -31233,6 +31237,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -37423,6 +37428,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -41039,6 +41045,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -47299,6 +47306,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -50915,6 +50923,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -57323,6 +57332,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -61003,6 +61013,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -67193,6 +67204,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -70809,6 +70821,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -77069,6 +77082,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -80685,6 +80699,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -87102,6 +87117,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -90782,6 +90798,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -96972,6 +96989,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -100588,6 +100606,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -106848,6 +106867,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -110464,6 +110484,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -116872,6 +116893,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -120552,6 +120574,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -126742,6 +126765,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -130358,6 +130382,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -136618,6 +136643,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -140234,6 +140260,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -146677,6 +146704,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -150357,6 +150385,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -156547,6 +156576,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -160163,6 +160193,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -166423,6 +166454,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -170039,6 +170071,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -176447,6 +176480,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -180127,6 +180161,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -186317,6 +186352,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -189933,6 +189969,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -196193,6 +196230,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -199809,6 +199847,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -206204,6 +206243,7 @@ export declare const api: {
                                     targetWithinFeet: number;
                                   }
                                 | {
+                                    attackRange?: "MELEE" | "RANGED";
                                     attackerSize?: {
                                       maximumSizeCode?: string;
                                       minimumSizeCode?: string;
@@ -209868,6 +209908,7 @@ export declare const api: {
                                     targetWithinFeet: number;
                                   }
                                 | {
+                                    attackRange?: "MELEE" | "RANGED";
                                     attackerSize?: {
                                       maximumSizeCode?: string;
                                       minimumSizeCode?: string;
@@ -215975,6 +216016,7 @@ export declare const api: {
                               targetWithinFeet: number;
                             }
                           | {
+                              attackRange?: "MELEE" | "RANGED";
                               attackerSize?: {
                                 maximumSizeCode?: string;
                                 minimumSizeCode?: string;
@@ -219542,6 +219584,7 @@ export declare const api: {
                               targetWithinFeet: number;
                             }
                           | {
+                              attackRange?: "MELEE" | "RANGED";
                               attackerSize?: {
                                 maximumSizeCode?: string;
                                 minimumSizeCode?: string;
@@ -225720,6 +225763,7 @@ export declare const api: {
                               targetWithinFeet: number;
                             }
                           | {
+                              attackRange?: "MELEE" | "RANGED";
                               attackerSize?: {
                                 maximumSizeCode?: string;
                                 minimumSizeCode?: string;
@@ -229287,6 +229331,7 @@ export declare const api: {
                               targetWithinFeet: number;
                             }
                           | {
+                              attackRange?: "MELEE" | "RANGED";
                               attackerSize?: {
                                 maximumSizeCode?: string;
                                 minimumSizeCode?: string;
@@ -235689,6 +235734,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -239369,6 +239415,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -245559,6 +245606,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -249175,6 +249223,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -255435,6 +255484,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -259051,6 +259101,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -265459,6 +265510,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -269139,6 +269191,7 @@ export declare const api: {
                                       targetWithinFeet: number;
                                     }
                                   | {
+                                      attackRange?: "MELEE" | "RANGED";
                                       attackerSize?: {
                                         maximumSizeCode?: string;
                                         minimumSizeCode?: string;
@@ -275329,6 +275382,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -278945,6 +278999,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -285205,6 +285260,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -288821,6 +288877,7 @@ export declare const api: {
                                 targetWithinFeet: number;
                               }
                             | {
+                                attackRange?: "MELEE" | "RANGED";
                                 attackerSize?: {
                                   maximumSizeCode?: string;
                                   minimumSizeCode?: string;
@@ -294884,6 +294941,7 @@ export declare const api: {
                     | null;
                   activeGrants?: Array<{
                     effectId: string;
+                    endable: boolean;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -295192,6 +295250,7 @@ export declare const api: {
                     | null;
                   activeGrants?: Array<{
                     effectId: string;
+                    endable: boolean;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -297234,6 +297293,7 @@ export declare const api: {
                     | null;
                   activeGrants?: Array<{
                     effectId: string;
+                    endable: boolean;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -297542,6 +297602,7 @@ export declare const api: {
                     | null;
                   activeGrants?: Array<{
                     effectId: string;
+                    endable: boolean;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -298830,6 +298891,7 @@ export declare const api: {
                 | null;
               activeGrants?: Array<{
                 effectId: string;
+                endable: boolean;
                 expiresAtCampaignMinute: number | null;
                 label: string | null;
                 polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -299131,6 +299193,7 @@ export declare const api: {
                 | null;
               activeGrants?: Array<{
                 effectId: string;
+                endable: boolean;
                 expiresAtCampaignMinute: number | null;
                 label: string | null;
                 polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -299261,6 +299324,7 @@ export declare const api: {
                     | null;
                   activeGrants?: Array<{
                     effectId: string;
+                    endable: boolean;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -299569,6 +299633,7 @@ export declare const api: {
                     | null;
                   activeGrants?: Array<{
                     effectId: string;
+                    endable: boolean;
                     expiresAtCampaignMinute: number | null;
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
@@ -300571,6 +300636,7 @@ export declare const api: {
               "GM_REMOVED" | "DEPARTED" | "EFFECT" | "EFFECT_KEEPS_TURN" | null;
             activeGrants?: Array<{
               effectId: string;
+              endable: boolean;
               expiresAtCampaignMinute: number | null;
               label: string | null;
               polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";

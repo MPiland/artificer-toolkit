@@ -10,6 +10,7 @@ import {
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SCALING,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -63,6 +64,11 @@ export const sunburst: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        },
+        shape: {
+          id: spellChildId(SPELL_IDS.SUNBURST, 0x21a, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: { amount: 60, unit: MEASUREMENT_UNIT_CODE.FEET }
         }
       },
       paths: [
@@ -96,7 +102,7 @@ export const sunburst: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.SUNBURST, 0x215, 1) + '__result',
+            id: spellChildId(SPELL_IDS.SUNBURST, 0x21b, 1),
             resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SUNBURST, 0x216, 1),

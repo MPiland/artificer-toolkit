@@ -1,23 +1,175 @@
-import type { useMutation } from 'convex/react'
+import type { QueryClient } from '@tanstack/react-query'
+import type { ConvexReactClient, useMutation } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { z } from 'zod'
 import { fn } from 'storybook/test'
 import { api } from '@artificer-toolkit/apis/convex/api'
+import { definitionReferences } from '@artificer-toolkit/apis/convex/definition-references'
+import {
+  createEncounterInputDtoSchema,
+  encounterGmProjectionDtoSchema
+} from '@artificer-toolkit/schema/api/encounterData'
+import {
+  getReusableDefinitionInputDtoSchema,
+  reusableDefinitionWorkspaceDtoSchema
+} from '@artificer-toolkit/schema/api/reusableDefinitions'
 import { lootDocumentSchema, saveLootInputSchema } from '@artificer-toolkit/schema/api/lootTables'
+import { executeRollInputDtoSchema, rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
+import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
+import {
+  beginSceneDefinitionInputSchema,
+  sceneDefinitionSaveLookupSchema,
+  sceneDefinitionSaveProgressSchema
+} from '@artificer-toolkit/schema/api/sceneDefinitionSave'
+import {
+  socialEligibilityDtoSchema,
+  socialListingDtoSchema,
+  socialListingVersionInputSchema,
+  updateSocialContentPreferenceInputSchema,
+  updateSocialListingInputSchema
+} from '@artificer-toolkit/schema/api/socialHub'
+import { getSystemDefinition } from '#app/data/systems/queries'
 
 /** What `useMutation` accepts, which is also what the client's `mutation` takes. */
 type MutationReference = Parameters<typeof useMutation>[0]
 
+/** Every die lands in the middle of its faces, so a spied roll is the same on every run. */
+const middleOfEachDie = { nextInt: (maxExclusive: number) => Math.floor(maxExclusive / 2) }
+
+/** The query client of the story that is running, which a write answers from. */
+let storyQueryClient: QueryClient | null = null
+
+/** Points the write spy at the running story's query client. The preview sets it before each story. */
+export function bindStoryQueryClient(queryClient: QueryClient) {
+  storyQueryClient = queryClient
+}
+
+function boundStoryQueryClient(): QueryClient {
+  if (!storyQueryClient) throw new Error('The write spy is not bound to a story query client.')
+  return storyQueryClient
+}
+
+/** The story's read client, bound by the preview, for responses that echo a record the deployment holds. */
+let storyReads: ConvexReactClient | undefined
+
+/** The preview binds the story's read client before each story; it is taken before any query override. */
+export function bindStoryReads(client: ConvexReactClient) {
+  storyReads = client
+}
+
+/** The Social listing a listing write targets, exactly as `getOwned` returns it. */
+async function readOwnedListing(listingPublicId: string) {
+  if (!storyReads) throw new Error('A story wrote before its preview bound the read client.')
+  return socialListingDtoSchema.parse(
+    await storyReads.query(api.social.listings.getOwned, { listingPublicId })
+  )
+}
+
 /**
  * What a recorded write answers: the response its client parses, built through the real response
  * schema from the recorded input, so the page sees a success and nothing reaches the seeded
- * deployment (D218). A write whose caller ignores the response answers null.
+ * deployment (D218). A roll is the record the roller presents, evaluated by the product's roll
+ * expression with fixed dice. A write whose caller ignores the response answers null.
  */
-function writeResponse(reference: MutationReference, input: unknown): unknown {
-  if (getFunctionName(reference) === getFunctionName(api.loot.tables.save)) {
+async function writeResponse(reference: MutationReference, input: unknown): Promise<unknown> {
+  const name = getFunctionName(reference)
+  // A story ends at its write (D218): each listing write answers with the listing as read, which
+  // is all the editor needs (its id). The state after the write is a seeded variant, not simulated.
+  if (name === getFunctionName(api.social.listings.update))
+    return readOwnedListing(
+      z.object({ input: updateSocialListingInputSchema }).parse(input).input.listingPublicId
+    )
+  if (
+    name === getFunctionName(api.social.listings.open) ||
+    name === getFunctionName(api.social.listings.close)
+  )
+    return readOwnedListing(socialListingVersionInputSchema.parse(input).listingPublicId)
+  if (name === getFunctionName(api.loot.tables.save)) {
     const { owner, expectedVersion, tables } = saveLootInputSchema.parse(input)
     return lootDocumentSchema.parse({ owner, version: expectedVersion + 1, tables })
   }
+  if (name === getFunctionName(api.rolls.execute)) {
+    const { characterId, expression, source } = executeRollInputDtoSchema.parse(input)
+    return rollRecordDtoSchema.parse({
+      id: crypto.randomUUID(),
+      ...evaluateRollExpression(parseRollExpression(expression), middleOfEachDie),
+      characterId,
+      characterLabel: 'Story roller',
+      source,
+      ruleset: { systemId: 'story', code: 'DND5E_2014', version: '1' },
+      createdAt: new Date().toISOString()
+    })
+  }
+  // A Scene save is three writes (D218 amendment): begin opens the save, append batches are not
+  // read back, and publish answers as the save that begin opened, so the client sees the whole
+  // save succeed while the seeded Scene stays as it was.
+  if (name === getFunctionName(api.scenes.definitions.begin)) {
+    const begin = beginSceneDefinitionInputSchema.parse(input)
+    return sceneDefinitionSaveProgressSchema.parse(sceneSaveProgress(begin, 'RECEIVING'))
+  }
+  if (name === getFunctionName(api.scenes.definitions.publish)) {
+    const { saveId } = sceneDefinitionSaveLookupSchema.parse(input)
+    const begin = writesTo(api.scenes.definitions.begin)
+      .map((written) => beginSceneDefinitionInputSchema.parse(written))
+      .find(({ commandId }) => commandId === saveId)
+    if (!begin) throw new Error('The story published a Scene save it never began.')
+    return sceneDefinitionSaveProgressSchema.parse(sceneSaveProgress(begin, 'PUBLISHED'))
+  }
+  if (name === getFunctionName(api.social.profiles.updatePreference)) {
+    const { input: preference } = z
+      .object({ input: updateSocialContentPreferenceInputSchema })
+      .parse(input)
+    // Settings can only write after a Mature attestation, so every reachable answer carries one.
+    return socialEligibilityDtoSchema.parse({
+      eligible: true,
+      profilePublicId: null,
+      adultAttestedAt: new Date().toISOString(),
+      contentPreference: preference.contentPreference,
+      status: 'ACTIVE'
+    })
+  }
+  if (name === getFunctionName(api.encounters.runs.create)) {
+    if (!storyReads) throw new Error('A story wrote before its preview bound the read client.')
+    const { campaignId, blueprintId } = createEncounterInputDtoSchema.parse(input)
+    // The created Run answers as the Campaign's seeded prepared Run: its real projection.
+    const runs = await storyReads.query(api.encounters.projectionReads.list, { campaignId })
+    const prepared = runs.find(({ status }) => status === 'PREPARED')
+    if (!prepared) throw new Error('The story Campaign has no prepared Run to answer a create.')
+    const projection = await storyReads.query(api.encounters.projectionReads.get, {
+      encounterId: prepared.id
+    })
+    return encounterGmProjectionDtoSchema.parse({ ...projection, campaignId, blueprintId })
+  }
+  if (
+    getFunctionName(reference) === getFunctionName(definitionReferences.saveDraft) ||
+    getFunctionName(reference) === getFunctionName(definitionReferences.publish)
+  ) {
+    // Nothing was written, so the answer is the definition as the page loaded it.
+    const { definitionId } = getReusableDefinitionInputDtoSchema.parse(input)
+    return reusableDefinitionWorkspaceDtoSchema.parse(
+      boundStoryQueryClient().getQueryData(getSystemDefinition(definitionId).queryKey)
+    )
+  }
   return null
+}
+
+/** The progress a recorded Scene save reports: its commandId is the save id, and it edits an existing Scene. */
+function sceneSaveProgress(
+  begin: z.infer<typeof beginSceneDefinitionInputSchema>,
+  status: 'RECEIVING' | 'PUBLISHED'
+) {
+  if (begin.sceneId === null || begin.expectedVersion === null)
+    throw new Error('Backend stories save an existing seeded Scene, not a new one.')
+  const received = { annotations: 0, barriers: 0, darknessZones: 0, lights: 0, tokens: 0 }
+  return {
+    saveId: begin.commandId,
+    sceneId: begin.sceneId,
+    version: begin.expectedVersion + 1,
+    status,
+    counts: begin.counts,
+    received: status === 'PUBLISHED' ? begin.counts : received,
+    liveSceneId: null
+  }
 }
 
 /** Every backend-story write, from `convex.mutation` and from the `useMutation` hook, lands here. */

@@ -40,7 +40,7 @@ export const clone: SpellAuthored = {
         },
         range: {
           id: spellChildId(SPELL_IDS.CLONE, 0x211, 1),
-          rangeKind: RANGE_KIND.SPECIAL
+          rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,

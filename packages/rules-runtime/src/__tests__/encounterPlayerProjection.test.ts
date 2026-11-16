@@ -212,7 +212,8 @@ describe('player encounter projection', () => {
         sourceActorId: null,
         remainingTicks: 5,
         expiresAtCampaignMinute: null,
-        polarity: 'BENEFICIAL' as const
+        polarity: 'BENEFICIAL' as const,
+        endable: true
       },
       {
         effectId: '00000000-0000-4000-8000-0000000000a2',
@@ -221,7 +222,8 @@ describe('player encounter projection', () => {
         sourceActorId: PUBLIC_ACTOR_ID,
         remainingTicks: null,
         expiresAtCampaignMinute: 2001,
-        polarity: 'NEUTRAL' as const
+        polarity: 'NEUTRAL' as const,
+        endable: true
       }
     ]
     const gm = gmEncounter([{ ...gmActor(PUBLIC_ACTOR_ID, true), activeGrants: grants }])
@@ -281,7 +283,8 @@ describe('player encounter projection', () => {
           sourceActorId: null,
           remainingTicks: 5,
           expiresAtCampaignMinute: null,
-          polarity: 'BENEFICIAL' as const
+          polarity: 'BENEFICIAL' as const,
+          endable: true
         }
       ]
     }
