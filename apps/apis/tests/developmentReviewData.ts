@@ -517,12 +517,17 @@ async function seedStorySocial(
     ...firstPage,
     group: 'PENDING'
   })
-  if (!applications.page.some((application) => application.listingPublicId === listingPublicId))
+  if (!applications.page.some((application) => application.listingPublicId === listingPublicId)) {
+    // The story host's acceptance of its seat notified the reader. The reader's bell shows only the
+    // peer's application as new, so that earlier notice is seen before the application arrives.
+    await awaitFeedItem(reader, 'SOCIAL_INVITATION_DECIDED', deliverNotifications)
+    await reader.mutation(api.notifications.markAllSeen, {})
     await peer.mutation(api.social.applications.submit, {
       listingPublicId,
       message: STORY_SOCIAL.applicationMessage,
       expectedListingVersion: listing.version
     })
+  }
 
   const invitations = await reader.query(api.social.admissionLists.listListingInvitations, {
     ...firstPage,
