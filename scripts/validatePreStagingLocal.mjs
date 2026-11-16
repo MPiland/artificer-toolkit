@@ -126,7 +126,7 @@ const phase08RecoveryMap = [
     decision: 'KEEP',
     paths: [
       'apps/web/src/domains/campaigns/vtt/CampaignTabletop.stories.fixtures.ts',
-      'apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx'
+      'apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.backend.stories.tsx'
     ],
     reason:
       'The retained tabletop fixtures and role-separated surface remain current and are exercised by the final native browser lifecycle.'

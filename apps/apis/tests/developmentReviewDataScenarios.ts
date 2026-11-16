@@ -77,6 +77,12 @@ export const REVIEW_STORY_SHOWING_HOST = {
   username: 'Review_Story_Showing_Host'
 } satisfies ReviewAccountSpec
 
+/** Hosts the Campaign whose Run waits on the story reader's forced-movement pick; a fifth host for the same reason. */
+export const REVIEW_STORY_SHOVE_HOST = {
+  key: 'storyShoveHost',
+  username: 'Review_Story_Shove_Host'
+} satisfies ReviewAccountSpec
+
 /** Strangers to the story account: one applies to its listing and is invited, one it reports and blocks. */
 export const REVIEW_STORY_PEER = {
   key: 'storyPeer',
@@ -209,6 +215,13 @@ export type StoryCampaignSpec = {
   enemyVision?: NonNullable<SceneDefinitionDto['tokens'][number]['vision']>
   /** More creatures in the Run, in blueprint order after the first, each bound to its own token. */
   creatures?: readonly StoryCreatureSpec[]
+  /**
+   * The Shove Aside rule is on for the Run (set before START). The GM hands the creature at index
+   * `shover` of `creatures` to the ally's player, who shoves the one at `target` with the Shove
+   * option labelled `option` and wins the contest, so the Run waits on that player's pick of where
+   * the target lands (D157).
+   */
+  shove?: { shover: number; target: number; option: string }
 }
 
 export type StoryCreatureSpec = {
@@ -284,20 +297,14 @@ const STORY_BOARD: ReviewBoard = {
 }
 
 const astralTearId = '4f37fd9c-8671-422b-b504-cf55c48fdbd1'
+const heldAstralTearId = 'b6a8d3e4-2c57-4b0e-9f1a-7d4c2e8a5b10'
 
-/**
- * A homebrew weapon the story account authored from scratch and saved without activating (D221):
- * the dense equipment structure the authoring stories walk, with an attack, its magic bonuses,
- * charges and features that spend them. The save stamps the account, System and draft status.
- */
-export const STORY_DRAFT_ONLY = {
-  subjectKind: 'EQUIPMENT' as const,
-  subjectId: astralTearId,
-  label: 'The Astral Tear Awakened',
-  payload: {
+/** The dense equipment structure the authoring and Sheet stories walk: an attack, its magic bonuses, charges and features that spend them. */
+function astralTearPayload(id: string, label: string) {
+  return {
     kind: 'EQUIPMENT',
-    id: astralTearId,
-    label: 'The Astral Tear Awakened',
+    id,
+    label,
     description:
       'This mighty blade belongs to the Astral Champion of Vedur. While attuned to it, its wielder can call it to hand from a special demiplane.',
     category: Equipment.EQUIPMENT_CATEGORY_CODE.WEAPON,
@@ -308,12 +315,12 @@ export const STORY_DRAFT_ONLY = {
       Equipment.EQUIPMENT_PROPERTY_CODE.VEX
     ],
     effects: Equipment.meleeWeaponEffects(
-      astralTearId,
+      id,
       'RADIANT',
       '1d6',
       Equipment.EQUIPMENT_GRIP.ONE_HANDED
     ),
-    modifiers: Equipment.meleeMagicWeaponModifiers(astralTearId, 1),
+    modifiers: Equipment.meleeMagicWeaponModifiers(id, 1),
     charges: {
       id: '7912761e-3fe6-4dc4-8bd7-d0e59e0e69cd',
       resetKind: 'DAWN',
@@ -360,6 +367,29 @@ export const STORY_DRAFT_ONLY = {
     systemId: Equipment.SRD_SYSTEM_ID
   } satisfies BaseEquipmentAuthoringInputDto
 }
+
+/**
+ * A homebrew weapon the story account authored from scratch and saved without activating (D221).
+ * The save stamps the account, System and draft status.
+ */
+export const STORY_DRAFT_ONLY = {
+  subjectKind: 'EQUIPMENT' as const,
+  subjectId: astralTearId,
+  label: 'The Astral Tear Awakened',
+  payload: astralTearPayload(astralTearId, 'The Astral Tear Awakened')
+}
+
+/**
+ * The same weapon, published, that the story Astral holder carries attuned and one charge spent
+ * (PLATFORM-28.T6d). It is a separate record so the draft-only story keeps its never-activated state.
+ */
+export const STORY_HELD_EQUIPMENT = {
+  subjectKind: 'EQUIPMENT' as const,
+  subjectId: heldAstralTearId,
+  label: 'Story Astral Tear',
+  payload: astralTearPayload(heldAstralTearId, 'Story Astral Tear')
+}
+
 /**
  * The Sense definitions the story account authors for the System detail stories (D221), one per
  * state a definition reaches through product commands. Their ids are random, so stories find them by
@@ -379,6 +409,11 @@ export const STORY_CHARACTERS = {
   fighter: { characterId: '823e1766-9a56-4d22-a512-4e655983c1fe', label: 'Story Fighter' },
   multiclass: { characterId: 'f1a6b1fc-d7f7-4942-bf6c-6c10e441c837', label: 'Story Multiclass' },
   caster: { characterId: 'ef327a5a-0c6f-44b2-8ccd-5548188c305a', label: 'Story Caster' },
+  /** Carries STORY_HELD_EQUIPMENT attuned, with one of its three charges spent. */
+  astralHolder: {
+    characterId: '3c1d9e52-7a64-4f08-b2d6-91e5a0c7f843',
+    label: 'Story Astral Holder'
+  },
   /** A Fighter reopened in the Builder, so a draft waits on top of its active Sheet. */
   draftPending: {
     characterId: 'ef0fc5fd-ee78-4d0d-aa52-18d54f218548',
@@ -494,6 +529,41 @@ export const STORY_OPEN_CAMPAIGN = {
       hidden: true
     }
   ]
+} as const satisfies StoryCampaignSpec
+
+/**
+ * The Campaign the story reader plays in whose Run waits on the reader's pick of where a pushed
+ * creature lands (D157): hosted by REVIEW_STORY_SHOVE_HOST on an open board. The GM hands the reader
+ * a Wolf, which shoves the adjacent Goblin 5 feet aside and wins; the pick stays pending.
+ */
+export const STORY_SHOVE_CAMPAIGN = {
+  slug: 'story-shove',
+  name: 'Story Shove Campaign',
+  blueprintName: 'Story Shove Encounter',
+  enemyLabel: 'Story Shove Lookout',
+  // A forced movement lands on whole squares, so every token on this board fills its squares.
+  scene: {
+    ...STORY_OPEN_CAMPAIGN.scene,
+    name: 'Story Shove Scene',
+    allyLabel: 'Story Shove Hero',
+    allyPosition: { x: 125, y: 225 },
+    enemyPosition: { x: 575, y: 275 }
+  },
+  playSettings: STORY_CAMPAIGN.playSettings,
+  zones: [],
+  creatures: [
+    {
+      enemy: { kind: 'CREATURE', sourceId: wolf.id },
+      tokenLabel: 'Story Shoving Wolf',
+      position: { x: 325, y: 325 }
+    },
+    {
+      enemy: { kind: 'CREATURE', sourceId: goblin.id },
+      tokenLabel: 'Story Shoved Goblin',
+      position: { x: 375, y: 325 }
+    }
+  ],
+  shove: { shover: 0, target: 1, option: 'Shove 5 feet aside' }
 } as const satisfies StoryCampaignSpec
 
 /**

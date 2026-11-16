@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { fn } from 'storybook/test'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { definitionReferences } from '@artificer-toolkit/apis/convex/definition-references'
+import { characterBuilderDraftDtoSchema } from '@artificer-toolkit/schema/api/characterBuilder'
+import { characterDraftSaveInputSchema } from '@artificer-toolkit/schema/api/characterDrafts'
 import {
   createEncounterInputDtoSchema,
   encounterGmProjectionDtoSchema
@@ -84,6 +86,19 @@ async function writeResponse(reference: MutationReference, input: unknown): Prom
     name === getFunctionName(api.social.listings.close)
   )
     return readOwnedListing(socialListingVersionInputSchema.parse(input).listingPublicId)
+  // The Builder's draft save answers with the draft as read, carrying the Character the page saved.
+  if (name === getFunctionName(api.characters.drafts.save)) {
+    if (!storyReads) throw new Error('A story wrote before its preview bound the read client.')
+    const { characterId, character } = characterDraftSaveInputSchema.parse(input)
+    const draft = characterBuilderDraftDtoSchema.parse(
+      await storyReads.query(api.characters.drafts.get, { id: characterId })
+    )
+    return characterBuilderDraftDtoSchema.parse({
+      ...draft,
+      label: character.label,
+      payload: { ...draft.payload, character }
+    })
+  }
   if (name === getFunctionName(api.loot.tables.save)) {
     const { owner, expectedVersion, tables } = saveLootInputSchema.parse(input)
     return lootDocumentSchema.parse({ owner, version: expectedVersion + 1, tables })
