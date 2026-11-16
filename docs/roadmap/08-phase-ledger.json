@@ -2394,7 +2394,7 @@
             },
             {
               "id": "PLATFORM-28.T5c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2405,7 +2405,8 @@
               },
               "text": "The Scene editor story reads a seeded Scene with a real map asset; its save is recorded through begin, append and publish spies (D218 amendment); the fake ConvexReactClient and hand-seeded caches in campaign stories are deleted with a no-importer proof.",
               "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m815 (f231e370a); slice tip 784520745: Tests 43802889511, Live 43803581911, Browser journeys 43802889337 green. CampaignSceneEditor.backend.stories ConfiguredScene reads the seeded Story Scene (map uploaded through the real upload path, wall, door, two tokens) through the real list, loadSceneDefinition, map delivery and loot reads, draws a wall and saves; begin, append and publish are spied writes (D218 amendment) answered through sceneDefinitionSaveProgressSchema, and writesTo asserts the begin counts, append batches by saveId and the publish. storyData asserts the Scene editor input. The fake-client CampaignSceneEditor.stories is deleted (no importers); its unasserted MapLoadFailure render became a real-component test. The tabletop harness's fake ConvexReactClient stays with its importer, CampaignTabletopWindow.stories, which T7c/T7d convert and delete. Red proof: storyData.test and CampaignSceneEditor.test ALREADY-PASSING (seed and product already existed)."
             },
             {
               "id": "PLATFORM-28.T6a",
@@ -27700,7 +27701,7 @@
             },
             {
               "id": "QUALITY-15.T3c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27710,11 +27711,12 @@
                 "after": ["QUALITY-15.T2"]
               },
               "text": "Several direct results, choice grants and timed manifestations compile (about 15 golden rows).",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27724,25 +27726,12 @@
                 "after": ["QUALITY-15.T2"]
               },
               "text": "Small unbuilt kinds compile: unregistered reaction triggers, FOLLOW_UP_SAVE, spell-slot exchange, test outcome kinds, scaled heals, relationship hold paths, willing-target outcomes, choice, repeat offer, cost-2 activation (about 20 golden rows).",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
-            },
-            {
-              "id": "QUALITY-15.T3e",
-              "status": "TODO",
-              "closes": ["QUALITY-15.1"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 2,
-                "rr": 3,
-                "size": 8,
-                "after": ["QUALITY-15.T2"]
-              },
-              "text": "A reaction can aim an area: the trigger pending decision carries its aim across room, Worker and UI, removing the \"aims no area\" refusal.",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3f",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27753,7 +27742,22 @@
               },
               "text": "SRD data-gap authoring fixes for INVALID_INPUT rows real content should author (no targeting off a Self range, area with no shape; about 27 rows), source data only.",
               "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m816 (9c02dd3f4); slice tip 4fe7e2ec7 (91445540d re-synced onto m814, golden regenerated from real code): Tests 43804520776, Live 43804520855, Browser journeys 43804520836 green. 17 SRD source files authored (source data only, each value cited to its SRD phrase) plus the srdEffectCompile golden: 18 rows leave INVALID_INPUT, 13 now compile (Flame Strike, Turn the Unholy, Magic Jar, Clone, Acid, Holy Water, Nalfeshnee Teleport, Androsphinx Roar 3rd, Ankheg Acid Spray, Dretch Fetid Cloud, Storm Giant Lightning Strike, Vrock Stunning Screech, Unicorn Heal Self) and 5 refuse as UNBUILT bounded shapes (Sunburst, Weird, Androsphinx Roar 1st and 2nd, Ghost Horrifying Visage), taken by T3l. selfSphere joins selfLine and selfCone in creatures/shared.ts. Rows left INVALID_INPUT have ambiguous or object targets in the SRD text (Blink Dog Teleport truncated, Scrying, Dream, Project Image, Symbol, Transport via Plants, Animate Trees and Chains, Reel, Nightmare Haunting, Children of the Night, Fire Storm, Wall of Fire and Thorns, Wind Wall shape lives on its manifest)."
+            },
+            {
+              "id": "QUALITY-15.T3l",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Rows T3f authored that need code compile: bounded test shapes the compiler refuses (Sunburst, Weird, Androsphinx Roar 1st and 2nd, Ghost Horrifying Visage), an area shape on a Self or single target (Antilife Shell, Resilient Sphere), and the Self-plus-willing-creatures move (Ethereal Stride, Unicorn Teleport) through generic options.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3f report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3g",
@@ -28248,17 +28252,19 @@
             },
             {
               "id": "QUALITY-19.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-19.2"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
                 "rr": 5,
-                "size": 1,
+                "size": 3,
                 "after": ["QUALITY-19.T1"]
               },
-              "note": "Registered 2026-11-15 from the T4c report (flaked once on its first Browser journeys run, then passed twice) under the standing approval for QUALITY growth (2026-11-13).",
-              "text": "The SocialListingFormPage \"Create For Campaign With Listing\" backend story waits on the campaigns list query it picks from, not the unrelated seeded-campaign frame, so a cold backend cannot race the Campaign option."
+              "note": "Registered 2026-11-15 from the T4c report (flaked once on its first Browser journeys run, then passed twice) under the standing approval for QUALITY growth (2026-11-13). Grown 2026-11-15 (size 1 -> 3): the same race failed SocialBlocksPanel, SocialNativeLists, SocialListingDetailPage, SocialProfilePage and NotificationShell stories across slices.",
+              "text": "Social backend stories wait on the user-visible loaded state of the data they act on, not an unrelated seeded frame: the SocialListingFormPage Campaign select stays disabled until its first page loads, and every Social story waits on its view's own first visible load, so a cold backend cannot race the Campaign option, the Unblock row, listings, applications or profiles.",
+              "mergedAt": "2026-11-15",
+              "proof": "m816 (9c02dd3f4); slice tip 33c165103: Tests 43804032932, Live 43804032890, Browser journeys 43804032946 green on two attempts (storybook-backend-browser selected both times). Root cause: the Campaign options come from the paginated campaigns list while the story waited on the seeded-campaign frame from another query, and the combobox was enabled while its own query loaded. Product: the Campaign select is disabled while the first page loads (real-page Vitest test, RED on the earlier tip 22c618e86). The Blocks, Applications, Hosting, Discovery and Profile views already render loaders, so their stories now wait on each view's first visible load within one socialStoryLoadTimeout; NotificationShell Invited Peer re-queries its row inside waitFor."
             }
           ]
         }
@@ -29130,6 +29136,12 @@
       "origin": [],
       "reason": "Split into RELIABILITY-10.T1a, T1b and T1c (size 3 + 8 + 5).",
       "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "QUALITY-15.T3e",
+      "origin": ["QUALITY-15.1"],
+      "reason": "Reactions that aim an area convert no SRD row: no SRD reaction aims an area, the room offers reactions only to Characters, and system trigger admission admits only actor targets. Homebrew area reactions are a deferred edge case in future-enhancements.md.",
+      "decision": "Approved by the user on 2026-11-15."
     }
   ],
   "openQuestions": []
