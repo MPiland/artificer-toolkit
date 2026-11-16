@@ -7,6 +7,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -45,6 +46,12 @@ export const antipathySympathy: SpellAuthored = {
           rangeKind: RANGE_KIND.DISTANCE,
           amount: 60,
           unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        // "an area that is no larger than a 200-foot cube"
+        shape: {
+          id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x213, 1),
+          shapeKind: SHAPE_KIND.CUBE,
+          edgeLength: { amount: 200, unit: MEASUREMENT_UNIT_CODE.FEET }
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,

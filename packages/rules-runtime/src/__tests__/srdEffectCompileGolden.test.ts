@@ -368,7 +368,9 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D bonus healing requires one exact resolved amount.': 'INVALID_INPUT',
   'D&D subtract-from-triggering-roll action requires one exact resolved die.': 'INVALID_INPUT',
 
-  'D&D area with no hit-point pool tests each creature it catches with a save.': 'UNBUILT',
+  // A cast pick made once over the creatures an area catches (Antipathy/Sympathy) has no room
+  // path: the pick is carried only by a chosen-creature or Self cast (D148).
+  'Only a cast at chosen creatures or at its user carries a pick.': 'UNBUILT',
   'A placed zone models only its label, shape and entering components.': 'UNBUILT',
   // Rows whose maintained effect has no plan type yet (QUALITY-15.T3n): Animate Objects (animated
   // objects with no stat block), Clairvoyance (a stationary sensor), Dancing Lights (lights with no
