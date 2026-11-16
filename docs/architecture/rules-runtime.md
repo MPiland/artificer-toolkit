@@ -164,7 +164,9 @@ limits the aspects admit combinations the shape ladders refused: a save its user
 action, a single-target save at a Sight range, and a reaction's save at a Touch, Sight or unlimited range
 (`effectActionAspectAdmissions.test.ts`, with the room journey in `nativeRoomAreaAction.test.ts`). An area refuses with the one part it breaks:
 its disposition, its hit-point pool or save, a zone save's creature-type filter, a missing shape, a shape its range does not
-place, its range, or a size that is not fixed. A reaction over an area stays refused as an unbuilt path, not a game rule:
+place, its range, or a size that is not fixed. An area that rolls no save and no hit-point pool is a GM ruling on each
+creature it catches: its outcome must be a GM ruling, and the room commits it at once over the creatures its area catches, as it
+does a hit-point pool (QUALITY-15.T3m, `nativeRoomAreaRuling.test.ts`). A reaction over an area stays refused as an unbuilt path, not a game rule:
 the rules let a reaction catch an area, but its trigger's pending decision carries no aim yet (no SRD record authors one). The test aspect (`compileDnd5eTest`) owns what an action rolls and the result paths each test resolves to
 (`DND5E_TEST_RESULT_PATHS`): a check lists the one check its user rolls, and a contest the checks its target may roll. The test
 paths, the direct and check path, the outcome-path guards and the relationship hold paths (`dnd5eTestHoldPaths`) all read it; a

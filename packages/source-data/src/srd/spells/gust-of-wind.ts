@@ -61,6 +61,11 @@ export const gustOfWind: SpellAuthored = {
           length: {
             amount: 60,
             unit: MEASUREMENT_UNIT_CODE.FEET
+          },
+          // "A line of strong wind 60 feet long and 10 feet wide"
+          width: {
+            amount: 10,
+            unit: MEASUREMENT_UNIT_CODE.FEET
           }
         }
       },
