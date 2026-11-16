@@ -325,7 +325,7 @@ function reviveHitPointsOf(
 
 /**
  * An outcome that needs nothing from its action beyond its target, so it is proposed alike with no
- * test and on a test's result path. Null for any other outcome.
+ * test and on a test's result path. Refuses a spell-slot exchange; null for any other outcome.
  */
 export function dnd5eTargetOnlyOutcome(outcome: Dnd5eAuthoredOutcome): Extract<
   Outcome,
@@ -356,6 +356,11 @@ export function dnd5eTargetOnlyOutcome(outcome: Dnd5eAuthoredOutcome): Extract<
   // Dash: the committed action adds the actor's speed to this turn's movement; the commit records it.
   if (outcome.effectKind === 'MOVEMENT_RULE' && outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT')
     return { kind: 'ADD_SPEED_TO_MOVEMENT' }
+  // The player picks the slots on the Sheet, which settles the exchange in and out of an Encounter.
+  if (outcome.effectKind === 'SPELL_SLOT_EXCHANGE')
+    unsupported(
+      'D&D spell-slot exchange is settled by the EXCHANGE_SPELL_SLOTS Sheet command, not an encounter action.'
+    )
   return null
 }
 
