@@ -22,10 +22,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 function castOf(spellLabel: string) {
   const spell = srdByLabel(SRD.spells, spellLabel)
-  const effect = spell.effects.find(isActivatedEffect)
+  const effects = spell.effects ?? []
+  const effect = effects.find(isActivatedEffect)
   if (!effect) throw new Error(`${spellLabel} has no activated effect.`)
   const compiled = compileSpellEffect(
-    { attributes: spell.attributes, effects: spell.effects },
+    { attributes: spell.attributes, effects },
     { ...effect, id: ACTION_EFFECT_ID }
   )
   const action = {
