@@ -2330,7 +2330,7 @@
             },
             {
               "id": "PLATFORM-28.T4c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2341,7 +2341,8 @@
               },
               "text": "SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog stories read the second account seed under its own sign-in; writes go through the shared write spies.",
               "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m810 (46dfa58fb); slice tip 597576f99: Tests 43786127443, Live 43786127399, Browser journeys 43786127424 green. SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog backend stories read the existing seedStorySocial data (no seed additions); writes are spied with real product errors for failure stories; old fixture stories deleted with a no-importer proof. Product fix: one useFocusLinkedRow hook (runs each commit, element-identity guard) replaces three inline deep-link focus copies; SocialApplicationsView had the same remount bug. Red proof: SocialApplicationsView.test and SocialInvitationsView.test RED (focuses the deep-linked row again when a list reload remounts it), useFocusLinkedRow.test RED-IMPORT. Unreachable states (expired/revoked invitation, history ordering, paging) rest on real-component Vitest tests; simulated post-write transitions dropped per D218."
             },
             {
               "id": "PLATFORM-28.T4d",
@@ -28199,6 +28200,20 @@
               "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
               "text": "IsolateNotClean at the end of the custody and publication proofs is traced to the function that poisons the isolate and fixed at its cause.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-19.T3",
+              "status": "TODO",
+              "closes": ["QUALITY-19.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["QUALITY-19.T1"]
+              },
+              "note": "Registered 2026-11-15 from the T4c report (flaked once on its first Browser journeys run, then passed twice) under the standing approval for QUALITY growth (2026-11-13).",
+              "text": "The SocialListingFormPage \"Create For Campaign With Listing\" backend story waits on the campaigns list query it picks from, not the unrelated seeded-campaign frame, so a cold backend cannot race the Campaign option."
             }
           ]
         }
