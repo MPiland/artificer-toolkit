@@ -1393,7 +1393,16 @@ through `createPlacedSpatialEffect` (refused with `TARGET_UNAVAILABLE` at `MAX_S
 on the area root in `placedSpatialEffectIds`, and deleted by GM undo (`actionRevert.ts`) like a D99 grant. A concentration
 zone compiles `zonePlacement.maintenance` (the same policy shape as `activeEffectPlan.maintenance`);
 `prepareEncounterActionMaintenance` selects it, so a zone-only cast opens Concentration and the zone depends on that
-state (`maintainedEffectStateId`, D135). When a
+state (`maintainedEffectStateId`, D135). A zone no Concentration holds whose authored duration is timed
+(Grease, Guardian of Faith; QUALITY-15.T3ag) compiles `zonePlacement.duration { startsAt: 'PLACEMENT', expiration }`
+(`withZoneDuration` in `effectActionZones.ts`): `TICKS` of its source's turns, or `CAMPAIGN_MINUTES` past the turn bound
+(D222). `startsAt` is the plan-level hook for when the count begins; only placement is built. Each record the zone places
+stores `anchor: 'SOURCE'` with a `TICKS` expiration decremented at `START_OF_TURN` (so an N-turn zone ends as its source's
+Nth turn after the cast starts), or a `CAMPAIGN_MINUTES` expiration stamped `expiresAtCampaignMinute` at placement. The turn
+commit counts the incoming actor's turn start off the zones it placed after the incoming zone stage
+(`persistEncounterZoneTicks` over `planEncounterZoneTicks`) and deletes those it ends. A `CAMPAIGN_MINUTES` zone still ends
+with its Run, since spatial rows are Run-scoped (`finishedRunRows.ts`); no clock pass reads its stamp. An untimed or scaled
+duration leaves the zone `INDEFINITE`. When a
 creature fails the zone's entry save, `persistLiveMovementSpatial` copies the zone's grant template under the
 movement's origin onto that creature (`planSpatialEntryGrant`, built from the grant entry; it does not stack per
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,

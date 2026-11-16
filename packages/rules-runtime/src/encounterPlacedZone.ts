@@ -135,6 +135,11 @@ type PlacedZoneInput = {
   source?: PlacedZoneSource
   /** Creatures the caster designated at cast; the zone never catches them. */
   unaffectedActorIds?: readonly string[]
+  /**
+   * The Campaign clock minute at placement, stamped on a zone lasting Campaign minutes (D222); null
+   * for a Campaign with no clock. Read only for such a zone.
+   */
+  campaignClockMinute?: number | null
 }
 
 /** What a placed record of one zone component holds: its entry, triggers and the area it covers. */
@@ -150,6 +155,9 @@ function placedZoneRecord(
   distanceStep?: number
 ): LiveSessionPlacedSpatialEffect {
   const { entry, grant, heldCondition } = zone
+  // Every record of a timed zone counts its duration on its source's turns from placement, so a zone
+  // of N turns ends as its source's Nth turn after the cast starts; the room ticks it then.
+  const expiration = input.zone.duration?.expiration
   const pinnedDc = entry.castSaveDcFactKey
     ? { [entry.castSaveDcFactKey]: castSaveDc(input.saveDc) }
     : {}
@@ -172,12 +180,15 @@ function placedZoneRecord(
     perceptionContributions: entry.perceptionContributions,
     recurrence: {
       recurrenceStage: 'NONE',
-      anchor: 'HOLDER',
+      anchor: expiration ? 'SOURCE' : 'HOLDER',
       endTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'ENCOUNTER',
-      expiration: { kind: 'INDEFINITE' }
+      expiration:
+        expiration?.kind === 'TICKS'
+          ? { ...expiration, decrementStage: 'START_OF_TURN' }
+          : (expiration ?? { kind: 'INDEFINITE' })
     },
     stateContributions: grant
       ? [
@@ -197,7 +208,19 @@ function placedZoneRecord(
     id,
     maintainedEffectStateId: input.maintainedEffectStateId,
     definition,
-    lifecycle: { schemaVersion: 1, remainingTicks: null },
+    lifecycle:
+      expiration?.kind === 'TICKS'
+        ? { schemaVersion: 1, remainingTicks: expiration.initialRemaining }
+        : expiration?.kind === 'CAMPAIGN_MINUTES'
+          ? {
+              schemaVersion: 1,
+              remainingTicks: null,
+              expiresAtCampaignMinute:
+                input.campaignClockMinute == null
+                  ? null
+                  : input.campaignClockMinute + expiration.minutes
+            }
+          : { schemaVersion: 1, remainingTicks: null },
     placement: spatialRuleEffectPlacementDtoSchema.parse({
       schemaVersion: 1,
       ...anchor,

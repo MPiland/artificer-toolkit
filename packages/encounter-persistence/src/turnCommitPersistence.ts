@@ -47,6 +47,7 @@ import { markTurnStarted, readTurnStartedBy } from './turnMovement.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import { persistEncounterTurnZoneEffects } from './turnZoneEffectsPersistence.js'
 import {
+  persistEncounterZoneTicks,
   placeEncounterPassiveZones,
   type EncounterPassiveZoneReaders
 } from './placedSpatialEffects.js'
@@ -365,13 +366,20 @@ export async function persistEncounterTurnCommit(
         { ...zoneCommit, boundary: incomingBoundary, plan: input.incomingZoneTurn },
         zoneCallbacks
       )
-  if (!incomingBegun)
+  if (!incomingBegun) {
     await persistEncounterGrantTicks(ctx, {
       state,
       stage: 'START_OF_TURN',
       turnActorId: root.proposedTerminalTransition.currentActorId,
       occurredAt: input.occurredAt
     })
+    // After the incoming zone stage, which plans against the zones as captured: a timed zone still
+    // meets the turn start it ends at.
+    await persistEncounterZoneTicks(ctx, {
+      encounterId: state.id,
+      turnActorId: root.proposedTerminalTransition.currentActorId
+    })
+  }
   // After every stage that plans against a Character's stream version: the raise advances it.
   if (root.initiative)
     await persistEncounterInitiativeRestores(
