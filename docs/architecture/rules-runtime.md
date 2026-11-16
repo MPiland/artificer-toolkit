@@ -202,6 +202,13 @@ a SEQUENCE (grant plus ruling), which the same split compiles. Imprisonment now 
 outcome has no plan, which the earlier golden hid. Timed-manifestation rows (object and creature forms) stay refused:
 their data names no component or needs a new plan type, so they are not a lifetime-aspect gap.
 
+**Creature picks in the golden (current, QUALITY-15.T3s).** A Creature row whose action authors a pick (D148) pins
+`choice=[...]` through `compileCastChoicePlans`, as discovery compiles it. The Vampire Spawn Claws and the Vampire's
+Unarmed Strike were refused as "relationship outcomes need a bounded hit" only because the golden planned the whole,
+unpicked action. Each option's Grapple hold already compiles through `relationshipPlan` on the hit, so that UNBUILT
+message left the list. `relationshipPlan` still refuses a relationship in an unpicked `CHOICE` group: until the pick is
+made, the hit alone does not bound the hold.
+
 **Golden fidelity and inert zones (current, QUALITY-15.T3b).** The golden compiles a Character spell Effect as the
 product does: through `compileSpellEffect` (which carries the spell's Concentration onto the Effect, the one rule
 `compileSpell` also uses) and, for an activated action, through `compileActionPlacement` (zone, then summon) before the
@@ -210,7 +217,12 @@ execution plan, the order of `compileCharacterActionEntryPoints`. A placed row p
 supported maintained effect (class UNBUILT); the golden had hidden them. A PLACED_SPACE or SOURCE zone that authors a
 label and a shape but no component and no appear save is an inert zone: `inertZonePlacementPlan` places it with no trigger
 modes, held for its duration by the cast's Concentration (`lastingZoneEntry`), so the table sees the area and a GM rules
-what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input.
+what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input. (QUALITY-15.T3o) The
+corpus authors a shape for every inert SRD zone from its own text, with the existing shape kinds: Wall of Force, Ice and
+Stone as a straight `WALL` of ten 10-foot panels, Gate as a `CIRCLE`, Forbiddance and the Magnificent Mansion entrance as
+a `CYLINDER`, Mirage Arcane as a `CUBE` a mile on a side. Prismatic Wall and Oil (flask) stay refused as UNBUILT: they
+author zone fields the placement does not model (ordered layers and their destruction, proximity rule, light, placement
+surface and occupancy, ignition, application limits), and each needs room behavior, not data.
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
@@ -1754,7 +1766,10 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   offer is answered and run as the post-commit reaction offer ([persistence](persistence.md)); the SRD Hunter's
   Giant Killer is its first consumer, authored from core options (a Large or larger attacker within 5 feet, seen,
   a bare Feature weapon attack paired with each wielded weapon) with no pending record or timer of its own
-  (SPELLS-31.T4k1c, D217). Transitional: `MOVEMENT` has a null moment because the movement path still discovers a `MOVEMENT` reaction itself
+  (SPELLS-31.T4k1c, D217). Its optional `attackRange` (`MELEE` or `RANGED`, the same check `ATTACKED_SELF` uses)
+  admits only that kind of attack, read from the attack's source; the SRD Hunter's Stand Against the Tide answers a
+  missed melee attack this way and hands the redirected attack to the GM (QUALITY-15.T3p, D217). Falling has no
+  trigger: the engine raises no fall event. Transitional: `MOVEMENT` has a null moment because the movement path still discovers a `MOVEMENT` reaction itself
   (QUALITY-9). Target: every row names a moment and the one shared offer serves them all.
   Given `zones` (RULES-2.T5d), it returns the zones a creature's contact event sets off, in the order given. A zone's
   persisted `triggerModes`, `turnTriggers` and `retaliatesMeleeHits` are its subscription: `ZONE_MOVEMENT` (`ENTER`,

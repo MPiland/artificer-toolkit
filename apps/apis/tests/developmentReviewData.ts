@@ -450,7 +450,7 @@ async function seedStoryPlayerCampaign(host: StoryClient, reader: StoryClient, r
 async function presentStoryRun(
   client: StoryClient,
   room: StoryRoom,
-  { slug, name, scene, zones, shownScene }: StoryCampaignSpec,
+  { slug, name, scene, zones, shownScene, enemyState }: StoryCampaignSpec,
   { campaignId, run, actor }: Awaited<ReturnType<typeof prepareStoryRun>>,
   allyUserId: string
 ) {
@@ -510,6 +510,20 @@ async function presentStoryRun(
     })
     version = placed.projection.version
   }
+  if (enemyState)
+    await execute({
+      type: 'UPDATE_ACTOR',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: version,
+      actorId: actor.id,
+      currentHitPoints: enemyState.currentHitPoints,
+      conditions: enemyState.conditionCodes.map((code) => {
+        const type = srdSystemRecord.conditionTypes.find((candidate) => candidate.code === code)
+        assert.ok(type, `The SRD has no condition type ${code}.`)
+        return { conditionTypeId: type.id }
+      })
+    })
   if (shownScene) await createShownScene(client, campaignId, shownScene.name, scene.board)
   await room.checkpoint(campaignId)
   await room.releaseRoom?.(campaignId)

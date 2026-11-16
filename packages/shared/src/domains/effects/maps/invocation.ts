@@ -529,7 +529,11 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
               { code: 'RANGED', label: 'A ranged attack' }
             ]
           },
-          { order: 8, showIf: isAttackedSelf, hiddenBehavior: 'CLEAR' }
+          {
+            order: 8,
+            showIf: logic.or([isAttackedSelf, isAttackResolvedOnSelf]),
+            hiddenBehavior: 'CLEAR'
+          }
         )
       )
       .set(

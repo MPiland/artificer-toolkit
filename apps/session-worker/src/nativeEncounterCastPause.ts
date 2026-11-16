@@ -15,6 +15,7 @@ import {
   withEncounterRollInfluences
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import type { PendingReactionChildren } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import { isMeleeAttackSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { characterReactionCandidates } from '@artificer-toolkit/rules-runtime/encounterReactors'
 import { systemTriggerCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import type { NativeEncounterActionMechanicsInput } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
@@ -332,6 +333,7 @@ export function createNativeCastPause(input: {
       attackerTarget,
       attacked: prepared.target,
       hit,
+      melee: isMeleeAttackSource(state.gameSystemId, prepared.source),
       parentCommandId: command.commandId,
       parentOccurrenceId: input.occurrenceId,
       loadScene: readScene,

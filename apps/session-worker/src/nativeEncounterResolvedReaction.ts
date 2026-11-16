@@ -25,8 +25,8 @@ type OfferInput = Parameters<typeof offerNativeReactions>[0]
 /**
  * The reaction offers an attack that hit or missed leaves for its commit to queue (D219): one for the
  * attacked Character when it holds a reaction to the attack, with its menu. The event table decides
- * whether the attack meets a reaction's trigger: the outcome it names, a holder that sees the
- * attacker, an attacker of the size and within the distance it names. The reaction is prepared
+ * whether the attack meets a reaction's trigger: the outcome and attack range it names, a holder that
+ * sees the attacker, an attacker of the size and within the distance it names. The reaction is prepared
  * against the attacker, which its own range and target requirements are held to. The offer keeps the
  * reactor's reaction allowance as read here; the room raises it later against committed state alone.
  * A defeated Character (D63) and one with no token on the Scene are offered nothing. The Scene is
@@ -39,6 +39,8 @@ export async function planNativeResolvedAttackOffers(input: {
   /** The creature the attack was made against. */
   attacked: EncounterRunActorState
   hit: boolean
+  /** Whether the attack was a melee attack. */
+  melee: boolean
   /** The attack's own command and the occurrence it settles, which the offer answers. */
   parentCommandId: string
   parentOccurrenceId: string
@@ -82,6 +84,7 @@ export async function planNativeResolvedAttackOffers(input: {
           kind: 'ATTACK_RESOLVED_ON_HOLDER',
           gameSystemId: state.gameSystemId,
           hit: input.hit,
+          melee: input.melee,
           attackerSeen,
           attackerSizeCode: encounterActorEffectiveSize(attackerTarget),
           attackerScene: range

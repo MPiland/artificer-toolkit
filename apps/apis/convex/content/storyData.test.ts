@@ -8,6 +8,7 @@ import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-mi
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { publicationFixture } from '../../tests/fixtures/publication'
 import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { createPartyUser } from '../../tests/fixtures/partyPlayer'
 import type { ActionCtx } from '../_generated/server'
 import {
@@ -373,6 +374,17 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(await zonesRead(playerCampaignId)).toEqual(
     STORY_ZONES.filter((zone) => !('spotDc' in zone)).map(({ label }) => [label, null])
   )
+  // The GM's command left the story creature poisoned and frightened at the seeded hit points, which
+  // the tabletop stories read back as statuses on its token.
+  const storyCreature = (
+    await reader.query(api.encounters.activeReads.active, { campaignId })
+  ).encounter?.actors.find(({ label }) => label === STORY_CAMPAIGN.enemyLabel)
+  expect(storyCreature).toMatchObject({
+    currentHitPoints: STORY_CAMPAIGN.enemyState.currentHitPoints,
+    conditions: STORY_CAMPAIGN.enemyState.conditionCodes.map((code) => ({
+      conditionTypeId: srdSystemRecord.conditionTypes.find((type) => type.code === code)!.id
+    }))
+  })
   const settings = await reader.query(api.campaigns.playSettings.get, { campaignId })
   expect(settings).toMatchObject({ ...STORY_CAMPAIGN.playSettings, automationMode: 'ASSISTED' })
   expect(settings.initiativePolicyDefinitionId).not.toBeNull()

@@ -184,6 +184,8 @@ export type StoryCampaignSpec = {
   zones: readonly StoryZoneSpec[]
   /** A second Scene the GM can show to players without presenting it (D87). */
   shownScene?: { name: string }
+  /** What the GM does to the creature once the Run is presented: conditions and damage. */
+  enemyState?: { conditionCodes: readonly string[]; currentHitPoints: number }
 }
 
 /** A circular zone placed at point; a spot DC conceals it from every player (MOVE-3.3). */
@@ -364,6 +366,7 @@ export const STORY_CAMPAIGN = {
   playSettings: { normalCadenceDays: 14, expectedDurationMinutes: 240, quorum: 3 },
   zones: STORY_ZONES,
   shownScene: { name: 'Story Shown Scene' },
+  enemyState: { conditionCodes: ['POISONED', 'FRIGHTENED'], currentHitPoints: 10 },
   lootTable: { name: 'Story pockets', coinAmount: 12 }
 } as const satisfies StoryCampaignSpec & {
   preparedBlueprintName: string

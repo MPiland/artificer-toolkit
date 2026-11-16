@@ -64,6 +64,22 @@ const giantKiller: ClassFeature = {
   effects: giantKillerOption.effects
 }
 
+const standAgainstTheTideOption = hunterConclave.features
+  ?.find(({ label }) => label === "Superior Hunter's Defense")
+  ?.options?.find(({ label }) => label === 'Stand Against the Tide')
+if (!standAgainstTheTideOption?.effects)
+  throw new Error('The SRD Hunter has no Stand Against the Tide.')
+
+/** The SRD option as the Character's Feature, exactly as authored: a GM ruling on a missed melee attack. */
+const standAgainstTheTide: ClassFeature = {
+  id: standAgainstTheTideOption.id,
+  label: standAgainstTheTideOption.label,
+  description: standAgainstTheTideOption.description,
+  availableAtLevel: 1,
+  order: 1,
+  effects: standAgainstTheTideOption.effects
+}
+
 /** A homebrew reaction authored as Giant Killer is, but answering only a hit, by an attacker of any size. */
 const riposte = ((): ClassFeature => {
   const [effect] = giantKillerOption.effects
@@ -524,6 +540,53 @@ describe('the answer to a reaction offer (QUALITY-8.T1c2b2)', () => {
     // The reaction is given back with the attack: the same Bite raises the offer again.
     const again = await bite(room, 19)
     expect(await offers(room, again.commandId)).toMatchObject([{ state: 'PENDING' }])
+  })
+
+  it('settles a GM-ruling reaction to a missed melee attack, the SRD Stand Against the Tide (QUALITY-15.T3p)', async () => {
+    const room = await attackedRoom({ creature: attackBite, feature: standAgainstTheTide })
+    const attack = await bite(room, 1)
+    const context = await readPendingApplicationContext(room.room.base.stub)
+    if (context.kind !== 'ENCOUNTER_REACTION_OFFER')
+      throw new Error(`Expected the reaction offer, got ${context.kind}.`)
+    expect(context).toMatchObject({
+      reactorActorId: REACTOR_ACTOR_ID,
+      attackerActorId: ATTACKER_ID
+    })
+    const [option, ...others] = context.options
+    if (!option) throw new Error('The offer has no option.')
+    expect(others).toEqual([])
+    expect(option.label).toBe('Stand Against the Tide')
+
+    const answered = await room.sendAsPlayer(
+      await answerCommand(room, { kind: 'OPTION', optionId: option.optionId })
+    )
+    expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+    const reactionCommandId = systemTriggerCommandId(
+      attack.commandId,
+      REACTOR_ACTOR_ID,
+      option.actionId
+    )
+    expect(await offers(room, attack.commandId)).toMatchObject([{ state: 'COMPLETED', version: 1 }])
+    expect(await offerAnswers(room)).toMatchObject([
+      { reactorActorId: REACTOR_ACTOR_ID, child: { commandId: reactionCommandId } }
+    ])
+    // The ruling hands the redirected attack to the GM: the reaction commits with nothing pending.
+    expect(await pendingOccurrences(room)).toEqual([])
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(history.commands.find(({ commandId }) => commandId === reactionCommandId)).toMatchObject(
+      { commandType: 'RESOLVE_ACTION' }
+    )
+  })
+
+  it('offers Stand Against the Tide for neither a melee hit nor a ranged miss', async () => {
+    const hit = await attackedRoom({ creature: attackBite, feature: standAgainstTheTide })
+    await expectNoOffer(hit, (await bite(hit, 19)).commandId)
+
+    const ranged = await attackedRoom({
+      creature: biteWolf('ATTACK', { reachFeet: 5, ranged: true }),
+      feature: standAgainstTheTide
+    })
+    await expectNoOffer(ranged, (await bite(ranged, 1)).commandId)
   })
 
   it('undoes an attack whose offer was declined', async () => {
