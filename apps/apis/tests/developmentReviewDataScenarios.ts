@@ -1,4 +1,8 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type {
+  ConfirmMoraleInputDto,
+  MoraleSaveInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type { AuthoredSubjectKind } from '@artificer-toolkit/schema/projections/identity'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
@@ -65,6 +69,12 @@ export const REVIEW_STORY_HOST = {
 export const REVIEW_STORY_OPEN_HOST = {
   key: 'storyOpenHost',
   username: 'Review_Story_Open_Host'
+} satisfies ReviewAccountSpec
+
+/** Hosts the Campaign whose GM has a Scene on show to the story reader; a fourth host for the same reason. */
+export const REVIEW_STORY_SHOWING_HOST = {
+  key: 'storyShowingHost',
+  username: 'Review_Story_Showing_Host'
 } satisfies ReviewAccountSpec
 
 /** Strangers to the story account: one applies to its listing and is invited, one it reports and blocks. */
@@ -212,6 +222,14 @@ export type StoryCreatureSpec = {
   hidden?: true
   /** Conditions the GM gives the creature once the Run is presented. */
   conditionCodes?: readonly string[]
+  /**
+   * The Morale rule is on for the Run (set before START), and the GM checks this creature for
+   * `triggerKind` and confirms `disposition`. The creature must have a saving throw to roll.
+   */
+  morale?: {
+    triggerKind: MoraleSaveInputDto['triggerKind']
+    disposition: ConfirmMoraleInputDto['disposition']
+  }
 }
 
 /** A circular zone placed at point; a spot DC conceals it from every player (MOVE-3.3). */
@@ -400,8 +418,9 @@ export const STORY_PLAYER_CAMPAIGN = {
 /**
  * The Campaign the story reader plays in on an open board (D221): hosted by REVIEW_STORY_OPEN_HOST, who
  * is also the GM the tabletop stories read as. Fog is off, so a player sees every token the GM has not
- * hidden. The Run holds a hurt, poisoned, frightened Warden with sight, a prone Sentry, an unhurt Hound
- * and two Balors, each carrying a Fire Aura, one of them on a hidden token.
+ * hidden. The Run has Morale on and holds a hurt, poisoned, frightened Warden with sight, a prone
+ * Sentry, an unhurt Hound and two Balors, each carrying a Fire Aura, one of them on a hidden token.
+ * The GM confirmed the visible Balor fled.
  */
 export const STORY_OPEN_CAMPAIGN = {
   slug: 'story-open',
@@ -443,7 +462,8 @@ export const STORY_OPEN_CAMPAIGN = {
     {
       enemy: { kind: 'CREATURE', sourceId: balor.id },
       tokenLabel: 'Balor in the Hall',
-      position: { x: 250, y: 450 }
+      position: { x: 250, y: 450 },
+      morale: { triggerKind: 'INDIVIDUAL_SURPRISED', disposition: 'FLEE' }
     },
     {
       enemy: { kind: 'CREATURE', sourceId: balor.id },
@@ -453,6 +473,16 @@ export const STORY_OPEN_CAMPAIGN = {
     }
   ]
 } as const satisfies StoryCampaignSpec
+
+/**
+ * The Campaign the story reader plays in whose GM is showing a Scene (D87), through the real showing
+ * command: hosted by REVIEW_STORY_SHOWING_HOST, with no Run and no presented Scene, so the showing
+ * covers nothing another story reads.
+ */
+export const STORY_SHOWING_CAMPAIGN = {
+  name: 'Story Showing Campaign',
+  shownScene: { name: 'Story Showing Scene' }
+} as const
 
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */
 export const REVIEW_READY_TITLE = 'Review data ready'
