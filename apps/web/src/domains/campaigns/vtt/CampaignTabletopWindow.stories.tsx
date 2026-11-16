@@ -31,8 +31,7 @@ import {
   liveCommand,
   mapReadyTimeoutMs,
   projectScene,
-  renderWindow,
-  shownScene
+  renderWindow
 } from './CampaignTabletopWindow.stories.harness'
 
 const liveSessionTokenHandler = http.get('*/api/auth/convex/token', () =>
