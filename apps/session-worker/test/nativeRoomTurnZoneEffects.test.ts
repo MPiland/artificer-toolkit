@@ -1188,7 +1188,7 @@ describe('the SRD Darkness, a zone that only marks its area, in the room (QUALIT
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     const [zone, ...others] = await readZones(room)
     expect(others).toEqual([])
-    expect(zone?.definitionJson).toContain('Darkness')
+    expect(zone?.placement).toMatchObject({ label: 'Darkness' })
     expect(await readMaintainedStates(room)).toHaveLength(1)
     const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
 
