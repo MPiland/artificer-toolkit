@@ -294,8 +294,10 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     ruleOverrides
   })
   if (opened.kind === 'PLAN') return opened.plan
-  // An area that asks no save commits at once, as one cast on the creatures it reached.
-  if (contents?.hitPointPool && lead.prepared.plan.kind === 'SINGLE_GRAPH') {
+  // An area that asks no save (a hit-point pool, or a GM ruling on each creature it catches) commits
+  // at once, as one cast on the creatures it reached. A zone or a summon it places commits with its
+  // placement instead.
+  if (!base.placement && !base.summon && lead.prepared.plan.kind === 'SINGLE_GRAPH') {
     const { window } = opened
     const settled = await executeEncounterActorsAction({
       runtime: input.runtime,

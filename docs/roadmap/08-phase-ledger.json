@@ -27848,7 +27848,7 @@
             },
             {
               "id": "QUALITY-15.T3z",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A repeat save whose failure deals damage (Weird, Phantasmal Killer) compiles through the repeat-save-test plan: dice in the repeat-save graph, cast-level scaling frozen into the active effect, UUID result block ids, and the room applies the damage on each failed save.",
               "wsjf": {
@@ -27858,7 +27858,8 @@
                 "size": 5
               },
               "note": "Registered 2026-11-16 from the T3l report under the standing approval for QUALITY growth (2026-11-13). Widened 2026-11-16 (size 3 -> 5) from the T3r seam trace to include Phantasmal Killer and cast-level scaling.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m830; slice tip 06dae3207 (contains a69fff99c): Tests 43909082131, Live 43912826112, Browser journeys 43909082042 green. Weird and Phantasmal Killer compile as TEST_OUTCOME through the repeat-save-test plan with damage dice in the repeat-save graph and cast-level scaling frozen into the active effect; the golden changes only those rows. effectActionCompiler budget lowered to its real size (3654). Proofs (RED at the merge-base): srdRepeatSaveFailureDamage.test (rules-runtime) and nativeRoomRepeatSaveFailureDamage.test (the room applies the damage on each failed save)."
             },
             {
               "id": "QUALITY-15.T3aa",
@@ -27929,7 +27930,7 @@
             },
             {
               "id": "QUALITY-15.T3af",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "A play-absence effect freezes its source label on the PLAY_ABSENCE contribution (as SOURCE_IMMUNITY does), so the encounter drawer lists it and the GM can end it there.",
               "wsjf": {
@@ -27938,7 +27939,8 @@
                 "rr": 3,
                 "size": 3
               },
-              "note": "Registered 2026-11-16 from the T3ae report as a resize in approved scope (the GM ends the removal from the drawer)."
+              "note": "Registered 2026-11-16 from the T3ae report as a resize in approved scope (the GM ends the removal from the drawer).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3c",

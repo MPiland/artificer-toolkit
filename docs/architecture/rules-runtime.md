@@ -164,7 +164,9 @@ limits the aspects admit combinations the shape ladders refused: a save its user
 action, a single-target save at a Sight range, and a reaction's save at a Touch, Sight or unlimited range
 (`effectActionAspectAdmissions.test.ts`, with the room journey in `nativeRoomAreaAction.test.ts`). An area refuses with the one part it breaks:
 its disposition, its hit-point pool or save, a zone save's creature-type filter, a missing shape, a shape its range does not
-place, its range, or a size that is not fixed. A reaction over an area stays refused as an unbuilt path, not a game rule:
+place, its range, or a size that is not fixed. An area that rolls no save and no hit-point pool is a GM ruling on each
+creature it catches: its outcome must be a GM ruling, and the room commits it at once over the creatures its area catches, as it
+does a hit-point pool (QUALITY-15.T3m, `nativeRoomAreaRuling.test.ts`). A reaction over an area stays refused as an unbuilt path, not a game rule:
 the rules let a reaction catch an area, but its trigger's pending decision carries no aim yet (no SRD record authors one). The test aspect (`compileDnd5eTest`) owns what an action rolls and the result paths each test resolves to
 (`DND5E_TEST_RESULT_PATHS`): a check lists the one check its user rolls, and a contest the checks its target may roll. The test
 paths, the direct and check path, the outcome-path guards and the relationship hold paths (`dnd5eTestHoldPaths`) all read it; a
@@ -4251,6 +4253,20 @@ rolls, counts and ends it, so the grant tick planner neither adds its extra tick
 either case the lead applies only on `ON_SAVE_FAIL` (`reachesAuthoredPath`), so an area breath leaves nothing on a
 creature that passes. Gold Dragon Weakening Breath is the grant-led case: Strength check, Strength save and
 Strength attack disadvantage, ended by the repeated Strength save.
+
+**A repeated save whose failure deals damage (QUALITY-15.T3z).** A once-per-turn `TARGET_TURN_END` repeat save,
+ungated, whose failure outcomes are only plain dice damage (Weird, Phantasmal Killer) compiles through
+`repeatingDirectFollowUpSavePlan`. The test template is compiled once for every cast level, so admission
+(`repeatSaveFailureDamageRows` in `effectActionNestedSave.ts`) checks only the shape; `dnd5eActiveEffectPlans`
+then picks the row for the action's `spellCastLevel` (`repeatSaveFailureDamage`) and freezes its dice into the
+effect's graph. The persisted active-effect contract is unchanged: the cast level's dice are graph nodes
+(`entryDiceDamageNodes`, gated on `repeat-save-test`'s path) and the damage proposal
+`proposal-on_save_fail` is a `sourceEntryBindings` entry bound to the authored damage row. At the holder's turn
+end, `settleRepeatedSave` (`effectActionRepeatSaveEvidence.ts`) yields `DAMAGE` applications for a failed save
+from that proposal through the shared `testApplications`, and
+the effect holds; a made save ends it as before. The turn-effect batch schema and
+`persistEncounterTurnEffects` accept an application whose source is the frozen node or a bound proposal. A
+repeat save may roll failure damage or propose GM rulings, never both, and never behind a gate.
 
 **Ability-scoped and fractional grants (SPELLS-19.T3b).** `ATTACK_ROLL` may name an `ability`; a grant naming one
 covers only attacks made with it. A Character folds it through `dnd5eAttackRollContributors` (the action's

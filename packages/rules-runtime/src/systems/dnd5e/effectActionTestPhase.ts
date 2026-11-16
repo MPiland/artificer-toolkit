@@ -55,17 +55,18 @@ function proposalNode(
   pathCode: string,
   outcome: Outcome | EntryDiceOutcome,
   suffix = '',
-  savesForHalf = false
+  savesForHalf = false,
+  testNodeId = 'test'
 ) {
   return pathGatedProposalNode({
     id: `proposal-${pathCode.toLowerCase()}${suffix}`,
     pathCode,
-    testNodeId: 'test',
+    testNodeId,
     outcome,
     conditionImmuneFactKey:
       DND5E_CONDITION_IMMUNE_FACT_KEYS[pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS],
     amount: isEntryDiceOutcome(outcome)
-      ? entryDiceDamageGraph(pathCode, outcome, savesForHalf).amount
+      ? entryDiceDamageGraph(pathCode, outcome, savesForHalf, testNodeId).amount
       : undefined
   })
 }
@@ -76,7 +77,12 @@ function proposalNode(
  * dealt through the damage multiplier, then, for a save the target makes for half, through the
  * target's own save-damage multiplier.
  */
-function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceOutcome, savesForHalf: boolean) {
+function entryDiceDamageGraph(
+  pathCode: string,
+  outcome: EntryDiceOutcome,
+  savesForHalf: boolean,
+  testNodeId: string
+) {
   const prefix = entryDamagePrefix(pathCode)
   const enabledNodeId = `${prefix}enabled`
   const totalNodeId = `${prefix}total`
@@ -110,7 +116,7 @@ function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceOutcome, saves
         contractVersion: 1
       },
       inputs: {
-        resultPath: { kind: 'NODE_OUTPUT' as const, nodeId: 'test', port: 'resultPath' },
+        resultPath: { kind: 'NODE_OUTPUT' as const, nodeId: testNodeId, port: 'resultPath' },
         authoredPath: { kind: 'LITERAL' as const, value: pathCode }
       }
     },
@@ -129,10 +135,16 @@ function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceOutcome, saves
   return { nodes: [...nodes, saved.node], amount: saved.amount }
 }
 
-function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceOutcome, savesForHalf: boolean) {
+/** An entry dice outcome's nodes and its proposal, gated on the result of the test node they follow. */
+export function entryDiceDamageNodes(
+  pathCode: string,
+  outcome: EntryDiceOutcome,
+  savesForHalf: boolean,
+  testNodeId = 'test'
+) {
   return [
-    ...entryDiceDamageGraph(pathCode, outcome, savesForHalf).nodes,
-    proposalNode(pathCode, outcome, '', savesForHalf)
+    ...entryDiceDamageGraph(pathCode, outcome, savesForHalf, testNodeId).nodes,
+    proposalNode(pathCode, outcome, '', savesForHalf, testNodeId)
   ]
 }
 

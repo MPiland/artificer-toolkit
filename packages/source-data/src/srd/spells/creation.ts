@@ -6,6 +6,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -50,6 +51,12 @@ export const creation: SpellAuthored = {
           rangeKind: RANGE_KIND.DISTANCE,
           amount: 30,
           unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        // "The object created must be no larger than a 5-foot cube"
+        shape: {
+          id: spellChildId(SPELL_IDS.CREATION, 0x213, 1),
+          shapeKind: SHAPE_KIND.CUBE,
+          edgeLength: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET }
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
