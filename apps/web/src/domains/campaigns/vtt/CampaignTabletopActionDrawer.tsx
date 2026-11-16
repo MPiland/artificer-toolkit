@@ -365,7 +365,7 @@ export function CampaignTabletopActionDrawer({
   const spareLimit = sparedCreatureLimit(selectedAction, (areaTarget ?? centeredTarget) !== null)
   const sparedChoice =
     spareLimit !== undefined && unaffectedActorIds.length ? { unaffectedActorIds } : {}
-  const zoneChoices = { ...sparedChoice, ...castChoice }
+  const areaChoices = { ...sparedChoice, ...castChoice }
   const namesNoCreature =
     areaTarget !== null || drawnTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none, and they
@@ -384,8 +384,7 @@ export function CampaignTabletopActionDrawer({
     drawnTarget,
     bandSide,
     needsBandSide: bandSides !== null,
-    zoneChoices,
-    sparedChoice,
+    areaChoices,
     summonChoices
   })
   const actorsPoint = actorsTarget?.area ? (areaAim?.origin ?? null) : null
@@ -418,7 +417,7 @@ export function CampaignTabletopActionDrawer({
                 kind: 'CASTER_CENTERED',
                 sceneId: scene.id,
                 expectedSceneVersion: scene.version,
-                ...zoneChoices
+                ...areaChoices
               }
             : null
           : targetActorId && castModifier.extraTargetIds.length

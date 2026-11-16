@@ -3,6 +3,7 @@ import { expect, userEvent, within } from 'storybook/test'
 import { Route } from '#routes/_authed/characters/$characterPublicId/$characterSlug/index'
 import {
   STORY_CHARACTERS,
+  STORY_HELD_EQUIPMENT,
   STORY_SPELL_NOTE
 } from '../../../../../../apis/tests/developmentReviewDataScenarios'
 import {
@@ -316,3 +317,32 @@ const inspectItem =
 export const ItemInspector: Story = { play: inspectItem() }
 
 export const ItemInspectorMobile: Story = { ...phone, play: inspectItem(true) }
+
+// The seeded Astral holder's weapon: attuned, with one of its three charges spent and two features that draw on them.
+export const AstralTearItemInspector: Story = {
+  parameters: { tanstack: { router: sheetRouter(STORY_CHARACTERS.astralHolder) } },
+  play: async ({ canvas, canvasElement }) => {
+    await findSeededSheetCharacter(canvasElement, STORY_CHARACTERS.astralHolder)
+    await openSheetSection(canvasElement, 'Inventory', false)
+    await userEvent.click(
+      await canvas.findByRole(
+        'button',
+        { name: `Open ${STORY_HELD_EQUIPMENT.label} details` },
+        { timeout: 15_000 }
+      )
+    )
+    const inspector = await expectInspectorReady(
+      canvasElement,
+      STORY_HELD_EQUIPMENT.label,
+      'Owned item'
+    )
+    await expect(within(inspector).getByText('2 / 3')).toBeVisible()
+    await expect(within(inspector).getByText('Resets: Dawn')).toBeVisible()
+    await expect(within(inspector).getByText('Warping Strike')).toBeVisible()
+    await expect(within(inspector).getByText('Spells')).toBeVisible()
+    await expect(
+      within(inspector).getByRole('button', { name: 'Use Warping Strike' })
+    ).toBeVisible()
+    await expect(within(inspector).getByRole('button', { name: 'Use Spells' })).toBeVisible()
+  }
+}

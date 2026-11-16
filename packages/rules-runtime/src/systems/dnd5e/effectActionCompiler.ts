@@ -198,7 +198,13 @@ import {
   marginRiderPlan,
   timedBandConditions
 } from './effectActionBandConditions.js'
-import { conditionDurationTurns, dnd5eRepeatSave, planTickAnchor } from './effectActionFollowUp.js'
+import {
+  conditionDurationTurns,
+  dnd5eRepeatSave,
+  followUpCheckEscape,
+  planTickAnchor
+} from './effectActionFollowUp.js'
+import { chosenItemPlan } from './effectActionChosenItem.js'
 import { creatureFormPlan } from './effectActionCreatureForm.js'
 import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
 import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
@@ -391,7 +397,8 @@ function isCheckOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean 
  * an attack's result (Shocking Grasp's "can't take reactions"), a grant a failed save applies beside
  * the timed conditions the same effect owns (Hypnotic Pattern's speed of 0), a save's grant the plan
  * holds alone (see `saveGrantPlan`; Enthrall's disadvantage on Perception, Vicious Mockery's on an
- * attack), a failed save's repeated save (see `repeatingDirectFollowUpSavePlan`), and a bond or a
+ * attack), a failed save's repeated save (see `repeatingDirectFollowUpSavePlan`), the check that
+ * escapes the conditions the plan holds (see `timedConditionPlan`), and a bond or a
  * creature form its plan carries on a test's result path. Any other save
  * grant, bond or form stays a test outcome, which refuses it. A source immunity and a chosen item's
  * release are always the plan's (see `sourceImmunityPlan` and `chosenItemPlan`). An equipment
@@ -416,6 +423,8 @@ function isActiveEffectPlanOutcome(
       entry.pathCode === 'ON_SAVE_FAIL' &&
       timedConditionPlan(action) !== null) ||
     (entry.outcome.effectKind === 'REMOVE_FROM_PLAY' && timedConditionPlan(action) !== null) ||
+    (entry.outcome.effectKind === 'FOLLOW_UP_CHECK' &&
+      timedConditionPlan(action)?.conditionEscapeContribution != null) ||
     (entry.outcome.effectKind === 'FOLLOW_UP_SAVE' &&
       entry.pathCode === 'ON_SAVE_FAIL' &&
       repeatingDirectFollowUpSavePlan(action) !== null) ||
@@ -847,8 +856,10 @@ function timedImmediateConditionPlan(
  * beside the conditions (Hypnotic Pattern's speed of 0) is held by the same effect and ends with it.
  * Damage in the same result block (Contact Other Plane's 6d6 psychic) is dealt by the test outcome
  * as usual; the effect holds only the conditions. With no duration the conditions last as long as
- * the Concentration that maintains them or until an authored event ends them. Any other lifecycle
- * stays manual.
+ * the Concentration that maintains them or until an authored event ends them. A repeatable check
+ * authored beside the conditions that ends the effect on success is its escape: the effect offers
+ * it to its holder (and a rescuer within reach), and it bounds conditions with no duration. Any
+ * other lifecycle stays manual.
  */
 function timedConditionPlan(
   action: Dnd5eCompiledEffectActionSource
@@ -865,11 +876,20 @@ function timedConditionPlan(
   const removalEntries = outcomeEntries.flatMap((entry) =>
     entry.outcome.effectKind === 'REMOVE_FROM_PLAY' ? [{ entry, outcome: entry.outcome }] : []
   )
+  // A check that ends the effect is the escape from its conditions (see `followUpCheckEscape`).
+  const escapeChecks = outcomeEntries.flatMap((entry) =>
+    entry.outcome.effectKind === 'FOLLOW_UP_CHECK' ? [entry.outcome] : []
+  )
+  const [escapeCheck] = escapeChecks
+  const escape = escapeCheck && followUpCheckEscape(escapeCheck)
   const lead = conditionEntries[0] ?? removalEntries[0]
   if (
     !lead ||
     grantEntries.length > 1 ||
     removalEntries.length > 1 ||
+    escapeChecks.length > 1 ||
+    escape === null ||
+    (escape && (removalEntries.length > 0 || conditionEntries.length === 0)) ||
     outcomeEntries.length !== entries.length ||
     // The held entries and any damage beside them are one authored result: same path, block,
     // duration and lifecycle.
@@ -878,6 +898,7 @@ function timedConditionPlan(
         (entry.outcome.effectKind !== 'CONDITION' &&
           entry.outcome.effectKind !== 'APPLY_GRANT' &&
           entry.outcome.effectKind !== 'REMOVE_FROM_PLAY' &&
+          entry.outcome.effectKind !== 'FOLLOW_UP_CHECK' &&
           entry.outcome.effectKind !== 'DAMAGE') ||
         entry.pathCode !== lead.entry.pathCode ||
         entry.resultBlockId !== lead.entry.resultBlockId ||
@@ -896,9 +917,10 @@ function timedConditionPlan(
     ...otherLifecycle
   } = lead.entry.lifecycle ?? {}
   const maintenance = maintenancePlan(action, lead.entry)
-  // With no duration the conditions last until their Concentration ends (Imp Invisibility) or an
-  // authored event ends them (Contact Other Plane's long rest): one of them must bound them. Until
-  // dispelled, they last until the GM ends them or an authored trigger does (Sequester).
+  // With no duration the conditions last until their Concentration ends (Imp Invisibility), an
+  // authored event ends them (Contact Other Plane's long rest) or a check escapes them: one of them
+  // must bound them. Until dispelled, they last until the GM ends them or an authored trigger does
+  // (Sequester).
   const { duration } = lead.entry
   const untilDispelled = duration?.durationKind === 'UNTIL_DISPELLED'
   const initialRemaining = duration && !untilDispelled ? conditionDurationTurns(duration) : null
@@ -933,8 +955,10 @@ function timedConditionPlan(
     (indefinite
       ? !untilDispelled &&
         !maintenance &&
+        !escape &&
         !endTriggers.some((trigger) => trigger.event === 'LIFECYCLE' && trigger.timing === 'END')
       : initialRemaining === null) ||
+    (escape && turnEndGate) ||
     (grantEntry && (indefinite || !grantContribution)) ||
     resultGate === undefined ||
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
@@ -977,6 +1001,7 @@ function timedConditionPlan(
       modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
     }),
     ...(removal && { playAbsenceContribution: { keepsTurn: removal.outcome.keepsTurn } }),
+    ...(escape && { conditionEscapeContribution: escape }),
     ...(resultGate && { resultGate }),
     lifecycle,
     // A removal held with no condition (Etherealness) has no condition to remove at its end.
@@ -1019,7 +1044,9 @@ function ownsTimedSaveCondition(
       (turns !== null && turns <= 1) ||
       // A removal from play (Banishment) is the early end: the held effect returns the creature
       // when it ends, by duration, Concentration or dismissal (D178).
-      plan?.playAbsenceContribution != null) &&
+      plan?.playAbsenceContribution != null ||
+      // So is an escape: a check that ends the held effect.
+      plan?.conditionEscapeContribution != null) &&
     plan !== null
   )
 }
@@ -1194,67 +1221,6 @@ function saveGrantPlan(
     return null
   // A grant on one save result applies only on it; one authored alike on both applies either way.
   return modifierGrantEntryPlan({ action, entry, resultGated: !other, untilEndEvent: false })
-}
-
-/**
- * The item a grant plan's action is used on, from its authored paths (see the plan's
- * `chosenItem`); null when it names none. The paths name one item, a bound grant's modifiers are
- * all scoped to their source (the item), and a release is one save result's, the result a grant
- * withheld on release is authored on.
- */
-function chosenItemPlan(
-  action: Dnd5eCompiledEffectActionSource
-): NonNullable<CharacterRuleActionActiveEffectPlan['chosenItem']> | null {
-  const entries = action.compiledEffect.entries.flatMap((entry) =>
-    'outcome' in entry ? [entry] : []
-  )
-  const items = new Set(
-    entries.flatMap(({ chosenItem }) => (chosenItem ? [JSON.stringify(chosenItem)] : []))
-  )
-  // A repeat carrier is bound to the item by its own plan, not the modifier grant's.
-  const grants = entries.flatMap((entry) =>
-    entry.outcome.effectKind === 'APPLY_GRANT' && !isRepeatCarrierEntry(entry)
-      ? [{ pathCode: entry.pathCode, outcome: entry.outcome }]
-      : []
-  )
-  const [releasedOn, ...otherReleasePaths] = new Set(
-    entries.flatMap((entry) =>
-      entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ? [entry.pathCode] : []
-    )
-  )
-  const bound = grants.filter(({ outcome }) => outcome.bindsChosenItem)
-  const withheld = grants.filter(({ outcome }) => outcome.unlessChosenItemReleased)
-  const item = entries.find(({ chosenItem }) => chosenItem)?.chosenItem
-  if (!item) {
-    if (bound.length + withheld.length > 0 || releasedOn !== undefined)
-      unsupported('D&D action uses a chosen item it does not name.')
-    return null
-  }
-  if (items.size !== 1) unsupported('D&D action paths must name one chosen item.')
-  if (
-    otherReleasePaths.length > 0 ||
-    (releasedOn !== undefined && releasedOn !== 'ON_SAVE_FAIL' && releasedOn !== 'ON_SAVE_SUCCESS')
-  )
-    unsupported('D&D chosen item is released on one save result.')
-  if (withheld.some(({ pathCode }) => pathCode !== releasedOn))
-    unsupported('D&D grant withheld on release must be authored on the release result.')
-  if (
-    bound.some(
-      ({ outcome }) =>
-        outcome.grants.senses?.length ||
-        (outcome.grants.modifiers ?? []).some(({ scope }) => scope !== 'SOURCE')
-    )
-  )
-    unsupported('D&D grant bound to a chosen item grants only modifiers scoped to it.')
-  return {
-    category: item.category ?? null,
-    requiredProperties: [...new Set(item.requiredProperties ?? [])].sort(),
-    excludedProperties: [...new Set(item.excludedProperties ?? [])].sort(),
-    equipmentIds: [...new Set(item.equipmentIds ?? [])].sort(),
-    bindsGrant: bound.length > 0,
-    releasedOn: releasedOn ?? null,
-    grantUnlessReleased: withheld.length > 0
-  }
 }
 
 /**

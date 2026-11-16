@@ -23,7 +23,6 @@ import {
 } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 import {
-  encounterActionChoiceTarget,
   resolveAreaContentsTargeting,
   resolveChosenCreaturesTargeting
 } from './encounterAreaAction.js'
@@ -159,8 +158,7 @@ export function compileEncounterFeatureActionPlan(
   capability: EffectActionCapabilityDescriptor
 ): CharacterRuleActionExecutionPlan {
   if (castChoiceOptions(capability.compiledEffect))
-    return compileCastChoicePlans(adapter, capability, buildCompiledActionTargetPolicy(capability))
-      .executionPlan
+    return compileCastChoicePlans(adapter, capability).executionPlan
   return (
     adapter.compileExecutionPlan?.({
       action: capability,
@@ -321,8 +319,7 @@ function sharedTestKey(
  */
 export function compileCastChoicePlans(
   adapter: CharacterRuleActionSystemAdapter,
-  descriptor: EffectActionCapabilityDescriptor,
-  targetPolicy: ReturnType<typeof buildCompiledActionTargetPolicy>
+  descriptor: EffectActionCapabilityDescriptor
 ) {
   // Only a contest's initiator check takes an option's influence; elsewhere it would be dropped.
   const { invocation } = descriptor.compiledEffect
@@ -355,16 +352,9 @@ export function compileCastChoicePlans(
       sharedTest: sharedTestKey(adapter, optionDescriptor, plans.executionPlan)
     }
   })
+  // The pick is made once at cast, after the test and Concentration are settled (D148), and lands
+  // on every creature the cast reaches: those it names, its user, or those its area catches.
   const options = compiled?.map(({ option }) => option)
-  // The pick is made at cast on the creatures targeted, after the test and Concentration
-  // are settled (D148); only a creature target, or the user itself, carries it.
-  if (
-    options &&
-    !['ACTOR', 'ACTORS', 'SELF'].includes(encounterActionChoiceTarget(targetPolicy).kind)
-  )
-    throw new CharacterRuleActionUnsupportedCompilationError(
-      'Only a cast at chosen creatures or at its user carries a pick.'
-    )
   if (
     compiled &&
     new Set(
@@ -525,7 +515,7 @@ export function compileCharacterActionEntryPoints(
           rollTableRowPlans,
           executionPlan,
           choice
-        } = compileCastChoicePlans(adapter, descriptor, exactTargetPolicy)
+        } = compileCastChoicePlans(adapter, descriptor)
         return {
           schemaVersion: 4,
           kind: 'CHARACTER_ACTION',
