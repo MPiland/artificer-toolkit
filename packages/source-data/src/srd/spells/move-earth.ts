@@ -7,6 +7,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -49,6 +50,12 @@ export const moveEarth: SpellAuthored = {
           rangeKind: RANGE_KIND.DISTANCE,
           amount: 120,
           unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        // "an area of terrain no larger than 40 feet on a side"
+        shape: {
+          id: spellChildId(SPELL_IDS.MOVE_EARTH, 0x214, 1),
+          shapeKind: SHAPE_KIND.CUBE,
+          edgeLength: { amount: 40, unit: MEASUREMENT_UNIT_CODE.FEET }
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,

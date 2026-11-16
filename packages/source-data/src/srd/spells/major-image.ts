@@ -7,6 +7,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -46,6 +47,12 @@ export const majorImage: SpellAuthored = {
           rangeKind: RANGE_KIND.DISTANCE,
           amount: 120,
           unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        // "no larger than a 20-foot cube"
+        shape: {
+          id: spellChildId(SPELL_IDS.MAJOR_IMAGE, 0x213, 1),
+          shapeKind: SHAPE_KIND.CUBE,
+          edgeLength: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,

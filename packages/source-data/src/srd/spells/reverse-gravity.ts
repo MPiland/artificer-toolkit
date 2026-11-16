@@ -7,6 +7,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -44,6 +45,13 @@ export const reverseGravity: SpellAuthored = {
           rangeKind: RANGE_KIND.DISTANCE,
           amount: 100,
           unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        // "a 50-foot-radius, 100-foot high cylinder centered on a point within range"
+        shape: {
+          id: spellChildId(SPELL_IDS.REVERSE_GRAVITY, 0x214, 1),
+          shapeKind: SHAPE_KIND.CYLINDER,
+          radius: { amount: 50, unit: MEASUREMENT_UNIT_CODE.FEET },
+          height: { amount: 100, unit: MEASUREMENT_UNIT_CODE.FEET }
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
