@@ -2532,17 +2532,32 @@
             },
             {
               "id": "PLATFORM-28.T7c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 8,
+                "size": 5,
                 "after": ["PLATFORM-28.T7b3"]
               },
-              "text": "The renderer-heavy tabletop stories (auras, zones, morale, conditions, fog save, show scene, Encounter binding, command rejection) run as seeded or composed variants, with the drawer and live scene object editor siblings.",
-              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
+              "text": "The zone, shown-scene and placement-preview tabletop stories run on seeded state (zones placed through real PLACE_ZONE commands, a second unpresented Scene), with the turn order drawer and live scene object editor siblings.",
+              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221). Split 2026-11-16 (size 8 -> 5 + T7c2 5) from the slice's seam trace: auras, conditions and morale need seed work through real commands.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PLATFORM-28.T7c2",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "text": "Aura, condition and morale tabletop stories on a creature seeded through real product commands; PlayerSeesShownScene without a modal over the other player stories; the stale keyboard-move rejection as a real-component test whose COMMAND_REJECTED frame is the faked platform response parsed through the schema (spied writes stay unsent, D218).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T7c"]
+              },
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c in approved scope (D221)."
             },
             {
               "id": "PLATFORM-28.T7d",
@@ -2553,7 +2568,7 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 3,
-                "after": ["PLATFORM-28.T7c"]
+                "after": ["PLATFORM-28.T7c", "PLATFORM-28.T7c2"]
               },
               "text": "The fake live transport harness, the fake Convex client and the story-only tabletop fixtures are deleted with a no-importer proof; data fixtures imported by unit tests stay.",
               "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
@@ -27673,7 +27688,7 @@
             },
             {
               "id": "QUALITY-15.T3n",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "The 15 Concentration spells the compiler refuses as having no supported maintained effect (Animate Objects, Arcane Eye, Barkskin, Call Lightning, Calm Emotions, Clairvoyance, Conjure Celestial, Elemental and Fey, Dancing Lights, Delayed Blast Fireball, Flaming Sphere, Resilient Sphere, Silent Image, Tree Stride) compile with their effect held by the cast's Concentration, through generic options.",
               "wsjf": {
@@ -27683,11 +27698,12 @@
                 "size": 3,
                 "after": ["QUALITY-15.T2"]
               },
-              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3o",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Zones with no authored shape (Forbiddance, Gate, Magnificent Mansion, Mirage Arcane, Wall of Force, Ice and Stone) get SRD-cited shapes or a generic wall or panel shape, and the zone manifest models what Prismatic Wall and Oil author beyond label, shape and entering components.",
               "wsjf": {
@@ -27697,7 +27713,8 @@
                 "size": 2,
                 "after": ["QUALITY-15.T2"]
               },
-              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3c",
@@ -27716,7 +27733,7 @@
             },
             {
               "id": "QUALITY-15.T3d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27727,7 +27744,78 @@
               },
               "text": "Small unbuilt kinds compile: unregistered reaction triggers, FOLLOW_UP_SAVE, spell-slot exchange, test outcome kinds, scaled heals, relationship hold paths, willing-target outcomes, choice, repeat offer, cost-2 activation (about 20 golden rows).",
               "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m817 (f6480fed7); slice tip aa83ac209: Tests 43810656002, Live 43810656154, Browser journeys 43810655967 green. 4 golden rows compile and 3 UNBUILT reasons are gone: Wholeness of Body through a generic RESOLVED_HEAL outcome (a heal whose authored bonuses give its amount binds dnd5e.resolved-heal-amount), Mass Heal through SPENT_HEAL once its SRD pool carries CASTER_DIVIDES, Water Walk because the willing gate also accepts a timed GM ruling, and Gynosphinx Teleport (Costs 2 Actions) once its activation is FREE with resourceUse cost 2 like Androsphinx. Proofs: effectActionBonusHeal.test (RED), nativeRoomBonusHeal room test (Open Hand monk heals 3x level, one undo restores hit points and the use; RED), golden RED; the encounterStoreConformance snapshot gains only the new fact key. The rest of the ~20 rows are registered as T3p-T3t."
+            },
+            {
+              "id": "QUALITY-15.T3p",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Reactions on unregistered triggers compile (Feather Fall, Slow Fall, Stand Against the Tide and similar): generic trigger entries for falling and a missed melee attack, their events and hosts in events/reactionTriggers.ts, proved by a room test.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3q",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Spell-slot exchange compiles as a generic registry outcome with its operation and room settlement, replacing the Sheet-only path in sheetSpellSlotExchange.ts.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3r",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The FOLLOW_UP_SAVE bounded shapes the compiler refuses (about 4 rows) compile through supportedTestPhaseKind.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3s",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Relationship hold paths and their choices compile (Vampire Claws, Unarmed Strike grapple, Bestow Curse): relationship outcomes bounded by a hit, failed save, contest win or use.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2", "QUALITY-15.T3c"]
+              },
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3t",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The MANIFEST and FOLLOW_UP_CHECK test outcome kinds compile through generic plans.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T2", "QUALITY-15.T3c"]
+              },
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3f",
