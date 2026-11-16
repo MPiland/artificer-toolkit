@@ -356,6 +356,10 @@ function goldenLines(): Line[] {
 const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | 'UNBUILT'>> = {
   'D&D free action with no charge is taken on its user alone.': 'GAME_RULE',
   'D&D Self action range of distance bounds only its user teleporting.': 'GAME_RULE',
+  // Arcane Recovery, Natural Recovery and Font of Magic: the player picks the slots on the Sheet,
+  // whose command settles the exchange in and out of an Encounter (QUALITY-15.T3q ruling).
+  'D&D spell-slot exchange is settled by the EXCHANGE_SPELL_SLOTS Sheet command, not an encounter action.':
+    'GAME_RULE',
 
   'D&D Effect is not an activated action.': 'INVALID_INPUT',
   'D&D action off a Self range must name its targeting.': 'INVALID_INPUT',
@@ -392,8 +396,6 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D test action paths must be unique direct outcomes. Its duration, lifecycle or maintenance has no plan that holds it.':
     'UNBUILT',
   'D&D Effect action outcome is not a supported hit-point or condition outcome. It is no timed creature form.':
-    'UNBUILT',
-  'D&D Effect action outcome is not a supported hit-point or condition outcome. Its kind has none.':
     'UNBUILT',
   'D&D test action has an unsupported bounded shape.': 'UNBUILT',
   'D&D test action outcome is not supported.': 'UNBUILT',
