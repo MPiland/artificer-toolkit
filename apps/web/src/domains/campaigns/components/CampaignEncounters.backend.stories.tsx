@@ -104,7 +104,7 @@ export const NoEncountersYet: Story = {
   parameters: {
     queryOverride: {
       query: getFunctionName(api.encounters.projectionReads.list),
-      value: []
+      derive: () => []
     } satisfies StoryQueryOverride
   },
   play: async ({ canvasElement }) => {

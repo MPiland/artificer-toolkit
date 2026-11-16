@@ -38,7 +38,8 @@ function hasteRecord() {
     },
     definition: planned.definition,
     lifecycle: planned.lifecycle,
-    createdOrdinal: 1
+    createdOrdinal: 1,
+    maintainedEffectStateId: null
   }
 }
 
@@ -94,9 +95,9 @@ describe('the lethargy an ended Haste leaves (SPELLS-4.T2l-a)', () => {
       DND5E_REACTION_ALLOWANCE_DEFINITION_ID
     ])
     expect(
-      listActiveGrantListings([{ ...effect, createdOrdinal: 1, lifecycle: follow.lifecycle }]).map(
-        ({ polarity }) => polarity
-      )
+      listActiveGrantListings([
+        { ...effect, createdOrdinal: 1, lifecycle: follow.lifecycle, maintainedEffectStateId: null }
+      ]).map(({ polarity }) => polarity)
     ).toEqual(['HARMFUL'])
     expect(
       onEndGrantEffect({ ...hasteRecord(), definition: follow.definition, id: follow.id })

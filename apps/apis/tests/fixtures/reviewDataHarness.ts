@@ -101,8 +101,8 @@ export async function reviewSetContext(
     players,
     admin,
     spares,
-    grantGmTier: (userId) =>
-      t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' }).then(() => {}),
+    setTier: (userId, tier) =>
+      t.mutation(internal.accountEntitlements.setTier, { userId, tier }).then(() => {}),
     grantSuperadmin: (userId) =>
       t.mutation(internal.authAdmin.setRole, { userId, role: 'superadmin' }).then(() => {}),
     // Each finished Campaign's room is closed from both ends, so the next one activates on a quiet Worker.
