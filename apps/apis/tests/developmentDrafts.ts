@@ -1529,6 +1529,9 @@ try {
         client.setAuth(await authToken(session), () => authToken(session))
         return client
       },
+      async (userId, tier) => {
+        await cli('accountEntitlements:setTier', { userId, tier }, false)
+      },
       { checkpoint: (campaignId) => awaitCampaignCheckpoint(roomClient, campaignId) },
       async (userId) => {
         await cli('authAdmin:setRole', { userId, role: 'superadmin' }, false)
