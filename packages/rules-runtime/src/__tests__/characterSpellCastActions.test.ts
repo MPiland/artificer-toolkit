@@ -105,6 +105,7 @@ const CONTACT_OTHER_PLANE = spell('Contact Other Plane')
 const FEAR = spell('Fear')
 const PROTECTION_FROM_ENERGY = spell('Protection from Energy')
 const BLINDNESS_DEAFNESS = spell('Blindness/Deafness')
+const ANTIPATHY_SYMPATHY = spell('Antipathy/Sympathy')
 const WALL_OF_FIRE = spell('Wall of Fire')
 const WALL_OF_THORNS = spell('Wall of Thorns')
 const BLADE_BARRIER = spell('Blade Barrier')
@@ -1672,6 +1673,26 @@ describe('a cast that picks what it does to its targets (SPELLS-30.T1, D148)', (
       'Lightning',
       'Thunder'
     ])
+  })
+
+  // QUALITY-15.T3ab: a cast over an area carries its pick to the creatures the area catches.
+  it('offers the pick of Antipathy/Sympathy with the point its cube is aimed at, each option its own GM ruling', () => {
+    const entry = compiledCastEntry(ANTIPATHY_SYMPATHY)
+    const options = entry?.compilation.choice?.options ?? []
+
+    expect(options.map(({ label }) => label)).toEqual(['Antipathy', 'Sympathy'])
+    for (const option of options)
+      expect(option.activeEffectPlan?.rulingContribution, option.label).toMatchObject({
+        label: option.label
+      })
+    expect(entry?.compilation.executionPlan).toEqual(options[0]?.executionPlan)
+    expect(
+      encounterActionChoiceTarget(entry?.targetPolicy, null, null, entry?.compilation.choice)
+    ).toEqual({
+      kind: 'POINT',
+      area: { kind: 'CUBE', edgeLength: { amount: 200, unit: 'FEET' } },
+      choiceOptions: options.map(({ optionId, label }) => ({ id: optionId, label }))
+    })
   })
 })
 

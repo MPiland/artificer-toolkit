@@ -1,10 +1,7 @@
 import { compileSpellEffect } from '@artificer-toolkit/shared/compilers'
 import { describe, expect, it } from 'vitest'
 
-import {
-  buildCompiledActionTargetPolicy,
-  compileCastChoicePlans
-} from '../encounterActionEntryPointCompiler.js'
+import { compileCastChoicePlans } from '../encounterActionEntryPointCompiler.js'
 import { isActivatedEffect } from '../spellCastCandidates.js'
 import { rulingSequence } from '../systems/dnd5e/effectActionResultSequences.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
@@ -38,11 +35,7 @@ function castOf(spellLabel: string) {
 
 const compile = (spellLabel: string) => {
   const { action } = castOf(spellLabel)
-  return compileCastChoicePlans(
-    dnd5eCharacterRuleActionSystemAdapter,
-    action,
-    buildCompiledActionTargetPolicy(action)
-  )
+  return compileCastChoicePlans(dnd5eCharacterRuleActionSystemAdapter, action)
 }
 
 describe('a sequence of GM rulings alone', () => {
