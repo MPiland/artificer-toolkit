@@ -22,7 +22,7 @@ type ContentCatalogueOptions = {
 }
 
 /** The objects are immutable per sha, so the shas and the viewer fully identify the fetched rows. */
-export const contentCatalogueQueryKey = (
+const contentCatalogueQueryKey = (
   userId: string | undefined,
   subjectKind: ContentSnapshotKind,
   sha256s: readonly string[]
