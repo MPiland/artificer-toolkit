@@ -537,7 +537,8 @@ describe('VTT token presentation model', () => {
           sourceActorId: null,
           remainingTicks: 4,
           expiresAtCampaignMinute: null,
-          polarity: 'BENEFICIAL' as const
+          polarity: 'BENEFICIAL' as const,
+          endable: true
         },
         {
           effectId: '55555555-5555-4555-8555-555555555502',
@@ -546,7 +547,8 @@ describe('VTT token presentation model', () => {
           sourceActorId: null,
           remainingTicks: null,
           expiresAtCampaignMinute: null,
-          polarity: 'NEUTRAL' as const
+          polarity: 'NEUTRAL' as const,
+          endable: true
         }
       ]
     }
@@ -616,7 +618,8 @@ describe('VTT token presentation model', () => {
           sourceActorId: null,
           remainingTicks: 4,
           expiresAtCampaignMinute: null,
-          polarity: 'BENEFICIAL' as const
+          polarity: 'BENEFICIAL' as const,
+          endable: true
         },
         {
           effectId: '55555555-5555-4555-8555-555555555502',
@@ -625,7 +628,8 @@ describe('VTT token presentation model', () => {
           sourceActorId: null,
           remainingTicks: 4,
           expiresAtCampaignMinute: null,
-          polarity: 'HARMFUL' as const
+          polarity: 'HARMFUL' as const,
+          endable: true
         },
         {
           effectId: '55555555-5555-4555-8555-555555555503',
@@ -634,7 +638,8 @@ describe('VTT token presentation model', () => {
           sourceActorId: null,
           remainingTicks: 4,
           expiresAtCampaignMinute: null,
-          polarity: 'NEUTRAL' as const
+          polarity: 'NEUTRAL' as const,
+          endable: true
         }
       ],
       concentration: { label: 'Bless', sourceHidden: false },

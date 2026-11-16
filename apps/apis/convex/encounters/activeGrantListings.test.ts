@@ -95,7 +95,8 @@ describe('Active grant listings (D99)', () => {
       sourceActorId,
       remainingTicks,
       expiresAtCampaignMinute: null,
-      polarity: 'BENEFICIAL' as const
+      polarity: 'BENEFICIAL' as const,
+      endable: true
     })
 
     // The GM's turn tracker and token read every label.

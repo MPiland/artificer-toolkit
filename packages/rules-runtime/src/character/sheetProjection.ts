@@ -703,7 +703,7 @@ interface ProjectCharacterSheetBundleParams {
   /** The Character's active effects; their hit point maximum reductions lower `maxHitPoints` and their grants are listed. */
   activeEffects: readonly Pick<
     ActiveRuleEffectRecord,
-    'id' | 'createdOrdinal' | 'definition' | 'lifecycle'
+    'id' | 'createdOrdinal' | 'definition' | 'lifecycle' | 'maintainedEffectStateId'
   >[]
   /**
    * The effects the Concentration this Character maintains keeps alive, live in a Run or carried
