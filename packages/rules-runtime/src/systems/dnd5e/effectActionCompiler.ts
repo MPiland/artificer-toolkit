@@ -912,6 +912,10 @@ function timedConditionPlan(
   const initialRemaining = duration && !untilDispelled ? conditionDurationTurns(duration) : null
   const indefinite = !duration || untilDispelled
   const grantEntry = grantEntries[0]
+  const [removal] = removalEntries
+  // A removal applies no stored state at cast, so its effect exists exactly when its plan does: it is
+  // gated on the test's result path (Banishment's failed save), not on a condition being applied.
+  const resultGate = removal ? entryResultGate(action, lead.entry.pathCode) : null
   const { failureMarginRider: rider } = lead.entry
   // The rider's conditions share the failure's path, so together they fit its immunity facts.
   const riderUnsupported =
@@ -940,6 +944,7 @@ function timedConditionPlan(
         !endTriggers.some((trigger) => trigger.event === 'LIFECYCLE' && trigger.timing === 'END')
       : initialRemaining === null) ||
     (grantEntry && (indefinite || !grantContribution)) ||
+    resultGate === undefined ||
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
     // conditions is counted with them by the turn-effect kernel, on the holder's turns.
     (turnAnchor && (indefinite || grantEntry)) ||
@@ -958,7 +963,7 @@ function timedConditionPlan(
       effectId: action.effectId,
       entryId: lead.entry.entryId,
       minimumRoll: turnEndGate.minimumRoll,
-      keepsTurn: removalEntries[0]?.outcome.keepsTurn,
+      keepsTurn: removal?.outcome.keepsTurn,
       heldAlone: outcomeEntries.length === 1 && !turnAnchor && !rider && !maintenance,
       initialRemaining,
       lifecycle
@@ -979,9 +984,8 @@ function timedConditionPlan(
     ...(grantContribution && {
       modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
     }),
-    ...(removalEntries[0] && {
-      playAbsenceContribution: { keepsTurn: removalEntries[0].outcome.keepsTurn }
-    }),
+    ...(removal && { playAbsenceContribution: { keepsTurn: removal.outcome.keepsTurn } }),
+    ...(resultGate && { resultGate }),
     lifecycle,
     // A removal held with no condition (Etherealness) has no condition to remove at its end.
     adapterFacts:

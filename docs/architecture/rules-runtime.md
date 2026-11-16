@@ -3792,7 +3792,9 @@ without a Scene write. The GM clears it with `UPDATE_ACTOR returnToInitiative`. 
 outright (no acknowledgement overrides) and area resolution (`planNativeLiveEncounterAreaAction`) catches nothing absent.
 `REMOVE_FROM_PLAY { keepsTurn }` is an active-effect-plan outcome that compiles to a `PLAY_ABSENCE` state contribution
 (Banishment: incapacitated condition plus removal; Etherealness: `keepsTurn`; Imprisonment and Maze: removal, the
-ending conditions stay `MANUAL_ADJUDICATION`). The effect store alone sets and clears the holder's absence
+ending conditions stay `MANUAL_ADJUDICATION`). A removal on a test's result path carries that path as its plan's
+`resultGate` (QUALITY-15.T3u), so it joins a TEST/OUTCOME execution and exists only when the target fails its save;
+held alone and until dispelled (Imprisonment), it lasts until the GM ends the effect. The effect store alone sets and clears the holder's absence
 (`syncPlayAbsence`, called from `create` and every delete path): `EFFECT` skips initiative, `EFFECT_KEEPS_TURN` keeps it,
 and the value is recomputed from the removals still held so overlapping ones return the actor only when the last ends.
 `GM_REMOVED` and `DEPARTED` are never overwritten or cleared by an effect ending. A return onto an occupied space is not
