@@ -61,8 +61,25 @@ describe('real SRD Oil (flask) poured on the ground (QUALITY-15.T3w)', () => {
     const { record } = placedPour()
     expect(record.spatialState).toEqual({ schemaVersion: 1, revealed: true, unlit: true })
     expect(record.placement.maxApplicationsPerTurn).toBe(1)
-    const lit = { ...record, spatialState: { schemaVersion: 1 as const, revealed: true } }
-    expect(toSpatialInstances([record, lit], []).map(({ suppressed }) => suppressed)).toEqual([
+    // The scene record around the plan; the gate reads only the plan's placement and state.
+    const checksum = '0'.repeat(64)
+    const stored = (spatialState: typeof record.spatialState) => ({
+      ...record,
+      spatialState,
+      encounterId: ENCOUNTER_ID,
+      sceneId: testUuid(0x1e05),
+      createdOrdinal: 1,
+      version: 1,
+      definitionChecksum: checksum,
+      lifecycleChecksum: checksum,
+      placementChecksum: checksum,
+      spatialStateChecksum: checksum,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    })
+    const unlit = stored(record.spatialState)
+    const lit = stored({ schemaVersion: 1, revealed: true })
+    expect(toSpatialInstances([unlit, lit], []).map(({ suppressed }) => suppressed)).toEqual([
       true,
       false
     ])
