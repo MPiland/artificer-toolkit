@@ -43,7 +43,9 @@ import {
   REVIEW_STORY_OPEN_HOST,
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
+  REVIEW_STORY_SHOVE_HOST,
   REVIEW_STORY_SHOWING_HOST,
+  STORY_SHOVE_CAMPAIGN,
   STORY_SHOWING_CAMPAIGN,
   STORY_SOCIAL,
   REVIEW_ADMIN,
@@ -196,6 +198,12 @@ export async function seedStoryData(
     reader,
     room,
     STORY_OPEN_CAMPAIGN
+  )
+  await seedStoryPlayerCampaign(
+    await connect(REVIEW_STORY_SHOVE_HOST),
+    reader,
+    room,
+    STORY_SHOVE_CAMPAIGN
   )
   await seedStoryShowingCampaign(await connect(REVIEW_STORY_SHOWING_HOST), reader)
   await setTier(userId, 'GM')
@@ -371,20 +379,21 @@ async function prepareStoryRun(
     commandId: reviewId(`${slug}-run`)
   })
   assert.equal(run.actors.length, 1 + (creatures ?? []).length, 'The story Run lost a creature.')
-  // The Run does not keep the Blueprint's order, so each actor is found by its label; a creature
-  // taken from the SRD is named by its source, so it is the one actor left once the custom ones are placed.
+  // The Run does not keep the Blueprint's order, so each actor is found by its label, or a creature
+  // taken from the SRD by its source; creatures of one source are interchangeable.
   const actor = run.actors.find(({ label }) => label === enemyLabel)
   assert.ok(actor, 'The story Run has no creature.')
   const unclaimed = run.actors.filter((candidate) => candidate !== actor)
-  const claim = (matches: (candidate: (typeof unclaimed)[number]) => boolean) => {
-    const [claimed] = unclaimed.splice(unclaimed.findIndex(matches), 1)
+  const crowd = (creatures ?? []).map(({ enemy }) => {
+    const index = unclaimed.findIndex((candidate) =>
+      enemy.kind === 'CUSTOM'
+        ? candidate.kind === 'CUSTOM' && candidate.label === enemy.label
+        : candidate.kind === 'CREATURE' && candidate.sourceId === enemy.sourceId
+    )
+    const [claimed] = index < 0 ? [] : unclaimed.splice(index, 1)
     assert.ok(claimed, 'The story Run lost a creature.')
     return claimed
-  }
-  const customs = (creatures ?? []).map(({ enemy }) =>
-    enemy.kind === 'CUSTOM' ? claim(({ label }) => label === enemy.label) : null
-  )
-  const crowd = customs.map((custom) => custom ?? claim(() => true))
+  })
   return { campaignId, run, actor, crowd }
 }
 
@@ -450,7 +459,13 @@ async function seedStoryCampaign(
     commandId: reviewId('story-prepared-run')
   })
   const { userId } = await client.query(api.account.identity, {})
-  await presentStoryRun(client, room, STORY_CAMPAIGN, { campaignId, run, actor, crowd: [] }, userId)
+  await presentStoryRun(
+    client,
+    room,
+    STORY_CAMPAIGN,
+    { campaignId, run, actor, crowd: [] },
+    { client, userId }
+  )
   return campaignId
 }
 
@@ -474,12 +489,12 @@ async function seedStoryPlayerCampaign(
       1
     )
   const { userId } = await reader.query(api.account.identity, {})
-  await presentStoryRun(host, room, campaign, prepared, userId)
+  await presentStoryRun(host, room, campaign, prepared, { client: reader, userId })
 }
 
 /**
  * Starts the prepared Run, presents the Campaign's Scene (the creature's token bound to its actor,
- * an unbound ally token that allyUserId controls), binds the Run to it and publishes the room.
+ * an unbound ally token that the ally's player controls), binds the Run to it and publishes the room.
  */
 async function presentStoryRun(
   client: StoryClient,
@@ -492,10 +507,11 @@ async function presentStoryRun(
     shownScene,
     enemyState,
     enemyVision,
-    creatures = []
+    creatures = [],
+    shove
   }: StoryCampaignSpec,
   { campaignId, run, actor, crowd: crowdActors }: Awaited<ReturnType<typeof prepareStoryRun>>,
-  allyUserId: string
+  ally: { client: StoryClient; userId: string }
 ) {
   if (run.status !== 'PREPARED') return
   const conditionRefs = (codes: readonly string[]) =>
@@ -511,21 +527,31 @@ async function presentStoryRun(
   await room.buildSnapshots?.(campaignId)
   await awaitSnapshotHeads(client, srdSystemRecord.id)
   const execute: ExecuteCommand = (command) => client.mutation(executeEncounterCommand, { command })
-  // Morale is switched on while the Run is still prepared, before START.
-  const created = crowd.some(({ spec }) => spec.morale)
-    ? {
-        id: run.id,
-        version: (
-          await execute({
-            type: 'REPLACE_OPTIONAL_COMBAT_RULES',
-            encounterId: run.id,
-            commandId: crypto.randomUUID(),
-            expectedVersion: run.version,
-            definitionIds: [moraleDefinitionId()]
-          })
-        ).projection.version
-      }
-    : run
+  // Optional rules are switched on while the Run is still prepared, before START.
+  const optionalRuleIds = [
+    ...(crowd.some(({ spec }) => spec.morale) ? [optionalCombatDefinitionId('MORALE')] : []),
+    ...(shove ? [optionalCombatDefinitionId('SHOVE_ASIDE')] : [])
+  ]
+  const created =
+    optionalRuleIds.length > 0
+      ? {
+          id: run.id,
+          version: (
+            await execute({
+              type: 'REPLACE_OPTIONAL_COMBAT_RULES',
+              encounterId: run.id,
+              commandId: crypto.randomUUID(),
+              expectedVersion: run.version,
+              definitionIds: optionalRuleIds
+            })
+          ).projection.version
+        }
+      : run
+  // The shove's dice wait for the player and the GM to enter them; the room reads each roller's
+  // preference when it opens at START, and the preferences are restored once the shove is seeded.
+  const rollers = shove ? [client, ally.client] : []
+  for (const roller of rollers)
+    await roller.mutation(api.account.setAutoRollDice, { autoRollDice: false })
   const started = await startRun(execute, created, name)
   const presented = await presentRunScene(client, {
     campaignId,
@@ -548,7 +574,7 @@ async function presentStoryRun(
         label: scene.allyLabel,
         position: scene.allyPosition,
         tokenId: reviewId(`${slug}-scene-ally-token`),
-        controlledBy: [allyUserId],
+        controlledBy: [ally.userId],
         squares: 1,
         hidden: false
       },
@@ -639,6 +665,25 @@ async function presentStoryRun(
     })
     version = confirmed.projection.version
   }
+  if (shove) {
+    const shoveParty = (index: number) => ({
+      id: crowd[index]!.actor.id,
+      tokenId: reviewId(`${slug}-scene-creature-${index}-token`)
+    })
+    await seedStoryShove({
+      gm: client,
+      player: ally,
+      encounterId: run.id,
+      sceneId: presented.sceneId,
+      version,
+      shover: shoveParty(shove.shover),
+      target: shoveParty(shove.target),
+      option: shove.option,
+      checkpoint: () => room.checkpoint(campaignId)
+    })
+    for (const roller of rollers)
+      await roller.mutation(api.account.setAutoRollDice, { autoRollDice: true })
+  }
   if (shownScene)
     await createShownScene(client, campaignId, shownScene.name, scene.board.ambientIllumination)
   await room.checkpoint(campaignId)
@@ -719,12 +764,154 @@ async function seedStoryCharacters(reader: StoryClient) {
     })
 }
 
-function moraleDefinitionId(): string {
-  const morale = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
-    (definition) => definition.document.kind === 'MORALE'
+function optionalCombatDefinitionId(
+  kind: (typeof SRD_OPTIONAL_COMBAT_DEFINITIONS)[number]['document']['kind']
+): string {
+  const rule = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+    (definition) => definition.document.kind === kind
   )
-  assert.ok(morale, 'The SRD publishes no Morale rule.')
-  return morale.id
+  assert.ok(rule, `The SRD publishes no ${kind} rule.`)
+  return rule.id
+}
+
+/**
+ * The GM hands the shover to the player, who shoves the target with `option` (D157). The player's
+ * d20s show 20 and the GM's defending check 1, so the shover wins and the Run waits on the player's
+ * pick of where the target lands, which is left pending.
+ */
+async function seedStoryShove({
+  gm,
+  player,
+  encounterId,
+  sceneId,
+  version,
+  shover,
+  target,
+  option,
+  checkpoint
+}: {
+  gm: StoryClient
+  player: { client: StoryClient; userId: string }
+  encounterId: string
+  sceneId: string
+  version: number
+  shover: { id: string; tokenId: string }
+  target: { id: string; tokenId: string }
+  option: string
+  checkpoint: () => Promise<void>
+}) {
+  const gmExecute: ExecuteCommand = (command) => gm.mutation(executeEncounterCommand, { command })
+  // A friendly shover makes the shove hostile to the target, as at the table.
+  let projection = encounterGmProjectionDtoSchema.parse(
+    (
+      await gmExecute({
+        type: 'UPDATE_ACTOR',
+        encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: version,
+        actorId: shover.id,
+        controllerUserIds: [player.userId],
+        disposition: 'FRIENDLY'
+      })
+    ).projection
+  )
+  if (projection.currentActorId !== shover.id)
+    projection = encounterGmProjectionDtoSchema.parse(
+      (
+        await gmExecute({
+          type: 'SET_CURRENT_ACTOR',
+          encounterId,
+          commandId: crypto.randomUUID(),
+          expectedVersion: projection.version,
+          actorId: shover.id
+        })
+      ).projection
+    )
+  const choices = await gm.query(actionChoices, {
+    encounterId,
+    expectedVersion: projection.version,
+    actorId: shover.id
+  })
+  const shove = choices?.basicActionChoices.flatMap((choice) => {
+    const picked =
+      choice.target.kind === 'ACTOR'
+        ? choice.target.choiceOptions?.find(({ label }) => label === option)
+        : undefined
+    return picked ? [{ actionId: choice.id, choiceOptionId: picked.id }] : []
+  })[0]
+  assert.ok(shove, `The shover has no "${option}" basic action.`)
+  const { version: expectedSceneVersion } = await gm.query(api.scenes.recipientReads.header, {
+    sceneId
+  })
+  const answer = (
+    client: StoryClient,
+    pending: { occurrenceId: string; occurrenceVersion: number; encounterVersion: number },
+    resolution: Resolution
+  ) =>
+    client.mutation(executeEncounterCommand, {
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: pending.encounterVersion,
+        correlationId: null,
+        occurrenceId: pending.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrenceVersion,
+        resolution
+      }
+    })
+  const issued = await player.client.mutation(executeEncounterCommand, {
+    command: resolveEncounterActionInputDtoSchema.parse({
+      type: 'RESOLVE_ACTION',
+      encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: projection.version,
+      actorId: shover.id,
+      actionId: shove.actionId,
+      target: { kind: 'ACTOR', actorId: target.id, choiceOptionId: shove.choiceOptionId },
+      sceneContext: {
+        sceneId,
+        expectedSceneVersion,
+        sourceTokenId: shover.tokenId,
+        targetTokenId: target.tokenId
+      },
+      acknowledgedWarnings: [],
+      acceptedWieldConflict: null,
+      optionalCombatIntent: null
+    })
+  })
+  const roll = issued.occurrence?.pending
+  assert.ok(roll?.kind === 'D20_EVIDENCE', 'The shover rolls the contest first.')
+  const faces = (rollMode: string, face: number) => (rollMode === 'NORMAL' ? [face] : [face, face])
+  await answer(player.client, roll, {
+    kind: 'ENTER_DICE',
+    requestId: roll.request.requestId,
+    rawFaces: faces(roll.request.rollMode, 20),
+    rollMode: roll.request.rollMode
+  })
+  await checkpoint()
+  const defence = await gm.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+    encounterId
+  })
+  assert.ok(defence?.kind === 'CONTEST_CHECK', 'The target defends the contest next.')
+  const [check] = defence.checks
+  assert.ok(check, 'The contest offers the target no check.')
+  const defended = await answer(gm, defence, {
+    kind: 'CONTEST_CHECK',
+    requestId: defence.requestId,
+    checkDefinitionId: check.checkDefinitionId,
+    roll: {
+      kind: 'ENTER_DICE',
+      requestId: defence.requestId,
+      rawFaces: faces(check.rollMode, 1),
+      rollMode: check.rollMode
+    }
+  })
+  assert.equal(
+    defended.occurrence?.status === 'PENDING' ? defended.occurrence.pending?.kind : undefined,
+    'FORCED_MOVEMENT_DESTINATION',
+    'The won shove waits for where the target lands.'
+  )
 }
 
 /**
