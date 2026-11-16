@@ -59,7 +59,7 @@ const recipientRevision = 'a'.repeat(64)
 export const mapReadyTimeoutMs = 10_000
 export const liveCommand = fn()
 const mediaGetDelivery = fn()
-export const showScene = fn()
+const showScene = fn()
 export const shownScene = validated(campaignSceneShowingDtoSchema)({
   sceneId: '77777777-7777-4777-8777-777777777798',
   sceneName: 'The Ashen Stair',
@@ -94,8 +94,7 @@ export function renderWindow(
   args: ComponentProps<typeof CampaignTabletopWindow>,
   campaign: CampaignDetailDto,
   showing: CampaignSceneShowingDto | null = null,
-  fixtures: TabletopFixtures = defaultTabletopFixtures,
-  sceneCommandRejection: string | null = null
+  fixtures: TabletopFixtures = defaultTabletopFixtures
 ): JSX.Element {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -377,11 +376,7 @@ export function renderWindow(
   })
   liveCommand.mockReset()
   return (
-    <StoryLiveSessionTransport
-      encounterResult={encounterResult}
-      sceneCommandRejection={sceneCommandRejection}
-      state={recipientState}
-    >
+    <StoryLiveSessionTransport encounterResult={encounterResult} state={recipientState}>
       <StoryConvexFixture client={convex}>
         <QueryClientProvider client={queryClient}>
           <CampaignTabletopWindow campaignId={args.campaignId} currentUserId={args.currentUserId} />
@@ -442,13 +437,10 @@ function StoryConvexFixture({
 function StoryLiveSessionTransport({
   children,
   encounterResult,
-  sceneCommandRejection,
   state
 }: {
   children: ReactNode
   encounterResult: EncounterCommandResultDto
-  /** When set, the room rejects every Scene command as stale with this message. */
-  sceneCommandRejection: string | null
   state: LiveSessionRecipientStateDto
 }) {
   const [installed, setInstalled] = useState(false)
@@ -499,18 +491,6 @@ function StoryLiveSessionTransport({
         const message = liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(data))
         if (message.type === 'COMMAND') {
           liveCommand(message)
-          if (message.command.scope === 'SCENE' && sceneCommandRejection) {
-            const rejected = validated(liveSessionWebSocketServerMessageDtoSchema)({
-              code: 'STALE_STATE',
-              commandId: message.command.command.commandId,
-              currentSequence: message.expectedSessionSequence,
-              message: sceneCommandRejection,
-              reason: null,
-              type: 'COMMAND_REJECTED',
-              warnings: null
-            })
-            this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(rejected) }))
-          }
           // The room acknowledges an Encounter command to its initiator, which settles the command.
           if (message.command.scope === 'ENCOUNTER') {
             const committed = validated(liveSessionWebSocketServerMessageDtoSchema)({
@@ -564,7 +544,7 @@ function StoryLiveSessionTransport({
       pushStoryScene = null
       Reflect.set(globalThis, 'WebSocket', originalWebSocket)
     }
-  }, [encounterResult, sceneCommandRejection, state])
+  }, [encounterResult, state])
 
   return installed ? children : null
 }

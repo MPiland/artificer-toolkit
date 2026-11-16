@@ -202,6 +202,13 @@ a SEQUENCE (grant plus ruling), which the same split compiles. Imprisonment now 
 outcome has no plan, which the earlier golden hid. Timed-manifestation rows (object and creature forms) stay refused:
 their data names no component or needs a new plan type, so they are not a lifetime-aspect gap.
 
+**Creature picks in the golden (current, QUALITY-15.T3s).** A Creature row whose action authors a pick (D148) pins
+`choice=[...]` through `compileCastChoicePlans`, as discovery compiles it. The Vampire Spawn Claws and the Vampire's
+Unarmed Strike were refused as "relationship outcomes need a bounded hit" only because the golden planned the whole,
+unpicked action. Each option's Grapple hold already compiles through `relationshipPlan` on the hit, so that UNBUILT
+message left the list. `relationshipPlan` still refuses a relationship in an unpicked `CHOICE` group: until the pick is
+made, the hit alone does not bound the hold.
+
 **Golden fidelity and inert zones (current, QUALITY-15.T3b).** The golden compiles a Character spell Effect as the
 product does: through `compileSpellEffect` (which carries the spell's Concentration onto the Effect, the one rule
 `compileSpell` also uses) and, for an activated action, through `compileActionPlacement` (zone, then summon) before the
@@ -210,7 +217,12 @@ execution plan, the order of `compileCharacterActionEntryPoints`. A placed row p
 supported maintained effect (class UNBUILT); the golden had hidden them. A PLACED_SPACE or SOURCE zone that authors a
 label and a shape but no component and no appear save is an inert zone: `inertZonePlacementPlan` places it with no trigger
 modes, held for its duration by the cast's Concentration (`lastingZoneEntry`), so the table sees the area and a GM rules
-what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input.
+what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input. (QUALITY-15.T3o) The
+corpus authors a shape for every inert SRD zone from its own text, with the existing shape kinds: Wall of Force, Ice and
+Stone as a straight `WALL` of ten 10-foot panels, Gate as a `CIRCLE`, Forbiddance and the Magnificent Mansion entrance as
+a `CYLINDER`, Mirage Arcane as a `CUBE` a mile on a side. Prismatic Wall and Oil (flask) stay refused as UNBUILT: they
+author zone fields the placement does not model (ordered layers and their destruction, proximity rule, light, placement
+surface and occupancy, ignition, application limits), and each needs room behavior, not data.
 
 **Concentration spells re-authored onto existing plans (current, QUALITY-15.T3n).** Four of the 15 now compile with
 their effect held by the cast's Concentration, through data alone: Silent Image is an inert 15-foot-cube zone, Arcane

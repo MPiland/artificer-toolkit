@@ -8,6 +8,7 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -72,7 +73,14 @@ export const gate: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.GATE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Gate',
+                // "a circular opening, which you can make 5 to 20 feet in diameter"
+                shape: {
+                  id: spellChildId(SPELL_IDS.GATE, 0x214, 1),
+                  shapeKind: SHAPE_KIND.CIRCLE,
+                  radius: { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }

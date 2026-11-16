@@ -5,6 +5,7 @@ import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
 import { publicationFixture } from '../../tests/fixtures/publication'
 import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { createPartyUser } from '../../tests/fixtures/partyPlayer'
 import type { ActionCtx } from '../_generated/server'
 import {
@@ -33,6 +34,7 @@ import {
   STORY_DRAFT_ONLY,
   STORY_PLAYER_CAMPAIGN,
   STORY_RECORDS,
+  STORY_ZONES,
   STORY_SOCIAL
 } from '../../tests/developmentReviewDataScenarios'
 import { api, components, internal } from '../_generated/api'
@@ -191,10 +193,13 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   // its actor, and the ally token the story account's own.
   const presentation = await reader.query(api.scenes.presentations.get, { campaignId })
   expect(presentation?.campaignId).toBe(campaignId)
-  const presentedBoard = (boardCampaignId: string) =>
+  const presentedBoard = (boardCampaignId: string, sceneName: string) =>
     t.run(async (ctx) => {
       const saves = (await ctx.db.query('sceneDefinitionSaves').collect()).filter(
-        (row) => row.settings.campaignId === boardCampaignId && row.status === 'PUBLISHED'
+        (row) =>
+          row.settings.campaignId === boardCampaignId &&
+          row.settings.name === sceneName &&
+          row.status === 'PUBLISHED'
       )
       const entities = (
         await Promise.all(
@@ -236,7 +241,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       .map(({ userId }) => userId)
       .sort()
   expect(await activeMemberUserIds(campaignId)).toEqual([first.userId, second.userId].sort())
-  expect(await presentedBoard(campaignId)).toEqual({
+  expect(await presentedBoard(campaignId, STORY_CAMPAIGN.scene.name)).toEqual({
     saves: 1,
     fogMode: STORY_CAMPAIGN.scene.board.fogMode,
     barriers: ['DOOR', 'WALL', 'WALL'],
@@ -251,8 +256,11 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     campaignId,
     paginationOpts: { cursor: null, numItems: 8 }
   })
-  const [storyScene, ...otherScenes] = sceneList.page
-  expect(otherScenes).toEqual([])
+  // The GM shows the other, unpresented Scene to players (D87).
+  expect(sceneList.page.map(({ name }) => name).sort()).toEqual(
+    [STORY_CAMPAIGN.scene.name, STORY_CAMPAIGN.shownScene!.name].sort()
+  )
+  const storyScene = sceneList.page.find(({ name }) => name === STORY_CAMPAIGN.scene.name)
   expect(storyScene).toMatchObject({ name: STORY_CAMPAIGN.scene.name, campaignId })
   expect(storyScene!.counts).toMatchObject({ barriers: 3, tokens: 2 })
   const mapAsset = await t.run((ctx) =>
@@ -293,12 +301,35 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(
     (await reader.query(api.scenes.presentations.get, { campaignId: playerCampaignId }))?.campaignId
   ).toBe(playerCampaignId)
-  expect(await presentedBoard(playerCampaignId)).toMatchObject({
+  expect(await presentedBoard(playerCampaignId, STORY_PLAYER_CAMPAIGN.scene.name)).toMatchObject({
     saves: 1,
     tokens: [
       [STORY_PLAYER_CAMPAIGN.scene.allyLabel, [first.userId]],
       [STORY_PLAYER_CAMPAIGN.enemyLabel, []]
     ].sort()
+  })
+  // Both Runs hold the placed zones the tabletop stories draw: the GM of the story Campaign reads both,
+  // and the reader as a player in the second Campaign reads only the one in plain sight (MOVE-3.3).
+  const zonesRead = async (id: string) =>
+    (await reader.query(api.encounters.activeReads.active, { campaignId: id })).placedZones.map(
+      ({ label, spotDc }) => [label, spotDc?.value ?? null]
+    )
+  expect(await zonesRead(campaignId)).toEqual(
+    STORY_ZONES.map(({ label, ...zone }) => [label, 'spotDc' in zone ? zone.spotDc.value : null])
+  )
+  expect(await zonesRead(playerCampaignId)).toEqual(
+    STORY_ZONES.filter((zone) => !('spotDc' in zone)).map(({ label }) => [label, null])
+  )
+  // The GM's command left the story creature poisoned and frightened at the seeded hit points, which
+  // the tabletop stories read back as statuses on its token.
+  const storyCreature = (
+    await reader.query(api.encounters.activeReads.active, { campaignId })
+  ).encounter?.actors.find(({ label }) => label === STORY_CAMPAIGN.enemyLabel)
+  expect(storyCreature).toMatchObject({
+    currentHitPoints: STORY_CAMPAIGN.enemyState.currentHitPoints,
+    conditions: STORY_CAMPAIGN.enemyState.conditionCodes.map((code) => ({
+      conditionTypeId: srdSystemRecord.conditionTypes.find((type) => type.code === code)!.id
+    }))
   })
   const settings = await reader.query(api.campaigns.playSettings.get, { campaignId })
   expect(settings).toMatchObject({ ...STORY_CAMPAIGN.playSettings, automationMode: 'ASSISTED' })
@@ -355,11 +386,8 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   ])
 
   // The System detail stories open one definition per state, found by label.
-  const owned = await t.run((ctx) =>
-    ctx.db
-      .query('reusableDefinitions')
-      .filter((q) => q.eq(q.field('ownerUserId'), first.userId))
-      .collect()
+  const owned = (await t.run((ctx) => ctx.db.query('reusableDefinitions').collect())).filter(
+    ({ ownerUserId }) => ownerUserId === first.userId
   )
   const stateOf = async (label: string) => {
     const matches = owned.filter((definition) => definition.label === label)

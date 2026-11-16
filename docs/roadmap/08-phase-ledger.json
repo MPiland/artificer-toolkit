@@ -2532,7 +2532,7 @@
             },
             {
               "id": "PLATFORM-28.T7c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2543,13 +2543,14 @@
               },
               "text": "The zone, shown-scene and placement-preview tabletop stories run on seeded state (zones placed through real PLACE_ZONE commands, a second unpresented Scene), with the turn order drawer and live scene object editor siblings.",
               "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221). Split 2026-11-16 (size 8 -> 5 + T7c2 5) from the slice's seam trace: auras, conditions and morale need seed work through real commands.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m819 (f366c9f7e); slice tip ea09f821b: Tests 43817179299, Live 43817179318, Browser journeys 43817179363 (storybook-backend-browser) green. The story seed places a hazard and a concealed trap (spot DC 15) in both story Campaigns through real PLACE_ZONE commands and adds an unpresented second Scene through createEncounterLifecycleScene; storyData asserts both through api.encounters.activeReads.active (the player reads only the hazard). Backend stories GmSeesEveryPlacedZone, PlayerSeesOnlyZonesTheyKnowOf, PlacingAZonePreviewsItsArea (no write), GmShowsSceneToPlayers (spied showings.show carries the second Scene) and the turn order drawer and live scene object editor siblings; the four replaced fake stories are deleted with a no-importer proof. storyData.test's reusableDefinitions read now collects and filters in memory instead of a database filter. Red proof: storyData.test ALREADY-PASSING (seed helpers kept)."
             },
             {
               "id": "PLATFORM-28.T7c2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
-              "text": "Aura, condition and morale tabletop stories on a creature seeded through real product commands; PlayerSeesShownScene without a modal over the other player stories; the stale keyboard-move rejection as a real-component test whose COMMAND_REJECTED frame is the faked platform response parsed through the schema (spied writes stay unsent, D218).",
+              "text": "Token-status, focus and keyboard tabletop stories run on a creature seeded through a real UPDATE_ACTOR command; the stale keyboard-move rejection is a real-component test whose COMMAND_REJECTED frame is the faked platform response parsed through the schema (spied writes stay unsent, D218).",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
@@ -2557,7 +2558,52 @@
                 "size": 5,
                 "after": ["PLATFORM-28.T7c"]
               },
-              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c in approved scope (D221)."
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c in approved scope (D221). Widened 2026-11-16 (size 5 -> 8): the T7c report found the token-status, selection and keyboard stories still on the fake harness T7d deletes. Split 2026-11-16 (size 8 -> 5, with T7c3 8, T7c3b 5 and T7c3c 5) from the slice's seam trace: auras, morale, the player-visible creature board and the shown-scene modal need their own seed work.",
+              "mergedAt": "2026-11-16",
+              "proof": "m821 (45ea2bddb); slice tip eed3c24d2: Tests 43822388984, Browser journeys 43822388988, Live 43820853730 (on f335c8c19; eed3c24d2 changed only a story) green. The seed gives the Story Cultist POISONED, FRIGHTENED and 10 HP through a real UPDATE_ACTOR (developmentReviewData.ts, after the PLACE_ZONE loop); storyData.test asserts them through api.encounters.activeReads.active. Backend stories GmSeesTokenStatuses, FocusingATokenListsEveryStatus and KeyboardOnlyTabletopJourney (spied MOVE_SCENE_TOKEN carries the room's Encounter version) replace their fake stories. KeyboardMoveRejectedAsStaleIsAnnounced is a CampaignVttStage.stageState test that parses a COMMAND_REJECTED frame through liveSessionWebSocketServerMessageDtoSchema. The four fake stories and the harness's sceneCommandRejection option are deleted with a no-importer proof."
+            },
+            {
+              "id": "PLATFORM-28.T7c3",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-28.1"],
+              "text": "The player-visible creature, aura, selection, hover and preview tabletop stories run on an open-fog player Campaign with its own story host, seeded through real commands (an SRD creature with a passive aura, statuses through UPDATE_ACTOR); the replaced fake stories are deleted.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 8,
+                "after": ["PLATFORM-28.T7c2"]
+              },
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PLATFORM-28.T7c3b",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "text": "GmSeesMoraleOutcome runs on seeded state (REPLACE_OPTIONAL_COMBAT_RULES before START, then MORALE_SAVE and CONFIRM_MORALE), and PlayerSeesShownScene through a real showings.show in its own Campaign and host.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T7c2"]
+              },
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221)."
+            },
+            {
+              "id": "PLATFORM-28.T7c3c",
+              "status": "TODO",
+              "closes": ["PLATFORM-28.1"],
+              "text": "The tabletop stories that need a mid-play change (facing rotation, the marker, preview ending when the token leaves) become real-component tests fed live frames parsed through the schema; the reaction halo and the forced-movement picker run on a pending occurrence seeded through real commands from the seeded story Characters.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["PLATFORM-28.T7c2"]
+              },
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221)."
             },
             {
               "id": "PLATFORM-28.T7d",
@@ -2568,7 +2614,13 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 3,
-                "after": ["PLATFORM-28.T7c", "PLATFORM-28.T7c2"]
+                "after": [
+                  "PLATFORM-28.T7c",
+                  "PLATFORM-28.T7c2",
+                  "PLATFORM-28.T7c3",
+                  "PLATFORM-28.T7c3b",
+                  "PLATFORM-28.T7c3c"
+                ]
               },
               "text": "The fake live transport harness, the fake Convex client and the story-only tabletop fixtures are deleted with a no-importer proof; data fixtures imported by unit tests stay.",
               "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221)."
@@ -27674,7 +27726,7 @@
             },
             {
               "id": "QUALITY-15.T3m",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "The 31 area rulings with no zone (Gust of Wind, Detect Magic, Zone of Truth, Major Image, Reverse Gravity, Storm of Vengeance, Hunting Trap, Planar Ally, Create Undead, Find Steed, Move Earth and the rest) compile: the room catches the creatures in an area ruling through a generic test plan instead of treating a no-save placement as catching nobody.",
               "wsjf": {
@@ -27684,7 +27736,8 @@
                 "size": 3,
                 "after": ["QUALITY-15.T2"]
               },
-              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3n",
@@ -27703,7 +27756,7 @@
             },
             {
               "id": "QUALITY-15.T3o",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Zones with no authored shape (Forbiddance, Gate, Magnificent Mansion, Mirage Arcane, Wall of Force, Ice and Stone) get SRD-cited shapes or a generic wall or panel shape, and the zone manifest models what Prismatic Wall and Oil author beyond label, shape and entering components.",
               "wsjf": {
@@ -27714,7 +27767,114 @@
                 "after": ["QUALITY-15.T2"]
               },
               "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m820 (0dcc6e21d); slice tip 6d3eaf86d: Tests 43817832151, Live 43817832077, Browser journeys 43817832069 green. Seven area rulings place as inert zones with SRD-cited shapes through the existing WALL, CIRCLE, CYLINDER and CUBE kinds (no contract change): Wall of Force, Ice and Stone as their straight ten-panel form, Gate at its 20 ft maximum, Magnificent Mansion's entrance, Forbiddance as the widest round floor within 40,000 sq ft, Mirage Arcane as a mile square. \"A placed zone needs a label and a shape\" no longer refuses any row. Proof: encounterInertZonePlacement.test places each real SRD spell. Dome, sphere and bent wall forms are not authored. Prismatic Wall and Oil keep their honest refusal (the manifest models only label, shape and entering components) and moved to T3v and T3w."
+            },
+            {
+              "id": "QUALITY-15.T3v",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Prismatic Wall places as a layered zone: layers resolve and are destroyed in order and stay destroyed, a 20 ft sight proximity rule blinds, it sheds light, refuses an occupied placement and spends the casting when placed invalidly, and designated creatures pass, through generic zone manifest keys (encounterZonePlacement.ts MODELED_MANIFEST_KEYS).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3w",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Oil (flask) places as a zone that needs ignition before its components apply, on a level surface, with a per-turn application limit shared across its components, through generic zone manifest keys.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3x",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Summoned and animated creatures from Concentration spells: Animate Objects stat blocks per object size, Dancing Lights as several light-shedding objects, and Conjure Elemental and Conjure Fey creatures turning hostile when Concentration breaks, through generic summon and light plans.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3y",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Maintained Concentration effects with ongoing behavior: Barkskin AC floor, Call Lightning repeat bolt, Delayed Blast Fireball detonating when the spell ends, Flaming Sphere as a movable damaging sphere, Resilient Sphere as a zone attached to its target, Clairvoyance sensor, and Tree Stride, through generic plans.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8
+              },
+              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3z",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A repeat save whose failure deals damage (Weird) compiles through the repeat-save-test plan and the room applies the damage on each failed save.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the T3l report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3aa",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Area spells that create a creature or object (Create Undead, Find Steed, Planar Ally, Unseen Servant, Phantom Steed, Floating Disk, Hunting Trap, Create Food and Water) compile through generic summon or object plans the room places.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3ab",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A cast-time pick over an area (Antipathy/Sympathy) compiles and the room carries the pick to the creatures it catches.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3ac",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Areas with a Sight or Special range or a slot-scaled size (Storm of Vengeance, Control Weather, Create or Destroy Water) place, and Guards and Wards, Passwall and Find Traps get SRD-cited shapes, through generic placement data.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3c",
@@ -27764,7 +27924,7 @@
             },
             {
               "id": "QUALITY-15.T3p",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Reactions on unregistered triggers compile (Feather Fall, Slow Fall, Stand Against the Tide and similar): generic trigger entries for falling and a missed melee attack, their events and hosts in events/reactionTriggers.ts, proved by a room test.",
               "wsjf": {
@@ -27774,7 +27934,8 @@
                 "size": 5,
                 "after": ["QUALITY-15.T2"]
               },
-              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3q",
@@ -27813,10 +27974,10 @@
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["QUALITY-15.T2", "QUALITY-15.T3c"]
               },
-              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13). Resized 2026-11-16 (3 -> 1): the refusal lived only in the golden."
             },
             {
               "id": "QUALITY-15.T3t",
@@ -27850,7 +28011,7 @@
             },
             {
               "id": "QUALITY-15.T3l",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Rows T3f authored that need code compile: bounded test shapes the compiler refuses (Sunburst, Weird, Androsphinx Roar 1st and 2nd, Ghost Horrifying Visage), an area shape on a Self or single target (Antilife Shell, Resilient Sphere), and the Self-plus-willing-creatures move (Ethereal Stride, Unicorn Teleport) through generic options.",
               "wsjf": {
@@ -27861,7 +28022,8 @@
                 "after": ["QUALITY-15.T2"]
               },
               "note": "Registered 2026-11-15 from the T3f report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m822 (c4ab0b971); slice tip 214618bde (contains m820): Tests 43824066781, Live 43824066710, Browser journeys 43824066697 green. Six rows convert: Ghost Horrifying Visage, Androsphinx Roar 1 and 2 and Sunburst compile as TEST_OUTCOME holding their conditions in one repeat-save-test plan (END_OF_TURN), with the GM-ruling entry beside the save still one manual proposal; Nightmare Ethereal Stride and Unicorn Teleport target up to four chosen creatures within 5 ft. The compiler rule is generic (one FOLLOW_UP_SAVE whose sibling entries are held and not manual becomes a plan outcome). Proofs: srdRepeatSaveBesideResults.test (RED 7 of 8 at the merge-base; the Weird refusal guard already passed) and nativeRoomSrdRepeatSaveBesideRuling.test (RED: the room rejected the action). Weird moved to T3z; Resilient Sphere sits with T3y. Willing-creature targeting is not enforced (ANY disposition plus the user's pick)."
             },
             {
               "id": "QUALITY-15.T3g",

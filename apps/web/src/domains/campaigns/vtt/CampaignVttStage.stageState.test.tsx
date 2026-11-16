@@ -2,6 +2,7 @@ import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
+import { liveSessionWebSocketServerMessageDtoSchema } from '@artificer-toolkit/schema/api/liveSessions'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { offeredRollModes } from '../../../test/offeredRollModes'
@@ -22,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   characterSheetIds: [] as (string | null)[],
   handlers: null as RendererHandlers | null,
   readEncounter: vi.fn(),
+  rejection: null as unknown,
   room: null as unknown,
   scene: null as unknown,
   sendCharacterSheetCommand: vi.fn()
@@ -96,7 +98,7 @@ vi.mock('./useCampaignLiveSession', () => ({
       error: null,
       readEncounter: mocks.readEncounter,
       recipientState: { recipientRole: 'PLAYER', presentationVersion: 1, scene: mocks.scene },
-      rejection: null,
+      rejection: mocks.rejection,
       sendCharacterSheetCommand: mocks.sendCharacterSheetCommand,
       sendCommand: vi.fn(),
       sendEncounterCommand: vi.fn(),
@@ -190,6 +192,7 @@ describe('CampaignVttStage state that follows the room (RELIABILITY-9.3)', () =>
     mocks.characterSheet = null
     mocks.characterSheetIds = []
     mocks.handlers = null
+    mocks.rejection = null
     mocks.scene = tabletopLiveScene
     mocks.sendCharacterSheetCommand.mockResolvedValue({})
     // The room answers the Stage's binding reads, so the Stage is not left waiting on them.
@@ -375,6 +378,29 @@ describe('CampaignVttStage state that follows the room (RELIABILITY-9.3)', () =>
       rerender(stage('PLAYER'))
       await act(async () => {})
       expect(mocks.sendCharacterSheetCommand).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // VTT_UI-4.2: a Scene command the room rejects as stale is announced, not swallowed. The room's
+  // COMMAND_REJECTED frame is the faked platform answer, parsed through the real schema.
+  describe('a Scene command the room rejected as stale', () => {
+    it('is announced to the GM', async () => {
+      const frame = liveSessionWebSocketServerMessageDtoSchema.parse({
+        code: 'STALE_STATE',
+        commandId: '33333333-3333-4333-8333-333333333391',
+        currentSequence: 1,
+        message: 'The scene changed before the move landed.',
+        reason: null,
+        type: 'COMMAND_REJECTED',
+        warnings: null
+      })
+      mocks.rejection = frame
+      mocks.room = heldRoom(null)
+      renderWithAppProviders(stage('OWNER'))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'The scene changed before the move landed.'
+      )
     })
   })
 
