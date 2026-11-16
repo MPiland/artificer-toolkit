@@ -450,19 +450,16 @@ async function seedStoryPlayerCampaign(host: StoryClient, reader: StoryClient, r
 async function presentStoryRun(
   client: StoryClient,
   room: StoryRoom,
-  { slug, name, scene }: StoryCampaignSpec,
+  { slug, name, scene, zones, shownScene }: StoryCampaignSpec,
   { campaignId, run, actor }: Awaited<ReturnType<typeof prepareStoryRun>>,
   allyUserId: string
 ) {
   if (run.status !== 'PREPARED') return
   await room.buildSnapshots?.(campaignId)
   await awaitSnapshotHeads(client, srdSystemRecord.id)
-  const started = await startRun(
-    (command) => client.mutation(executeEncounterCommand, { command }),
-    run,
-    name
-  )
-  await presentRunScene(client, {
+  const execute: ExecuteCommand = (command) => client.mutation(executeEncounterCommand, { command })
+  const started = await startRun(execute, run, name)
+  const presented = await presentRunScene(client, {
     campaignId,
     run: started,
     name: scene.name,
@@ -488,6 +485,32 @@ async function presentStoryRun(
       }
     ]
   })
+  let version = presented.run.version
+  for (const { label, point, radiusFeet, spotDc } of zones) {
+    const placed = await execute({
+      type: 'PLACE_ZONE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: version,
+      point,
+      zone: {
+        id: crypto.randomUUID(),
+        effectKind: 'MANIFEST',
+        manifestKind: 'ZONE',
+        attachmentKind: 'PLACED_SPACE',
+        label,
+        shape: {
+          id: crypto.randomUUID(),
+          shapeKind: 'CIRCLE',
+          radius: { amount: radiusFeet, unit: 'FEET' }
+        },
+        components: []
+      },
+      ...(spotDc ? { spotDc } : {})
+    })
+    version = placed.projection.version
+  }
+  if (shownScene) await createShownScene(client, campaignId, shownScene.name, scene.board)
   await room.checkpoint(campaignId)
   await room.releaseRoom?.(campaignId)
 }
@@ -564,6 +587,49 @@ async function seedStoryCharacters(reader: StoryClient) {
       id: draftPending.characterId,
       systemId: srdSystemRecord.id
     })
+}
+
+/** An unpresented Scene on its own real map: what the GM shows to players (D87) without presenting it. */
+async function createShownScene(
+  client: StoryClient,
+  campaignId: string,
+  name: string,
+  board: ReviewBoard
+) {
+  const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
+  const token = (label: string, x: number) => ({
+    id: crypto.randomUUID(),
+    assetId: null,
+    controlledByUserIds: [],
+    height: 50,
+    hidden: false,
+    label,
+    locked: false as const,
+    position: { x, y: 100 },
+    rotationDegrees: 0,
+    senses: [],
+    vision: null,
+    width: 50
+  })
+  await createEncounterLifecycleScene({
+    owner: client,
+    campaignId,
+    name,
+    options: {
+      fogMode: 'OFF',
+      ambientIllumination: board.ambientIllumination,
+      map: { width: 800, height: 600 },
+      grid: {
+        kind: 'SQUARE',
+        origin: { x: 0, y: 0 },
+        cellSize: 50,
+        distancePerCell: 5,
+        diagonalPolicy: 'EQUAL',
+        unit: 'FEET'
+      },
+      tokens: [token('Story Shown Guard', 100), token('Story Shown Scout', 200)]
+    }
+  })
 }
 
 /**

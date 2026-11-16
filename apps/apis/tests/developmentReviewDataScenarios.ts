@@ -180,7 +180,30 @@ export type StoryCampaignSpec = {
     board: ReviewBoard
   }
   playSettings: { normalCadenceDays: number; expectedDurationMinutes: number; quorum: number }
+  /** Zones the GM places on the presented Scene once the Run is bound to it (MOVE-3.2). */
+  zones: readonly StoryZoneSpec[]
+  /** A second Scene the GM can show to players without presenting it (D87). */
+  shownScene?: { name: string }
 }
+
+/** A circular zone placed at point; a spot DC conceals it from every player (MOVE-3.3). */
+export type StoryZoneSpec = {
+  label: string
+  point: { x: number; y: number }
+  radiusFeet: number
+  spotDc?: { value: number; source: 'FLAT' }
+}
+
+/** A hazard in plain sight and a GM's hidden trap, placed in each story Campaign's Run. */
+export const STORY_ZONES = [
+  { label: 'Story Burning Oil', point: { x: 300, y: 450 }, radiusFeet: 10 },
+  {
+    label: 'Story Caltrops',
+    point: { x: 200, y: 350 },
+    radiusFeet: 10,
+    spotDc: { value: 15, source: 'FLAT' }
+  }
+] as const satisfies readonly StoryZoneSpec[]
 
 /** A fogged board split by a wall with a closed door, as the Sandbox review board is. */
 const STORY_BOARD: ReviewBoard = {
@@ -339,6 +362,8 @@ export const STORY_CAMPAIGN = {
     board: STORY_BOARD
   },
   playSettings: { normalCadenceDays: 14, expectedDurationMinutes: 240, quorum: 3 },
+  zones: STORY_ZONES,
+  shownScene: { name: 'Story Shown Scene' },
   lootTable: { name: 'Story pockets', coinAmount: 12 }
 } as const satisfies StoryCampaignSpec & {
   preparedBlueprintName: string
@@ -355,7 +380,8 @@ export const STORY_PLAYER_CAMPAIGN = {
   blueprintName: 'Story Player Encounter',
   enemyLabel: 'Story Player Cultist',
   scene: { ...STORY_CAMPAIGN.scene, name: 'Story Player Scene', allyLabel: 'Story Reader Hero' },
-  playSettings: STORY_CAMPAIGN.playSettings
+  playSettings: STORY_CAMPAIGN.playSettings,
+  zones: STORY_ZONES
 } as const satisfies StoryCampaignSpec
 
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */
