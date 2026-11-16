@@ -523,7 +523,8 @@ describe('CampaignVttStage state that follows the room (RELIABILITY-9.3)', () =>
         sourceActorId: emberActor.id,
         remainingTicks: 2,
         expiresAtCampaignMinute: null,
-        polarity: 'HARMFUL'
+        polarity: 'HARMFUL',
+        endable: true
       })
       const marked = {
         ...tabletopGmEncounter,

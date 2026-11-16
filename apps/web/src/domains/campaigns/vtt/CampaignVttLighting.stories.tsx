@@ -95,7 +95,7 @@ function LightingFixture({
   /** A Token whose Encounter actor control arrives in a later update, as when the Encounter loads. */
   boundTokenId?: string
   /** A later state the room sends to the same renderer, as a Scene edit does mid-session. */
-  later?: { previewTokenId?: string; scene: CampaignSceneStateDto }
+  later?: { previewTokenId?: string | undefined; scene: CampaignSceneStateDto }
   /** The GM's token-view preview: draws what a Player controlling this Token sees. */
   previewTokenId?: string
   role?: 'OWNER' | 'PLAYER'
@@ -715,7 +715,8 @@ const previewEndedScene = validated(campaignSceneStateDtoSchema)({
 
 export const GmPreviewEndsWhenThePreviewedTokenLeavesTheScene: Story = {
   args: {
-    later: { scene: previewEndedScene },
+    // The Stage's update once it ends the preview (see CampaignVttStage.stageState.test.tsx).
+    later: { previewTokenId: undefined, scene: previewEndedScene },
     previewTokenId: warden.id,
     role: 'OWNER',
     samplePoints: previewPoints,
