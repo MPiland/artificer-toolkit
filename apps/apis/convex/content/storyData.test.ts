@@ -381,12 +381,12 @@ it('gives the story account an active copy and a copy with a waiting draft per d
   expect(
     openActors?.filter(({ conditions }) => conditions.some((c) => c.conditionTypeId === prone))
   ).toHaveLength(1)
-  // The GM reads both Balors' Fire Auras; the reader sees only the one whose source is in plain sight.
-  const auraCount = async (client: StoryClient) =>
-    (await client.query(api.encounters.activeReads.active, { campaignId: openCampaignId })).auras
-      .length
-  expect(await auraCount(roomOpenHost)).toBe(2)
-  expect(await auraCount(reader)).toBe(1)
+  // The GM reads both Balors' Fire Auras. A Convex read cannot tell which tokens a player's map draws
+  // (D121), so the player's one visible aura is proved in the room, by the stories.
+  expect(
+    (await roomOpenHost.query(api.encounters.activeReads.active, { campaignId: openCampaignId }))
+      .auras
+  ).toHaveLength(2)
   const settings = await reader.query(api.campaigns.playSettings.get, { campaignId })
   expect(settings).toMatchObject({ ...STORY_CAMPAIGN.playSettings, automationMode: 'ASSISTED' })
   expect(settings.initiativePolicyDefinitionId).not.toBeNull()
