@@ -4,7 +4,7 @@ import {
   featureEffectDtoSchema
 } from '@artificer-toolkit/schema/effects/effect'
 import { compileSpellEffect } from '@artificer-toolkit/shared/compilers'
-import { SPELL_ATTRIBUTE } from '@artificer-toolkit/shared/core'
+import { SPELL_ATTRIBUTE, type SpellAttribute } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -17,6 +17,7 @@ import {
   compileEncounterFeatureActionPlan
 } from '../encounterActionEntryPointCompiler.js'
 import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
+import { isActivatedEffect } from '../spellCastCandidates.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
@@ -67,9 +68,12 @@ type Found = {
   siblings: AuthoredEffect[]
   label: string
   spellLevel: number | undefined
-  /** The owning spell requires Concentration, which each of its compiled Effects carries. */
-  concentration: boolean
+  /** The owning spell's own attributes, which the compiler reads for each of its Effects. */
+  attributes: SpellAttribute[]
 }
+
+const isSpellAttribute = (value: unknown): value is SpellAttribute =>
+  typeof value === 'string' && Object.hasOwn(SPELL_ATTRIBUTE, value)
 
 /** Every authored Effect under a subject, with the label and spell level of its owner. */
 function collectEffects(node: unknown, owner: Omit<Found, 'effect' | 'siblings'>, found: Found[]) {
@@ -89,10 +93,10 @@ function collectEffects(node: unknown, owner: Omit<Found, 'effect' | 'siblings'>
   const next = {
     label: typeof node.label === 'string' ? node.label : owner.label,
     spellLevel: typeof node.level === 'number' ? node.level : owner.spellLevel,
-    concentration:
-      typeof node.level === 'number'
-        ? Array.isArray(node.attributes) && node.attributes.includes(SPELL_ATTRIBUTE.CONCENTRATION)
-        : owner.concentration
+    attributes:
+      typeof node.level === 'number' && Array.isArray(node.attributes)
+        ? node.attributes.filter(isSpellAttribute)
+        : owner.attributes
   }
   for (const value of Object.values(node)) collectEffects(value, next, found)
 }
@@ -200,14 +204,14 @@ function outcomeOf(compile: () => Compiled): Outcome {
  * checksum does not depend on the Effect's own id.
  */
 function characterOutcome(
-  { effect, siblings, concentration }: Pick<Found, 'effect' | 'siblings' | 'concentration'>,
+  { effect, siblings, attributes }: Pick<Found, 'effect' | 'siblings' | 'attributes'>,
   spellCastLevel: number | undefined,
   characterLevel: number
 ) {
   const action = {
     ...characterActionDescriptor(
       compileSpellEffect(
-        { attributes: concentration ? [SPELL_ATTRIBUTE.CONCENTRATION] : [], effects: siblings },
+        { attributes, effects: siblings },
         {
           ...effect,
           id: ACTION_EFFECT_ID
@@ -220,7 +224,7 @@ function characterOutcome(
   }
   // The product places a zone or a summon before it plans a cast, so the golden pins the same
   // order. Only an activated action is discovered as a Character action at all.
-  if (effect.invocation.kind === 'ACTION') {
+  if (isActivatedEffect(effect)) {
     try {
       const placement = compileActionPlacement(dnd5eCharacterRuleActionSystemAdapter, action)
       if (placement)
@@ -287,11 +291,7 @@ function creatureLines(creatureIndex: number): Line[] {
     spells: new Map()
   })
   const found: Found[] = []
-  collectEffects(
-    creature,
-    { label: creature.label, spellLevel: undefined, concentration: false },
-    found
-  )
+  collectEffects(creature, { label: creature.label, spellLevel: undefined, attributes: [] }, found)
   return found.map(({ effect, label }) => {
     const capability = discovery.available.find((candidate) => candidate.effectId === effect.id)
     const outcome = capability
@@ -311,7 +311,7 @@ function goldenLines(): Line[] {
     ...creatures.flatMap((_creature, index) => creatureLines(index)),
     ...Object.entries(characterSubjects).flatMap(([subject, records]) => {
       const found: Found[] = []
-      collectEffects(records, { label: '', spellLevel: undefined, concentration: false }, found)
+      collectEffects(records, { label: '', spellLevel: undefined, attributes: [] }, found)
       return found.flatMap((entry) => characterLines(entry, `CHARACTER:${subject}`))
     })
   ]

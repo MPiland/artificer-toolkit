@@ -131,13 +131,17 @@ export function spellComponentsLabel(
     : letters
 }
 
+/** An Effect a Character activates as an action, as against a passive trait that is never offered. */
+export const isActivatedEffect = (effect: { invocation: { kind: string } }) =>
+  effect.invocation.kind !== 'PASSIVE'
+
 /**
  * The Effect groups a cast of the spell runs, one action each. One cast action runs one group, so a
  * spell with several is offered only when each group is a reaction of its own (Shield answering an
  * attack, and answering Magic Missile); any other multi-group spell has none.
  */
 export function castableEffectGroups(spell: CompiledSpell): readonly CompiledEffectGroup[] {
-  const effects = (spell.effects ?? []).filter((effect) => effect.invocation.kind !== 'PASSIVE')
+  const effects = (spell.effects ?? []).filter(isActivatedEffect)
   return effects.length > 1 &&
     !effects.every(
       ({ invocation }) => 'activation' in invocation && invocation.activation.code === 'REACTION'
