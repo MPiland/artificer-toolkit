@@ -205,6 +205,37 @@ export function planEncounterGrantTicks(input: {
   )
 }
 
+/**
+ * The placed zones a turn boundary counts a tick off: a timed zone no Concentration holds counts its
+ * duration on its source's turns from placement, as a grant counted on its source does, and ends
+ * with its last tick. Each of a zone's records counts on its own and ends at the same boundary.
+ */
+export function planEncounterZoneTicks<
+  Zone extends Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>
+>(input: {
+  stage: TurnEffectBoundary['stage']
+  turnActorId: string
+  zones: readonly Zone[]
+}): Array<{ kind: 'EXPIRE'; zone: Zone } | { kind: 'UPDATE'; zone: Zone; remainingTicks: number }> {
+  const { ended, countedDown } = discoverEncounterEventHooks({
+    effects: input.zones.filter(
+      ({ definition: { recurrence, origin } }) =>
+        recurrence.expiration.kind === 'TICKS' &&
+        origin.kind === 'ENCOUNTER' &&
+        origin.sourceActorId === input.turnActorId
+    ),
+    events: [{ kind: 'TURN_BOUNDARY', stage: input.stage }]
+  })
+  return [
+    ...ended.map((zone) => ({ kind: 'EXPIRE' as const, zone })),
+    ...countedDown.map(({ effect, remainingTicks }) => ({
+      kind: 'UPDATE' as const,
+      zone: effect,
+      remainingTicks
+    }))
+  ]
+}
+
 const ATTACK_ROLL_RESULT_PATHS: readonly string[] = ['ON_HIT', 'ON_MISS', 'ON_CRIT']
 
 /** Whether a settled action's d20s hold an attack roll its source made against a creature hostile to it. */
