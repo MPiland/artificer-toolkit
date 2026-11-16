@@ -65,7 +65,10 @@ import {
   sumCurrencyBalances,
   toCurrencyAmount
 } from './sheetCurrency.js'
-import { applySpellSlotExchange, planSpellSlotExchange } from './sheetSpellSlotExchange.js'
+import {
+  applySpellSlotExchange,
+  planSpellSlotExchange
+} from '../systems/dnd5e/spellSlotExchange.js'
 export type SheetSpell = ReducerSheetResponseDto['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
 export type SheetSpellSlot = ReducerSheetResponseDto['spells']['slots'][number]
