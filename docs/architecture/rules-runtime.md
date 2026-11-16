@@ -3864,7 +3864,9 @@ reinstated: a caster whose stamped grants all sit on Characters outside the Run.
 
 **Listing and ending (D99 Q2 A, SPELLS-5.8).** `listActiveGrantListings` lists a holder's grants (label,
 whether the source was hidden, the Encounter actor whose action gave it, rounds left or the carried expiry
-minute, and its polarity); `hideActiveGrantSources` nulls a hidden source's label and source actor for everyone
+minute, and its polarity), one row per effect: its `MODIFIER_GRANT`, else its `PLAY_ABSENCE`, each of which
+freezes the source label and hidden flag at creation (QUALITY-15.T3af), so the GM sees and can end a removal
+from play (Imprisonment) on a Character or a Creature. A removal grants no modifier and lists as NEUTRAL; `hideActiveGrantSources` nulls a hidden source's label and source actor for everyone
 but the GM and keeps the polarity (D110); it also nulls a source actor the player's projection does not
 list (ATTACK-17.3), so the id never reveals an unseen actor, and the Sheet, which lists no actors, names none.
 The VTT token status list names another actor's grant by that

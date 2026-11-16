@@ -75,7 +75,9 @@ async function seeded() {
           lifecycle: {},
           rounds: 10
         }).definition,
-        stateContributions: [{ kind: 'PLAY_ABSENCE', keepsTurn }]
+        stateContributions: [
+          { kind: 'PLAY_ABSENCE', keepsTurn, sourceLabel: 'Banishment', sourceHidden: false }
+        ]
       },
       lifecycle: { schemaVersion: 1, remainingTicks: 10 },
       occurredAt: OCCURRED_AT
@@ -186,7 +188,12 @@ describe('the removal effect and the holder absence (SPELLS-4.T2h1, D178)', () =
               child: {
                 frozenGraphNodeId: base.frozenGraphNodeId,
                 frozenGraph: base.frozenGraph,
-                playAbsence: { kind: 'PLAY_ABSENCE', keepsTurn }
+                playAbsence: {
+                  kind: 'PLAY_ABSENCE',
+                  keepsTurn,
+                  sourceLabel: 'Blink',
+                  sourceHidden: false
+                }
               }
             }
           }
