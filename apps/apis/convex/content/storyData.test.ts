@@ -33,6 +33,7 @@ import {
   REVIEW_STORY_OPEN_HOST,
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
+  REVIEW_STORY_SHOVE_HOST,
   REVIEW_STORY_SHOWING_HOST,
   STORY_CAMPAIGN,
   STORY_CHARACTERS,
@@ -41,6 +42,7 @@ import {
   STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
   STORY_RECORDS,
+  STORY_SHOVE_CAMPAIGN,
   STORY_SHOWING_CAMPAIGN,
   STORY_ZONES,
   STORY_SOCIAL
@@ -88,6 +90,12 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     email: `${REVIEW_STORY_OPEN_HOST.username.toLowerCase()}@example.invalid`
   })
   const roomOpenHost = roomDevelopmentClient(openHostUser.caller)
+  // So has the Campaign whose Run waits on the reader's forced-movement pick.
+  const shoveHostUser = await createPartyUser(t, {
+    username: REVIEW_STORY_SHOVE_HOST.username,
+    email: `${REVIEW_STORY_SHOVE_HOST.username.toLowerCase()}@example.invalid`
+  })
+  const roomShoveHost = roomDevelopmentClient(shoveHostUser.caller)
   const room: StoryRoom = {
     checkpoint: async (campaignId) => {
       await checkpointRoom(campaignId)
@@ -97,6 +105,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       roomReader.closeRooms()
       roomHost.closeRooms()
       roomOpenHost.closeRooms()
+      roomShoveHost.closeRooms()
       await closeRoom(campaignId)
     }
   }
@@ -122,6 +131,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     [REVIEW_STORY_READER.key]: reader,
     [REVIEW_STORY_HOST.key]: roomHost,
     [REVIEW_STORY_OPEN_HOST.key]: roomOpenHost,
+    [REVIEW_STORY_SHOVE_HOST.key]: roomShoveHost,
     [REVIEW_STORY_SHOWING_HOST.key]: showingHost,
     [REVIEW_STORY_PEER.key]: await stranger(REVIEW_STORY_PEER),
     [REVIEW_STORY_BLOCKED.key]: await stranger(REVIEW_STORY_BLOCKED),
@@ -183,6 +193,7 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     REVIEW_STORY_READER.key,
     REVIEW_STORY_HOST.key,
     REVIEW_STORY_OPEN_HOST.key,
+    REVIEW_STORY_SHOVE_HOST.key,
     REVIEW_STORY_SHOWING_HOST.key,
     REVIEW_STORY_PEER.key,
     REVIEW_STORY_BLOCKED.key,
@@ -347,14 +358,14 @@ it('gives the story account an active copy and a copy with a waiting draft per d
       .sort()
   }))
   expect(bindings).toEqual({
-    scenes: 3,
+    scenes: 4,
     tokens: [
       reviewId(`${STORY_CAMPAIGN.slug}-scene-enemy-token`),
       reviewId(`${STORY_PLAYER_CAMPAIGN.slug}-scene-enemy-token`),
-      reviewId(`${STORY_OPEN_CAMPAIGN.slug}-scene-enemy-token`),
-      ...STORY_OPEN_CAMPAIGN.creatures.map((_, index) =>
-        reviewId(`${STORY_OPEN_CAMPAIGN.slug}-scene-creature-${index}-token`)
-      )
+      ...[STORY_OPEN_CAMPAIGN, STORY_SHOVE_CAMPAIGN].flatMap(({ slug, creatures }) => [
+        reviewId(`${slug}-scene-enemy-token`),
+        ...creatures.map((_, index) => reviewId(`${slug}-scene-creature-${index}-token`))
+      ])
     ].sort()
   })
 
@@ -458,7 +469,45 @@ it('gives the story account an active copy and a copy with a waiting draft per d
     (await roomOpenHost.query(api.encounters.activeReads.active, { campaignId: openCampaignId }))
       .auras
   ).toHaveLength(2)
-  // The reader watches a fourth Campaign's GM show a Scene, with no Run: the shown-scene viewer.
+  // In a fourth Campaign the reader's Wolf shoved the Goblin aside and the Run waits on the reader to
+  // pick where it lands (D157): the board picker the tabletop stories answer.
+  const shoveCampaigns = (await t.run((ctx) => ctx.db.query('campaigns').collect())).filter(
+    ({ name }) => name === STORY_SHOVE_CAMPAIGN.name
+  )
+  expect(shoveCampaigns).toHaveLength(1)
+  const shoveCampaignId = shoveCampaigns[0]!.id
+  expect(shoveCampaigns[0]!.ownerUserId).toBe(shoveHostUser.userId)
+  expect(await activeMemberUserIds(shoveCampaignId)).toEqual(
+    [first.userId, shoveHostUser.userId].sort()
+  )
+  expect(
+    (await reader.query(api.encounters.projectionReads.list, { campaignId: shoveCampaignId })).map(
+      ({ status }) => status
+    )
+  ).toEqual(['ACTIVE'])
+  const shoveActors =
+    (await roomShoveHost.query(api.encounters.activeReads.active, { campaignId: shoveCampaignId }))
+      .encounter?.actors ?? []
+  const [shover, shoved] = [
+    STORY_SHOVE_CAMPAIGN.shove.shover,
+    STORY_SHOVE_CAMPAIGN.shove.target
+  ].map((index) => {
+    const { sourceId } = STORY_SHOVE_CAMPAIGN.creatures[index]!.enemy
+    return shoveActors.find((actor) => actor.kind === 'CREATURE' && actor.sourceId === sourceId)
+  })
+  expect(shover?.controllerUserIds).toEqual([first.userId])
+  const shovePending = (
+    await reader.query(api.encounters.activeReads.active, { campaignId: shoveCampaignId })
+  ).pending
+  expect(shovePending).toMatchObject({
+    kind: 'FORCED_MOVEMENT_DESTINATION',
+    sourceActorId: shover?.id,
+    targetActorId: shoved?.id
+  })
+  expect(
+    shovePending?.kind === 'FORCED_MOVEMENT_DESTINATION' ? shovePending.positions.length : 0
+  ).toBeGreaterThan(1)
+  // The reader watches a fifth Campaign's GM show a Scene, with no Run: the shown-scene viewer.
   const showingCampaigns = (await t.run((ctx) => ctx.db.query('campaigns').collect())).filter(
     ({ name }) => name === STORY_SHOWING_CAMPAIGN.name
   )
