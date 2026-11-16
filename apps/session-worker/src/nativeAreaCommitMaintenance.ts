@@ -3,7 +3,8 @@ import { type EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { buildEncounterMaintenanceTransition } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import {
   planEncounterPlacedZone,
-  planEncounterZoneBands
+  planEncounterZoneBands,
+  planEncounterZoneLayers
 } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
@@ -44,11 +45,12 @@ export async function prepareAreaCommitMaintenance(args: {
       movementTargets.get(carrier.id) ?? input.loadTarget(carrier)
   })
   const removedIds = new Set(maintenance?.removed.map((effect) => effect.id))
-  // The zone's own record, then one per band beside its wall (D154), all in the cast's maintenance.
-  // They are named before the outcomes, so the hold a failed appear save leaves names its zone.
-  const zoneIds = placement
-    ? [crypto.randomUUID(), ...placement.regions.map(() => crypto.randomUUID())]
-    : []
+  // The zone's own record, then one per band beside its wall (D154) or per later layer (D223), all
+  // in the cast's maintenance. They are named before the outcomes, so the hold a failed appear save
+  // leaves names its zone.
+  const bandIds = placement ? placement.regions.map(() => crypto.randomUUID()) : []
+  const layerIds = (placement?.zone.layerComponents ?? []).map(() => crypto.randomUUID())
+  const zoneId = crypto.randomUUID()
   const planZones = (maintainedEffectStateId: string | null) => {
     if (!placement) return []
     const zoneInput = {
@@ -67,12 +69,9 @@ export async function prepareAreaCommitMaintenance(args: {
       unaffectedActorIds: placement.unaffectedActorIds
     }
     return [
-      planEncounterPlacedZone({ ...zoneInput, id: zoneIds[0]! }),
-      ...planEncounterZoneBands({
-        ...zoneInput,
-        ids: zoneIds.slice(1),
-        regions: placement.regions
-      })
+      planEncounterPlacedZone({ ...zoneInput, id: zoneId }),
+      ...planEncounterZoneBands({ ...zoneInput, ids: bandIds, regions: placement.regions }),
+      ...planEncounterZoneLayers({ ...zoneInput, ids: layerIds })
     ]
   }
   const holdingZone = placement?.zone.heldCondition

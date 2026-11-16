@@ -74,7 +74,30 @@ export function planEncounterPlacedZone(
     input.id,
     zone,
     zoneAnchor(zone.attachment, area, point, input.sourceToken),
-    input.distanceStep
+    {
+      ...(input.distanceStep !== undefined ? { distanceStep: input.distanceStep } : {}),
+      // A layered zone's own record is its first layer (D223).
+      ...(zone.layerComponents ? { layerIndex: 1 } : {})
+    }
+  )
+}
+
+/**
+ * The records a layered zone's later layers place over the zone's own area (D223), one per layer in
+ * order with the id at its index: each sits where the zone does and is numbered after the zone's own
+ * record, its first layer, so a creature meeting the zone is put through them in order.
+ */
+export function planEncounterZoneLayers(
+  input: PlacedZoneInput & { ids: readonly string[] }
+): LiveSessionPlacedSpatialEffect[] {
+  const { zone, point, area } = input
+  const layers = zone.layerComponents ?? []
+  if (layers.length !== input.ids.length) throw new Error('Each later layer of a zone has its id.')
+  if (!layers.length) return []
+  if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
+  const anchor = zoneAnchor(zone.attachment, area, point, input.sourceToken)
+  return layers.map((layer, index) =>
+    placedZoneRecord(input, input.ids[index]!, layer, anchor, { layerIndex: index + 2 })
   )
 }
 
@@ -147,7 +170,7 @@ function placedZoneRecord(
       'retaliatesMeleeHits' | 'occupantSaveBonus' | 'occupantConditionImmunity' | 'camouflage'
     >,
   anchor: ReturnType<typeof zoneAnchor>,
-  distanceStep?: number
+  { distanceStep, layerIndex }: { distanceStep?: number; layerIndex?: number } = {}
 ): LiveSessionPlacedSpatialEffect {
   const { entry, grant, heldCondition } = zone
   const pinnedDc = entry.castSaveDcFactKey
@@ -206,6 +229,7 @@ function placedZoneRecord(
       // A creature teleporting travels no distance through a zone acting per distance moved.
       movementKinds: distanceStep ? ['VOLUNTARY', 'FORCED'] : ['VOLUNTARY', 'FORCED', 'TELEPORT'],
       ...(distanceStep ? { distanceStep } : {}),
+      ...(layerIndex !== undefined ? { layerIndex } : {}),
       activation: 'REPEATABLE',
       visibility: 'PUBLIC',
       revealOnTrigger: false,

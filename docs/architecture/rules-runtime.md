@@ -1452,6 +1452,20 @@ no band must not (`evaluateEncounterZoneTarget`: `SIDE_REQUIRED`, `SIDE_NOT_OFFE
 band as its own FIXED record (`planEncounterZoneBands`, geometry from `wallSideBandGeometry`: the wall plus the
 distance on that side), so every record a cast places is named on its root, removed by undo and ended with its
 Concentration together.
+A zone authoring `componentsMustResolveInOrder` is layered instead (D223, amending D154; QUALITY-15.T3v1): it has 2
+to `MAX_ZONE_LAYERS` components, none with a region, each a layer covering the zone's own shape. The first compiles
+to the zone's own record and each later one to `zonePlacement.layerComponents` (its own label, triggers and frozen
+entry, sharing the zone's Concentration if any). A layered zone is a `PLACED_SPACE` zone whose every layer has one
+behavior and none acts per distance moved (`placedSpaceZone`, `zonePlacementPlan`). The Worker places one record per
+layer on the zone's anchor (`planEncounterZoneLayers`), each with its 1-based `placement.layerIndex` (the zone's own
+record is layer 1), so the layers are named on the root, undone and ended together. A creature meeting the zone meets
+every layer at the same path distance; `compareSpatialMovementCandidates` (and the pending-candidate order,
+`compareSpatialPendingCandidates`) settles co-located candidates by `layerIndex` before effect id, and turn
+candidates sort the same way, so a crossing runs the layers in authored order rather than by random record id. A
+manifest's `designatedCreatureImmunity` compiles to the zone's `choosesUnaffected` (the caster designates spared
+creatures at cast; every layer record spares them). `suppressionImmunities: ['ANTIMAGIC_FIELD']` is accepted as
+satisfied: no antimagic suppression exists, so nothing can suppress the zone. Destroying layers, the proximity rule,
+light, the occupied-placement refusal and timed expiry of a zone with no Concentration are later slices.
 A zone-placing cast may also author an ON_USE `SAVING_THROW` behavior beside the zone manifest (D154 amendment,
 SPELLS-4.T1g): the save each creature in the area makes once as the zone appears. The entry-point compiler runs it
 as the cast's `TEST_OUTCOME` plan against the zone's aimed area (the wall or ring itself, never its band; its compiler

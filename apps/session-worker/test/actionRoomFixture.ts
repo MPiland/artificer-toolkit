@@ -733,6 +733,7 @@ export async function actionRoom(config: ActionRoomConfig) {
             kind: 'POINT'
             point: { x: number; y: number }
             unaffectedActorIds?: string[]
+            choiceOptionId?: string
             /** The summon form and creature type a summon that authors forms takes. */
             formId?: string
             creatureTypeId?: string
