@@ -81,7 +81,7 @@ export const weird: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.WEIRD, 0x213, 1) + '__result',
+            id: spellChildId(SPELL_IDS.WEIRD, 0x215, 1),
             resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.WEIRD, 0x214, 1),

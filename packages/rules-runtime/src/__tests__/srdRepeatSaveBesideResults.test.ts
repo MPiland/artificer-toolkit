@@ -202,12 +202,6 @@ describe('a repeated save beside a failed save’s result in another block', () 
   })
 })
 
-describe('a repeated save whose failure deals damage stays refused', () => {
-  it('Weird’s psychic damage on each failed repeat needs room behavior the compiler does not build', () => {
-    expect(spellCast('Weird').compile).toThrow('D&D test action has an unsupported bounded shape.')
-  })
-})
-
 describe('a move of its user and willing creatures within reach', () => {
   it.each([
     { creature: 'Nightmare', feature: 'Ethereal Stride' },

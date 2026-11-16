@@ -76,7 +76,7 @@ export const phantasmalKiller: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.PHANTASMAL_KILLER, 0x213, 1) + '__result',
+            id: spellChildId(SPELL_IDS.PHANTASMAL_KILLER, 0x215, 1),
             resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.PHANTASMAL_KILLER, 0x214, 1),
