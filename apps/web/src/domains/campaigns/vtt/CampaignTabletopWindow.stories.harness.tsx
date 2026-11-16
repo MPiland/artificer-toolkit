@@ -82,14 +82,6 @@ const defaultTabletopFixtures: TabletopFixtures = {
   playerEncounter: tabletopPlayerEncounter
 }
 
-// Replaces the room's presented Scene with a later state, as a Scene edit does mid-session.
-let pushStoryScene: ((scene: CampaignSceneStateDto) => void) | null = null
-
-export function syncStoryScene(scene: CampaignSceneStateDto): void {
-  if (!pushStoryScene) throw new Error('The story live session transport is not installed.')
-  pushStoryScene(scene)
-}
-
 export function renderWindow(
   args: ComponentProps<typeof CampaignTabletopWindow>,
   campaign: CampaignDetailDto,
@@ -462,18 +454,6 @@ function StoryLiveSessionTransport({
 
       constructor() {
         super()
-        pushStoryScene = (scene) =>
-          this.dispatchEvent(
-            new MessageEvent('message', {
-              data: JSON.stringify(
-                validated(liveSessionWebSocketServerMessageDtoSchema)({
-                  ...stateSyncMessage,
-                  sequence: stateSyncMessage.sequence + 1,
-                  state: { ...state, scene }
-                })
-              )
-            })
-          )
         queueMicrotask(() => {
           if (this.readyState !== 0) return
           this.readyState = 1
@@ -541,7 +521,6 @@ function StoryLiveSessionTransport({
     Reflect.set(globalThis, 'WebSocket', StoryWebSocket)
     setInstalled(true)
     return () => {
-      pushStoryScene = null
       Reflect.set(globalThis, 'WebSocket', originalWebSocket)
     }
   }, [encounterResult, state])
