@@ -84,19 +84,16 @@ export const ConfiguredScene: Story = {
     const begins = writesTo(api.scenes.definitions.begin).map((write) =>
       beginSceneDefinitionInputSchema.parse(write)
     )
-    await expect(begins).toEqual([
-      expect.objectContaining({
-        sceneId: expect.any(String),
-        expectedVersion: expect.any(Number),
-        counts: {
-          annotations: 0,
-          barriers: board.barriers.length + 1,
-          darknessZones: 0,
-          lights: board.lights.length,
-          tokens: 2
-        }
-      })
-    ])
+    await expect(begins).toHaveLength(1)
+    await expect(begins[0]!.settings.name).toBe(sceneName)
+    await expect(begins[0]!.expectedVersion).toBeGreaterThan(0)
+    await expect(begins[0]!.counts).toEqual({
+      annotations: 0,
+      barriers: board.barriers.length + 1,
+      darknessZones: 0,
+      lights: board.lights.length,
+      tokens: 2
+    })
     const commandId = begins[0]!.commandId
     const appended = writesTo(api.scenes.definitions.append).map((write) =>
       appendSceneDefinitionInputSchema.parse((write as { input: unknown }).input)
