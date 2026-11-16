@@ -3869,10 +3869,15 @@ source (a mark reads "Mark from <marker>", VTT_UI-1.3).
 Polarity is BENEFICIAL or HARMFUL only when every piece of the grant reads that way for its holder, otherwise
 NEUTRAL; it is derived from the frozen modifiers and senses, never authored, and the VTT status ring colours by it. Encounter actors carry them as `activeGrants`
 (none on a COMPLETED Run, which reads no effects), shown on the token, the turn tracker and the drawer; the
-Sheet overview carries them too. The Campaign owner ends one by hand: a Character's through
-`END_ACTIVE_EFFECT` (gated on Campaign ownership, not on the Sheet viewer, so it works on the GM's own
-Character per D92; a maintained grant is refused, end its Concentration instead) and a Creature's through
-`UPDATE_ACTOR.endActiveEffectId`. Ending a grant has no GM undo.
+Sheet overview carries them too. The Campaign owner ends an active effect by hand, of any kind, under one
+rule (`isEndableByHand`, QUALITY-15.T3ae): any effect but one a Concentration maintains, which ends only
+with that Concentration. A Character's ends through `END_ACTIVE_EFFECT` (gated on Campaign ownership, not
+on the Sheet viewer, so it works on the GM's own Character per D92) and a Creature's through
+`UPDATE_ACTOR.endActiveEffectId` (`endEncounterActorEffect`). Both end through the effect store's
+`deleteCas`, so its end hooks run (a removal from play ends, `syncPlayAbsence`). Each listing carries
+`endable` from the same rule, and the drawer and Sheet offer End only on an endable grant. Only grants are
+listed: an effect with no grant (a removal from play) carries no label to list it by. Ending an effect has
+no GM undo.
 
 **Hit grants and reactions (D99).** An attack's `ON_HIT` or `ON_CRIT` `APPLY_GRANT` stays out of the
 two-phase TEST/OUTCOME graphs, like an on-hit relationship: `modifierGrantPlan` makes it the attack's one
