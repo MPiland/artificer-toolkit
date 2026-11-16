@@ -8,6 +8,7 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -80,7 +81,15 @@ export const magnificentMansion: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.MAGNIFICENT_MANSION, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Magnificent Mansion entrance',
+                // "The entrance shimmers faintly and is 5 feet wide and 10 feet tall"
+                shape: {
+                  id: spellChildId(SPELL_IDS.MAGNIFICENT_MANSION, 0x214, 1),
+                  shapeKind: SHAPE_KIND.CYLINDER,
+                  radius: { amount: 2.5, unit: MEASUREMENT_UNIT_CODE.FEET },
+                  height: { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }
