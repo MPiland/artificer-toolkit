@@ -17,10 +17,9 @@ import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
-import {
-  encounterRelationships,
-  type EncounterRelationshipActiveEffectsByActorId
-} from './encounterRelationshipActionFacts.js'
+import type { EncounterRelationshipActiveEffectsByActorId } from './encounterRelationshipActionFacts.js'
+import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
+import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
 import {
   encounterActorsWithinReach,
   type EncounterReachScene
@@ -48,7 +47,8 @@ type EncounterEscapeCheckPendingContextDto = ReturnType<
 
 /**
  * A fixed-DC escape the held creature itself may attempt (D105, D146). `escapeSourceId` is the
- * relationship's escape module or the zone holding a condition, and `zoneLabel` names that zone.
+ * relationship's escape module, the zone holding a condition, or the check outcome the effect's
+ * condition escape compiles from; `zoneLabel` names the zone, null for the others.
  */
 export type EncounterHolderEscape = {
   escapeSourceId: string
@@ -85,6 +85,40 @@ function fixedEscapeFromModules(
 }
 
 /**
+ * The fixed-DC escape one contribution of an effect offers `actorKind`, or null: a relationship's
+ * escape module, or the effect's condition escape. A zone's condition escape names the zone holding
+ * the condition (`heldBySpatialEffectId`) and is offered to the held creature only.
+ */
+function contributionEscape(
+  contribution: EffectDefinition['stateContributions'][number],
+  heldBySpatialEffectId: string | undefined,
+  actorKind: EscapeActorKind
+): EncounterHolderEscape | null {
+  if (contribution.kind === 'ACTOR_RELATIONSHIP')
+    return fixedEscapeFromModules(contribution.modules, actorKind)
+  if (contribution.kind !== 'CONDITION_ESCAPE') return null
+  const { escapeOutcome } = contribution
+  const escapeSourceId = escapeOutcome?.outcomeId ?? heldBySpatialEffectId
+  if (!escapeSourceId || !(escapeOutcome?.actorKinds ?? ['TARGET']).includes(actorKind)) return null
+  return {
+    escapeSourceId,
+    activation: contribution.activation,
+    checks: contribution.checks,
+    dc: contribution.dc,
+    zoneLabel: escapeOutcome ? null : contribution.label
+  }
+}
+
+/** The zone holding one of the effect's conditions, which its condition escape names (D146). */
+function heldBySpatialEffect(effect: Pick<ActiveRuleEffectRecord, 'definition'>) {
+  return effect.definition.stateContributions.flatMap((held) =>
+    held.kind === 'CONDITION_OWNERSHIP' && held.heldBySpatialEffectId
+      ? [held.heldBySpatialEffectId]
+      : []
+  )[0]
+}
+
+/**
  * The fixed-DC escape an effect offers `actorKind`, or null: the held creature itself (`TARGET`,
  * the default) may also break a zone's hold, which a rescuer may not. A CONTEST DC is attempted
  * elsewhere, and only by the held creature.
@@ -93,55 +127,53 @@ export function findEncounterHolderEscape(
   effect: Pick<ActiveRuleEffectRecord, 'definition'>,
   actorKind: EscapeActorKind = 'TARGET'
 ): EncounterHolderEscape | null {
-  const { stateContributions } = effect.definition
-  const heldBySpatialEffectId = stateContributions.flatMap((held) =>
-    held.kind === 'CONDITION_OWNERSHIP' && held.heldBySpatialEffectId
-      ? [held.heldBySpatialEffectId]
-      : []
-  )[0]
-  for (const contribution of stateContributions) {
-    if (contribution.kind === 'CONDITION_ESCAPE' && heldBySpatialEffectId && actorKind === 'TARGET')
-      return {
-        escapeSourceId: heldBySpatialEffectId,
-        activation: contribution.activation,
-        checks: contribution.checks,
-        dc: contribution.dc,
-        zoneLabel: contribution.label
-      }
-    if (contribution.kind !== 'ACTOR_RELATIONSHIP') continue
-    const escape = fixedEscapeFromModules(contribution.modules, actorKind)
+  const heldBySpatialEffectId = heldBySpatialEffect(effect)
+  for (const contribution of effect.definition.stateContributions) {
+    const escape = contributionEscape(contribution, heldBySpatialEffectId, actorKind)
     if (escape) return escape
   }
   return null
 }
 
 /**
- * The holds `actorId` may break for another creature (ATTACK-7.9): a fixed-DC escape whose module
- * allows `CREATURE_WITHIN_REACH`, on a creature that stands within the reach the hold sealed, and
- * not a hold `actorId` applied itself (letting go of your own hold is a release). A pair the Scene
- * does not place is not offered. A CONTEST DC is not offered to a rescuer.
+ * The holds `actorId` may break for another creature (ATTACK-7.9): a fixed-DC escape that allows
+ * `CREATURE_WITHIN_REACH`, on a creature that stands within reach, and not a hold `actorId` applied
+ * itself (letting go of your own hold is a release). A relationship's reach is the one the hold
+ * sealed; for a condition escape it is the rescuer's own, a Touch action's. A pair the Scene does
+ * not place is not offered. A CONTEST DC is not offered to a rescuer.
  */
 export function findEncounterRescues(input: {
   actorId: string
   activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId
   scene: EncounterReachScene | null
 }) {
-  return encounterRelationships(input.activeEffectsByActorId).flatMap(
-    ({ sourceActorId, actorId: heldActorId, effect, contribution }) => {
-      const escape = fixedEscapeFromModules(contribution.modules, 'CREATURE_WITHIN_REACH')
-      return escape &&
-        heldActorId !== input.actorId &&
-        sourceActorId !== input.actorId &&
-        encounterActorsWithinReach(
-          input.scene,
-          input.actorId,
-          heldActorId,
-          contribution.sealedReachFeet
-        )
-        ? [{ heldActorId, sourceActorId, effect, ...escape }]
-        : []
-    }
-  )
+  return [...input.activeEffectsByActorId]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([heldActorId, effects]) =>
+      effects.flatMap((effect) => {
+        const { origin } = effect.definition
+        const sourceActorId = origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null
+        if (heldActorId === input.actorId || sourceActorId === input.actorId) return []
+        const heldBySpatialEffectId = heldBySpatialEffect(effect)
+        return effect.definition.stateContributions.flatMap((contribution) => {
+          // A relationship no actor applied has no source to hold it.
+          if (contribution.kind === 'ACTOR_RELATIONSHIP' && !sourceActorId) return []
+          const escape = contributionEscape(
+            contribution,
+            heldBySpatialEffectId,
+            'CREATURE_WITHIN_REACH'
+          )
+          const reachFeet =
+            contribution.kind === 'ACTOR_RELATIONSHIP'
+              ? contribution.sealedReachFeet
+              : lengthMeasurementInFeet(TOUCH_RANGE)
+          return escape &&
+            encounterActorsWithinReach(input.scene, input.actorId, heldActorId, reachFeet)
+            ? [{ heldActorId, sourceActorId, effect, ...escape }]
+            : []
+        })
+      })
+    )
 }
 
 /**

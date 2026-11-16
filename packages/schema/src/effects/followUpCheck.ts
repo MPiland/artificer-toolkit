@@ -1,6 +1,7 @@
 import { convexOpaqueSchema, z } from '../zod.js'
 
 import { activationDtoSchema } from './activation.js'
+import { escapeActorKindsDtoSchema } from './check.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -29,9 +30,7 @@ export function createFollowUpCheckDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
     fixedDc: z.number().check(z.int()).check(z.positive()),
     skillId: z.optional(authoredIdentifierSchema),
     toolEquipmentId: z.optional(authoredIdentifierSchema),
-    actorKinds: authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).check(
-      z.minLength(1)
-    ),
+    actorKinds: escapeActorKindsDtoSchema,
     repeatable: z.boolean(),
     onSuccess: branchDtoSchema,
     onFailure: branchDtoSchema

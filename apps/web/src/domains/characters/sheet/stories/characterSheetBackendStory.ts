@@ -1,5 +1,5 @@
 import { getFunctionName } from 'convex/server'
-import { expect, userEvent, within } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   characterSheetSliceReadResultDtoSchema,
@@ -11,6 +11,7 @@ import {
   type CharacterSheetPanelDto
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { StoryQueryOverride } from '#app/test/storybook/storyQueryOverride'
+import { writesTo } from '#app/test/storybook/storyWrites'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import { Route } from '#routes/_authed/characters/$characterPublicId/$characterSlug/index'
 import { STORY_CHARACTERS } from '../../../../../../apis/tests/developmentReviewDataScenarios'
@@ -117,4 +118,48 @@ export function abilityPanelOverride(
       return characterSheetPanelDtoSchema.parse(derive(panel))
     }
   }
+}
+
+/** Opens a Character's Sheet, then one of its rest dialogs. */
+export async function opensRestDialog(
+  canvasElement: HTMLElement,
+  character: StoryCharacter,
+  restName: 'Short Rest' | 'Long Rest'
+) {
+  await findSeededSheetCharacter(canvasElement, character)
+  await userEvent.click(await within(canvasElement).findByRole('button', { name: restName }))
+  return within(canvasElement.ownerDocument.body).findByRole('dialog', { name: restName })
+}
+
+/** Adds a d10 and a d6 hit die to the seeded multiclass's Short Rest, which leaves its roll and rest buttons ready. */
+export async function addsMulticlassHitDice(canvasElement: HTMLElement) {
+  const dialog = await opensRestDialog(canvasElement, STORY_CHARACTERS.multiclass, 'Short Rest')
+  await expect(
+    await within(dialog).findByLabelText('Remove the current Max HP adjustment')
+  ).toBeInTheDocument()
+  await userEvent.click(await within(dialog).findByRole('button', { name: 'Add one d10 hit die' }))
+  const addD6 = within(dialog).getByRole('button', { name: 'Add one d6 hit die' })
+  await waitFor(() => expect(addD6).toBeEnabled())
+  await userEvent.click(addD6)
+  await waitFor(() =>
+    expect(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d6 + 2' })).toBeVisible()
+  )
+  await waitFor(() =>
+    expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
+  )
+  return dialog
+}
+
+/** Rolls the dice the Short Rest dialog offers, which the story spies and records as a write. */
+export async function rollsHitDice(dialog: HTMLElement, expression: string, label: string) {
+  await userEvent.click(within(dialog).getByRole('button', { name: `Roll ${expression}` }))
+  await waitFor(() =>
+    expect(writesTo(api.rolls.execute)).toEqual([
+      {
+        characterId: expect.any(String),
+        expression,
+        source: { kind: 'HIT_DIE', label }
+      }
+    ])
+  )
 }

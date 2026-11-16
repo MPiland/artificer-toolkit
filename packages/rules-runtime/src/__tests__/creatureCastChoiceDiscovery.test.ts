@@ -1,10 +1,7 @@
 import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import {
-  buildCompiledActionTargetPolicy,
-  compileCastChoicePlans
-} from '../encounterActionEntryPointCompiler.js'
+import { compileCastChoicePlans } from '../encounterActionEntryPointCompiler.js'
 import { castChoiceOptions, pickedCastChoiceEffect } from '../encounterCastChoice.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
@@ -85,8 +82,7 @@ describe('Creature discovery compiles a cast pick per option (SPELLS-33.T3a6, D1
       )!
       const { choice, executionPlan } = compileCastChoicePlans(
         dnd5eCharacterRuleActionSystemAdapter,
-        capability,
-        buildCompiledActionTargetPolicy(capability)
+        capability
       )
       const [damage, grapple] = choice!.options
       expect(damage).toMatchObject({ label: 'Damage', activeEffectPlan: null })

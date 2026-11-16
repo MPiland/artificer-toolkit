@@ -13,11 +13,14 @@ import {
   DND5E_SAVE_DC_FACT_KEY,
   UUID
 } from './effectActionContracts.js'
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from './identity.js'
 
-export type FollowUpSaveOutcome = Extract<
-  Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>['outcome'],
-  { effectKind: 'FOLLOW_UP_SAVE' }
->
+type FollowUpOutcome = Extract<
+  CompiledEffectGroup['entries'][number],
+  { outcome: unknown }
+>['outcome']
+
+export type FollowUpSaveOutcome = Extract<FollowUpOutcome, { effectKind: 'FOLLOW_UP_SAVE' }>
 
 /**
  * The actor whose turns time an effect: its holder for an authored target anchor (or none), its
@@ -133,5 +136,36 @@ export function dnd5eRepeatSave(input: {
       })
     },
     castSaveDcFactKey: casterDc ? DND5E_SAVE_DC_FACT_KEY : null
+  }
+}
+
+/**
+ * The escape a held effect offers from an authored follow-up check that ends it on success and
+ * leaves it on failure, attempted as often as its activation is spent: its holder, or a creature
+ * within reach when the check allows, rolls the ability (or skill) check against the fixed DC. Null
+ * for any other check, which is not an escape, or one rolled with a tool.
+ */
+export function followUpCheckEscape(
+  outcome: Extract<FollowUpOutcome, { effectKind: 'FOLLOW_UP_CHECK' }>
+): NonNullable<CharacterRuleActionActiveEffectPlan['conditionEscapeContribution']> | null {
+  const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[outcome.ability]
+  if (
+    !outcome.repeatable ||
+    outcome.onSuccess.kind !== 'END' ||
+    outcome.onFailure.kind !== 'CONTINUE' ||
+    outcome.toolEquipmentId !== undefined ||
+    !UUID.test(outcome.id) ||
+    abilityDefinitionId === undefined ||
+    (outcome.skillId !== undefined && !UUID.test(outcome.skillId))
+  )
+    return null
+  return {
+    label: outcome.label,
+    activation: outcome.activation,
+    checks: outcome.skillId
+      ? { skillIds: [outcome.skillId], abilityDefinitionIds: [] }
+      : { skillIds: [], abilityDefinitionIds: [abilityDefinitionId] },
+    dc: outcome.fixedDc,
+    escapeOutcome: { outcomeId: outcome.id, actorKinds: [...outcome.actorKinds] }
   }
 }

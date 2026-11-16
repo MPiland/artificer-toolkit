@@ -291554,6 +291554,7 @@ export declare const api: {
                         };
                         kind: "CUBE";
                       };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   creatureTypes?: Array<{
                     id: string;
@@ -291631,6 +291632,7 @@ export declare const api: {
                         };
                       }
                     | { kind: "OWN_SPACE" };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "CASTER_CENTERED";
                 }
@@ -292876,6 +292878,7 @@ export declare const api: {
                         };
                         kind: "CUBE_FROM_SIDE";
                       };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   kind: "DIRECTED";
                 };
             warnings: Array<{
@@ -293342,6 +293345,7 @@ export declare const api: {
                         };
                         kind: "CUBE";
                       };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   creatureTypes?: Array<{
                     id: string;
@@ -293419,6 +293423,7 @@ export declare const api: {
                         };
                       }
                     | { kind: "OWN_SPACE" };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   choosesUnaffected?: true;
                   kind: "CASTER_CENTERED";
                 }
@@ -294664,6 +294669,7 @@ export declare const api: {
                         };
                         kind: "CUBE_FROM_SIDE";
                       };
+                  choiceOptions?: Array<{ id: string; label: string }>;
                   kind: "DIRECTED";
                 };
             warnings: Array<{

@@ -738,6 +738,8 @@ export async function actionRoom(config: ActionRoomConfig) {
             creatureTypeId?: string
             /** How many creatures a form conjured in groups stands for. */
             count?: number
+            /** The zone or option a cast-time pick names. */
+            choiceOptionId?: string
           }
         | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } }
         | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: string[]; choiceOptionId?: string }
