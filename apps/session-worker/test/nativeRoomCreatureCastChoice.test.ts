@@ -31,13 +31,13 @@ afterEach(() => {
 })
 
 /**
- * The Vampire Spawn claws a Wolf; its d20 shows 15 (a hit, not a critical), then its 2d4 show 3
- * and 3. Every later die draws `fallbackRoll`.
+ * The Vampire Spawn claws a Wolf; its d20 shows 15 (a hit, not a critical), then the dice show
+ * `laterFaces` (its 2d4 by default). Every die after them draws `fallbackRoll`.
  */
-function clawsRoom(fallbackRoll?: number) {
+function clawsRoom(laterFaces: readonly number[] = [3, 3], fallbackRoll?: number) {
   return actionRoom({
     autoRoll: 'BOTH',
-    rolls: [15, 3, 3].map(draw),
+    rolls: [15, ...laterFaces].map(draw),
     ...(fallbackRoll !== undefined && { fallbackRoll }),
     actors: [
       srdCreatureActor({ id: SPAWN_ID, creature: spawn }),
@@ -96,8 +96,8 @@ describe('a Creature action that picks its outcome at use (SPELLS-33.T3a6, D148)
   })
 
   it('holds the Grapple option’s target until it escapes against the printed DC 13 (QUALITY-15.T3s)', async () => {
-    // The Wolf's escape d20 shows 20.
-    const room = await clawsRoom(draw(20))
+    // The Grapple option rolls no damage; the Wolf's escape d20 shows 20.
+    const room = await clawsRoom([], draw(20))
     expect((await claw(room, 'Grapple')).conditions).toContain(GRAPPLED)
     await room.advanceTurn()
     const [hold] = (await room.actionChoices(TARGET_ID)).escapes
