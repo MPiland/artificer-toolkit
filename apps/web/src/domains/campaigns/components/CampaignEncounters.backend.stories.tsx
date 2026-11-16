@@ -84,7 +84,10 @@ export const DeleteEncounter: Story = {
     await selectPreparedRun(canvasElement)
     await userEvent.click(await canvas.findByRole('button', { name: 'Delete encounter' }))
     const dialog = within(await page.findByRole('dialog', { name: 'Delete encounter?' }))
-    await userEvent.click(dialog.getByRole('button', { name: 'Delete encounter' }))
+    const confirm = dialog.getByRole('button', { name: 'Delete encounter' })
+    // The picked Run loads as a subscription after it is selected; the confirm stays disabled until it does.
+    await waitFor(() => expect(confirm).toBeEnabled(), { timeout: 10_000 })
+    await userEvent.click(confirm)
     await waitFor(() => expect(writesTo(api.encounters.runs.deletePrepared)).toHaveLength(1))
     const [write] = writesTo(api.encounters.runs.deletePrepared)
     const seeded = await canvas.findByTestId('seeded-campaign')
