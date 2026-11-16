@@ -193,6 +193,15 @@ building a path removes its message from the list. QUALITY-15.T3d removed three:
 willing list with a timed ruling, and a creature's two-action activation (authored as the free, charged use its
 sibling Androsphinx already is).
 
+**Cast picks and ruling sequences (current, QUALITY-15.T3c).** The golden plans a Character action through
+`compileCastChoicePlans` with `buildCompiledActionTargetPolicy`, as the cast entry does, so a cast pick (D148) pins one
+plan pair per option (`choice=[...]`) instead of refusing as "choice has no plan". `rulingSequence` also accepts a
+SEQUENCE made only of GM rulings (Awaken, Contingency, Glyph of Warding): its first ruling leads as the action's result
+and the rest sit beside it as manual-adjudication nodes bound to their own entries. Irresistible Dance's authored path is
+a SEQUENCE (grant plus ruling), which the same split compiles. Imprisonment now refuses as UNBUILT: its remove-from-play
+outcome has no plan, which the earlier golden hid. Timed-manifestation rows (object and creature forms) stay refused:
+their data names no component or needs a new plan type, so they are not a lifetime-aspect gap.
+
 **Golden fidelity and inert zones (current, QUALITY-15.T3b).** The golden compiles a Character spell Effect as the
 product does: through `compileSpellEffect` (which carries the spell's Concentration onto the Effect, the one rule
 `compileSpell` also uses) and, for an activated action, through `compileActionPlacement` (zone, then summon) before the
