@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { compiledActionZonePlacementSchema } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { compileSpellEffect } from '@artificer-toolkit/shared/compilers'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { grease } from '@artificer-toolkit/source-data/srd/spells/grease.js'
@@ -9,7 +10,6 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { compileActionPlacement } from '../encounterActionEntryPointCompiler.js'
 import { planEncounterZoneTicks } from '../encounterGrantLifetimes.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
-import { chosenZonePlacement } from '../encounterZonePlacement.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { characterActionDescriptor } from '../testing/characterActionDescriptor.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -37,8 +37,9 @@ function compiledZone(spell: SpellAuthored) {
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id)
   }
   const placement = compileActionPlacement(dnd5eCharacterRuleActionSystemAdapter, action)
-  if (placement?.kind !== 'ZONE') throw new Error(`${spell.label} places no zone.`)
-  return chosenZonePlacement(placement.zonePlacement, undefined)
+  if (placement?.kind !== 'ZONE' || 'options' in placement.zonePlacement)
+    throw new Error(`${spell.label} places no single zone.`)
+  return compiledActionZonePlacementSchema.parse(placement.zonePlacement)
 }
 
 /** The record the real planner leaves at a point for the zone, as its source's cast places it. */
@@ -102,9 +103,10 @@ describe('the duration a placed zone no Concentration holds (QUALITY-15.T3ag)', 
   it('stamps a zone lasting past the turn bound with the Campaign minute it ends (D222)', () => {
     // Guardian of Faith authored to last 30 days: past the 24-hour turn bound.
     const authored = structuredClone(guardianOfFaith)
-    const block = authored.effects?.[0]?.paths?.find(
-      ({ resultBlock }) => resultBlock?.duration
-    )?.resultBlock
+    const path = authored.effects?.[0]?.paths?.find(
+      (candidate) => 'resultBlock' in candidate && candidate.resultBlock?.duration
+    )
+    const block = path && 'resultBlock' in path ? path.resultBlock : undefined
     if (!block?.duration) throw new Error('Guardian of Faith authors its duration.')
     block.duration = { ...block.duration, durationKind: 'DAY', amount: 30 }
     const zone = compiledZone(authored)
