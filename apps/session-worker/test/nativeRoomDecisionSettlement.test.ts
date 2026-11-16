@@ -60,9 +60,25 @@ describe('the settled decision on a player’s Encounter session frames (D39)', 
       (option) => option.ruleKind === 'CLIMB_ONTO_LARGER_CREATURE'
     )
     if (!climb) throw new Error('The climb option is missing.')
-    await room.room.respond({ kind: 'PASSAGE_OPTION', optionId: climb.optionId })
-
+    const answer = await room.room.respond({ kind: 'PASSAGE_OPTION', optionId: climb.optionId })
     await vi.waitFor(() => expect(frames().at(-1)?.settlement?.outcome).toBe('ANSWER'))
+
+    // A later commit pushes the session again, and that frame must still carry the answer.
+    const mountToken = room.room.scene.tokens[1]
+    const sceneVersion = (answer as { delta?: { result?: { version?: unknown } } }).delta?.result
+      ?.version
+    const latest = frames().at(-1)
+    if (!mountToken || typeof sceneVersion !== 'number' || !latest)
+      throw new Error('The answer published no Scene version.')
+    const framesBefore = frames().length
+    const moved = await room.room.move(
+      [MOUNT_START, { x: 450, y: 150 }],
+      latest.version,
+      sceneVersion,
+      mountToken.id
+    )
+    expect(moved.type).toBe('COMMAND_COMMITTED')
+    await vi.waitFor(() => expect(frames().length).toBeGreaterThan(framesBefore))
     const answered = frames().slice(shownAt)
     expect(answered.length).toBeGreaterThan(0)
     expect(answered.map(({ settlement }) => settlement?.outcome)).toEqual(
