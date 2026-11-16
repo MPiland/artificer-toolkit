@@ -8,6 +8,13 @@ export const MAX_SPATIAL_PATH_POINTS = 256
 export const MAX_SPATIAL_CANDIDATES = 256
 /** The legal squares one chosen forced movement may offer: the square-grid geometry's interaction bound. */
 export const MAX_FORCED_MOVEMENT_DESTINATIONS = 1_024
+/** The most layers one layered zone places, each a record of its own (D223). */
+export const MAX_ZONE_LAYERS = 12
+
+/** A layered zone record's 1-based place among its zone's layers (D223). */
+export const zoneLayerIndexSchema = lazySchema(() =>
+  z.number().check(z.int()).check(z.positive()).check(z.maximum(MAX_ZONE_LAYERS))
+)
 
 const coordinateSchema = lazySchema(() =>
   z
@@ -66,7 +73,9 @@ export const spatialMovementCandidateDtoSchema = lazySchema(() =>
     targetActorId: postgresUuidSchema,
     trigger: spatialTriggerDtoSchema,
     /** The 1-based whole step it completes, for a zone that catches per distance moved (D156). */
-    step: z.optional(z.number().check(z.int()).check(z.positive()))
+    step: z.optional(z.number().check(z.int()).check(z.positive())),
+    /** The zone record's place among its zone's layers, which settle in order at one point (D223). */
+    layerIndex: z.optional(zoneLayerIndexSchema)
   })
 )
 
