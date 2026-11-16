@@ -10,7 +10,7 @@ import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
-import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter, itemAction, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 
 /**
  * QUALITY-15.T3t2: an object a hit attaches to its target that deals damage at the target's turn
@@ -137,4 +137,21 @@ describe('an attached object that deals damage at its holder’s turn boundary',
     if (!plan) return
     expect(frozenDice(plan.frozenGraph)).toEqual([4])
   })
+})
+
+describe('an item thrown as an improvised ranged attack', () => {
+  it.each(['Acid (vial)', "Alchemist's Fire (flask)", 'Holy Water (flask)', 'Oil (flask)'])(
+    '%s adds Dexterity and no proficiency to its attack roll',
+    (label) => {
+      const fighter = evaluateSrdCharacter({
+        abilities: { STRENGTH: 10, DEXTERITY: 16 },
+        classes: [{ label: 'Fighter', level: 1 }],
+        items: [{ label }]
+      })
+      // A Fighter's proficiencies (Shields among them) reach no improvised weapon.
+      expect(
+        itemAction(fighter, label, { attackKind: 'RANGED' }).decision.mechanic.attackBonus
+      ).toBe(3)
+    }
+  )
 })
