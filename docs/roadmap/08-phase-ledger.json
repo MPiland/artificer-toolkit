@@ -2532,7 +2532,7 @@
             },
             {
               "id": "PLATFORM-28.T7c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2543,21 +2543,23 @@
               },
               "text": "The zone, shown-scene and placement-preview tabletop stories run on seeded state (zones placed through real PLACE_ZONE commands, a second unpresented Scene), with the turn order drawer and live scene object editor siblings.",
               "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221). Split 2026-11-16 (size 8 -> 5 + T7c2 5) from the slice's seam trace: auras, conditions and morale need seed work through real commands.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m819 (f366c9f7e); slice tip ea09f821b: Tests 43817179299, Live 43817179318, Browser journeys 43817179363 (storybook-backend-browser) green. The story seed places a hazard and a concealed trap (spot DC 15) in both story Campaigns through real PLACE_ZONE commands and adds an unpresented second Scene through createEncounterLifecycleScene; storyData asserts both through api.encounters.activeReads.active (the player reads only the hazard). Backend stories GmSeesEveryPlacedZone, PlayerSeesOnlyZonesTheyKnowOf, PlacingAZonePreviewsItsArea (no write), GmShowsSceneToPlayers (spied showings.show carries the second Scene) and the turn order drawer and live scene object editor siblings; the four replaced fake stories are deleted with a no-importer proof. storyData.test's reusableDefinitions read now collects and filters in memory instead of a database filter. Red proof: storyData.test ALREADY-PASSING (seed helpers kept)."
             },
             {
               "id": "PLATFORM-28.T7c2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
-              "text": "Aura, condition and morale tabletop stories on a creature seeded through real product commands; PlayerSeesShownScene without a modal over the other player stories; the stale keyboard-move rejection as a real-component test whose COMMAND_REJECTED frame is the faked platform response parsed through the schema (spied writes stay unsent, D218).",
+              "text": "Aura, condition and morale tabletop stories on a creature seeded through real product commands; PlayerSeesShownScene without a modal over the other player stories; the stale keyboard-move rejection as a real-component test whose COMMAND_REJECTED frame is the faked platform response parsed through the schema (spied writes stay unsent, D218). The token-status, selection and keyboard stories still on the fake harness move to the backend pattern too.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["PLATFORM-28.T7c"]
               },
-              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c in approved scope (D221)."
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c in approved scope (D221). Widened 2026-11-16 (size 5 -> 8): the T7c report found the token-status, selection and keyboard stories still on the fake harness T7d deletes.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T7d",
