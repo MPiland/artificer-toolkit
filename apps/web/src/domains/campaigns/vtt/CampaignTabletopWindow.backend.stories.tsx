@@ -112,6 +112,7 @@ async function openedWindow(canvasElement: HTMLElement, spec: StoryCampaignSpec)
 }
 
 /** The Encounter as the deployment holds it, from the values the story wrapper read. */
+/** The Encounter query answers after the room does, so the values arrive on the wrapper a moment later. */
 function seededEncounter(seeded: HTMLElement) {
   const { actorLabels, encounterName, encounterRound, encounterVersion } = seeded.dataset
   if (!actorLabels || !encounterName || !encounterRound || !encounterVersion)
@@ -182,7 +183,7 @@ export const GmWindow: Story = {
     await expect(scene.fogMode).toBe(STORY_CAMPAIGN.scene.board.fogMode)
     await expect(page.getByLabelText('Tabletop mode')).toBeVisible()
     await expectTokensDrawnAsPresented()
-    await expectTurnOrderListsEncounter(page, seededEncounter(seeded))
+    await expectTurnOrderListsEncounter(page, await waitFor(() => seededEncounter(seeded)))
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
 }
@@ -248,6 +249,7 @@ export const GmEditsTheScene: Story = {
         })
       )
     )
+    const { version: encounterVersion } = await waitFor(() => seededEncounter(seeded))
     const creature = tokenLabelled(STORY_CAMPAIGN.enemyLabel)
     await chooseSceneControl(page, `Move ${creature.label} right`)
     await waitFor(() =>
@@ -256,7 +258,7 @@ export const GmEditsTheScene: Story = {
           command: {
             command: expect.objectContaining({
               type: 'MOVE_SCENE_TOKEN',
-              expectedEncounterVersion: seededEncounter(seeded).version,
+              expectedEncounterVersion: encounterVersion,
               expectedSceneVersion: scene.version,
               tokenId: creature.id,
               path: expect.arrayContaining([creature.position])
@@ -419,7 +421,7 @@ export const PlayerWindow: Story = {
     await expect(page.queryByRole('button', { name: 'Edit objects' })).not.toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
 
-    await expectTurnOrderListsEncounter(page, seededEncounter(seeded))
+    await expectTurnOrderListsEncounter(page, await waitFor(() => seededEncounter(seeded)))
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
 }
