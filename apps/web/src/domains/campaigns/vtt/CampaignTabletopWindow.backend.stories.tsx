@@ -5,6 +5,7 @@ import { sceneFogAppendInputSchema } from '@artificer-toolkit/schema/api/sceneFo
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import {
+  latestEncounter,
   latestStateSync,
   liveFramesReceived,
   liveWritesOfType,
@@ -23,30 +24,6 @@ import { latestStageRenderer } from './vttSceneRenderer.assertions'
 /** The room activates from its checkpoint on the first socket, then syncs and the map loads. */
 const roomJoinTimeoutMs = 30_000
 
-function TabletopWithEncounter({
-  campaignId,
-  currentUserId
-}: {
-  campaignId: string
-  currentUserId: string
-}) {
-  const state = useQuery(api.encounters.activeReads.active, { campaignId })
-  const encounter = state?.encounter
-  // The Encounter as the story account reads it from the deployment, for the play steps to compare.
-  return (
-    <div
-      data-actor-labels={encounter?.actors.map(({ label }) => label).join('\n')}
-      data-campaign-id={campaignId}
-      data-encounter-name={encounter?.name}
-      data-encounter-round={encounter?.round}
-      data-encounter-version={encounter?.version}
-      data-testid='seeded-campaign'
-    >
-      <CampaignTabletopWindow campaignId={campaignId} currentUserId={currentUserId} />
-    </div>
-  )
-}
-
 /** The Tabletop window the story account opens on one of its seeded Campaigns, as the route does. */
 function SeededTabletopWindow({ campaign }: { campaign: Pick<StoryCampaignSpec, 'name'> }) {
   const session = useQuery(api.account.session, {})
@@ -54,7 +31,9 @@ function SeededTabletopWindow({ campaign }: { campaign: Pick<StoryCampaignSpec, 
     <SeededCampaign campaign={campaign}>
       {(detail) =>
         session?.user ? (
-          <TabletopWithEncounter campaignId={detail.id} currentUserId={session.user.userId} />
+          <div data-campaign-id={detail.id} data-testid='seeded-campaign'>
+            <CampaignTabletopWindow campaignId={detail.id} currentUserId={session.user.userId} />
+          </div>
         ) : null
       }
     </SeededCampaign>
@@ -108,21 +87,13 @@ async function openedWindow(canvasElement: HTMLElement, spec: StoryCampaignSpec)
     { timeout: roomJoinTimeoutMs }
   )
   await page.findByText('Scene map ready.', undefined, { timeout: roomJoinTimeoutMs })
-  return { page, seeded }
+  return { page }
 }
 
-/** The Encounter as the deployment holds it, from the values the story wrapper read. */
-/** The Encounter query answers after the room does, so the values arrive on the wrapper a moment later. */
-function seededEncounter(seeded: HTMLElement) {
-  const { actorLabels, encounterName, encounterRound, encounterVersion } = seeded.dataset
-  if (!actorLabels || !encounterName || !encounterRound || !encounterVersion)
-    throw new Error('The story account reads no active Encounter.')
-  return {
-    actorLabels: actorLabels.split('\n'),
-    name: encounterName,
-    round: Number(encounterRound),
-    version: Number(encounterVersion)
-  }
+/** The Encounter the room holds for the recipient, once it has sent it. */
+function roomEncounter() {
+  const { actors, name, round, version } = latestEncounter()
+  return { actorLabels: actors.map(({ label }) => label), name, round, version }
 }
 
 /** The window's connection light is lit once the live session is connected. */
@@ -150,7 +121,7 @@ async function expectTokensDrawnAsPresented() {
 /** The turn order drawer lists the Encounter the deployment holds. */
 async function expectTurnOrderListsEncounter(
   page: ReturnType<typeof within>,
-  encounter: ReturnType<typeof seededEncounter>
+  encounter: ReturnType<typeof roomEncounter>
 ) {
   await userEvent.click(page.getByRole('button', { name: 'Open turn order' }))
   const drawer = within(await page.findByRole('dialog', { name: 'Turn order' }))
@@ -168,7 +139,7 @@ async function chooseSceneControl(page: ReturnType<typeof within>, name: string)
 export const GmWindow: Story = {
   args: { campaign: STORY_CAMPAIGN },
   play: async ({ canvasElement }) => {
-    const { page, seeded } = await openedWindow(canvasElement, STORY_CAMPAIGN)
+    const { page } = await openedWindow(canvasElement, STORY_CAMPAIGN)
     await expectConnected(page)
 
     // The presented Scene: the GM's own view of the seeded board and its tokens.
@@ -185,7 +156,7 @@ export const GmWindow: Story = {
     await expectTokensDrawnAsPresented()
     await expectTurnOrderListsEncounter(
       page,
-      await waitFor(() => seededEncounter(seeded), { timeout: roomJoinTimeoutMs })
+      await waitFor(roomEncounter, { timeout: roomJoinTimeoutMs })
     )
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
@@ -194,7 +165,7 @@ export const GmWindow: Story = {
 export const GmEditsTheScene: Story = {
   args: { campaign: STORY_CAMPAIGN },
   play: async ({ canvasElement }) => {
-    const { page, seeded } = await openedWindow(canvasElement, STORY_CAMPAIGN)
+    const { page } = await openedWindow(canvasElement, STORY_CAMPAIGN)
     await expectConnected(page)
     const scene = presentedScene()
     const { sequence } = latestStateSync()
@@ -252,7 +223,7 @@ export const GmEditsTheScene: Story = {
         })
       )
     )
-    const { version: encounterVersion } = await waitFor(() => seededEncounter(seeded), {
+    const { version: encounterVersion } = await waitFor(roomEncounter, {
       timeout: roomJoinTimeoutMs
     })
     const creature = tokenLabelled(STORY_CAMPAIGN.enemyLabel)
@@ -401,7 +372,7 @@ export const GmRevealsAPlayersFog: Story = {
 export const PlayerWindow: Story = {
   args: { campaign: STORY_PLAYER_CAMPAIGN },
   play: async ({ canvasElement }) => {
-    const { page, seeded } = await openedWindow(canvasElement, STORY_PLAYER_CAMPAIGN)
+    const { page } = await openedWindow(canvasElement, STORY_PLAYER_CAMPAIGN)
     await expectConnected(page)
 
     // The presented Scene as a player sees it: only what their token has explored (D87).
@@ -428,7 +399,7 @@ export const PlayerWindow: Story = {
 
     await expectTurnOrderListsEncounter(
       page,
-      await waitFor(() => seededEncounter(seeded), { timeout: roomJoinTimeoutMs })
+      await waitFor(roomEncounter, { timeout: roomJoinTimeoutMs })
     )
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }

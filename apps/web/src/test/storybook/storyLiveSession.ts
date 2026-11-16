@@ -8,6 +8,10 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessions'
 
 type StateSyncFrame = Extract<LiveSessionWebSocketServerMessageDto, { type: 'STATE_SYNC' }>
+type EncounterSessionFrame = Extract<
+  LiveSessionWebSocketServerMessageDto,
+  { type: 'ENCOUNTER_SESSION' }
+>
 type FogBeginFrame = Extract<LiveSessionWebSocketClientMessageDto, { type: 'SCENE_FOG_BEGIN' }>
 type FogAppendFrame = Extract<LiveSessionWebSocketClientMessageDto, { type: 'SCENE_FOG_APPEND' }>
 
@@ -33,6 +37,18 @@ export function latestStateSync(): StateSyncFrame {
   const frame = syncs[syncs.length - 1]
   if (!frame) throw new Error('The room has sent this story no state.')
   return frame
+}
+
+/** The Encounter the room holds for this story's recipient, as the window shows it. */
+export function latestEncounter() {
+  const held = receivedFrames
+    .filter(
+      (candidate): candidate is EncounterSessionFrame => candidate.type === 'ENCOUNTER_SESSION'
+    )
+    .flatMap(({ session }) => (session.held ? [session.state.encounter] : []))
+  const encounter = held[held.length - 1]
+  if (!encounter) throw new Error('The room holds no Encounter for this story.')
+  return encounter
 }
 
 /** The write frames of one type this story's client tried to send, as the room's schema parses them. */

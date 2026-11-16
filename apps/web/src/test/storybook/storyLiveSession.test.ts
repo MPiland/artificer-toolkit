@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   installLiveSessionSpy,
+  latestEncounter,
   latestStateSync,
   liveFramesReceived,
   liveWritesOfType,
@@ -147,6 +148,14 @@ describe('story live-session spy', () => {
     socket.receive({ type: 'AUTHENTICATION_REQUIRED' })
 
     expect(() => latestStateSync()).toThrow('The room has sent this story no state.')
+  })
+
+  it('has no Encounter to read until the room holds one', () => {
+    installOverWireSocket()
+    const socket = openSocket(roomUrl)
+    socket.receive({ session: { held: false }, type: 'ENCOUNTER_SESSION' })
+
+    expect(() => latestEncounter()).toThrow('The room holds no Encounter for this story.')
   })
 
   it('sends the room every other frame', () => {
