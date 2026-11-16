@@ -393,6 +393,12 @@ export const PlayerWindow: Story = {
     await waitFor(() =>
       expect(controls.getByText(`Focus ${STORY_PLAYER_CAMPAIGN.scene.allyLabel}`)).toBeVisible()
     )
+    // A player may open and close the Scene's doors but has no way to lock one or to change its structure.
+    const doors = scene.barriers.filter(({ kind }) => kind === 'DOOR')
+    await expect(controls.queryAllByText(/^Door \d+: /)).toHaveLength(doors.length)
+    await expect(controls.queryByText(/^Door \d+: Lock$/)).not.toBeInTheDocument()
+    await expect(controls.getByText('No measurements')).toBeVisible()
+    await expect(controls.queryByText(/^Remove /)).not.toBeInTheDocument()
     await expect(page.queryByText('Reveal entire map')).not.toBeInTheDocument()
     await expect(page.queryByRole('button', { name: 'Edit objects' })).not.toBeInTheDocument()
     await userEvent.keyboard('{Escape}')

@@ -26,8 +26,12 @@ import {
   REVIEW_PLAYERS,
   REVIEW_READY_TITLE,
   REVIEW_SCENARIOS,
+  REVIEW_STORY_BLOCKED,
   REVIEW_STORY_HOST,
+  REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
+  STORY_SOCIAL,
+  REVIEW_ADMIN,
   STORY_CAMPAIGN,
   STORY_DEFINITIONS,
   STORY_PLAYER_CAMPAIGN,
@@ -136,7 +140,12 @@ export type StoryClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
  */
 export async function seedStoryData(
   connect: (spec: ReviewAccountSpec) => Promise<StoryClient>,
-  room: StoryRoom
+  room: StoryRoom,
+  /** Operator step: promotes the account to superadmin, as the review data does for its admin. */
+  grantSuperadmin: (userId: string) => Promise<void>,
+  /** One step toward delivering queued notifications: the backend's own dispatcher runs each minute. */
+  deliverNotifications: () => Promise<void> = () =>
+    new Promise((resolve) => setTimeout(resolve, 2_000))
 ): Promise<void> {
   const reader = await connect(REVIEW_STORY_READER)
   for (const { subjectKind, masterId, ownedActive, ownedDraft } of Object.values(STORY_RECORDS)) {
@@ -160,8 +169,19 @@ export async function seedStoryData(
   await seedStoryDraftOnly(reader)
   await seedStoryDefinitions(reader)
   const host = await connect(REVIEW_STORY_HOST)
-  await seedStoryCampaign(reader, host, room)
+  const campaignId = await seedStoryCampaign(reader, host, room)
   await seedStoryPlayerCampaign(host, reader, room)
+  await seedStorySocial(
+    {
+      reader,
+      peer: await connect(REVIEW_STORY_PEER),
+      blocked: await connect(REVIEW_STORY_BLOCKED),
+      admin: await connect(REVIEW_ADMIN)
+    },
+    grantSuperadmin,
+    campaignId,
+    deliverNotifications
+  )
 }
 
 /**
@@ -186,6 +206,22 @@ async function seedStoryDraftOnly(client: StoryClient) {
     label,
     payload
   })
+}
+
+async function findOrCreateStoryCampaign(client: StoryClient, name: string): Promise<string> {
+  return (
+    (await findCampaign(client, name)) ??
+    (
+      await client.mutation(api.campaigns.create.create, {
+        name,
+        format: 'ONGOING',
+        toneTags: ['HEROIC'],
+        contentMaturity: 'STANDARD',
+        gameSystemId: srdSystemRecord.id,
+        primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+      })
+    ).id
+  )
 }
 
 /**
@@ -269,18 +305,7 @@ async function prepareStoryRun(
   client: StoryClient,
   { slug, name, blueprintName, enemyLabel, playSettings }: StoryCampaignSpec
 ) {
-  const campaignId =
-    (await findCampaign(client, name)) ??
-    (
-      await client.mutation(api.campaigns.create.create, {
-        name,
-        format: 'ONGOING',
-        toneTags: ['HEROIC'],
-        contentMaturity: 'STANDARD',
-        gameSystemId: srdSystemRecord.id,
-        primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
-      })
-    ).id
+  const campaignId = await findOrCreateStoryCampaign(client, name)
   const current = await client.query(api.campaigns.playSettings.get, { campaignId })
   if (current.quorum !== playSettings.quorum) {
     const { version, updatedAt: _updatedAt, ...fields } = current
@@ -319,10 +344,14 @@ async function prepareStoryRun(
 /**
  * Hosts the story Campaign and fills what its stories read: the story host joined as its one
  * player (the GM's fog controls list the Campaign's players), a loot table on the Run's creature,
- * then the Run started and presented. The Run is started, presented and bound only while it is
- * still prepared.
+ * then the Run started and presented, returning the Campaign's id. The Run is started, presented
+ * and bound only while it is still prepared.
  */
-async function seedStoryCampaign(client: StoryClient, host: StoryClient, room: StoryRoom) {
+async function seedStoryCampaign(
+  client: StoryClient,
+  host: StoryClient,
+  room: StoryRoom
+): Promise<string> {
   const { campaignId, run, actor } = await prepareStoryRun(client, STORY_CAMPAIGN)
   if (!(await findCampaign(host, STORY_CAMPAIGN.name)))
     await admitPlayers(
@@ -362,8 +391,20 @@ async function seedStoryCampaign(client: StoryClient, host: StoryClient, room: S
       ]
     })
   }
+  const preparedBlueprint = await client.mutation(api.encounters.blueprints.create, {
+    gameSystemId: srdSystemRecord.id,
+    name: STORY_CAMPAIGN.preparedBlueprintName,
+    commandId: reviewId('story-prepared-blueprint'),
+    enemies: [{ kind: 'CUSTOM', label: STORY_CAMPAIGN.enemyLabel, maxHitPoints: 22 }]
+  })
+  await client.mutation(api.encounters.runs.create, {
+    campaignId,
+    blueprintId: preparedBlueprint.id,
+    commandId: reviewId('story-prepared-run')
+  })
   const { userId } = await client.query(api.account.identity, {})
   await presentStoryRun(client, room, STORY_CAMPAIGN, { campaignId, run, actor }, userId)
+  return campaignId
 }
 
 /**
@@ -386,7 +427,7 @@ async function seedStoryPlayerCampaign(host: StoryClient, reader: StoryClient, r
 
 /**
  * Starts the prepared Run, presents the Campaign's Scene (the creature's token bound to its actor,
- * an unbound ally token that llyUserId controls), binds the Run to it and publishes the room.
+ * an unbound ally token that allyUserId controls), binds the Run to it and publishes the room.
  */
 async function presentStoryRun(
   client: StoryClient,
@@ -431,6 +472,106 @@ async function presentStoryRun(
   })
   await room.checkpoint(campaignId)
   await room.releaseRoom?.(campaignId)
+}
+
+/**
+ * The Social Hub state the story account sees, through product commands: its listing for the story
+ * Campaign, an application and an invitation for the peer, and a report and block on the other
+ * stranger, with the notifications those queue. The admin gets a Social profile and superadmin, so it
+ * reads that report in the moderation queue. A step runs only while its result is missing; the
+ * report waits on the block, which cannot be read back.
+ */
+async function seedStorySocial(
+  {
+    reader,
+    peer,
+    blocked,
+    admin
+  }: { reader: StoryClient; peer: StoryClient; blocked: StoryClient; admin: StoryClient },
+  grantSuperadmin: (userId: string) => Promise<void>,
+  campaignId: string,
+  deliverNotifications: () => Promise<void>
+) {
+  for (const account of [reader, peer, blocked, admin])
+    await account.mutation(api.social.profiles.initialize, {})
+  // The moderation queue admits a superadmin with an active Social profile, and the reader's report
+  // below is what it lists.
+  await grantSuperadmin((await admin.query(api.account.identity, {})).userId)
+  // Another account's Social profile page resolves only for a public account.
+  await peer.mutation(api.account.setProfileVisibility, { visibility: 'PUBLIC' })
+  const firstPage = { paginationOpts: { cursor: null, numItems: 8 } }
+  // The peer hosts a table of its own whose listing stays a draft: the state the listing editor
+  // stories open, which the reader's open listing cannot show.
+  const peerTable = await findOrCreateStoryCampaign(peer, STORY_SOCIAL.peerTableName)
+  const peerListings = await peer.query(api.social.listings.listOwned, firstPage)
+  if (!peerListings.page.some(({ title }) => title === STORY_SOCIAL.peerTableName))
+    await createReviewListingDraft(peer, peerTable, REVIEW_PLAYERS.length)
+  const owned = await reader.query(api.social.listings.listOwned, firstPage)
+  const listing =
+    owned.page.find(({ title }) => title === STORY_CAMPAIGN.name) ??
+    (await openReviewListing(reader, campaignId, REVIEW_PLAYERS.length))
+  assert.equal(listing.status, 'OPEN', 'The story listing is not open; reset the local backend.')
+  const { listingPublicId } = listing
+
+  const applications = await peer.query(api.social.admissionLists.listOwnApplications, {
+    ...firstPage,
+    group: 'PENDING'
+  })
+  if (!applications.page.some((application) => application.listingPublicId === listingPublicId))
+    await peer.mutation(api.social.applications.submit, {
+      listingPublicId,
+      message: STORY_SOCIAL.applicationMessage,
+      expectedListingVersion: listing.version
+    })
+
+  const invitations = await reader.query(api.social.admissionLists.listListingInvitations, {
+    ...firstPage,
+    listingPublicId,
+    group: 'PENDING',
+    asOf: new Date().toISOString()
+  })
+  if (
+    !invitations.page.some(
+      ({ recipientUsername }) => recipientUsername === REVIEW_STORY_PEER.username
+    )
+  )
+    await reader.mutation(api.social.invitations.create, {
+      listingPublicId,
+      expectedListingVersion: listing.version,
+      username: REVIEW_STORY_PEER.username
+    })
+
+  const { profilePublicId: blockedId } = await blocked.query(api.social.profiles.getEligibility, {})
+  assert.ok(blockedId, 'The blocked story account has no Social profile.')
+  const blocks = await reader.query(api.social.blockLists.list, firstPage)
+  if (!blocks.page.some(({ profile }) => profile.profilePublicId === blockedId)) {
+    await reader.mutation(api.social.reports.create, {
+      input: {
+        targetKind: 'PROFILE',
+        targetPublicId: blockedId,
+        reason: 'OTHER',
+        details: STORY_SOCIAL.reportDetails
+      }
+    })
+    await reader.mutation(api.social.blocks.create, { profilePublicId: blockedId })
+  }
+
+  await awaitFeedItem(reader, 'SOCIAL_APPLICATION_SUBMITTED', deliverNotifications)
+  await awaitFeedItem(peer, 'SOCIAL_INVITATION_RECEIVED', deliverNotifications)
+}
+
+/** Waits for the queued notification to reach the account's feed, which the dispatcher fills. */
+async function awaitFeedItem(
+  client: StoryClient,
+  kind: FunctionReturnType<typeof api.notifications.feed>['items'][number]['data']['kind'],
+  deliverNotifications: () => Promise<void>
+) {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const { items } = await client.query(api.notifications.feed, {})
+    if (items.some(({ data }) => data.kind === kind)) return
+    await deliverNotifications()
+  }
+  throw new Error(`The ${kind} notification never reached its feed.`)
 }
 
 /** Copies `masterId` as the author does ("Duplicate to edit"), names the copy `record` and activates it. */
@@ -533,15 +674,18 @@ async function isFinished(client: ReviewClient, campaignId: string): Promise<boo
   return page.page.some((session) => session.title === REVIEW_READY_TITLE)
 }
 
-async function admitPlayers(
-  host: Pick<ReviewAccount, 'client'>,
-  campaignId: string,
-  members: readonly Pick<ReviewAccount, 'client' | 'username'>[],
-  capacity: number
-) {
-  for (const account of [host, ...members])
-    await account.client.mutation(api.social.profiles.initialize, {})
-  const draft = await host.client.mutation(api.social.listingDrafts.create, {
+/** Opens the Social listing a review table shares: the host's draft with the table's expectations. */
+async function openReviewListing(host: ReviewClient, campaignId: string, capacity: number) {
+  const draft = await createReviewListingDraft(host, campaignId, capacity)
+  return host.mutation(api.social.listings.open, {
+    listingPublicId: draft.listingPublicId,
+    expectedVersion: draft.version
+  })
+}
+
+/** The host's draft listing for a review table, carrying the table's expectations. */
+function createReviewListingDraft(host: ReviewClient, campaignId: string, capacity: number) {
+  return host.mutation(api.social.listingDrafts.create, {
     input: {
       campaignId,
       summary: 'Review table',
@@ -566,10 +710,17 @@ async function admitPlayers(
       }
     }
   })
-  const listing = await host.client.mutation(api.social.listings.open, {
-    listingPublicId: draft.listingPublicId,
-    expectedVersion: draft.version
-  })
+}
+
+async function admitPlayers(
+  host: Pick<ReviewAccount, 'client'>,
+  campaignId: string,
+  members: readonly Pick<ReviewAccount, 'client' | 'username'>[],
+  capacity: number
+) {
+  for (const account of [host, ...members])
+    await account.client.mutation(api.social.profiles.initialize, {})
+  const listing = await openReviewListing(host.client, campaignId, capacity)
   for (const member of members) {
     const invitation = await host.client.mutation(api.social.invitations.create, {
       listingPublicId: listing.listingPublicId,

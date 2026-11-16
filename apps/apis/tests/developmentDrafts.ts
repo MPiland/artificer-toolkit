@@ -1529,7 +1529,10 @@ try {
         client.setAuth(await authToken(session), () => authToken(session))
         return client
       },
-      { checkpoint: (campaignId) => awaitCampaignCheckpoint(roomClient, campaignId) }
+      { checkpoint: (campaignId) => awaitCampaignCheckpoint(roomClient, campaignId) },
+      async (userId) => {
+        await cli('authAdmin:setRole', { userId, role: 'superadmin' }, false)
+      }
     )
     const { appBrowserEvidenceDirectory, runWebBrowserProof } =
       await import('./developmentAppBrowser')

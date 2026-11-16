@@ -2298,36 +2298,39 @@
             },
             {
               "id": "PLATFORM-28.T4a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["PLATFORM-28.T2", "PLATFORM-28.T5a"]
               },
               "text": "Per-story sign-in in the backend Storybook preview (seeded second account and superadmin, sign-in reused to stay under the rate limit) and the seed extension through product commands (second account, an application and invitation, a block, a report and the notifications they trigger); SocialProfilePage, MatureContentPreference and NotificationShell stories read seeded data. NotificationFeedView and NotificationPreferencesView stay props-only.",
               "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221). Split 2026-11-15 at the seam trace (14 story files, whole about 18): listing stories to T4b, second-account views to T4c, moderation to T4d; depends on T5a for the single-query override and write spies (D218 amendments).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m807 (1a8079afb; T4a landed through T4b, which built on it); slice tip 186186453 (re-synced with m803): Tests 43743445567, Live 43743445566, Browser journeys 43743445606 green; earlier tip 0062b8e3f Browser journeys 43730323012 green (storybook-backend-browser). An earlier Browser journeys run 43728044682 was red on a real failure (another account's profile page resolves only for a PUBLIC profile), fixed in the seed. The backend preview signs in per story (storyAccount reader, peer or admin; one sign-in per identity, reused). seedStorySocial runs through product commands and is idempotent (storyData.test): three profiles, the peer made PUBLIC through account.setProfileVisibility, the reader's listing (openReviewListing), the peer's application, the reader's invitation, a report and a block, and the notifications they deliver. updatePreference is answered through the real socialEligibilityDtoSchema. SocialProfilePage, MatureContentPreference and NotificationShell backend stories replace the fixture stories (deleted with no-importer proofs); the two notifications.spec Playwright checks moved into the Desktop Drawer and Mobile Page play functions. NotificationFeedView and NotificationPreferencesView stay props-only. Red proof: storyData.test ALREADY-PASSING (helpers kept). Restated: storyData accounts list (three accounts); SocialProfilePage after-write state checks become exact write inputs (blocks.create, reports.create, blocks.remove) under D218; MatureContentPreference call checks read writesTo. No D196 change. Risk: notification delivery in the seed waits on the minute dispatcher (polled)."
             },
             {
               "id": "PLATFORM-28.T4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["PLATFORM-28.T4a"]
               },
               "text": "SocialListingDetailPage, SocialListingFormPage, SocialNativeLists and SocialListingInvitations stories read the seeded listing; their hand-seeded caches and local shapes are deleted with a no-importer proof.",
-              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221). Resized 5 -> 8 at merge: a product fix and Vitest regression test, seed work and a three-way re-sync.",
+              "mergedAt": "2026-11-15",
+              "proof": "m807 (1a8079afb); slice tip 75040480a (re-synced with m806): Tests 43774720773, Live 43774720772, Browser journeys 43774720771 green. FocusedDeepLink root cause: the invitation list's focus-driven horizon refresh remounts the deep-linked row and the id-keyed focused ref blocked refocusing it; SocialListingInvitations now keeps the row element, with a Vitest regression test (focuses the linked row again when a horizon refresh remounts it). ExhaustedSearch types a query no seeded term matches. Listing detail, form, native lists and invitations stories read the seeded listing (SeededHostedListing, SeededAppliedListing); listing writes go through storyMutation and answer with getOwned parsed by socialListingDtoSchema; the old fixture stories are deleted with a no-importer proof; paging assertions moved to Vitest (SocialListingFormPage.test, SocialDiscoveryHostingViews.test). Restated: storyData counts the peer's invitations and feed items per account and kind (the player Campaign adds the reader's own). Known stopgap: the signInStoryAccount 429 retry in the backend preview stays until T6b's per-file client address replaces it."
             },
             {
               "id": "PLATFORM-28.T4c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2337,11 +2340,13 @@
                 "after": ["PLATFORM-28.T4a"]
               },
               "text": "SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog stories read the second account seed under its own sign-in; writes go through the shared write spies.",
-              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221).",
+              "mergedAt": "2026-11-15",
+              "proof": "m810 (46dfa58fb); slice tip 597576f99: Tests 43786127443, Live 43786127399, Browser journeys 43786127424 green. SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog backend stories read the existing seedStorySocial data (no seed additions); writes are spied with real product errors for failure stories; old fixture stories deleted with a no-importer proof. Product fix: one useFocusLinkedRow hook (runs each commit, element-identity guard) replaces three inline deep-link focus copies; SocialApplicationsView had the same remount bug. Red proof: SocialApplicationsView.test and SocialInvitationsView.test RED (focuses the deep-linked row again when a list reload remounts it), useFocusLinkedRow.test RED-IMPORT. Unreachable states (expired/revoked invitation, history ordering, paging) rest on real-component Vitest tests; simulated post-write transitions dropped per D218."
             },
             {
               "id": "PLATFORM-28.T4d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2351,7 +2356,9 @@
                 "after": ["PLATFORM-28.T4a"]
               },
               "text": "SocialModerationPage story signs in as the seeded superadmin and reads reports made through the report command; the moderation fakes are deleted.",
-              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221).",
+              "mergedAt": "2026-11-15",
+              "proof": "m809 (2e4c4956b); slice tip cab208dcf: Tests 43781282707, Live 43781282749, Browser journeys 43781282624 green. SocialModerationPage.backend.stories SeededReport signs in as the seeded REVIEW_ADMIN, which seedStorySocial gives a Social profile and superadmin through the existing operator step (authAdmin:setRole), and reads the reader's report; Open report is a spied write asserted with writesTo. storyData asserts the superadmin's queue. The fixture stories are deleted with a no-importer proof; paging, evidence, actions and failure checks rest on real-component Vitest tests, plus a new one (clears a failed action and its reason when the report is reopened). Ruling: open stays a spied write (D218), so the story ends at the recorded write."
             },
             {
               "id": "PLATFORM-28.T5a",
@@ -2371,7 +2378,7 @@
             },
             {
               "id": "PLATFORM-28.T5b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2382,7 +2389,8 @@
               },
               "text": "Encounter builder page and Blueprint route stories read the seeded Campaign; the empty, added and deleted Encounter states are composed stories (D218 amendment).",
               "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m808 (662910fe5); slice tip ff0ad2ee7 (contains m807): Tests 43779209029, Live 43779208969, Browser journeys 43779208974 green. Campaign stories read the seeded story Campaign; a second Blueprint \"Story Next Encounter\" with a never-started prepared Run gives the Run-create story a reachable state; the hung create spy behind the inert watchQuery override is fixed by one unoverridden read client (unoverriddenReads, taken before installQueryOverride, bound per story), which also replaced T4b's duplicate bindStoryReads. T6b owes folding its readServed into that client."
             },
             {
               "id": "PLATFORM-28.T5c",
@@ -2415,7 +2423,7 @@
             },
             {
               "id": "PLATFORM-28.T6b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2425,7 +2433,8 @@
                 "after": ["PLATFORM-28.T6a", "PLATFORM-28.T5a"]
               },
               "text": "Rest stories on the real rest preview with roll spies built through the roll record schema; Shell ProficiencyStates, SpellStates, ActionTypes and ActiveBonusesMobile as composed stories, with the preview override naming a sheet slice.",
-              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T6 seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T6c",
@@ -27631,7 +27640,7 @@
             },
             {
               "id": "QUALITY-15.T3b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27641,7 +27650,8 @@
                 "after": ["QUALITY-15.T2"]
               },
               "text": "An untested area (no save, no hit-point pool) compiles as a placement or area ruling (88 golden rows; 13 already compile as zones in product, 25 need zone-placement data fixes).",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3c",
@@ -27687,7 +27697,7 @@
             },
             {
               "id": "QUALITY-15.T3f",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27697,7 +27707,8 @@
                 "after": ["QUALITY-15.T2"]
               },
               "text": "SRD data-gap authoring fixes for INVALID_INPUT rows real content should author (no targeting off a Self range, area with no shape; about 27 rows), source data only.",
-              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3g",
@@ -28189,6 +28200,20 @@
               "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
               "text": "IsolateNotClean at the end of the custody and publication proofs is traced to the function that poisons the isolate and fixed at its cause.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-19.T3",
+              "status": "TODO",
+              "closes": ["QUALITY-19.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["QUALITY-19.T1"]
+              },
+              "note": "Registered 2026-11-15 from the T4c report (flaked once on its first Browser journeys run, then passed twice) under the standing approval for QUALITY growth (2026-11-13).",
+              "text": "The SocialListingFormPage \"Create For Campaign With Listing\" backend story waits on the campaigns list query it picks from, not the unrelated seeded-campaign frame, so a cold backend cannot race the Campaign option."
             }
           ]
         }

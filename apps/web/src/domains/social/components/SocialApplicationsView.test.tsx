@@ -108,6 +108,25 @@ describe('SocialApplicationsView', () => {
     expect(screen.getByRole('article')).toHaveAttribute('data-highlighted', 'true')
   })
 
+  it('focuses the deep-linked row again when a list reload remounts it', () => {
+    mocks.direct = application
+    mocks.pending.results = [application]
+    // A fresh element each time, because React skips a re-render for the same element object.
+    const view = () => (
+      <SocialApplicationsView applicationPublicId={application.applicationPublicId} />
+    )
+    const { rerender } = renderWithAppProviders(view())
+    expect(screen.getByRole('article')).toHaveFocus()
+    mocks.direct = undefined
+    mocks.pending.results = []
+    rerender(view())
+    expect(screen.queryByRole('article')).not.toBeInTheDocument()
+    mocks.direct = application
+    mocks.pending.results = [application]
+    rerender(view())
+    expect(screen.getByRole('article')).toHaveFocus()
+  })
+
   it('keeps a direct pending application ahead of history rows', () => {
     const historyApplication = {
       ...application,

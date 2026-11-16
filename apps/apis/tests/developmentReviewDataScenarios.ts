@@ -27,6 +27,11 @@ export const REVIEW_PASSWORD = 'Review_Local_1!pass'
 
 export type ReviewAccountSpec = { key: string; username: string; email?: string }
 
+/** The sign-in email of a review account: its own, or the local default derived from its username. */
+export function reviewAccountEmail(spec: ReviewAccountSpec): string {
+  return spec.email ?? `${spec.username.toLowerCase()}@example.invalid`
+}
+
 export const REVIEW_GM: ReviewAccountSpec = { key: 'gm', username: 'Review_Gm_Rowan' }
 export const REVIEW_PLAYERS: readonly ReviewAccountSpec[] = [
   { key: 'player1', username: 'Review_Pl_Aria' },
@@ -54,6 +59,33 @@ export const REVIEW_STORY_HOST = {
   key: 'storyHost',
   username: 'Review_Story_Host'
 } satisfies ReviewAccountSpec
+
+/** Strangers to the story account: one applies to its listing and is invited, one it reports and blocks. */
+export const REVIEW_STORY_PEER = {
+  key: 'storyPeer',
+  username: 'Review_Story_Peer'
+} satisfies ReviewAccountSpec
+export const REVIEW_STORY_BLOCKED = {
+  key: 'storyBlocked',
+  username: 'Review_Story_Blocked'
+} satisfies ReviewAccountSpec
+
+/** The accounts a backend story may sign in as; the reader is the default (D221). */
+export const STORY_ACCOUNTS = {
+  reader: REVIEW_STORY_READER,
+  peer: REVIEW_STORY_PEER,
+  admin: REVIEW_ADMIN
+} satisfies Record<string, ReviewAccountSpec>
+
+export type StoryAccountKey = keyof typeof STORY_ACCOUNTS
+
+/** The Social Hub state around the story Campaign, which the reader hosts: see seedStorySocial. */
+export const STORY_SOCIAL = {
+  applicationMessage: 'Our Rogue would love a seat at your table.',
+  /** The peer's own Campaign, whose listing stays a draft. */
+  peerTableName: 'Story Peer Table',
+  reportDetails: 'Seeded report for the moderation queue.'
+} as const
 
 /** An owned record the story account copies from master content, at a fixed id its stories open. */
 export type StoryRecordSpec = { subjectId: string; label: string }
@@ -280,6 +312,8 @@ export const STORY_CAMPAIGN = {
   slug: 'story',
   name: 'Story Campaign',
   blueprintName: 'Story Encounter',
+  /** The next Encounter the GM has prepared beside the started one; its Run is never started. */
+  preparedBlueprintName: 'Story Next Encounter',
   enemyLabel: 'Story Cultist',
   scene: {
     name: 'Story Scene',
@@ -290,7 +324,10 @@ export const STORY_CAMPAIGN = {
   },
   playSettings: { normalCadenceDays: 14, expectedDurationMinutes: 240, quorum: 3 },
   lootTable: { name: 'Story pockets', coinAmount: 12 }
-} as const satisfies StoryCampaignSpec & { lootTable: { name: string; coinAmount: number } }
+} as const satisfies StoryCampaignSpec & {
+  preparedBlueprintName: string
+  lootTable: { name: string; coinAmount: number }
+}
 
 /**
  * The Campaign the story reader plays in rather than hosts (D221): hosted by REVIEW_STORY_HOST, joined
