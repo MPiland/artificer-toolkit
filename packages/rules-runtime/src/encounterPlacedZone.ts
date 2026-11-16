@@ -77,7 +77,7 @@ export function planEncounterPlacedZone(
     {
       ...(input.distanceStep !== undefined ? { distanceStep: input.distanceStep } : {}),
       // A layered zone's own record is its first layer (D223).
-      ...(zone.layerComponents ? { layerIndex: 1 } : {})
+      ...(zone.layerComponents ? { layer: { index: 1, zoneId: input.id } } : {})
     }
   )
 }
@@ -85,10 +85,11 @@ export function planEncounterPlacedZone(
 /**
  * The records a layered zone's later layers place over the zone's own area (D223), one per layer in
  * order with the id at its index: each sits where the zone does and is numbered after the zone's own
- * record, its first layer, so a creature meeting the zone is put through them in order.
+ * record, its first layer, so a creature meeting the zone is put through them in order. zoneId is
+ * the zone's own record, which groups its layers.
  */
 export function planEncounterZoneLayers(
-  input: PlacedZoneInput & { ids: readonly string[] }
+  input: PlacedZoneInput & { zoneId: string; ids: readonly string[] }
 ): LiveSessionPlacedSpatialEffect[] {
   const { zone, point, area } = input
   const layers = zone.layerComponents ?? []
@@ -97,7 +98,9 @@ export function planEncounterZoneLayers(
   if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
   const anchor = zoneAnchor(zone.attachment, area, point, input.sourceToken)
   return layers.map((layer, index) =>
-    placedZoneRecord(input, input.ids[index]!, layer, anchor, { layerIndex: index + 2 })
+    placedZoneRecord(input, input.ids[index]!, layer, anchor, {
+      layer: { index: index + 2, zoneId: input.zoneId }
+    })
   )
 }
 
@@ -175,7 +178,7 @@ function placedZoneRecord(
       'retaliatesMeleeHits' | 'occupantSaveBonus' | 'occupantConditionImmunity' | 'camouflage'
     >,
   anchor: ReturnType<typeof zoneAnchor>,
-  { distanceStep, layerIndex }: { distanceStep?: number; layerIndex?: number } = {}
+  { distanceStep, layer }: { distanceStep?: number; layer?: { index: number; zoneId: string } } = {}
 ): LiveSessionPlacedSpatialEffect {
   const { entry, grant, heldCondition } = zone
   // Every record of a timed zone counts its duration on its source's turns from placement, so a zone
@@ -252,7 +255,16 @@ function placedZoneRecord(
       // A creature teleporting travels no distance through a zone acting per distance moved.
       movementKinds: distanceStep ? ['VOLUNTARY', 'FORCED'] : ['VOLUNTARY', 'FORCED', 'TELEPORT'],
       ...(distanceStep ? { distanceStep } : {}),
-      ...(layerIndex !== undefined ? { layerIndex } : {}),
+      ...(layer ? { layerIndex: layer.index } : {}),
+      ...(layer && zone.destructionCriteria
+        ? {
+            destruction: {
+              zoneId: layer.zoneId,
+              inOrder: input.zone.destructionInOrder === true,
+              criteria: zone.destructionCriteria
+            }
+          }
+        : {}),
       activation: 'REPEATABLE',
       visibility: 'PUBLIC',
       revealOnTrigger: false,

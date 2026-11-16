@@ -10,6 +10,10 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import { zoneConcealedFrom } from '@artificer-toolkit/rules-runtime/encounterZoneConcealment'
+import {
+  zoneLayerDestructionCriterionText,
+  zoneLayerOutOfOrder
+} from '@artificer-toolkit/rules-runtime/encounterZoneLayerDestruction'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
@@ -93,6 +97,12 @@ export async function readEncounterSessionState(
     campaign,
     membership
   })
+  // The GM reads what destroys each layer of a layered zone in the System's damage terms (D223).
+  const gm = membership.role === 'OWNER'
+  const damageTypes =
+    gm && spatialRows.some(({ placement }) => placement.destruction)
+      ? ((await ctx.ports.requireSystem(row.gameSystemId)).damageTypes ?? [])
+      : []
   return {
     encounter,
     pending,
@@ -118,8 +128,17 @@ export async function readEncounterSessionState(
               id,
               label: placement.label ?? null,
               shape: placement.geometry.shape,
-              spotDc: (membership.role === 'OWNER' && spatialState.concealment?.spotDc) || null,
-              disarmDc: (membership.role === 'OWNER' && spatialState.disarmDc) || null,
+              spotDc: (gm && spatialState.concealment?.spotDc) || null,
+              disarmDc: (gm && spatialState.disarmDc) || null,
+              destruction:
+                gm && placement.destruction
+                  ? {
+                      next: !zoneLayerOutOfOrder({ placement }, spatialRows),
+                      criteria: placement.destruction.criteria.map((criterion) =>
+                        zoneLayerDestructionCriterionText(criterion, damageTypes)
+                      )
+                    }
+                  : null,
               unawareActorIds: encounter.actors.flatMap(({ id }) =>
                 spatialState.concealment &&
                 (controlledActorIds?.has(id) ?? true) &&
@@ -131,14 +150,13 @@ export async function readEncounterSessionState(
           ]
         : []
     ),
-    pendingZoneSightings:
-      membership.role === 'OWNER'
-        ? spatialRows.flatMap(({ id, spatialState }) =>
-            (spatialState.concealment?.sightings ?? []).flatMap(({ actorId, status }) =>
-              status === 'PROMPTED' ? [{ spatialEffectId: id, actorId }] : []
-            )
+    pendingZoneSightings: gm
+      ? spatialRows.flatMap(({ id, spatialState }) =>
+          (spatialState.concealment?.sightings ?? []).flatMap(({ actorId, status }) =>
+            status === 'PROMPTED' ? [{ spatialEffectId: id, actorId }] : []
           )
-        : []
+        )
+      : []
   }
 }
 

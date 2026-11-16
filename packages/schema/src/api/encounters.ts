@@ -31,6 +31,7 @@ import {
   dismissZoneSightingInputDtoSchema,
   revealZoneInputDtoSchema,
   disarmZoneInputDtoSchema,
+  destroyZoneLayerInputDtoSchema,
   setConcealmentObserversInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
@@ -57,6 +58,7 @@ export {
   dismissZoneSightingInputDtoSchema,
   revealZoneInputDtoSchema,
   disarmZoneInputDtoSchema,
+  destroyZoneLayerInputDtoSchema,
   setConcealmentObserversInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
@@ -82,6 +84,7 @@ export type {
   DismissZoneSightingInputDto,
   RevealZoneInputDto,
   DisarmZoneInputDto,
+  DestroyZoneLayerInputDto,
   SetConcealmentObserversInputDto,
   VoidRuleOccurrenceInputDto
 } from './encounterRuleCommands.js'
@@ -385,6 +388,7 @@ export const encounterCommandInputDtoSchema = lazySchema(() =>
     dismissZoneSightingInputDtoSchema,
     revealZoneInputDtoSchema,
     disarmZoneInputDtoSchema,
+    destroyZoneLayerInputDtoSchema,
     revertLastEncounterActionInputDtoSchema,
     rollRuleEvidenceInputDtoSchema,
     moraleSaveInputDtoSchema,

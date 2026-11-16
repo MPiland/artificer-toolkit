@@ -57,13 +57,18 @@ export async function revertZoneDcs(
   })
 }
 
-/** Undoes a disarm (MOVE-3.7): the zone returns to the Scene whole, as the GM left it. */
+/**
+ * Undoes a disarm (MOVE-3.7) or a destroyed layer (D223): the zone returns to the Scene whole, as
+ * the GM left it, in the maintenance it belonged to.
+ */
 export async function revertZoneDisarm(
   ctx: EncounterCharacterWriteTransaction,
-  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'DISARM_ZONE' }> }
+  input: RevertScope & {
+    root: Extract<StoredCommand, { commandType: 'DISARM_ZONE' | 'DESTROY_ZONE_LAYER' }>
+  }
 ): Promise<EncounterCommandResultDto> {
   const { state, root } = input
-  const { spatialEffectId, zone } = root.receipt
+  const { spatialEffectId, maintainedEffectStateId, zone } = root.receipt
   const row = await ctx.db
     .query('encounterSpatialRuleEffects')
     .withIndex('by_publicId', (q) => q.eq('id', spatialEffectId))
@@ -80,7 +85,7 @@ export async function revertZoneDisarm(
       sceneId: binding.sceneId
     }))
   if (!store) revertUnavailable('The Scene changed since the zone was disarmed; adjust manually.')
-  await store.create({ id: spatialEffectId, maintainedEffectStateId: null, ...zone })
+  await store.create({ id: spatialEffectId, maintainedEffectStateId, ...zone })
   const actors = await readRunActors(ctx, state)
   return commitRevert(ctx, {
     ...input,

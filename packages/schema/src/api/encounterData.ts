@@ -755,7 +755,9 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
      * their Characters knows of (MOVE-3.3). The spot and disarm DCs reach only the GM; a player reads
      * null. `unawareActorIds` are the Run's actors that have not noticed a concealed zone, so they get
      * no "Move carefully" offer and the GM's route lists them (MOVE-3.6); a player reads only their
-     * own, and every list is empty for a zone in plain sight.
+     * own, and every list is empty for a zone in plain sight. `destruction` is a layer of a layered
+     * zone the GM destroys by command (D223): the authored criteria as text, and whether no layer
+     * before it remains; a player and any other zone read null.
      */
     placedZones: z
       .array(
@@ -767,6 +769,15 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           shape: spatialGeometryDtoSchema,
           spotDc: z.nullable(zoneDcDtoSchema),
           disarmDc: z.nullable(zoneDcDtoSchema),
+          destruction: z.nullable(
+            z.strictObject({
+              next: z.boolean(),
+              criteria: z
+                .array(z.string().check(z.minLength(1)).check(z.maxLength(240)))
+                .check(z.minLength(1))
+                .check(z.maxLength(16))
+            })
+          ),
           unawareActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )

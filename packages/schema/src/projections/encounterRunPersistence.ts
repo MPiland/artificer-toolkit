@@ -612,10 +612,14 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.literal('DISARM_ZONE'),
-      /** The zone the GM disarmed (MOVE-3.7) as it stood, which the GM's undo puts back. */
+      commandType: z.enum(['DISARM_ZONE', 'DESTROY_ZONE_LAYER']),
+      /**
+       * The zone the GM disarmed (MOVE-3.7) or the layer the GM destroyed (D223) as it stood, with the
+       * maintenance it belonged to, which the GM's undo puts back.
+       */
       receipt: z.strictObject({
         spatialEffectId: postgresUuidSchema,
+        maintainedEffectStateId: z.nullable(postgresUuidSchema),
         zone: spatialRuleEffectCurrentStateDtoSchema
       })
     }),

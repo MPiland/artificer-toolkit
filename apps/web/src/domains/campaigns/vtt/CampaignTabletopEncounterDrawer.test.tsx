@@ -1111,6 +1111,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
               shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 },
               spotDc: { value: 15, source: 'FLAT' },
               disarmDc: null,
+              destruction: null,
               unawareActorIds: [actor.id]
             }
           ]
@@ -1165,6 +1166,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
               shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 },
               spotDc: { value: 15, source: 'FLAT' },
               disarmDc: { value: 12, source: 'FLAT' },
+              destruction: null,
               unawareActorIds: [actor.id]
             }
           ]
@@ -1195,6 +1197,60 @@ describe('CampaignTabletopEncounterDrawer', () => {
       encounterId: tabletopGmEncounter.id,
       expectedVersion: tabletopGmEncounter.version,
       spatialEffectId: zoneId
+    })
+  })
+
+  it('shows the GM what destroys each layer of a layered zone and destroys the next one (D223)', async () => {
+    const user = userEvent.setup()
+    const onCommand = vi.fn()
+    const shape = { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: 15 }
+    const layer = (id: string, label: string, next: boolean, criteria: string[]) => ({
+      id,
+      label,
+      shape,
+      spotDc: null,
+      disarmDc: null,
+      destruction: { next, criteria },
+      unawareActorIds: []
+    })
+    const redId = '00000000-0000-4000-8000-0000000000e2'
+    renderWithAppProviders(
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine
+        encounter={tabletopGmEncounter}
+        holds={[]}
+        memberships={createTabletopCampaign('OWNER').memberships}
+        pending={false}
+        role='OWNER'
+        scene={tabletopLiveScene}
+        session={{
+          pendingZoneSightings: [],
+          placedZones: [
+            layer(redId, 'Red', true, ['25 or more Cold damage']),
+            layer('00000000-0000-4000-8000-0000000000e3', 'Orange', false, ['A strong wind'])
+          ]
+        }}
+        onCommand={onCommand}
+        onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    const zones = screen.getByRole('group', { name: 'Placed zones' })
+    expect(within(zones).getByText('Destroyed by: 25 or more Cold damage')).toBeVisible()
+    expect(within(zones).getByText('Destroyed by: A strong wind')).toBeVisible()
+    expect(within(zones).queryByRole('button', { name: /^Disarm/ })).toBeNull()
+    expect(within(zones).getByRole('button', { name: 'Destroy Orange' })).toBeDisabled()
+    await user.click(within(zones).getByRole('button', { name: 'Destroy Red' }))
+    expect(onCommand).toHaveBeenLastCalledWith({
+      type: 'DESTROY_ZONE_LAYER',
+      commandId: expect.any(String),
+      encounterId: tabletopGmEncounter.id,
+      expectedVersion: tabletopGmEncounter.version,
+      spatialEffectId: redId
     })
   })
 })

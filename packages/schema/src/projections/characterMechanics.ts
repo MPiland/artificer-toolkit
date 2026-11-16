@@ -33,6 +33,7 @@ import {
   spatialOccupantConditionImmunityDtoSchema,
   spatialZoneLabelSchema,
   zoneBlockingRulesSchema,
+  zoneLayerDestructionCriteriaSchema,
   zoneMovementCostMultiplierSchema,
   zoneRequiredSightSchema
 } from '../shared/spatial.js'
@@ -625,6 +626,8 @@ const zoneComponentShape = lazySchemaParts(() => ({
   camouflage: z.optional(z.strictObject({ spotDc: heldEscapeDcDtoSchema })),
   /** The condition the zone holds on a creature failing its save (D146); absent when unheld. */
   heldCondition: z.optional(compiledSpatialHeldConditionDtoSchema),
+  /** What destroys this layer of a layered zone, any one criterion (D223); absent for none. */
+  destructionCriteria: z.optional(zoneLayerDestructionCriteriaSchema),
   /** What a creature the zone triggers on is put through (its authored save and outcomes). */
   entry: compiledActionActiveEffectPlanSchema,
   /** The grant a creature that fails the entry keeps; null when nothing lingers. */
@@ -723,6 +726,11 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
         .check(z.minLength(1))
         .check(z.maxLength(MAX_ZONE_LAYERS - 1))
     ),
+    /**
+     * Whether the layers that author destruction criteria are destroyed only in their order, each
+     * after every layer before it (D223). Absent when any may be destroyed first.
+     */
+    destructionInOrder: z.optional(z.literal(true)),
     /** The Concentration the placing cast opens; every record it places depends on it (D135). */
     maintenance: compiledActionMaintenanceSchema,
     /**

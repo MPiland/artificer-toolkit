@@ -278,7 +278,7 @@ export async function revertLastEncounterAction(
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertZoneDcs(ctx, { ...scope, root })
   }
-  if (root?.commandType === 'DISARM_ZONE') {
+  if (root?.commandType === 'DISARM_ZONE' || root?.commandType === 'DESTROY_ZONE_LAYER') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertZoneDisarm(ctx, { ...scope, root })
   }

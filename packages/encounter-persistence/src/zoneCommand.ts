@@ -16,13 +16,13 @@ import { encounterReplayReceipt, replayEncounterCommandResult } from './replayRe
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 
-type ZoneStore = NonNullable<
+export type ZoneStore = NonNullable<
   Awaited<ReturnType<ReturnType<typeof createSpatialRuleEffectStore>['scope']>>
 >
-type Zone = NonNullable<Awaited<ReturnType<ZoneStore['get']>>>
+export type Zone = NonNullable<Awaited<ReturnType<ZoneStore['get']>>>
 
 /**
- * Runs one GM command on a zone of the Run's bound Scene (MOVE-3.3, 3.5, 3.7): GM-only, replayed by
+ * Runs one GM command on a zone of the Run's bound Scene (MOVE-3.3, 3.5, 3.7, D223): GM-only, replayed by
  * command id, one Run version bump and one timeline entry. `apply` changes the zone through the
  * store and returns the receipt the GM's undo reads; ids in `command` arrive lower-cased.
  */
@@ -38,7 +38,12 @@ export async function executeZoneCommand<
   ctx: EncounterWriteTransaction,
   command: Command,
   userId: string,
-  commandType: 'SET_ZONE_DCS' | 'DISMISS_ZONE_SIGHTING' | 'REVEAL_ZONE' | 'DISARM_ZONE',
+  commandType:
+    | 'SET_ZONE_DCS'
+    | 'DISMISS_ZONE_SIGHTING'
+    | 'REVEAL_ZONE'
+    | 'DISARM_ZONE'
+    | 'DESTROY_ZONE_LAYER',
   apply: (
     input: Command,
     store: ZoneStore,

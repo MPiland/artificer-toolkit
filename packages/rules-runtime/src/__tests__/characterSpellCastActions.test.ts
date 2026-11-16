@@ -1749,7 +1749,29 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
     expect(compiledCastEntry(banded)).toBeNull()
   })
 
-  it('keeps the SRD Prismatic Wall refused until its destruction, proximity, light and placement rules are built', () => {
+  it('keeps each layer’s authored destruction criteria and destroys them in order (QUALITY-15.T3v2)', () => {
+    for (const zone of layeredZones(layeredZoneSpell())) {
+      expect(zone.destructionInOrder).toBe(true)
+      expect(
+        [zone, ...(zone.layerComponents ?? [])].map(({ destructionCriteria }) =>
+          destructionCriteria?.map(({ kind }) => kind)
+        )
+      ).toEqual([['DAMAGE_THRESHOLD'], ['STRONG_WIND'], ['DAMAGE_THRESHOLD']])
+    }
+  })
+
+  it('refuses layer destruction on a zone whose destroyed layers do not stay destroyed', () => {
+    const regrowing = layeredZoneSpell()
+    const path = regrowing.effects?.[0]?.paths[0]
+    if (path?.selectionKind !== 'CHOICE') throw new Error('The wall must offer its forms.')
+    for (const { resultBlock } of path.options)
+      for (const outcome of resultBlock.outcomes)
+        if (outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'ZONE')
+          delete outcome.destroyedComponentsRemainDestroyed
+    expect(compiledCastEntry(regrowing)).toBeNull()
+  })
+
+  it('keeps the SRD Prismatic Wall refused until its proximity, light and placement rules are built', () => {
     expect(compiledCastEntry(spell('Prismatic Wall'))).toBeNull()
   })
 })

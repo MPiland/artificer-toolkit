@@ -275,6 +275,7 @@ function zonePlacementPlan(
       ...primary,
       ...(regionComponents.length ? { regionComponents } : {}),
       ...(layerComponents.length ? { layerComponents } : {}),
+      ...(zone.destructionInOrder ? { destructionInOrder: true as const } : {}),
       ...(sourceGrant ? { sourceGrant } : {})
     },
     zone.entry
@@ -445,6 +446,7 @@ function zoneComponentPlan(
     movementCostMultiplier,
     perDistanceMoved,
     blockingRules,
+    destructionCriteria,
     automaticSaveSuccessImmunityDamageTypeId: successImmunity
   } = component
   if (requiresFullyWithin && triggers?.triggerModes.length)
@@ -488,7 +490,10 @@ function zoneComponentPlan(
     ...(perDistanceMoved
       ? { perDistanceMoved: { amount: perDistanceMoved.amount, unit: perDistanceMoved.unit } }
       : {}),
-    ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
+    ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {}),
+    ...(destructionCriteria?.length
+      ? { destructionCriteria: [...destructionCriteria].sort((a, b) => a.order - b.order) }
+      : {})
   }
   if (!behavior) return { ...placement, ...lastingZoneEntry(action, zone) }
   const { invocation, entries } = behavior

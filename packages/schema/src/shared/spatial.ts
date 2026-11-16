@@ -4,6 +4,7 @@ import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 
 import { activationDtoSchema } from '../effects/activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from '../effects/check.js'
+import { manifestDestructionCriterionDtoSchema } from '../effects/destructionCriterion.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { manifestBlockingRuleSchema, manifestRequiredSightSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
@@ -206,6 +207,20 @@ export const spatialOccupantConditionImmunityDtoSchema = lazySchema(() =>
   })
 )
 
+/** The authored criteria, any one of which destroys a layer of a layered zone (D223). */
+export const zoneLayerDestructionCriteriaSchema = lazySchema(() =>
+  z.array(manifestDestructionCriterionDtoSchema).check(z.minLength(1)).check(z.maxLength(16))
+)
+
+/** The authored criteria that destroy one layer of a layered zone, and their order rule (D223). */
+export const spatialLayerDestructionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    zoneId: uuidSchema,
+    inOrder: z.boolean(),
+    criteria: zoneLayerDestructionCriteriaSchema
+  })
+)
+
 /** A compiled zone's held condition; its escape DC may be its source's save DC. */
 export const compiledSpatialHeldConditionDtoSchema = lazySchema(() =>
   spatialHeldConditionDtoSchema(heldEscapeDcDtoSchema)
@@ -261,6 +276,13 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
        * at one point of its move is put through them in this order. Absent for a zone of one layer.
        */
       layerIndex: z.optional(zoneLayerIndexSchema),
+      /**
+       * How the GM destroys this layer of a layered zone (D223): its component's authored criteria,
+       * the id of the zone's own record that every layer of the zone names, and whether the layers
+       * before it must be destroyed first. A destroyed layer's record is removed, so it stays
+       * destroyed. Absent for a record no criterion destroys.
+       */
+      destruction: z.optional(spatialLayerDestructionDtoSchema),
       blockingRules: z.optional(zoneBlockingRulesSchema),
       /** A creature failing the zone's save at the start of its turn loses its Action for that turn. */
       failedSaveLosesAction: z.optional(z.boolean()),
@@ -577,6 +599,7 @@ export const spatialMovementCandidateInputDtoSchema = lazySchema(() =>
 export type SpatialGeometryDto = z.infer<typeof spatialGeometryDtoSchema>
 export type SpatialPersistedGeometryDto = z.infer<typeof spatialPersistedGeometryDtoSchema>
 export type SpatialRuleEffectPlacementDto = z.infer<typeof spatialRuleEffectPlacementDtoSchema>
+export type SpatialLayerDestructionDto = z.infer<typeof spatialLayerDestructionDtoSchema>
 export type SpatialRuleEffectStateDto = z.infer<typeof spatialRuleEffectStateDtoSchema>
 export type ZoneDcDto = z.infer<typeof zoneDcDtoSchema>
 export type SpatialRuleEffectCurrentStateDto = z.infer<
