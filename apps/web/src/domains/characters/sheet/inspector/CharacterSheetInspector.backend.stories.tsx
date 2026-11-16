@@ -169,7 +169,7 @@ export const SkillsInspector: Story = {
 }
 
 export const SensesInspector: Story = {
-  play: inspectOverview('Inspect Passive Perception', 'Senses', 'Available senses')
+  play: inspectOverview('Inspect Passive Perception', 'Passive Perception', 'Effective total')
 }
 
 export const MovementInspector: Story = {
@@ -266,11 +266,11 @@ export const SpellInspectorEmptyCustomizations: Story = {
   }
 }
 
-// Seeded: the story multiclass carries a note on its Class source for Sleep.
+// Seeded: the story multiclass carries a note on its Class source for Burning Hands.
 export const SpellInspectorConfiguredCustomizations: Story = {
   parameters: spellsRouter,
   play: async (context) => {
-    const notes = await customizeSpell('Sleep')(context)
+    const notes = await customizeSpell('Burning Hands')(context)
     expect(notes.map((field) => (field as HTMLTextAreaElement).value)).toContain(STORY_SPELL_NOTE)
   }
 }

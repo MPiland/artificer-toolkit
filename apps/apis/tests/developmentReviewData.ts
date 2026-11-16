@@ -57,6 +57,7 @@ import {
   STORY_PLAYER_CAMPAIGN,
   STORY_DRAFT_ONLY,
   STORY_RECORDS,
+  STORY_PREPARED_SPELLS,
   STORY_SPELL_NOTE,
   type StoryCampaignSpec,
   type ReviewAccountSpec,
@@ -689,6 +690,7 @@ async function seedStoryCharacters(reader: StoryClient) {
         identify
       ]
     })
+  await seedStoryPreparedSpells(reader, multiclass.characterId)
   await seedStorySpellNote(reader, multiclass.characterId)
   if (!(await exists(caster.characterId)))
     await createDevelopmentSpellCharacter(
@@ -782,13 +784,43 @@ async function seedStoryExtras(reader: StoryClient, characterId: string) {
     })
 }
 
-/** The Spell inspector's configured-customization story opens Sleep with a note on its source. */
+/** A Wizard's spellbook lists known spells; the Spells section shows only those the Wizard prepared. */
+async function seedStoryPreparedSpells(reader: StoryClient, characterId: string) {
+  const read = async () => {
+    const panel = await reader.query(api.characters.panels.get, {
+      id: characterId,
+      target: { kind: 'SPELLS' }
+    })
+    assert.ok(panel?.kind === 'SPELLS', 'The story multiclass must read its Spells panel.')
+    return panel.groups.flatMap((group) => group.sources)
+  }
+  const sources = await read()
+  const chosen = STORY_PREPARED_SPELLS.map((label) => {
+    const source = sources.find((candidate) => candidate.label === label && candidate.canPrepare)
+    assert.ok(source?.preparationClassId, `The story multiclass cannot prepare ${label}.`)
+    return { ...source, preparationClassId: source.preparationClassId }
+  })
+  if (chosen.every(({ prepared }) => prepared)) return
+  const sheet = await reader.query(api.characters.sheet.get, { id: characterId })
+  assert.ok(sheet, 'The story multiclass must read its Sheet.')
+  await reader.mutation(api.characters.sheetCommands.execute, {
+    id: characterId,
+    command: {
+      type: 'SET_PREPARED_SPELLS',
+      commandId: crypto.randomUUID(),
+      expectedVersion: sheet.meta.streamVersion,
+      classId: chosen[0]!.preparationClassId,
+      spellIds: chosen.map(({ spellId }) => spellId)
+    }
+  })
+}
+/** The Spell inspector's configured-customization story opens Burning Hands with a note on its source. */
 async function seedStorySpellNote(reader: StoryClient, characterId: string) {
   const sheet = await reader.query(api.characters.sheet.get, { id: characterId })
   const source = sheet?.spells.spells
-    .find(({ label }) => label === 'Sleep')
+    .find(({ label }) => label === 'Burning Hands')
     ?.sources?.find(({ source: { sourceKind } }) => sourceKind === 'CLASS')
-  assert.ok(sheet && source, 'The story multiclass must read a Class source for Sleep.')
+  assert.ok(sheet && source, 'The story multiclass must read a Class source for Burning Hands.')
   if (source.notes === undefined)
     await reader.mutation(api.characters.sheetCommands.execute, {
       id: characterId,

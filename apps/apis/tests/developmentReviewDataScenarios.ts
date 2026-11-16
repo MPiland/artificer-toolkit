@@ -386,7 +386,10 @@ export const STORY_CHARACTERS = {
   }
 } as const
 
-/** The note the Spell inspector story reads on the story multiclass's Sleep. */
+/** The leveled spells the story multiclass Wizard prepares: a first-level Wizard prepares two. */
+export const STORY_PREPARED_SPELLS = ['Magic Missile', 'Burning Hands'] as const
+
+/** The note the Spell inspector story reads on the story multiclass's Burning Hands. */
 export const STORY_SPELL_NOTE = 'Cast from the spellbook, never from memory.'
 
 /**

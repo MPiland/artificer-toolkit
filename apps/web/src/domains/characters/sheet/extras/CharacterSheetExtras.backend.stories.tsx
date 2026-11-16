@@ -51,6 +51,8 @@ async function chooseCompanionOwl(canvasElement: HTMLElement) {
       .find((element) => element instanceof HTMLInputElement)
     if (!input) throw new Error(`${label} input is unavailable`)
     await userEvent.click(input)
+    // The catalogue lists a page at a time, so the Creature is found by its name.
+    if (label === 'Creature') await userEvent.type(input, option)
     await userEvent.click(await body.findByRole('option', { name: option }, { timeout: 15_000 }))
   }
 }
