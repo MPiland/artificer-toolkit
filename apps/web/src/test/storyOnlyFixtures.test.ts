@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { dirname, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const sourceRoot = join(process.cwd(), 'src')
@@ -19,7 +19,7 @@ describe('story-only fixture modules', () => {
     // fixtures themselves imports it, directly or through another shared fixture.
     const shared = new Set(
       sources
-        .filter((file) => testPattern.test(file) && !/fixture/i.test(file))
+        .filter((file) => testPattern.test(file) && !/fixture/i.test(basename(file)))
         .flatMap((file) => importsOf.get(file) ?? [])
         .filter((file) => fixtureModulePattern.test(file))
     )
