@@ -7,6 +7,7 @@ import * as styles from './SocialListingSections.css'
 
 export function SocialListingBasicsSection({
   campaignId,
+  campaignsLoading,
   draft,
   isExisting,
   ownedCampaigns,
@@ -16,6 +17,7 @@ export function SocialListingBasicsSection({
   systems
 }: {
   campaignId: string
+  campaignsLoading: boolean
   draft: SocialListingDraft
   isExisting: boolean
   ownedCampaigns: ReadonlyArray<{
@@ -53,6 +55,7 @@ export function SocialListingBasicsSection({
               value: campaign.id
             }))}
             description='One listing can be created for each active Campaign you own.'
+            disabled={campaignsLoading}
             label='Campaign'
             required
             value={campaignId || null}
