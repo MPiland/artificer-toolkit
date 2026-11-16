@@ -7,7 +7,7 @@ import {
 } from './sheetCommandReducer.js'
 import { resourcePoolSpend } from './resourcePoolSpend.js'
 import { validateActionResourceUse } from './sheetCommandValidation.js'
-import { planSpellSlotExchange } from './sheetSpellSlotExchange.js'
+import { planSpellSlotExchange } from '../systems/dnd5e/spellSlotExchange.js'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import {
   createCharacterResourceOwnerKey,

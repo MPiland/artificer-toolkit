@@ -490,6 +490,24 @@ function sceneDescription(page: ReturnType<typeof within>) {
     .getAttribute('aria-description')
 }
 
+/**
+ * The canvas description once it describes the room's Encounter: the room can send the Encounter
+ * after its first STATE_SYNC, and the tokens' statuses come from it. `describedParts` reads the
+ * Encounter, so it runs only once the room has sent it.
+ */
+async function encounterDescription(
+  page: ReturnType<typeof within>,
+  describedParts: () => readonly string[]
+) {
+  await waitFor(roomEncounter, { timeout: roomJoinTimeoutMs })
+  const parts = describedParts()
+  return waitFor(() => {
+    const description = sceneDescription(page)
+    for (const part of parts) expect(description).toContain(part)
+    return description
+  })
+}
+
 // The room lists every zone to the GM (MOVE-3.3), whose label names the hidden trap's spot DC.
 export const GmSeesEveryPlacedZone: Story = {
   args: { campaign: STORY_CAMPAIGN },
@@ -665,10 +683,10 @@ export const GmSeesTokenStatuses: Story = {
   play: async ({ canvasElement }) => {
     const { page } = await openedWindow(canvasElement, STORY_CAMPAIGN)
     await expectConnected(page)
-    const description = await sceneDescription(page)
-    await expect(description).toContain(`${STORY_CAMPAIGN.enemyLabel}. Custom. Hostile.`)
-    for (const status of seededCreatureStatuses(STORY_CAMPAIGN))
-      await expect(description).toContain(status)
+    await encounterDescription(page, () => [
+      `${STORY_CAMPAIGN.enemyLabel}. Custom. Hostile.`,
+      ...seededCreatureStatuses(STORY_CAMPAIGN)
+    ])
     await expect(storyLiveWrite).not.toHaveBeenCalled()
   }
 }
@@ -1112,10 +1130,10 @@ export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
   play: async ({ canvasElement }) => {
     const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
     await expectConnected(page)
-    const description = await sceneDescription(page)
-    await expect(description).toContain(`${openWarden}. Custom. Hostile.`)
-    for (const status of seededCreatureStatuses(STORY_OPEN_CAMPAIGN))
-      await expect(description).toContain(status)
+    const description = await encounterDescription(page, () => [
+      `${openWarden}. Custom. Hostile.`,
+      ...seededCreatureStatuses(STORY_OPEN_CAMPAIGN)
+    ])
     for (const band of ['Wounded', 'Bloodied', 'Critical'])
       await expect(description).not.toContain(band)
     // The GM's confirmed morale outcome stays the GM's: the room sends the player no morale.
@@ -1133,7 +1151,7 @@ export const GmSeesMoraleOutcome: Story = {
     const { page } = await openedWindow(canvasElement, STORY_OPEN_CAMPAIGN)
     await expectConnected(page)
     const token = tokenLabelled(STORY_OPEN_CAMPAIGN.creatures[2].tokenLabel)
-    await expect(await sceneDescription(page)).toContain('Fled')
+    await encounterDescription(page, () => ['Fled'])
     await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
     const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
     await userEvent.hover(
