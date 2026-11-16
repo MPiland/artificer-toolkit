@@ -82,15 +82,16 @@ describe('SocialInvitationsView', () => {
       createdAt: new Date().toISOString(),
       version: 1
     })
-    const view = <SocialInvitationsView invitePublicId={invitation.invitePublicId} />
+    // A fresh element each time, because React skips a re-render for the same element object.
+    const view = () => <SocialInvitationsView invitePublicId={invitation.invitePublicId} />
     mocks.pending.results = [invitation]
-    const { rerender } = renderWithAppProviders(view)
+    const { rerender } = renderWithAppProviders(view())
     expect(screen.getByRole('article')).toHaveFocus()
     mocks.pending.results = []
-    rerender(view)
+    rerender(view())
     expect(screen.queryByRole('article')).not.toBeInTheDocument()
     mocks.pending.results = [invitation]
-    rerender(view)
+    rerender(view())
     expect(screen.getByRole('article')).toHaveFocus()
   })
   it.each(['EXPIRED', 'REVOKED'] as const)(
