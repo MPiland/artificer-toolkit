@@ -453,7 +453,8 @@ async function presentStoryRun(
 /**
  * The Social Hub state the story account sees, through product commands: its listing for the story
  * Campaign, an application and an invitation for the peer, and a report and block on the other
- * stranger, with the notifications those queue. The admin gets a Social profile and superadmin, so it\n * reads that report in the moderation queue. A step runs only while its result is missing; the
+ * stranger, with the notifications those queue. The admin gets a Social profile and superadmin, so it
+ * reads that report in the moderation queue. A step runs only while its result is missing; the
  * report waits on the block, which cannot be read back.
  */
 async function seedStorySocial(
