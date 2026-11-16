@@ -21,7 +21,7 @@ import {
   type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
-import { recurringHealAmountFacts, spentHealAmountFacts } from './effectActionHealAmountFacts.js'
+import { bindsFact, healFacts, recurringHealAmountFacts } from './effectActionHealAmountFacts.js'
 import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import {
   checksumRuleDocument,
@@ -95,6 +95,7 @@ import {
   fixedAmountDiceConfiguration,
   resolvedDiceMatchAuthored,
   positiveFixedAmount,
+  isBonusAmountHeal,
   isChosenAmountHeal,
   validateHealBonuses,
   type SpecializedOutcome
@@ -1805,6 +1806,7 @@ const DND5E_DIRECT_OUTCOMES: {
       return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
     }
     if (isChosenAmountHeal(outcome)) return { kind: 'SPENT_HEAL' }
+    if (isBonusAmountHeal(outcome)) return { kind: 'RESOLVED_HEAL' }
     const amount = fixedHealAmount(outcome, action.spellCastLevel)
     return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
   },
@@ -1874,12 +1876,14 @@ function supported(
     unsupported('D&D Self action range of distance bounds only its user teleporting.')
   // A willing target only warns when unwilling, and the table can override it. One creature may be
   // asked to accept a grant (Help), a timed condition (Invisibility) or a check (First Aid); a list
-  // a grant, a bond (Telepathic Bond) or a form. Widening either set is QUALITY-15.T2 triage. Both
-  // refuse with one reason, so a list is refused for the reason its single-target cast is.
+  // a grant, a bond (Telepathic Bond) or a form. A timed GM ruling (Water Walk) is held the same way
+  // for either. Both refuse with one reason, so a list is refused for the reason its single-target
+  // cast is.
   if (
     (targeting.kind === 'SINGLE' || targeting.kind === 'CHOSEN') &&
     targeting.willing &&
     grantPlan === null &&
+    timedRulingPlan(action) === null &&
     (targeting.kind === 'SINGLE'
       ? conditionPlan === null && !checkAction
       : linkPlan === null && formPlan === null)
@@ -3284,12 +3288,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         resolvedDamageExpressionFacts[key] = expression
       }
     }
-    const requiresHealModifier = published.definition.nodes.some((node) =>
-      Object.values(node.inputs).some(
-        (binding) =>
-          binding.kind === 'FACT' && binding.factKey === DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY
-      )
-    )
+    const requiresHealModifier = bindsFact(published, DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY)
     const resolvedHealOutcomes = Array.isArray(actionOutcomes)
       ? actionOutcomes.filter(
           (outcome): outcome is Record<string, unknown> & { expression: string } =>
@@ -3379,7 +3378,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         : {}),
       ...resolvedHealModifierFacts,
       ...recurringHealFacts,
-      ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic),
+      ...healFacts(published, resolvedHealOutcomes, actionMechanic),
       ...triggeringRollDieFacts(published, actionOutcomes, classLevels),
       ...(spellCastLevel === undefined
         ? {}

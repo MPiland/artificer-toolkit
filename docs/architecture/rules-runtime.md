@@ -189,7 +189,9 @@ an attack or save result authored as instantaneous (`effectActionOutcomeAspect.t
 **Refusal classes (current, QUALITY-15.T2).** The SRD golden harness (`srdEffectCompileGolden.test.ts`) classes every
 refusal message the corpus meets as a game rule, invalid input (incomplete or contradictory authoring, or a fact binding
 given no resolved roll) or an unbuilt path, and fails on a message it has not classed. The unbuilt list may only shrink:
-building a path removes its message from the list.
+building a path removes its message from the list. QUALITY-15.T3d removed three: a bonus-only heal (`RESOLVED_HEAL`), a
+willing list with a timed ruling, and a creature's two-action activation (authored as the free, charged use its
+sibling Androsphinx already is).
 
 **Golden fidelity and inert zones (current, QUALITY-15.T3b).** The golden compiles a Character spell Effect as the
 product does: through `compileSpellEffect` (which carries the spell's Concentration onto the Effect, the one rule
@@ -3239,6 +3241,19 @@ from these core options; nothing in code names it.
   points and bonuses are not allowed with a split.
 - The action's `resourceUse` is spent once for the whole use, so one undo restores every share and the
   charge. Creature-type exclusions are the target filter's `excludedCreatureTypeIds`.
+- Mass Heal (QUALITY-15.T3d) authors the same option on a spell: its 700-point pool carries
+  `splitKind: 'CASTER_DIVIDES'` ("divided as you choose among any number of creatures"), so it
+  compiles as `SPENT_HEAL` like Preserve Life.
+
+## Bonus-amount heal (current, QUALITY-15.T3d)
+
+A non-temporary `FIXED` `HEAL` with amount 0, no scaling and `bonuses` is a heal its own bonuses give
+(Wholeness of Body: three times the monk level). The compiler's `RESOLVED_HEAL` outcome binds
+`dnd5e.resolved-heal-amount` into the heal proposal; `resolvedHealAmountFacts` reads the one resolved
+row, which the Sheet resolves to a whole number (`characterActionMechanics.ts` `resolveOutcome`), and
+refuses any other row as invalid input. A heal with a base amount, scaling or a temporary amount keeps
+its own paths. The same change lets a willing list pair with a timed GM ruling (Water Walk), since
+the ruling is what a willing creature accepts.
 
 ## Which slot a spell-slot cast candidate may spend (current, SPELLS-8.T17)
 

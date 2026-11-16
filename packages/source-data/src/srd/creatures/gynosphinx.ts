@@ -179,7 +179,7 @@ export const gynosphinx: CreatureAuthored = {
               invocation: {
                 kind: 'ACTION',
                 triggerCode: 'ACTIVATED',
-                activation: { code: 'ACTION', amount: 2 },
+                activation: { code: 'FREE' },
                 range: {
                   id: '00000000-0002-04ba-0070-009d00000000',
                   rangeKind: 'DISTANCE',
