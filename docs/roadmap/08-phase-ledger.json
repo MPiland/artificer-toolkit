@@ -2330,7 +2330,7 @@
             },
             {
               "id": "PLATFORM-28.T4c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2340,11 +2340,12 @@
                 "after": ["PLATFORM-28.T4a"]
               },
               "text": "SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog stories read the second account seed under its own sign-in; writes go through the shared write spies.",
-              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T4d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2354,7 +2355,8 @@
                 "after": ["PLATFORM-28.T4a"]
               },
               "text": "SocialModerationPage story signs in as the seeded superadmin and reads reports made through the report command; the moderation fakes are deleted.",
-              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T5a",
@@ -2374,7 +2376,7 @@
             },
             {
               "id": "PLATFORM-28.T5b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2385,7 +2387,8 @@
               },
               "text": "Encounter builder page and Blueprint route stories read the seeded Campaign; the empty, added and deleted Encounter states are composed stories (D218 amendment).",
               "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m808 (662910fe5); slice tip ff0ad2ee7 (contains m807): Tests 43779209029, Live 43779208969, Browser journeys 43779208974 green. Campaign stories read the seeded story Campaign; a second Blueprint \"Story Next Encounter\" with a never-started prepared Run gives the Run-create story a reachable state; the hung create spy behind the inert watchQuery override is fixed by one unoverridden read client (unoverriddenReads, taken before installQueryOverride, bound per story), which also replaced T4b's duplicate bindStoryReads. T6b owes folding its readServed into that client."
             },
             {
               "id": "PLATFORM-28.T5c",
