@@ -79,7 +79,8 @@ const emberActor = {
       sourceActorId: null,
       remainingTicks: 4,
       expiresAtCampaignMinute: null,
-      polarity: 'BENEFICIAL' as const
+      polarity: 'BENEFICIAL' as const,
+      endable: true
     }
   ],
   conditions: tabletopConditions(

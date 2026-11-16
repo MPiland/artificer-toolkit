@@ -14,6 +14,8 @@ import {
   reusableDefinitionWorkspaceDtoSchema
 } from '@artificer-toolkit/schema/api/reusableDefinitions'
 import { lootDocumentSchema, saveLootInputSchema } from '@artificer-toolkit/schema/api/lootTables'
+import { executeRollInputDtoSchema, rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
+import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import {
   beginSceneDefinitionInputSchema,
   sceneDefinitionSaveLookupSchema,
@@ -30,6 +32,9 @@ import { getSystemDefinition } from '#app/data/systems/queries'
 
 /** What `useMutation` accepts, which is also what the client's `mutation` takes. */
 type MutationReference = Parameters<typeof useMutation>[0]
+
+/** Every die lands in the middle of its faces, so a spied roll is the same on every run. */
+const middleOfEachDie = { nextInt: (maxExclusive: number) => Math.floor(maxExclusive / 2) }
 
 /** The query client of the story that is running, which a write answers from. */
 let storyQueryClient: QueryClient | null = null
@@ -63,7 +68,8 @@ async function readOwnedListing(listingPublicId: string) {
 /**
  * What a recorded write answers: the response its client parses, built through the real response
  * schema from the recorded input, so the page sees a success and nothing reaches the seeded
- * deployment (D218). A write whose caller ignores the response answers null.
+ * deployment (D218). A roll is the record the roller presents, evaluated by the product's roll
+ * expression with fixed dice. A write whose caller ignores the response answers null.
  */
 async function writeResponse(reference: MutationReference, input: unknown): Promise<unknown> {
   const name = getFunctionName(reference)
@@ -81,6 +87,18 @@ async function writeResponse(reference: MutationReference, input: unknown): Prom
   if (name === getFunctionName(api.loot.tables.save)) {
     const { owner, expectedVersion, tables } = saveLootInputSchema.parse(input)
     return lootDocumentSchema.parse({ owner, version: expectedVersion + 1, tables })
+  }
+  if (name === getFunctionName(api.rolls.execute)) {
+    const { characterId, expression, source } = executeRollInputDtoSchema.parse(input)
+    return rollRecordDtoSchema.parse({
+      id: crypto.randomUUID(),
+      ...evaluateRollExpression(parseRollExpression(expression), middleOfEachDie),
+      characterId,
+      characterLabel: 'Story roller',
+      source,
+      ruleset: { systemId: 'story', code: 'DND5E_2014', version: '1' },
+      createdAt: new Date().toISOString()
+    })
   }
   // A Scene save is three writes (D218 amendment): begin opens the save, append batches are not
   // read back, and publish answers as the save that begin opened, so the client sees the whole

@@ -1,3 +1,4 @@
+import { isEndableByHand } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterWriteContext } from './store.js'
@@ -29,7 +30,7 @@ export async function endCharacterActiveEffect(
     if (input.economyEnforced && holderEnd.activation !== 'FREE')
       throw new CharacterSheetCommandError('End this effect from the Encounter actions.')
   }
-  if (effect.maintainedEffectStateId !== null)
+  if (!isEndableByHand(effect))
     throw new CharacterSheetCommandError('End the Concentration that holds this effect instead.')
   await store.deleteCas({
     id: effect.id,

@@ -1,4 +1,4 @@
-import { listActiveGrantListings } from '@artificer-toolkit/rules-runtime/activeGrantListings'
+import { isEndableByHand } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type {
   EncounterRunActorState,
@@ -10,11 +10,13 @@ import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
 /**
- * The GM ends one grant a Creature or custom actor holds by hand (D99). A Character's grant ends
- * through its Sheet command instead. Only a grant can be named: any other effect is refused. The
- * holder is reconciled like any ended effect's (Aid ending lowers current HP).
+ * The GM ends one active effect a Creature or custom actor holds by hand (D99), under the rule a
+ * Character's Sheet end follows (`isEndableByHand`): any effect but one a Concentration
+ * maintains. A Character's ends through its Sheet command instead. The store's end path settles the
+ * holder (a removal from play ends), and the holder is reconciled like any ended effect's (Aid ending
+ * lowers current HP).
  */
-export async function endEncounterActorGrant(
+export async function endEncounterActorEffect(
   ctx: EncounterCharacterWriteTransaction,
   input: {
     state: EncounterRunState
@@ -26,9 +28,10 @@ export async function endEncounterActorGrant(
   const { state, actor, effectId } = input
   const store = createActiveRuleEffectStore(ctx)
   const owner = turnEffectOwner(actor, state.id)
-  const effect = (await store.list(owner)).find(({ id }) => id === effectId)
-  if (!effect || listActiveGrantListings([effect]).length === 0)
-    throw new Error('Active grant was not found on this actor.')
+  const effect = await store.findById(owner, effectId)
+  if (!effect) throw new Error('Active effect was not found on this actor.')
+  if (!isEndableByHand(effect))
+    throw new Error('End the Concentration that holds this effect instead.')
   await store.deleteCas({
     id: effect.id,
     owner,

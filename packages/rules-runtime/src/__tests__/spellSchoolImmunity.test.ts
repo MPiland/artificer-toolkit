@@ -84,7 +84,12 @@ describe('SPELL_SCHOOL_IMMUNITY (SPELLS-33.T6m1)', () => {
     const effect = mindBlankEffect()
     expect(
       listActiveGrantListings([
-        { ...effect, createdOrdinal: 1, lifecycle: { schemaVersion: 1, remainingTicks: 3 } }
+        {
+          ...effect,
+          createdOrdinal: 1,
+          lifecycle: { schemaVersion: 1, remainingTicks: 3 },
+          maintainedEffectStateId: null
+        }
       ]).map(({ polarity }) => polarity)
     ).not.toContain('HARMFUL')
   })

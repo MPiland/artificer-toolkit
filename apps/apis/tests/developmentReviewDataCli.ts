@@ -84,7 +84,7 @@ const result = await seedReviewData(
     players,
     admin,
     spares,
-    grantGmTier: steps.grantGmTier,
+    setTier: steps.setTier,
     grantSuperadmin: steps.grantSuperadmin,
     checkpoint: (campaignId) =>
       awaitCampaignCheckpoint(
@@ -100,6 +100,7 @@ const result = await seedReviewData(
 if (target.mode === 'local')
   await seedStoryData(
     async (spec) => (await connect(spec)).client,
+    steps.setTier,
     { checkpoint: (campaignId) => awaitCampaignCheckpoint(gm.client, campaignId) },
     steps.grantSuperadmin
   )

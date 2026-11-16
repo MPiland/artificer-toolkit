@@ -16,6 +16,17 @@ import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes
 import { unknownObjectSchema } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { wizard as wizardClass } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
+import { burningHands } from '@artificer-toolkit/source-data/srd/spells/burning-hands.js'
+import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
+import { identify } from '@artificer-toolkit/source-data/srd/spells/identify.js'
+import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
+import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.js'
+import { mageHand } from '@artificer-toolkit/source-data/srd/spells/mage-hand.js'
+import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
+import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
+import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
+import { sleep } from '@artificer-toolkit/source-data/srd/spells/sleep.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
 import { definitionReferences } from '../convex/content/definitionReferences'
@@ -32,9 +43,12 @@ import {
   REVIEW_STORY_OPEN_HOST,
   REVIEW_STORY_PEER,
   REVIEW_STORY_READER,
+  REVIEW_STORY_SHOWING_HOST,
+  STORY_SHOWING_CAMPAIGN,
   STORY_SOCIAL,
   REVIEW_ADMIN,
   STORY_CAMPAIGN,
+  STORY_CHARACTERS,
   STORY_DEFINITIONS,
   STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
@@ -110,8 +124,8 @@ export type ReviewContext = {
   admin?: ReviewAccount
   /** Accounts that join no Campaign. */
   spares: readonly ReviewAccount[]
-  /** Operator step: lifts the GM account to the GM tier, whose hosted-Campaign limit fits every review Campaign. */
-  grantGmTier: (userId: string) => Promise<void>
+  /** Operator step: sets an account's tier. The GM tier's hosted-Campaign limit fits every review Campaign. */
+  setTier: (userId: string, tier: 'GM' | 'FREE') => Promise<void>
   /** Operator step: promotes the admin account to superadmin (deployment-admin `authAdmin:setRole`). */
   grantSuperadmin: (userId: string) => Promise<void>
   /** Closes a finished Campaign's room where a harness would otherwise keep every room open; a live backend closes idle rooms itself. */
@@ -143,6 +157,8 @@ export type StoryClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
  */
 export async function seedStoryData(
   connect: (spec: ReviewAccountSpec) => Promise<StoryClient>,
+  /** The story Characters copy more content than a free account may own, so the account is promoted while they are built. */
+  setTier: (userId: string, tier: 'GM' | 'FREE') => Promise<void>,
   room: StoryRoom,
   /** Operator step: promotes the account to superadmin, as the review data does for its admin. */
   grantSuperadmin: (userId: string) => Promise<void>,
@@ -151,6 +167,7 @@ export async function seedStoryData(
     new Promise((resolve) => setTimeout(resolve, 2_000))
 ): Promise<void> {
   const reader = await connect(REVIEW_STORY_READER)
+  const { userId } = await reader.query(api.account.identity, {})
   for (const { subjectKind, masterId, ownedActive, ownedDraft } of Object.values(STORY_RECORDS)) {
     await activateStoryCopy(reader, subjectKind, masterId, ownedActive)
     await activateStoryCopy(reader, subjectKind, masterId, ownedDraft)
@@ -180,6 +197,11 @@ export async function seedStoryData(
     room,
     STORY_OPEN_CAMPAIGN
   )
+  await seedStoryShowingCampaign(await connect(REVIEW_STORY_SHOWING_HOST), reader)
+  await setTier(userId, 'GM')
+  await seedStoryCharacters(reader)
+  // The Campaign stories read the plan limits of a free account.
+  await setTier(userId, 'FREE')
   await seedStorySocial(
     {
       reader,
@@ -489,7 +511,22 @@ async function presentStoryRun(
   await room.buildSnapshots?.(campaignId)
   await awaitSnapshotHeads(client, srdSystemRecord.id)
   const execute: ExecuteCommand = (command) => client.mutation(executeEncounterCommand, { command })
-  const started = await startRun(execute, run, name)
+  // Morale is switched on while the Run is still prepared, before START.
+  const created = crowd.some(({ spec }) => spec.morale)
+    ? {
+        id: run.id,
+        version: (
+          await execute({
+            type: 'REPLACE_OPTIONAL_COMBAT_RULES',
+            encounterId: run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: run.version,
+            definitionIds: [moraleDefinitionId()]
+          })
+        ).projection.version
+      }
+    : run
+  const started = await startRun(execute, created, name)
   const presented = await presentRunScene(client, {
     campaignId,
     run: started,
@@ -577,9 +614,136 @@ async function presentStoryRun(
     })
     version = updated.projection.version
   }
-  if (shownScene) await createShownScene(client, campaignId, shownScene.name, scene.board)
+  for (const { actor: crowdActor, spec } of crowd) {
+    if (!spec.morale) continue
+    const checked = await execute({
+      type: 'MORALE_SAVE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: version,
+      actorId: crowdActor.id,
+      triggerKind: spec.morale.triggerKind,
+      leaderActorId: null,
+      overwhelmingOpposition: false,
+      escapePossible: true,
+      roll: { kind: 'AUTO_ROLL' },
+      visibility: 'PUBLIC'
+    })
+    const confirmed = await execute({
+      type: 'CONFIRM_MORALE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: checked.projection.version,
+      actorId: crowdActor.id,
+      disposition: spec.morale.disposition
+    })
+    version = confirmed.projection.version
+  }
+  if (shownScene)
+    await createShownScene(client, campaignId, shownScene.name, scene.board.ambientIllumination)
   await room.checkpoint(campaignId)
   await room.releaseRoom?.(campaignId)
+}
+
+/** Builds each story Character through the Builder commit once; a Character that exists is kept. */
+async function seedStoryCharacters(reader: StoryClient) {
+  const { fighter, multiclass, caster, draftPending } = STORY_CHARACTERS
+  const exists = async (characterId: string) =>
+    Boolean(await reader.query(api.characters.sheet.get, { id: characterId }))
+  if (!(await exists(fighter.characterId)))
+    await createDevelopmentCharacter(reader, fighter.characterId, {}, fighter.label)
+  // The Status stories open a held Condition, which a Character gains through the Sheet command.
+  const sheet = await reader.query(api.characters.sheet.get, { id: fighter.characterId })
+  const poisoned = sheet?.reference.conditionOptions.find(({ label }) => label === 'Poisoned')
+  assert.ok(sheet && poisoned, 'The story Fighter must read the System Poisoned Condition.')
+  if (!sheet.overview.conditions.some(({ conditionTypeId }) => conditionTypeId === poisoned.id))
+    await reader.mutation(api.characters.sheetCommands.execute, {
+      id: fighter.characterId,
+      command: {
+        type: 'ADD_CONDITION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: sheet.meta.streamVersion,
+        conditionTypeId: poisoned.id
+      }
+    })
+  if (!(await exists(multiclass.characterId)))
+    await createDevelopmentCharacter(reader, multiclass.characterId, {}, multiclass.label, {
+      source: wizardClass,
+      spells: [
+        fireBolt,
+        light,
+        mageHand,
+        magicMissile,
+        shield,
+        burningHands,
+        sleep,
+        mageArmor,
+        identify
+      ]
+    })
+  if (!(await exists(caster.characterId)))
+    await createDevelopmentSpellCharacter(
+      reader,
+      caster.characterId,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      caster.label
+    )
+  // The Spells story opens spent slots, which a Character spends through the Sheet command.
+  const casterSheet = await reader.query(api.characters.sheet.get, { id: caster.characterId })
+  assert.ok(casterSheet, 'The story caster must read its Sheet.')
+  let casterVersion = casterSheet.meta.streamVersion
+  for (const { slotKey, remaining } of casterSheet.spells.slots)
+    for (let spent = 0; spent < remaining; spent += 1)
+      ({ streamVersion: casterVersion } = await reader.mutation(
+        api.characters.sheetCommands.execute,
+        {
+          id: caster.characterId,
+          command: {
+            type: 'USE_SPELL_SLOT',
+            commandId: crypto.randomUUID(),
+            expectedVersion: casterVersion,
+            slotKey
+          }
+        }
+      ))
+  if (!(await exists(draftPending.characterId)))
+    await createDevelopmentCharacter(reader, draftPending.characterId, {}, draftPending.label)
+  // Reopening an active Character in the Builder, as its Edit action does, leaves a draft waiting.
+  if (!(await reader.query(api.characters.drafts.get, { id: draftPending.characterId })))
+    await reader.mutation(api.characters.drafts.create, {
+      id: draftPending.characterId,
+      systemId: srdSystemRecord.id
+    })
+}
+
+function moraleDefinitionId(): string {
+  const morale = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+    (definition) => definition.document.kind === 'MORALE'
+  )
+  assert.ok(morale, 'The SRD publishes no Morale rule.')
+  return morale.id
+}
+
+/**
+ * Hosts the Campaign whose GM is showing a Scene to the reader through the real showing command (D87):
+ * the reader joins it, and the Scene is created and shown only while nothing is on show.
+ */
+async function seedStoryShowingCampaign(host: StoryClient, reader: StoryClient) {
+  const { name, shownScene } = STORY_SHOWING_CAMPAIGN
+  const campaignId = await findOrCreateStoryCampaign(host, name)
+  if (!(await findCampaign(reader, name)))
+    await admitPlayers(
+      { client: host },
+      campaignId,
+      [{ client: reader, username: REVIEW_STORY_READER.username }],
+      1
+    )
+  if (await host.query(api.scenes.showings.current, { campaignId })) return
+  const scene = await createShownScene(host, campaignId, shownScene.name, 'BRIGHT')
+  await host.mutation(api.scenes.showings.show, { campaignId, sceneId: scene.liveSceneId })
 }
 
 /** An unpresented Scene on its own real map: what the GM shows to players (D87) without presenting it. */
@@ -587,7 +751,7 @@ async function createShownScene(
   client: StoryClient,
   campaignId: string,
   name: string,
-  board: ReviewBoard
+  ambientIllumination: ReviewBoard['ambientIllumination']
 ) {
   const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
   const token = (label: string, x: number) => ({
@@ -604,13 +768,13 @@ async function createShownScene(
     vision: null,
     width: 50
   })
-  await createEncounterLifecycleScene({
+  return createEncounterLifecycleScene({
     owner: client,
     campaignId,
     name,
     options: {
       fogMode: 'OFF',
-      ambientIllumination: board.ambientIllumination,
+      ambientIllumination,
       map: { width: 800, height: 600 },
       grid: {
         kind: 'SQUARE',
@@ -781,7 +945,7 @@ export async function seedReviewData(
 ): Promise<ReviewSeedResult> {
   assert.equal(context.players.length, REVIEW_PLAYERS.length, 'One account per review player.')
   const result: ReviewSeedResult = { created: [], skipped: [] }
-  await context.grantGmTier(context.gm.userId)
+  await context.setTier(context.gm.userId, 'GM')
   if (context.admin) await context.grantSuperadmin(context.admin.userId)
   // The room caches each roller's preference, so every account stays off: dice are typed.
   for (const account of [
