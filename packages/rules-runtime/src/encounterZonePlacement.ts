@@ -128,9 +128,9 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
   const components = [...(manifest.components ?? [])].sort((a, b) => a.order - b.order)
   const { label, shape } = manifest
   const appearSave = zoneAppearSave(compiledEffect)
-  if ((!components.length && !appearSave) || !shape || !label)
+  if (!shape || !label)
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'A placed zone needs a label, a shape and a component or a save when it appears.'
+      'A placed zone needs a label and a shape.'
     )
   if (components[0]?.region || components.slice(1).some((component) => !component.region))
     throw new CharacterRuleActionUnsupportedCompilationError(

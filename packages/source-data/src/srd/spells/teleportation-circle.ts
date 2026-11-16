@@ -80,7 +80,16 @@ export const teleportationCircle: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.TELEPORTATION_CIRCLE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Teleportation Circle',
+                shape: {
+                  id: spellChildId(SPELL_IDS.TELEPORTATION_CIRCLE, 0x2f0, 1),
+                  shapeKind: SHAPE_KIND.CIRCLE,
+                  radius: {
+                    amount: 5,
+                    unit: MEASUREMENT_UNIT_CODE.FEET
+                  }
+                }
               }
             ]
           }

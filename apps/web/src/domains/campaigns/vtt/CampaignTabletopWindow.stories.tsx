@@ -8,13 +8,8 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { activeGrantListingDtoSchema } from '@artificer-toolkit/schema/shared/activeGrantListing'
-import {
-  sceneFogAppendInputSchema,
-  sceneFogPatchInputSchema
-} from '@artificer-toolkit/schema/api/sceneFog'
 import { validated } from '../../../test/validatedFixture'
 import { reachByKeyboard } from './CampaignTabletop.stories.keyboard'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { facingArcSectors } from '@artificer-toolkit/shared/vtt'
 import {
   buildTabletopPresentations,
@@ -25,7 +20,6 @@ import {
   tabletopCurrentUserId,
   tabletopGmEncounter,
   tabletopLiveScene,
-  tabletopMapDelivery,
   tabletopPlayerEncounter
 } from './CampaignTabletop.stories.fixtures'
 import { CampaignTabletopWindow } from './CampaignTabletopWindow'
@@ -46,16 +40,12 @@ import {
 import { createPlacedZoneDraft, placedZoneSize } from './campaignTabletopZoneTool.model'
 import {
   TabletopFixtures,
-  fogAppend,
-  fogBegin,
   liveCommand,
   mapReadyTimeoutMs,
-  mediaGetDelivery,
   projectScene,
   renderWindow,
   showScene,
   shownScene,
-  storyFogSaveId,
   syncStoryScene
 } from './CampaignTabletopWindow.stories.harness'
 
@@ -76,229 +66,6 @@ const meta = {
 
 export default meta
 type Story = StoryObj<typeof meta>
-
-export const GmWindow: Story = {
-  args: {
-    campaignId: tabletopCampaignId,
-    currentUserId: tabletopCurrentUserId
-  },
-  render: (args) => renderWindow(args, createTabletopCampaign('OWNER')),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body)
-    await expect(
-      await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
-    ).toBeInTheDocument()
-    await expect(page.getByRole('region', { name: 'Live scene: The Lantern Vault' })).toBeVisible()
-    await expect(mediaGetDelivery).toHaveBeenCalledWith({
-      assetId: tabletopMapDelivery.assetId
-    })
-    await expect(page.getByLabelText('Tabletop mode')).toBeVisible()
-    await userEvent.click(page.getByRole('radio', { name: /^Edit$/ }))
-    await expect(page.getByRole('button', { name: 'Edit objects' })).toBeVisible()
-    await expect(page.getByRole('toolbar', { name: 'Edit tools' })).toBeVisible()
-    const drawWallButton = page.getByRole('button', { name: 'Draw wall' })
-    await userEvent.click(drawWallButton)
-    await expect(drawWallButton).toHaveAttribute('aria-pressed', 'true')
-
-    const editObjectsButton = page.getByRole('button', {
-      name: 'Edit objects'
-    })
-    await userEvent.click(editObjectsButton)
-    await waitFor(async () => {
-      await expect(page.getByRole('dialog', { name: 'Edit live scene object' })).toBeVisible()
-    })
-    await waitFor(async () => {
-      await expect(page.getByRole('button', { name: 'Create wall' })).toBeEnabled()
-    })
-    await userEvent.click(page.getByRole('button', { name: 'Create wall' }))
-    // The room is the only writer of the presented Scene (D79).
-    await waitFor(async () => {
-      await expect(liveCommand).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: {
-            command: expect.objectContaining({
-              expectedSceneVersion: tabletopLiveScene.version,
-              sceneId: tabletopLiveScene.id,
-              type: 'UPSERT_SCENE_BARRIER'
-            }),
-            scope: 'SCENE'
-          },
-          type: 'COMMAND'
-        })
-      )
-    })
-    await userEvent.click(page.getByRole('button', { name: 'Close live scene editor' }))
-    await userEvent.click(page.getByRole('button', { name: 'Scene controls' }))
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Move Ember right' }))
-    await waitFor(() =>
-      expect(liveCommand).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: {
-            command: expect.objectContaining({
-              type: 'MOVE_SCENE_TOKEN',
-              expectedEncounterVersion: null,
-              expectedSceneVersion: tabletopLiveScene.version,
-              tokenId: tabletopLiveScene.tokens[0]!.id,
-              path: expect.arrayContaining([tabletopLiveScene.tokens[0]!.position])
-            }),
-            scope: 'SCENE'
-          },
-          expectedSessionSequence: 1,
-          type: 'COMMAND'
-        })
-      )
-    )
-    await userEvent.click(page.getByRole('button', { name: 'Scene controls' }))
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Move Vault Warden right' }))
-    await waitFor(() =>
-      expect(liveCommand).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: {
-            command: expect.objectContaining({
-              type: 'MOVE_SCENE_TOKEN',
-              expectedEncounterVersion: tabletopGmEncounter.version,
-              expectedSceneVersion: tabletopLiveScene.version,
-              tokenId: tabletopLiveScene.tokens[1]!.id,
-              path: expect.arrayContaining([tabletopLiveScene.tokens[1]!.position])
-            }),
-            scope: 'SCENE'
-          },
-          expectedSessionSequence: 1,
-          type: 'COMMAND'
-        })
-      )
-    )
-    await userEvent.click(page.getByRole('button', { name: 'Undo last token move' }))
-    await waitFor(() =>
-      expect(liveCommand).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: {
-            command: expect.objectContaining({
-              type: 'UNDO_LAST_SCENE_MOVE',
-              expectedSceneVersion: tabletopLiveScene.version,
-              sceneId: tabletopLiveScene.id
-            }),
-            scope: 'SCENE'
-          },
-          expectedSessionSequence: 1,
-          type: 'COMMAND'
-        })
-      )
-    )
-    await userEvent.click(page.getByRole('button', { name: 'Open turn order' }))
-    await userEvent.click(await page.findByRole('button', { name: 'Next turn' }))
-    await waitFor(async () => {
-      await expect(liveCommand).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: {
-            command: expect.objectContaining({ type: 'ADVANCE_TURN' }),
-            scope: 'ENCOUNTER'
-          },
-          type: 'COMMAND'
-        })
-      )
-    })
-    const emberTokenSelect = page.getByLabelText("Scene token for Ember's Wake")
-    // Turn controls stay disabled until the room acknowledges the turn change.
-    await waitFor(() => expect(emberTokenSelect).toBeEnabled())
-    await userEvent.click(emberTokenSelect)
-    await userEvent.click(await page.findByRole('option', { name: 'Ember' }))
-    await waitFor(async () => {
-      await expect(liveCommand).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: {
-            command: expect.objectContaining({
-              encounterId: tabletopGmEncounter.id,
-              sceneId: tabletopLiveScene.id,
-              tokenId: tabletopLiveScene.tokens[0]!.id,
-              type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
-            }),
-            scope: 'ENCOUNTER'
-          },
-          type: 'COMMAND'
-        })
-      )
-    })
-    await userEvent.click(page.getByRole('button', { name: 'Scene controls' }))
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Reveal entire map' }))
-    await waitFor(async () => {
-      await expect(fogBegin).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'PATCH_SCENE_FOG' })
-      )
-      const input = sceneFogPatchInputSchema.parse(fogBegin.mock.calls[0]?.[0])
-      await expect(input.chunkManifest).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            checksum: expect.stringMatching(/^[a-f0-9]{64}$/)
-          })
-        ])
-      )
-      await expect(fogAppend).toHaveBeenCalled()
-      const appendInputs = fogAppend.mock.calls.map(([args]) =>
-        sceneFogAppendInputSchema.parse(args)
-      )
-      await expect(appendInputs.every((append) => append.chunks.length <= 8)).toBe(true)
-      await expect(input.chunkManifest).toEqual(
-        appendInputs.flatMap((append) =>
-          append.chunks.map((chunk) => ({
-            index: chunk.index,
-            checksum: checksumCanonicalJson(chunk)
-          }))
-        )
-      )
-      await expect(liveCommand).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: {
-            command: expect.objectContaining({
-              commandId: input.commandId,
-              saveId: storyFogSaveId,
-              type: 'PUBLISH_SCENE_FOG_PATCH'
-            }),
-            scope: 'SCENE'
-          },
-          type: 'COMMAND'
-        })
-      )
-    })
-  }
-}
-
-export const PlayerWindow: Story = {
-  args: {
-    campaignId: tabletopCampaignId,
-    currentUserId: tabletopCurrentUserId
-  },
-  render: (args) => renderWindow(args, createTabletopCampaign('PLAYER')),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body)
-    await expect(
-      await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
-    ).toBeInTheDocument()
-    await expect(page.getByRole('region', { name: 'Live scene: The Lantern Vault' })).toBeVisible()
-    await expect(mediaGetDelivery).toHaveBeenCalledWith({
-      assetId: tabletopMapDelivery.assetId
-    })
-    await expect(page.queryByLabelText('Tabletop mode')).not.toBeInTheDocument()
-    await expect(page.getByRole('toolbar', { name: 'Play tools' })).toBeVisible()
-    const sceneControlsButton = page.getByRole('button', {
-      name: 'Scene controls'
-    })
-    await userEvent.click(sceneControlsButton)
-    const sceneControls = await page.findByRole('menu', {
-      name: 'Scene controls'
-    })
-    await waitFor(async () => {
-      await expect(sceneControls).toBeVisible()
-    })
-    const controls = within(sceneControls)
-    await expect(controls.getByText('Focus Ember')).toBeVisible()
-    await expect(controls.getByText(/Remove Vault span/)).toBeVisible()
-    await expect(controls.getByText('No doors')).toBeVisible()
-    await expect(page.queryByText('Vault Warden')).not.toBeInTheDocument()
-    await expect(page.queryByText('Reveal entire map')).not.toBeInTheDocument()
-    await expect(page.queryByRole('button', { name: 'Edit objects' })).not.toBeInTheDocument()
-  }
-}
 
 // The real presentation of the Warden for one viewer, built by the product's own function.
 function wardenPresentationFor(

@@ -89,7 +89,16 @@ export const hallucinatoryTerrain: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.HALLUCINATORY_TERRAIN, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PLACED_SPACE'
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Hallucinatory Terrain',
+                shape: {
+                  id: spellChildId(SPELL_IDS.HALLUCINATORY_TERRAIN, 0x2f0, 1),
+                  shapeKind: SHAPE_KIND.CUBE,
+                  edgeLength: {
+                    amount: 150,
+                    unit: MEASUREMENT_UNIT_CODE.FEET
+                  }
+                }
               }
             ]
           }

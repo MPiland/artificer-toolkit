@@ -2330,7 +2330,7 @@
             },
             {
               "id": "PLATFORM-28.T4c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2341,7 +2341,8 @@
               },
               "text": "SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog stories read the second account seed under its own sign-in; writes go through the shared write spies.",
               "note": "Registered 2026-11-15 from the T4 seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m810 (46dfa58fb); slice tip 597576f99: Tests 43786127443, Live 43786127399, Browser journeys 43786127424 green. SocialApplicationsView, SocialInvitationsView, SocialBlocksPanel and SocialInviteDialog backend stories read the existing seedStorySocial data (no seed additions); writes are spied with real product errors for failure stories; old fixture stories deleted with a no-importer proof. Product fix: one useFocusLinkedRow hook (runs each commit, element-identity guard) replaces three inline deep-link focus copies; SocialApplicationsView had the same remount bug. Red proof: SocialApplicationsView.test and SocialInvitationsView.test RED (focuses the deep-linked row again when a list reload remounts it), useFocusLinkedRow.test RED-IMPORT. Unreachable states (expired/revoked invitation, history ordering, paging) rest on real-component Vitest tests; simulated post-write transitions dropped per D218."
             },
             {
               "id": "PLATFORM-28.T4d",
@@ -2393,7 +2394,7 @@
             },
             {
               "id": "PLATFORM-28.T5c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2403,7 +2404,8 @@
                 "after": ["PLATFORM-28.T5b"]
               },
               "text": "The Scene editor story reads a seeded Scene with a real map asset; its save is recorded through begin, append and publish spies (D218 amendment); the fake ConvexReactClient and hand-seeded caches in campaign stories are deleted with a no-importer proof.",
-              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221)."
+              "note": "Registered 2026-11-15 from the T5 seam trace; resize in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T6a",
@@ -2513,7 +2515,7 @@
             },
             {
               "id": "PLATFORM-28.T7b3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2524,7 +2526,8 @@
               },
               "text": "The backend preview spies the Scene renderer and records every client write frame (COMMAND and Scene fog writes) without sending it; GM and player window backend stories assert the presented Scene, tokens drawn, fog, the connection status and the Encounter, replacing RoomConnected and the base harness stories; DRAINING reconnect documented.",
               "note": "Registered 2026-11-15 from the T7b seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m813 (f9c2fe518); slice tip 23271da40 (contains m810): Tests 43797543384, Live 43797543309, Browser journeys 43797543341 green. CampaignTabletopWindow backend stories (GM window, edits the Scene, advances the turn, binds a creature to another token, reveals a player's fog; player window, player moves their token) connect to the stack's real Session Worker with product tickets; Session Worker commands and fog frames are spied writes (D218), the fog answer is a schema-parsed SCENE_FOG_PROGRESS, and the Scene renderer is spied so stories assert what it drew against the presented Scene. Player door assertions restated against the seeded Scene's DOOR barriers. seedStorySocial admits the story host as the Story Campaign's player and marks the acceptance notice seen so the reader's bell keeps its seeded count; storyData asserts the host seat. Fake-socket base stories deleted with a no-importer proof. DRAINING reconnect stays a unit-level proof (liveSessionClient reconnectDelay, terminal join refusals). Red proof: storyLiveSession.test ALREADY-PASSING (test-only addition)."
             },
             {
               "id": "PLATFORM-28.T7c",
@@ -27639,7 +27642,7 @@
             },
             {
               "id": "QUALITY-15.T3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -27650,7 +27653,50 @@
               },
               "text": "An untested area (no save, no hit-point pool) compiles as a placement or area ruling (88 golden rows; 13 already compile as zones in product, 25 need zone-placement data fixes).",
               "note": "Registered 2026-11-14 from the T2 split under the user standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-15",
+              "proof": "m814 (f51d243ce); slice tip d7fb263d3 (contains m813): Tests 43801372791, Live 43801372795, Browser journeys 43801372826 green. One isActivatedEffect predicate (spellCastCandidates.ts) is shared by castableEffectGroups, the spell action rule facts and the golden; the golden passes each spell's own attributes to compileSpellEffect. Placement-first compile (compileActionPlacement shared by product and golden), compileSpellEffect owns the Concentration carry, and an inert zone (label and shape, no components, maintained by the cast's Concentration) let area rulings place: 53 placement lines, 16 SRD manifests given a label and shape copied from the spell's own invocation. Proofs: encounterInertZonePlacement.test (Darkness, Antimagic Field, Forbiddance refused) and a Session Worker room test that casts SRD Darkness over a Wolf and holds the zone through a turn. The golden now carries Concentration, which surfaced 15 product refusals (T3n)."
+            },
+            {
+              "id": "QUALITY-15.T3m",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The 31 area rulings with no zone (Gust of Wind, Detect Magic, Zone of Truth, Major Image, Reverse Gravity, Storm of Vengeance, Hunting Trap, Planar Ally, Create Undead, Find Steed, Move Earth and the rest) compile: the room catches the creatures in an area ruling through a generic test plan instead of treating a no-save placement as catching nobody.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3n",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The 15 Concentration spells the compiler refuses as having no supported maintained effect (Animate Objects, Arcane Eye, Barkskin, Call Lightning, Calm Emotions, Clairvoyance, Conjure Celestial, Elemental and Fey, Dancing Lights, Delayed Blast Fireball, Flaming Sphere, Resilient Sphere, Silent Image, Tree Stride) compile with their effect held by the cast's Concentration, through generic options.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3o",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Zones with no authored shape (Forbiddance, Gate, Magnificent Mansion, Mirage Arcane, Wall of Force, Ice and Stone) get SRD-cited shapes or a generic wall or panel shape, and the zone manifest models what Prismatic Wall and Oil author beyond label, shape and entering components.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["QUALITY-15.T2"]
+              },
+              "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3c",
@@ -28199,6 +28245,20 @@
               "note": "Registered 2026-11-15 from the Browser journeys flake scan (QUALITY growth, standing yes 2026-11-13).",
               "text": "IsolateNotClean at the end of the custody and publication proofs is traced to the function that poisons the isolate and fixed at its cause.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-19.T3",
+              "status": "TODO",
+              "closes": ["QUALITY-19.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["QUALITY-19.T1"]
+              },
+              "note": "Registered 2026-11-15 from the T4c report (flaked once on its first Browser journeys run, then passed twice) under the standing approval for QUALITY growth (2026-11-13).",
+              "text": "The SocialListingFormPage \"Create For Campaign With Listing\" backend story waits on the campaigns list query it picks from, not the unrelated seeded-campaign frame, so a cold backend cannot race the Campaign option."
             }
           ]
         }
