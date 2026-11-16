@@ -1,13 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
-import { api } from '@artificer-toolkit/apis/convex/api'
 import { Route } from '#routes/_authed/characters/$characterPublicId/$characterSlug/index'
-import { writesTo } from '#app/test/storybook/storyWrites'
 import { STORY_CHARACTERS } from '../../../../../../apis/tests/developmentReviewDataScenarios'
 import {
-  findSeededSheetCharacter,
-  sheetRouter,
-  type StoryCharacter
+  addsMulticlassHitDice,
+  opensRestDialog,
+  rollsHitDice,
+  sheetRouter
 } from '../stories/characterSheetBackendStory'
 
 // Opens the rest dialogs of the story account's Characters. The rest preview is the real query on
@@ -28,16 +27,6 @@ type Story = StoryObj<typeof Route>
 
 const mobile = { viewport: { defaultViewport: 'mobile1' } }
 
-const opensRestDialog = async (
-  canvasElement: HTMLElement,
-  character: StoryCharacter,
-  restName: 'Short Rest' | 'Long Rest'
-) => {
-  await findSeededSheetCharacter(canvasElement, character)
-  await userEvent.click(await within(canvasElement).findByRole('button', { name: restName }))
-  return within(canvasElement.ownerDocument.body).findByRole('dialog', { name: restName })
-}
-
 const addsFighterHitDie = async (canvasElement: HTMLElement) => {
   const dialog = await opensRestDialog(canvasElement, STORY_CHARACTERS.fighter, 'Short Rest')
   await userEvent.click(await within(dialog).findByRole('button', { name: 'Add one d10 hit die' }))
@@ -48,37 +37,6 @@ const addsFighterHitDie = async (canvasElement: HTMLElement) => {
     expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
   )
   return dialog
-}
-
-const addsMulticlassHitDice = async (canvasElement: HTMLElement) => {
-  const dialog = await opensRestDialog(canvasElement, STORY_CHARACTERS.multiclass, 'Short Rest')
-  await expect(
-    await within(dialog).findByLabelText('Remove the current Max HP adjustment')
-  ).toBeInTheDocument()
-  await userEvent.click(await within(dialog).findByRole('button', { name: 'Add one d10 hit die' }))
-  const addD6 = within(dialog).getByRole('button', { name: 'Add one d6 hit die' })
-  await waitFor(() => expect(addD6).toBeEnabled())
-  await userEvent.click(addD6)
-  await waitFor(() =>
-    expect(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d6 + 2' })).toBeVisible()
-  )
-  await waitFor(() =>
-    expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
-  )
-  return dialog
-}
-
-const rollsHitDice = async (dialog: HTMLElement, expression: string, label: string) => {
-  await userEvent.click(within(dialog).getByRole('button', { name: `Roll ${expression}` }))
-  await waitFor(() =>
-    expect(writesTo(api.rolls.execute)).toEqual([
-      {
-        characterId: expect.any(String),
-        expression,
-        source: { kind: 'HIT_DIE', label }
-      }
-    ])
-  )
 }
 
 const shortRestPreview: Story = {
