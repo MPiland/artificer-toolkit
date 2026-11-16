@@ -32,7 +32,7 @@ vi.mock('./vttSceneRenderer', () => ({
     callbacks: NonNullable<typeof rendererCallbacks.current>
   ) => {
     rendererCallbacks.current = callbacks
-    return { update: vi.fn(), destroy: vi.fn() }
+    return { update: vi.fn(), destroy: vi.fn(), retryMap: vi.fn() }
   }
 }))
 afterEach(() => vi.clearAllMocks())
