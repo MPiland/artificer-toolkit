@@ -698,6 +698,21 @@ export function selfLine(rangeId: string, shapeId: string, lengthFeet: number, w
   }
 }
 
+/** A round area centered on its creature: a Self area that catches everyone within the radius. */
+export function selfSphere(rangeId: string, shapeId: string, radiusFeet: number) {
+  return {
+    range: { id: rangeId, rangeKind: RANGE_KIND.SELF },
+    shape: {
+      id: shapeId,
+      shapeKind: SHAPE_KIND.SPHERE,
+      radius: { amount: radiusFeet, unit: MEASUREMENT_UNIT_CODE.FEET }
+    },
+    targeting: {
+      selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+      dispositionKind: TARGET_DISPOSITION_KIND.ANY
+    }
+  }
+}
 export function bonusActionId(creatureIndex: number, localIndex: number) {
   return localId(3, creatureIndex, localIndex)
 }

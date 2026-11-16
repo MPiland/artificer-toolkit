@@ -10,6 +10,7 @@ import {
 } from '../../../../apis/tests/developmentReviewDataScenarios'
 import { SeededAppliedListing, SeededHostedListing } from './stories/SeededSocialListing'
 import { readSeededListing } from './stories/seededListing'
+import { socialStoryLoadTimeout } from './stories/storyLoad'
 import { SocialListingDetailPage } from './SocialListingDetailPage'
 
 function SeededListingDetail({ viewer }: { viewer: 'applicant' | 'host' }) {
@@ -53,8 +54,14 @@ export const ApplicantSendsApplication: Story = {
   parameters: { storyAccount: 'peer' satisfies StoryAccountKey },
   play: async ({ canvas, canvasElement }) => {
     const listing = await readSeededListing(canvas)
-    await canvas.findByRole('heading', { name: listing.title })
-    await userEvent.click(await canvas.findByRole('button', { name: 'Apply to join' }))
+    await canvas.findByRole('heading', { name: listing.title }, { timeout: socialStoryLoadTimeout })
+    await userEvent.click(
+      await canvas.findByRole(
+        'button',
+        { name: 'Apply to join' },
+        { timeout: socialStoryLoadTimeout }
+      )
+    )
     const body = within(canvasElement.ownerDocument.body)
     const dialog = within(await body.findByRole('dialog'))
     await userEvent.type(
@@ -77,12 +84,14 @@ export const HostCannotApply: Story = {
   args: { viewer: 'host' },
   play: async ({ canvas, canvasElement }) => {
     const listing = await readSeededListing(canvas)
-    await canvas.findByRole('heading', { name: listing.title })
-    await waitFor(() =>
-      expect(canvasElement.querySelector('[data-eligibility]')).toHaveAttribute(
-        'data-eligibility',
-        'loaded'
-      )
+    await canvas.findByRole('heading', { name: listing.title }, { timeout: socialStoryLoadTimeout })
+    await waitFor(
+      () =>
+        expect(canvasElement.querySelector('[data-eligibility]')).toHaveAttribute(
+          'data-eligibility',
+          'loaded'
+        ),
+      { timeout: socialStoryLoadTimeout }
     )
     await expect(canvas.queryByRole('button', { name: 'Apply to join' })).not.toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: 'Report' })).not.toBeInTheDocument()

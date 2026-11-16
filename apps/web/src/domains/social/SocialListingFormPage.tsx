@@ -237,6 +237,7 @@ function SocialListingEditor({
         >
           <SocialListingBasicsSection
             campaignId={campaignId}
+            campaignsLoading={campaigns.status === 'LoadingFirstPage'}
             draft={draft}
             isExisting={Boolean(listing.data)}
             ownedCampaigns={ownedCampaigns}

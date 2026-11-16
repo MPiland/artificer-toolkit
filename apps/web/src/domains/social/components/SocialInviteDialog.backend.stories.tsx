@@ -10,6 +10,7 @@ import {
 } from '../../../../../apis/tests/developmentReviewDataScenarios'
 import { readSeededListing } from '../stories/seededListing'
 import { SeededHostedListing } from '../stories/SeededSocialListing'
+import { socialStoryLoadTimeout } from '../stories/storyLoad'
 import { SocialInviteDialog } from './SocialInviteDialog'
 
 function SeededInviteDialog({ title }: { title: string }) {
@@ -35,7 +36,13 @@ export const FailedSendCanRetry: Story = {
     const listing = await readSeededListing(canvas)
     // The deployment refuses an invitation to a username that already has one pending.
     storyMutation.mockRejectedValueOnce(new Error('This user already has a pending invitation.'))
-    await userEvent.click(await canvas.findByRole('button', { name: 'Invite player' }))
+    await userEvent.click(
+      await canvas.findByRole(
+        'button',
+        { name: 'Invite player' },
+        { timeout: socialStoryLoadTimeout }
+      )
+    )
     const body = within(canvasElement.ownerDocument.body)
     const dialog = within(await body.findByRole('dialog'))
     await userEvent.type(
@@ -64,7 +71,13 @@ export const DraftListing: Story = {
   args: { title: STORY_SOCIAL.peerTableName },
   parameters: { storyAccount: 'peer' satisfies StoryAccountKey },
   play: async ({ canvas }) => {
-    await expect(await canvas.findByRole('button', { name: 'Invite player' })).toBeDisabled()
+    await expect(
+      await canvas.findByRole(
+        'button',
+        { name: 'Invite player' },
+        { timeout: socialStoryLoadTimeout }
+      )
+    ).toBeDisabled()
     await expect(writesTo(api.social.invitations.create)).toEqual([])
   }
 }

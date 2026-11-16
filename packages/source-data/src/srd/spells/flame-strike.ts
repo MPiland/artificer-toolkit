@@ -9,6 +9,7 @@ import {
   SCALING_AMOUNT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -62,6 +63,12 @@ export const flameStrike: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        },
+        shape: {
+          id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x215, 1),
+          shapeKind: SHAPE_KIND.CYLINDER,
+          radius: { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET },
+          height: { amount: 40, unit: MEASUREMENT_UNIT_CODE.FEET }
         }
       },
       paths: [

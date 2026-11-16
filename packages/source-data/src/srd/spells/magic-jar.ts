@@ -46,7 +46,7 @@ export const magicJar: SpellAuthored = {
         },
         range: {
           id: spellChildId(SPELL_IDS.MAGIC_JAR, 0x211, 1),
-          rangeKind: RANGE_KIND.SPECIAL
+          rangeKind: RANGE_KIND.SELF
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SELF
