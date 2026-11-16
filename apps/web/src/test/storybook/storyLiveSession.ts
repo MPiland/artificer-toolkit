@@ -53,7 +53,9 @@ function latestHeldState() {
 
 /** The Encounter the room holds for this story's recipient, as the window shows it. */
 export function latestEncounter() {
-  return latestHeldState().encounter
+  const { encounter } = latestHeldState()
+  if (!encounter) throw new Error('The room holds no Encounter for this story.')
+  return encounter
 }
 
 /** The auras the room shows this story's recipient: a player's omit those of sources out of sight (D121). */
