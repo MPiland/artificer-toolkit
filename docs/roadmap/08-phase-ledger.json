@@ -2564,7 +2564,7 @@
             },
             {
               "id": "PLATFORM-28.T7c3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "text": "The player-visible creature, aura, selection, hover and preview tabletop stories run on an open-fog player Campaign with its own story host, seeded through real commands (an SRD creature with a passive aura, statuses through UPDATE_ACTOR); the replaced fake stories are deleted.",
               "wsjf": {
@@ -2575,11 +2575,12 @@
                 "after": ["PLATFORM-28.T7c2"]
               },
               "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m825; slice tip 8b2a6365e: Tests 43844338164, Live 43844338162, Browser journeys 43844338319 green (one --failed rerun). Ten player-visible creature, aura, selection, hover and preview stories run on STORY_OPEN_CAMPAIGN with its own openHost account (Balors with auras, the Warden with statuses, the Sentry prone), seeded through real commands; prepareStoryRun finds actors by label; the replaced fake stories are deleted. Watch: the canvas-hover story was the rerun flake."
             },
             {
               "id": "PLATFORM-28.T7c3b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-28.1"],
               "text": "GmSeesMoraleOutcome runs on seeded state (REPLACE_OPTIONAL_COMBAT_RULES before START, then MORALE_SAVE and CONFIRM_MORALE), and PlayerSeesShownScene through a real showings.show in its own Campaign and host.",
               "wsjf": {
@@ -2589,7 +2590,8 @@
                 "size": 5,
                 "after": ["PLATFORM-28.T7c2"]
               },
-              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221)."
+              "note": "Registered 2026-11-16 as a split of PLATFORM-28.T7c2 in approved scope (D221).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PLATFORM-28.T7c3c",
@@ -27741,7 +27743,7 @@
             },
             {
               "id": "QUALITY-15.T3n",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "The 15 Concentration spells the compiler refuses as having no supported maintained effect (Animate Objects, Arcane Eye, Barkskin, Call Lightning, Calm Emotions, Clairvoyance, Conjure Celestial, Elemental and Fey, Dancing Lights, Delayed Blast Fireball, Flaming Sphere, Resilient Sphere, Silent Image, Tree Stride) compile with their effect held by the cast's Concentration, through generic options.",
               "wsjf": {
@@ -27752,7 +27754,8 @@
                 "after": ["QUALITY-15.T2"]
               },
               "note": "Registered 2026-11-15 from the T3b report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m825; slice tip e55a933da: Tests 43835516578, Live 43835516548, Browser journeys 43835516696 green. Four concentration rows compile through existing generic plans: Silent Image as a zone, Arcane Eye and Conjure Celestial as summons, Calm Emotions as a TEST_OUTCOME timed GM ruling. The 11 rows still UNBUILT moved to QUALITY-15.T3x and T3y."
             },
             {
               "id": "QUALITY-15.T3o",
@@ -27894,7 +27897,7 @@
             },
             {
               "id": "QUALITY-15.T3u",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "An outcome that removes its target from play (Imprisonment) compiles through a generic plan the room settles and the GM can end.",
               "wsjf": {
@@ -27904,7 +27907,8 @@
                 "size": 3,
                 "after": ["QUALITY-15.T2"]
               },
-              "note": "Registered 2026-11-16 from the T3c report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3c report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3d",
@@ -27924,18 +27928,19 @@
             },
             {
               "id": "QUALITY-15.T3p",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
-              "text": "Reactions on unregistered triggers compile (Feather Fall, Slow Fall, Stand Against the Tide and similar): generic trigger entries for falling and a missed melee attack, their events and hosts in events/reactionTriggers.ts, proved by a room test.",
+              "text": "Reactions on a missed melee attack compile (Stand Against the Tide and similar) through an optional attack-range qualifier on the existing resolved-attack trigger, proved by a room test.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["QUALITY-15.T2"]
               },
-              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13). Narrowed 2026-11-16 (size 5 -> 3): falling reactions (Feather Fall, Slow Fall) stay refused until verticality ships; the user chose deferral on 2026-11-16 (future-enhancements, Falling damage).",
+              "mergedAt": "2026-11-16",
+              "proof": "m824 (6d4a6b1aa); slice tip e48635579: Tests 43834050083, Live 43834050026, Browser journeys 43834050151 green. ATTACK_RESOLVED_ON_SELF gains the optional attackRange qualifier ATTACKED_SELF already had, one attackRangeMet check shared by both, melee from isMeleeAttackSource; no new registry row (a MISS outcome already is that moment). Stand Against the Tide moves from REFUSED to SINGLE_GRAPH with its GM-ruling outcome unchanged (D217). Proofs (all RED at the merge-base): nativeRoomResolvedReactionOffer.test (a missed melee Bite offers it and the reaction commits; a hit or a ranged miss offers nothing), reactionTriggerCompile.test, encounterReactionHooks.test and attackReactionTriggersAuthoringParity.test (the node map keeps the qualifier)."
             },
             {
               "id": "QUALITY-15.T3q",
@@ -27953,7 +27958,7 @@
             },
             {
               "id": "QUALITY-15.T3r",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "The FOLLOW_UP_SAVE bounded shapes the compiler refuses (about 4 rows) compile through supportedTestPhaseKind.",
               "wsjf": {
@@ -27963,7 +27968,8 @@
                 "size": 3,
                 "after": ["QUALITY-15.T2"]
               },
-              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3d report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3s",

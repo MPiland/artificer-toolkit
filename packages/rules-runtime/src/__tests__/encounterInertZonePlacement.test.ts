@@ -45,6 +45,15 @@ describe('a zone that only marks its area (QUALITY-15.T3b)', () => {
       attachment: 'SOURCE'
     })
   })
+
+  it('places the real SRD Silent Image as its 15-foot cube, ended by its Concentration (QUALITY-15.T3n)', () => {
+    expect(zoneOf('Silent Image')).toMatchObject({
+      label: 'Silent Image',
+      shape: { shapeKind: 'CUBE', edgeLength: { amount: 15 } },
+      triggerModes: [],
+      maintenance: expect.anything()
+    })
+  })
 })
 
 describe('the zones the SRD sizes in prose (QUALITY-15.T3o)', () => {
@@ -85,5 +94,34 @@ describe('the zones the SRD sizes in prose (QUALITY-15.T3o)', () => {
     ['Mirage Arcane', { shapeKind: 'CUBE', edgeLength: { amount: 1, unit: 'MILES' } }]
   ])('places the real SRD %s with the shape its text sizes', (label, shape) => {
     expect(zoneOf(label)).toMatchObject({ label: expect.any(String), shape, triggerModes: [] })
+  })
+})
+
+describe('a summon held by its Concentration (QUALITY-15.T3n)', () => {
+  it('summons the real SRD Arcane Eye as an invisible, untouchable flier that ends with Concentration', () => {
+    const placement = placementOf('Arcane Eye')
+    expect(placement?.kind === 'SUMMON' && placement.summonPlacement).toMatchObject({
+      label: 'Arcane Eye',
+      statBlock: {
+        speeds: [{ amount: 30 }],
+        damageabilityKind: 'INVULNERABLE',
+        visibilityKind: 'INVISIBLE',
+        occupiesSpace: false
+      },
+      // 1 hour of 6-second turns.
+      entry: { initialRemaining: 600, maintenance: expect.anything() }
+    })
+  })
+
+  it('summons one of the real SRD celestials for Conjure Celestial, on its own initiative', () => {
+    const placement = placementOf('Conjure Celestial')
+    expect(placement?.kind === 'SUMMON' && placement.summonPlacement).toMatchObject({
+      turnTiming: 'OWN_INITIATIVE',
+      forms: [
+        { label: 'Couatl', maxTargets: 1 },
+        { label: 'Pegasus', maxTargets: 1 }
+      ],
+      entry: { initialRemaining: 600, maintenance: expect.anything() }
+    })
   })
 })
