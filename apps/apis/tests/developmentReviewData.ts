@@ -27,6 +27,7 @@ import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-mi
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { sleep } from '@artificer-toolkit/source-data/srd/spells/sleep.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
 import { definitionReferences } from '../convex/content/definitionReferences'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
