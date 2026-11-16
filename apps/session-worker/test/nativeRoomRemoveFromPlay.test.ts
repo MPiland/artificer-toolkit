@@ -268,7 +268,7 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
     // The drawer lists the removal by its spell, with End.
     const [stored] = (await readRoomHistory(room.room.base.stub)).activeEffects
     expect(wolfGrants(cast.answer)).toEqual([
-      expect.objectContaining({ effectId: stored?.id, label: imprisonment.label, endable: true })
+      expect.objectContaining({ effectId: stored?.id, label: 'Imprisonment (9th level)', endable: true })
     ])
 
     const ended = await gmEndsActorEffect(room, WOLF_ID)
