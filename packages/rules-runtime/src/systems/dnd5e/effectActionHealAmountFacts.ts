@@ -2,6 +2,7 @@ import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema
 
 import {
   DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
+  DND5E_RESOLVED_HEAL_AMOUNT_FACT_KEY,
   DND5E_SPENT_HEAL_AMOUNT_FACT_KEY,
   Dnd5eEffectActionCompilerError
 } from './effectActionContracts.js'
@@ -30,6 +31,26 @@ export function recurringHealAmountFacts(
       Number(match[1]) + (match[2] === '-' ? -bonus : bonus)
     )
   }
+}
+
+/** The amount of a heal its own bonuses give: the one resolved row, which holds a whole number. */
+export function resolvedHealAmountFacts(
+  published: ServerPublishedRuleDefinitionDto,
+  rows: readonly ResolvedHealRow[]
+): Record<string, number> {
+  const requiresAmount = published.definition.nodes.some((node) =>
+    Object.values(node.inputs).some(
+      (binding) =>
+        binding.kind === 'FACT' && binding.factKey === DND5E_RESOLVED_HEAL_AMOUNT_FACT_KEY
+    )
+  )
+  if (!requiresAmount) return {}
+  const amount = rows.length === 1 ? /^\d+$/.exec(rows[0]!.expression) : null
+  if (!amount)
+    throw new Dnd5eEffectActionCompilerError(
+      'D&D bonus healing requires one exact resolved amount.'
+    )
+  return { [DND5E_RESOLVED_HEAL_AMOUNT_FACT_KEY]: Number(amount[0]) }
 }
 
 /**
