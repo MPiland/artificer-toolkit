@@ -1,5 +1,6 @@
 import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '@artificer-toolkit/schema/systems/dnd5e/schemaExtension'
 import { describe, expect, it } from 'vitest'
+import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { compileSpellEffect } from '@artificer-toolkit/shared/compilers'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -75,12 +76,10 @@ function creatureAction(creatureLabel: string, featureLabel: string, effectIndex
 }
 
 /** The result block whose follow-up save repeats, which the repeat-save effect holds. */
-function repeatBlockId(effect: {
-  paths: readonly { resultBlock?: { id: string; outcomes: readonly { effectKind: string }[] } }[]
-}) {
-  const block = effect.paths.find(({ resultBlock }) =>
-    resultBlock?.outcomes.some(({ effectKind }) => effectKind === 'FOLLOW_UP_SAVE')
-  )?.resultBlock
+function repeatBlockId(effect: EffectAuthored) {
+  const block = effect.paths
+    .flatMap((path) => ('resultBlock' in path ? [path.resultBlock] : []))
+    .find(({ outcomes }) => outcomes.some(({ effectKind }) => effectKind === 'FOLLOW_UP_SAVE'))
   if (!block) throw new Error('The Effect has no repeated save.')
   return block.id
 }

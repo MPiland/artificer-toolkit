@@ -1479,15 +1479,6 @@ function directRepeatSaveEntries(entries: CompiledEffectGroup['entries']) {
   return { saveEntry, leadEntries }
 }
 
-/** The entries the repeat-save effect holds (its condition or grant), without the follow-up save. */
-function repeatingDirectFollowUpSaveLeadEntries(
-  action: Dnd5eCompiledEffectActionSource
-): CompiledEffectGroup['entries'] | null {
-  return repeatingDirectFollowUpSavePlan(action)
-    ? directRepeatSaveEntries(entriesBesideSourceImmunity(action)).leadEntries
-    : null
-}
-
 /**
  * A test result's outcome as its OUTCOME phase proposes it. A grant a repeated save holds is the
  * repeat-save effect's; the occurrence only proposes it.
@@ -1509,7 +1500,8 @@ function testPathOutcome(
   if (
     'outcome' in entry &&
     entry.outcome.effectKind === 'APPLY_GRANT' &&
-    repeatingDirectFollowUpSaveLeadEntries(action)?.includes(entry)
+    repeatingDirectFollowUpSavePlan(action) !== null &&
+    directRepeatSaveEntries(entriesBesideSourceImmunity(action)).leadEntries.includes(entry)
   )
     return { kind: 'MODIFIER_GRANT' }
   return facts
