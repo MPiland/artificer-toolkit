@@ -88,7 +88,10 @@ function tokenLabelled(label: string) {
 /** Waits for the room to sync its Scene and the map to load; returns what the play steps read. */
 async function openedWindow(canvasElement: HTMLElement, spec: StoryCampaignSpec) {
   const page = within(canvasElement.ownerDocument.body)
-  const seeded = await page.findByTestId('seeded-campaign')
+  // The Campaign is found by name once every page of the story account's list has loaded.
+  const seeded = await page.findByTestId('seeded-campaign', undefined, {
+    timeout: roomJoinTimeoutMs
+  })
   await expect(
     await page.findByRole(
       'region',
