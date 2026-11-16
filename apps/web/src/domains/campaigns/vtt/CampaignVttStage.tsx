@@ -323,29 +323,19 @@ export function CampaignVttStage({
   )
   const decisionOutcome = room ? (room.settlement?.outcome ?? null) : storedDecisionSettlement.data
   const [trackedDecision, setTrackedDecision] = useState({
-    outcome: decisionOutcome,
     pending: pendingOccurrence,
     role: campaign.role
   })
-  if (
-    trackedDecision.outcome !== decisionOutcome ||
-    trackedDecision.pending !== pendingOccurrence ||
-    trackedDecision.role !== campaign.role
-  ) {
+  if (trackedDecision.pending !== pendingOccurrence || trackedDecision.role !== campaign.role) {
     setTrackedDecision({
-      outcome: decisionOutcome,
       pending: pendingOccurrence,
       role: campaign.role
     })
-    if (
-      pendingOccurrence &&
-      campaign.role !== 'OWNER' &&
-      (trackedDecision.pending !== pendingOccurrence || trackedDecision.role !== campaign.role)
-    )
-      setShownDecision(pendingOccurrence)
-    if (trackedDecision.outcome !== decisionOutcome && decisionOutcome === 'ANSWER')
-      setShownDecision(null)
+    if (pendingOccurrence && campaign.role !== 'OWNER') setShownDecision(pendingOccurrence)
   }
+  // The room keeps reporting an answer until the next decision is shown, so a render that skipped a
+  // frame (React batches frames that arrive together) still sees it and ends the drawer.
+  if (shownDecision && !pendingOccurrence && decisionOutcome === 'ANSWER') setShownDecision(null)
   const loadedActionChoices = roomActionChoices.routed
     ? roomActionChoices.value
     : actionChoices.data
