@@ -513,19 +513,26 @@ export const STORY_SHOVE_CAMPAIGN = {
   name: 'Story Shove Campaign',
   blueprintName: 'Story Shove Encounter',
   enemyLabel: 'Story Shove Lookout',
-  scene: { ...STORY_OPEN_CAMPAIGN.scene, name: 'Story Shove Scene', allyLabel: 'Story Shove Hero' },
+  // A forced movement lands on whole squares, so every token on this board fills its squares.
+  scene: {
+    ...STORY_OPEN_CAMPAIGN.scene,
+    name: 'Story Shove Scene',
+    allyLabel: 'Story Shove Hero',
+    allyPosition: { x: 125, y: 225 },
+    enemyPosition: { x: 575, y: 275 }
+  },
   playSettings: STORY_CAMPAIGN.playSettings,
   zones: [],
   creatures: [
     {
       enemy: { kind: 'CREATURE', sourceId: wolf.id },
       tokenLabel: 'Story Shoving Wolf',
-      position: { x: 300, y: 300 }
+      position: { x: 325, y: 325 }
     },
     {
       enemy: { kind: 'CREATURE', sourceId: goblin.id },
       tokenLabel: 'Story Shoved Goblin',
-      position: { x: 350, y: 300 }
+      position: { x: 375, y: 325 }
     }
   ],
   shove: { shover: 0, target: 1, option: 'Shove 5 feet aside' }
