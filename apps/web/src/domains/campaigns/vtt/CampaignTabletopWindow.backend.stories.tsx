@@ -8,6 +8,7 @@ import { writesTo } from '#app/test/storybook/storyWrites'
 import {
   latestAuras,
   latestEncounter,
+  latestPending,
   latestStateSync,
   liveFramesReceived,
   liveWritesOfType,
@@ -18,6 +19,7 @@ import {
   STORY_CAMPAIGN,
   STORY_OPEN_CAMPAIGN,
   STORY_PLAYER_CAMPAIGN,
+  STORY_SHOVE_CAMPAIGN,
   STORY_SHOWING_CAMPAIGN,
   STORY_ZONES,
   type StoryCampaignSpec
@@ -28,6 +30,10 @@ import { createPlacedZoneDraft, placedZoneSize } from './campaignTabletopZoneToo
 import { reachByKeyboard } from './CampaignTabletop.stories.keyboard'
 import { pressStage } from './CampaignTabletop.stories.pointer'
 import { drawnToken, latestStageRenderer } from './vttSceneRenderer.assertions'
+import {
+  forcedMovementDestinationAfterKey,
+  forcedMovementDestinationPick
+} from './vttForcedMovementPick.model'
 import {
   auraColor,
   minimumFocusedTokenScreenSize,
@@ -1166,5 +1172,79 @@ export const PlayerSeesShownScene: Story = {
       expect(page.queryByRole('dialog', { name: sceneName })).not.toBeInTheDocument()
     )
     await expect(storyLiveWrite).not.toHaveBeenCalled()
+  }
+}
+
+// D157: the reader's Wolf shoved the Goblin aside, so the Run waits on the board for the reader to
+// pick where it lands; a press inside one of the highlighted legal squares answers it.
+export const PlayerPicksWhereAPushLeavesTheCreature: Story = {
+  args: { campaign: STORY_SHOVE_CAMPAIGN },
+  play: async ({ canvasElement }) => {
+    const { page } = await openedWindow(canvasElement, STORY_SHOVE_CAMPAIGN)
+    await expectConnected(page)
+    const { creatures, shove } = STORY_SHOVE_CAMPAIGN
+    const target = tokenLabelled(creatures[shove.target].tokenLabel)
+    const pending = await waitFor(() => {
+      const held = latestPending()
+      if (held?.kind !== 'FORCED_MOVEMENT_DESTINATION')
+        throw new Error('The room holds no push for the reader to place.')
+      return held
+    })
+    const pick = forcedMovementDestinationPick({
+      pending,
+      scene: presentedScene(),
+      targetTokenId: target.id
+    })
+    if (!pick) throw new Error('The push moves no token on the presented Scene.')
+    await expect(pick.destinations.length).toBeGreaterThan(1)
+
+    const choice = await page.findByRole('region', { name: `Where ${target.label} lands` })
+    await expect(within(choice).getByText(`Pick where ${target.label} lands.`)).toBeVisible()
+    const [first, chosen] = pick.destinations
+    const picker = within(choice).getByRole('button', { name: first!.label })
+    await waitFor(() => expect(picker).toHaveFocus())
+    // One picker control: an arrow key walks it to the nearest legal square that way, Home returns
+    // to the first.
+    const positions = pick.destinations.map(({ position }) => position)
+    const [move] = (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'] as const).flatMap((key) => {
+      const position = forcedMovementDestinationAfterKey(positions, first!.position, key)
+      return position ? [{ key, position }] : []
+    })
+    if (!move) throw new Error('No arrow key leaves the first legal square.')
+    await userEvent.keyboard(`{${move.key}}`)
+    await expect(picker).toHaveAccessibleName(
+      pick.destinations.find(
+        ({ position }) => position.x === move.position.x && position.y === move.position.y
+      )!.label
+    )
+    await userEvent.keyboard('{Home}')
+    await expect(picker).toHaveAccessibleName(first!.label)
+
+    const renderer = await latestStageRenderer()
+    // Every legal square is outlined on the board.
+    await waitFor(() =>
+      expect(renderer.getDiagnostics().overlayCount).toBeGreaterThanOrEqual(positions.length)
+    )
+    renderer.focusPoint(chosen!.position)
+    await pressStage(page.getByRole('img', { name: 'Interactive campaign scene' }), 'centre')
+    await waitFor(() =>
+      expect(storyLiveWrite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: {
+            command: expect.objectContaining({
+              type: 'RESOLVE_RULE_OCCURRENCE',
+              occurrenceId: pending.occurrenceId,
+              resolution: {
+                kind: 'FORCED_MOVEMENT',
+                requestId: pending.requestId,
+                position: chosen!.position
+              }
+            }),
+            scope: 'ENCOUNTER'
+          },
+          type: 'COMMAND'
+        })
+      )
+    )
   }
 }
