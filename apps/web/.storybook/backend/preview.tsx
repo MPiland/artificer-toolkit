@@ -50,9 +50,20 @@ function getStoryBackend(storyId: string): StoryBackend {
   return backend
 }
 
-declare module 'vitest/browser' {
-  interface BrowserCommands {
-    routeFromOwnClientAddress: () => Promise<void>
+/** The auth proxy's sign-in rate limit window: three sign-ins per 10 seconds. */
+const signInRateLimitWindowMs = 10_000
+
+/**
+ * Signs in, waiting out the sign-in rate limit's window (a bounded retry, like the review-data
+ * CLI's), because switching between story accounts signs in again.
+ */
+async function signInStoryAccount(email: string): Promise<void> {
+  for (let retry = 0; ; retry++) {
+    const signIn = await betterAuthClient.signIn.email({ email, password: REVIEW_PASSWORD })
+    if (!signIn.error) return
+    if (signIn.error.status !== 429 || retry === 3)
+      throw new Error(`The story account could not sign in: ${signIn.error.message}`)
+    await new Promise((resolve) => setTimeout(resolve, signInRateLimitWindowMs))
   }
 }
 
@@ -71,21 +82,12 @@ async function connectStoryBackend(
   if (!url) throw new Error('Backend stories need VITE_CONVEX_URL for the seeded deployment.')
   const email = reviewAccountEmail(STORY_ACCOUNTS[accountKey])
   const current = await betterAuthClient.getSession()
-  if (current.data?.user.email !== email) {
-    // The sign-in rate limit keys on the client address, so each account signing in takes its own and
-    // keeps it for that connection; a story never changes address while it runs.
-    const { commands } = await import('vitest/browser')
-    await commands.routeFromOwnClientAddress()
-    const signIn = await betterAuthClient.signIn.email({ email, password: REVIEW_PASSWORD })
-    if (signIn.error) {
-      throw new Error(`The story account could not sign in: ${signIn.error.message}`)
-    }
-  }
+  if (current.data?.user.email !== email) await signInStoryAccount(email)
   const convex = new ConvexQueryClient(url, { expectAuth: true })
   Object.defineProperty(convex.convexClient, 'mutation', { value: storyMutation })
   const reads = unoverriddenReads(convex.convexClient)
   const queryClient = createAppQueryClient(convex)
-  if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient, reads)
+  if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient)
   convex.convexClient.setAuth(
     async () => (await betterAuthClient.convex.token()).data?.token ?? null
   )

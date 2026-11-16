@@ -6,16 +6,10 @@ import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vitest/config'
 import type { BrowserConfigOptions } from 'vitest/node'
-import type { BrowserContext } from '@playwright/test'
 import { sourceResolve, workspaceSourceAliases } from '../../scripts/vitestSource.mjs'
 import { storyAuthProxy } from './.storybook/authProxy.ts'
-import { routeFromClientAddress } from './tests/live-backend/clientAddress.ts'
 
 const configDir = join(dirname(fileURLToPath(import.meta.url)), '.storybook')
-
-/** Removes the client-address route each browser context currently holds. */
-const clientAddressRoutes = new WeakMap<BrowserContext, () => Promise<void>>()
-let nextClientAddressSlot = 0
 
 const storyBrowser: BrowserConfigOptions = {
   // Vitest's default browser port (63315) sits in the dynamic range Windows reserves for Hyper-V,
@@ -33,17 +27,6 @@ const storyBrowser: BrowserConfigOptions = {
       await session.send('ServiceWorker.enable')
       await session.send('ServiceWorker.stopAllWorkers')
       await session.detach()
-    },
-    // Sign-ins share a rate limit per client address (3 per 10s), so each account that signs in takes a
-    // fresh address for its context before it does, as separate players reach the app from separate
-    // addresses, and replaces the one before it.
-    async routeFromOwnClientAddress({ page }) {
-      const context = page.context()
-      await clientAddressRoutes.get(context)?.()
-      clientAddressRoutes.set(
-        context,
-        await routeFromClientAddress(context, new URL(page.url()).origin, nextClientAddressSlot++)
-      )
     }
   },
   enabled: true,
