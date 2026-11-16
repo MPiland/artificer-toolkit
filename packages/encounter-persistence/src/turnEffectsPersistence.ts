@@ -233,7 +233,12 @@ export async function persistEncounterTurnEffects(
         (application, index) =>
           application.ordinal !== index ||
           (application.sourceOperationKey !== ENDED_EFFECT_RELEASE_OPERATION_KEY &&
-            (application.sourceNodeId !== definition.frozenGraphNodeId ||
+            // An application binds to the frozen node or to a proposal bound to an authored entry
+            // (a repeat save's failure damage).
+            ((application.sourceNodeId !== definition.frozenGraphNodeId &&
+              !definition.frozenGraph.sourceEntryBindings?.some(
+                ({ nodeId }) => nodeId === application.sourceNodeId
+              )) ||
               ![
                 'HEAL',
                 'TEMPORARY_HIT_POINTS',
