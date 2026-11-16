@@ -361,7 +361,9 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D bonus healing requires one exact resolved amount.': 'INVALID_INPUT',
   'D&D subtract-from-triggering-roll action requires one exact resolved die.': 'INVALID_INPUT',
 
-  'D&D area with no hit-point pool tests each creature it catches with a save.': 'UNBUILT',
+  // A cast pick made once over the creatures an area catches (Antipathy/Sympathy) has no room
+  // path: the pick is carried only by a chosen-creature or Self cast (D148).
+  'Only a cast at chosen creatures or at its user carries a pick.': 'UNBUILT',
   'A placed zone models only its label, shape and entering components.': 'UNBUILT',
   'D&D Concentration spell has no supported maintained effect.': 'UNBUILT',
   'D&D Effect action must have one fixed direct result without lifecycle overrides. Its duration, lifecycle or maintenance has no plan that holds it.':

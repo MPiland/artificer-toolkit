@@ -1912,8 +1912,16 @@ function supported(
       'D&D Effect action resource use must use a normalized charge identity and positive safe cost.'
     )
   const outcome = entry.outcome
-  if (targeting.kind === 'AREA' && outcome.effectKind !== 'CONDITION')
+  // An area that tests no one either puts the creatures its pool covers under a condition (Sleep) or
+  // leaves each creature it catches to the GM's ruling (Zone of Truth).
+  if (targeting.kind === 'AREA' && targeting.pooled && outcome.effectKind !== 'CONDITION')
     unsupported('D&D hit-point pool area outcome must be a timed condition.')
+  if (
+    targeting.kind === 'AREA' &&
+    !targeting.pooled &&
+    outcome.effectKind !== 'MANUAL_ADJUDICATION'
+  )
+    unsupported('D&D area that tests no one must be a GM ruling on each creature it catches.')
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')

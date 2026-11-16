@@ -23,6 +23,7 @@ import type { Dnd5eTestKind } from './effectActionTest.js'
  * - `SINGLE`: one creature in range.
  * - `CHOSEN`: a resolved list of chosen creatures, inside a round area when it names one.
  * - `AREA`: the creatures a fixed-size area catches, or a hit-point pool rolled over them (Sleep).
+ *   An unpooled area that tests no one is a GM ruling on each creature it catches.
  * `willing` marks a target that must be willing; an unwilling one only warns, so the outcome decides
  * whether it may ask for one.
  */
@@ -145,8 +146,9 @@ function requireTargetRange(invocation: Dnd5eActionInvocation): void {
 }
 
 /**
- * An AREA_CONTENTS action over a fixed-size area: a save action, or a hit-point pool action (Sleep)
- * that rolls a pool and tests no one. Either may filter by creature type: the area still catches a
+ * An AREA_CONTENTS action over a fixed-size area: a save action, a hit-point pool action (Sleep)
+ * that rolls a pool and tests no one, or an area ruling that tests no one and leaves each creature it
+ * catches to the GM (its outcome is checked with its result). Any of them may filter by creature type: the area still catches a
  * creature of a type it has no effect on, which takes no save. Either a sphere, cylinder, circle or cube
  * centered on a point within a distance (or unlimited), or a cone, line or cube that extends from
  * the caster (a Self range), or no shape at all on a Self range (the caster's own space). Walls,
@@ -170,8 +172,10 @@ function requireSupportedArea(
       unsupported('D&D hit-point pool tests no one: its action rolls no attack or save.')
     if (!hitPointPoolDiceOptions(targeting).every(isBoundedDice))
       unsupported('D&D hit-point pool must roll bounded dice.')
-  } else if (invocation.triggerCode !== 'SAVING_THROW')
-    unsupported('D&D area with no hit-point pool tests each creature it catches with a save.')
+  } else if (invocation.triggerCode !== 'SAVING_THROW' && invocation.triggerCode !== 'ACTIVATED')
+    unsupported(
+      'D&D area with no hit-point pool tests each creature it catches with a save or not at all.'
+    )
   // A zone's later entry saves do not filter by creature type, so its appear save may not either.
   if (
     overZone &&
