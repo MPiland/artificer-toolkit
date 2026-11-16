@@ -14,6 +14,7 @@ import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { initiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
+import { arcaneEye } from '@artificer-toolkit/source-data/srd/spells/arcane-eye.js'
 import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-hand.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
@@ -1785,6 +1786,26 @@ describe('room Mage Hand (SPELLS-4.T2v2b)', () => {
     expect(await conjured(room)).toHaveLength(1)
     await room.advanceTurn()
     await room.advanceTurn()
+    expect(await conjured(room)).toEqual([])
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3n: Arcane Eye, a Concentration spell once refused as having no maintained effect,
+ * conjures an owned, invisible, invulnerable eye held by the cast's Concentration.
+ */
+describe('room Arcane Eye (QUALITY-15.T3n)', () => {
+  it('conjures the eye and takes it away when the caster’s Concentration ends', async () => {
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [arcaneEye], prepared: [arcaneEye.id] },
+      characterAction: (action) => action.label.startsWith(arcaneEye.label)
+    })
+    const eye = await castSummon(room, { x: 350, y: 150 })
+    expect(eye.actor).toMatchObject({ label: 'Arcane Eye', kind: 'CUSTOM' })
+
+    const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect(await conjured(room)).toEqual([])
   }, 120000)
 })

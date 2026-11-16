@@ -203,6 +203,15 @@ label and a shape but no component and no appear save is an inert zone: `inertZo
 modes, held for its duration by the cast's Concentration (`lastingZoneEntry`), so the table sees the area and a GM rules
 what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input.
 
+**Concentration spells re-authored onto existing plans (current, QUALITY-15.T3n).** Four of the 15 now compile with
+their effect held by the cast's Concentration, through data alone: Silent Image is an inert 15-foot-cube zone, Arcane
+Eye a stat-block summon (Tiny, flying, invisible, invulnerable, taking no space), Conjure Celestial a form summon on its
+own initiative (Couatl or Pegasus; the 9th-level challenge rating 5 is not offered), and Calm Emotions a Charisma save
+over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. The other 11 stay refused (UNBUILT,
+cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary
+sensor, summoned lights, a creature that stays hostile after Concentration breaks, an Armor Class floor, tree travel, a
+repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to its target).
+
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
 save, a timed condition, grant, link, form or GM ruling, a relationship, a recurring result, then a concealment. The compiler

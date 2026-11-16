@@ -16,8 +16,14 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, CREATURE_IDS, SPELL_IDS } from '../ids.js'
+import { conjuredCreatureForms } from './conjuredCreatureForms.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+/** The SRD celestials of challenge rating 4 or lower: one is conjured. */
+const celestialForms = [
+  [CREATURE_IDS.COUATL, 'Couatl', 1],
+  [CREATURE_IDS.PEGASUS, 'Pegasus', 1]
+] as const
 export const conjureCelestial: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.CONJURE_CELESTIAL,
@@ -72,7 +78,11 @@ export const conjureCelestial: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CONJURE_CELESTIAL, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.SUMMON,
+                // The celestial has its own initiative and turns (D200). The 9th-level slot's
+                // challenge rating 5 (Unicorn) is not offered: no form scales with the slot yet.
+                turnTiming: 'OWN_INITIATIVE',
+                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_CELESTIAL, celestialForms)
               }
             ]
           }
