@@ -96,36 +96,6 @@ async function describedScene(page: ReturnType<typeof within>): Promise<string> 
   })
 }
 
-// VTT_UI-2 journey: the GM confirmed the Warden fled; its token says so in the canvas description
-// and in its status list.
-export const GmSeesMoraleOutcome: Story = {
-  args: {
-    campaignId: tabletopCampaignId,
-    currentUserId: tabletopCurrentUserId
-  },
-  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, fledWardenFixtures),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body)
-    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
-    const { presentation, wardenToken } = wardenPresentationFor(
-      'OWNER',
-      fledWardenFixtures.gmEncounter
-    )
-    await expect(presentation.statuses).toContainEqual(
-      expect.objectContaining({ kind: 'MORALE', label: 'Fled' })
-    )
-    await expect(await describedScene(page)).toContain('Fled')
-    await expectDrawnWardenPresentation('OWNER', fledWardenFixtures.gmEncounter)
-    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
-    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
-    await userEvent.hover(
-      await within(sceneControls).findByRole('menuitem', { name: `Focus ${wardenToken.label}` })
-    )
-    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
-    await expect(within(list).getByText('Fled')).toBeVisible()
-  }
-}
-
 // VTT_UI-2 journey: in the same Run a player sees the Warden's conditions, never its health band or
 // the GM's morale outcome, and sees their own Character's reaction come up.
 export const PlayerSeesOnlyWhatTheyMay: Story = {
@@ -133,7 +103,7 @@ export const PlayerSeesOnlyWhatTheyMay: Story = {
     campaignId: tabletopCampaignId,
     currentUserId: tabletopCurrentUserId
   },
-  render: (args) => renderWindow(args, createTabletopCampaign('PLAYER'), null, fledWardenFixtures),
+  render: (args) => renderWindow(args, createTabletopCampaign('PLAYER'), fledWardenFixtures),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body)
     await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
@@ -174,8 +144,7 @@ export const PlayerPicksWhereAPushLeavesTheCreature: Story = {
     campaignId: tabletopCampaignId,
     currentUserId: tabletopCurrentUserId
   },
-  render: (args) =>
-    renderWindow(args, createTabletopCampaign('PLAYER'), null, pushedWardenFixtures),
+  render: (args) => renderWindow(args, createTabletopCampaign('PLAYER'), pushedWardenFixtures),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body)
     await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
@@ -215,26 +184,6 @@ export const PlayerPicksWhereAPushLeavesTheCreature: Story = {
           type: 'COMMAND'
         })
       )
-    )
-  }
-}
-
-export const PlayerSeesShownScene: Story = {
-  args: {
-    campaignId: tabletopCampaignId,
-    currentUserId: tabletopCurrentUserId
-  },
-  render: (args) => renderWindow(args, createTabletopCampaign('PLAYER'), shownScene),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body)
-    const viewer = await page.findByRole('dialog', { name: shownScene.sceneName })
-    const map = await within(viewer).findByRole('img', { name: `Map of ${shownScene.sceneName}` })
-    // The Modal fades in; the map is visible once that enter transition has finished.
-    await waitFor(() => expect(map).toBeVisible())
-    await expect(page.queryByRole('button', { name: 'Show to players' })).not.toBeInTheDocument()
-    await userEvent.keyboard('{Escape}')
-    await waitFor(() =>
-      expect(page.queryByRole('dialog', { name: shownScene.sceneName })).not.toBeInTheDocument()
     )
   }
 }

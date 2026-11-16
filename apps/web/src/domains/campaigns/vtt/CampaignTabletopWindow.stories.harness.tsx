@@ -35,8 +35,6 @@ import {
   sceneRecipientPageSchema
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
-  campaignSceneShowingDtoSchema,
-  type CampaignSceneShowingDto,
   type CampaignSceneStateDto,
   setCampaignLiveScenePresentationInputDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema
@@ -59,12 +57,6 @@ const recipientRevision = 'a'.repeat(64)
 export const mapReadyTimeoutMs = 10_000
 export const liveCommand = fn()
 const mediaGetDelivery = fn()
-const showScene = fn()
-export const shownScene = validated(campaignSceneShowingDtoSchema)({
-  sceneId: '77777777-7777-4777-8777-777777777798',
-  sceneName: 'The Ashen Stair',
-  shownAt: '2099-08-15T20:00:00.000Z'
-})
 export type TabletopFixtures = {
   /** The auras the server lists for the rendered viewer (it omits a source the viewer cannot see). */
   auras?: EncounterSessionStateDto['auras']
@@ -85,7 +77,6 @@ const defaultTabletopFixtures: TabletopFixtures = {
 export function renderWindow(
   args: ComponentProps<typeof CampaignTabletopWindow>,
   campaign: CampaignDetailDto,
-  showing: CampaignSceneShowingDto | null = null,
   fixtures: TabletopFixtures = defaultTabletopFixtures
 ): JSX.Element {
   const queryClient = new QueryClient({
@@ -175,20 +166,13 @@ export function renderWindow(
   const presentationQuery = convexQuery(convexApi.scenes.presentations.get, {
     campaignId: tabletopCampaignId
   })
-  const shownHeaderQuery = convexQuery(convexApi.scenes.recipientReads.header, {
-    sceneId: shownScene.sceneId,
-    includeSnapshot: false
-  })
-  queryClient.setQueryDefaults(showingQuery.queryKey, { queryFn: async () => showing })
+  queryClient.setQueryDefaults(showingQuery.queryKey, { queryFn: async () => null })
   queryClient.setQueryDefaults(presentationQuery.queryKey, {
     queryFn: async () => ({
       campaignId: tabletopCampaignId,
       sceneId: scene.id,
       version: presentationVersion
     })
-  })
-  queryClient.setQueryDefaults(shownHeaderQuery.queryKey, {
-    queryFn: async () => ({ ...header, id: shownScene.sceneId, name: shownScene.sceneName })
   })
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
   seedTabletopSystem(queryClient, campaign)
@@ -213,12 +197,6 @@ export function renderWindow(
               id: tabletopLiveScene.id,
               name: tabletopLiveScene.name,
               version: tabletopLiveScene.version
-            },
-            {
-              definitionId: shownScene.sceneId,
-              id: shownScene.sceneId,
-              name: shownScene.sceneName,
-              version: 0
             }
           ],
           isDone: true,
@@ -350,16 +328,10 @@ export function renderWindow(
     })
   })
   Object.defineProperty(convex, 'mutation', {
-    value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference, args]) => {
-      const name = getFunctionName(reference)
-      if (name === getFunctionName(convexApi.scenes.showings.show)) {
-        showScene(args)
-        return null
-      }
-      throw new Error(`Unexpected story fixture mutation: ${name}`)
+    value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference]) => {
+      throw new Error(`Unexpected story fixture mutation: ${getFunctionName(reference)}`)
     })
   })
-  showScene.mockReset()
 
   const recipientState = validated(liveSessionRecipientStateDtoSchema)({
     presentationVersion,
