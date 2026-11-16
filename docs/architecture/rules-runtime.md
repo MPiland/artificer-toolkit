@@ -4253,7 +4253,8 @@ then picks the row for the action's `spellCastLevel` (`repeatSaveFailureDamage`)
 effect's graph. The persisted active-effect contract is unchanged: the cast level's dice are graph nodes
 (`entryDiceDamageNodes`, gated on `repeat-save-test`'s path) and the damage proposal
 `proposal-on_save_fail` is a `sourceEntryBindings` entry bound to the authored damage row. At the holder's turn
-end, a failed save yields `DAMAGE` applications from that proposal through the shared `testApplications`, and
+end, `settleRepeatedSave` (`effectActionRepeatSaveEvidence.ts`) yields `DAMAGE` applications for a failed save
+from that proposal through the shared `testApplications`, and
 the effect holds; a made save ends it as before. The turn-effect batch schema and
 `persistEncounterTurnEffects` accept an application whose source is the frozen node or a bound proposal. A
 repeat save may roll failure damage or propose GM rulings, never both, and never behind a gate.

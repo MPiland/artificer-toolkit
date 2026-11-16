@@ -19,11 +19,14 @@ import {
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
   ENTRY_DAMAGE_NODE_PREFIX,
+  UUID,
   Dnd5eEffectActionCompilerError
 } from './effectActionContracts.js'
 import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'
 import { repeatSaveConditionIds } from './effectActionEvidenceChecks.js'
+import { testApplications } from './effectActionInterpretation.js'
 import { isDnd5eTestOutcomeRule, dnd5eTestResultPath } from './effectActionOperationRegistry.js'
 
 /** Whether a repeat save's d20 can be settled without a request: a gated, thresholds or triggers-only save. */
@@ -63,7 +66,7 @@ export function repeatSaveAttemptAllowed(input: {
 }
 
 /** Whether a repeat-save graph node rolls or proposes the damage its failed save deals. */
-export function isRepeatSaveFailureDamageNode(nodeId: string) {
+function isRepeatSaveFailureDamageNode(nodeId: string) {
   return nodeId.startsWith(ENTRY_DAMAGE_NODE_PREFIX) || nodeId === 'proposal-on_save_fail'
 }
 
@@ -189,8 +192,119 @@ export function isTallyCount(count: number) {
   return Number.isSafeInteger(count) && count >= 1 && count <= 255
 }
 
+type InterpretActiveEffect = NonNullable<CharacterRuleActionSystemAdapter['interpretActiveEffect']>
+
+/**
+ * What a turn's repeated save settles on its holder: the damage a failure that goes on rolled, then,
+ * when the effect ends, the conditions it held and any escalated condition a failure leaves.
+ */
+export function settleRepeatedSave({
+  execution,
+  activeEffectId,
+  definition,
+  lifecycle,
+  graph,
+  path: repeatedSavePath,
+  published,
+  ...target
+}: Parameters<InterpretActiveEffect>[0] & {
+  path: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS' | 'ATTEMPT_REFUSED'
+  published: Parameters<CharacterRuleActionSystemAdapter['interpret']>[0]['published']
+}): ReturnType<InterpretActiveEffect> {
+  // The gate's d20 only decides whether its child is made; the effect lasts out its duration.
+  if (definition.recurrence.turnEndGate)
+    return {
+      applications: [],
+      terminal: lifecycle.remainingTicks === 1,
+      emptyApplicationAllowed: true
+    }
+  const conditionIds = repeatSaveConditionIds(definition.adapterFacts)
+  const thresholds = definition.recurrence.saveThresholds
+  const escalationConditionId =
+    definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]
+  const saveTally =
+    thresholds && repeatedSavePath !== 'ATTEMPT_REFUSED'
+      ? countRepeatSave(thresholds, lifecycle.saveTally, repeatedSavePath)
+      : undefined
+  // A failed or refused attempt on the last counted turn ends the effect with its duration. A
+  // thresholds effect ends on its last success instead, and on its last failure when that
+  // escalates; one that does not escalate settles there.
+  const terminal =
+    (thresholds
+      ? tallyEnds(thresholds, saveTally, escalationConditionId !== undefined)
+      : repeatedSavePath === 'ON_SAVE_SUCCESS') || lifecycle.remainingTicks === 1
+  // A failure that goes on deals the damage its graph rolled, before anything the save ends.
+  const failureDamage = graph.nodes.some(({ id }) => isRepeatSaveFailureDamageNode(id))
+    ? testApplications({ execution, published, ...target }, undefined, {
+        d20: 'repeat-save-d20',
+        test: definition.frozenGraphNodeId
+      })
+    : []
+  if (failureDamage === null)
+    throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save graph is invalid.')
+  // Grants held by the effect leave with it; only held conditions need removing.
+  if (conditionIds === null)
+    return {
+      applications: failureDamage,
+      terminal,
+      emptyApplicationAllowed: true,
+      ...(saveTally ? { saveTally } : {})
+    }
+  if (
+    escalationConditionId !== undefined &&
+    (typeof escalationConditionId !== 'string' || !UUID.test(escalationConditionId))
+  ) {
+    throw new Dnd5eEffectActionCompilerError(
+      'D&D repeat-save escalation condition identity is invalid.'
+    )
+  }
+  const path = repeatedSavePath === 'ATTEMPT_REFUSED' ? null : repeatedSavePath
+  const application = {
+    sourceActiveEffectId: activeEffectId,
+    targetActorId: target.targetActorId,
+    sourceNodeId: definition.frozenGraphNodeId,
+    sourceOperationKey: DND5E_SAVE_TEST_OPERATION_KEY,
+    authoredPath: path,
+    resolvedPath: path
+  }
+  return terminal
+    ? {
+        applications: [
+          ...failureDamage,
+          ...conditionIds.map((conditionId) => ({
+            ...application,
+            kind: 'CONDITION_REMOVE' as const,
+            conditionId
+          })),
+          // A failed save leaves the escalated condition, unless the target cannot hold it.
+          ...(escalationConditionId !== undefined &&
+          repeatedSavePath === 'ON_SAVE_FAIL' &&
+          !(target.conditionImmunityIds ?? []).includes(escalationConditionId)
+            ? [
+                {
+                  kind: 'CONDITION_APPLY' as const,
+                  conditionId: escalationConditionId,
+                  sourceNodeId: application.sourceNodeId,
+                  sourceOperationKey: application.sourceOperationKey,
+                  authoredPath: application.authoredPath,
+                  resolvedPath: application.resolvedPath,
+                  targetActorId: application.targetActorId
+                }
+              ]
+            : [])
+        ],
+        terminal: true
+      }
+    : {
+        applications: failureDamage,
+        terminal: false,
+        emptyApplicationAllowed: true,
+        ...(saveTally ? { saveTally } : {})
+      }
+}
+
 /** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
-export function countRepeatSave(
+function countRepeatSave(
   thresholds: ActiveEffectSaveThresholds,
   before: ActiveEffectSaveTally | undefined,
   path: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
@@ -202,7 +316,7 @@ export function countRepeatSave(
 }
 
 /** Whether the tally has reached the successes that end the effect, or the failures that escalate it. */
-export function tallyEnds(
+function tallyEnds(
   thresholds: ActiveEffectSaveThresholds,
   tally: ActiveEffectSaveTally | undefined,
   escalates: boolean

@@ -174,7 +174,6 @@ import {
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
   DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
-  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY,
@@ -194,7 +193,7 @@ import {
   unsupported,
   multipliedDamageAmount
 } from './effectActionContracts.js'
-import { repeatSaveConditionIds, conditionImmunityFacts } from './effectActionEvidenceChecks.js'
+import { conditionImmunityFacts } from './effectActionEvidenceChecks.js'
 import {
   canonicalEndTriggers,
   marginRiderPlan,
@@ -229,12 +228,10 @@ import {
   interpretSpatial
 } from './effectActionInterpretation.js'
 import {
-  countRepeatSave,
-  isRepeatSaveFailureDamageNode,
   repeatedFollowUpSaveResultPath,
   repeatSaveAttemptAllowed,
   repeatSaveGated,
-  tallyEnds
+  settleRepeatedSave
 } from './effectActionRepeatSaveEvidence.js'
 import { compileDnd5eActivation } from './effectActionActivation.js'
 import { compileDnd5eTargeting, type Dnd5eTargeting } from './effectActionTargetPolicy.js'
@@ -4012,98 +4009,17 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       graph,
       targetActorId: target.targetActorId
     })
-    if (repeatedSavePath !== null) {
-      // The gate's d20 only decides whether its child is made; the effect lasts out its duration.
-      if (definition.recurrence.turnEndGate)
-        return {
-          applications: [],
-          terminal: lifecycle.remainingTicks === 1,
-          emptyApplicationAllowed: true
-        }
-      const conditionIds = repeatSaveConditionIds(definition.adapterFacts)
-      const thresholds = definition.recurrence.saveThresholds
-      const escalationConditionId =
-        definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]
-      const saveTally =
-        thresholds && repeatedSavePath !== 'ATTEMPT_REFUSED'
-          ? countRepeatSave(thresholds, lifecycle.saveTally, repeatedSavePath)
-          : undefined
-      // A failed or refused attempt on the last counted turn ends the effect with its duration. A
-      // thresholds effect ends on its last success instead, and on its last failure when that
-      // escalates; one that does not escalate settles there.
-      const terminal =
-        (thresholds
-          ? tallyEnds(thresholds, saveTally, escalationConditionId !== undefined)
-          : repeatedSavePath === 'ON_SAVE_SUCCESS') || lifecycle.remainingTicks === 1
-      // A failure that goes on deals the damage its graph rolled, before anything the save ends.
-      const failureDamage = graph.nodes.some(({ id }) => isRepeatSaveFailureDamageNode(id))
-        ? testApplications({ execution, published, ...target }, undefined, {
-            d20: 'repeat-save-d20',
-            test: definition.frozenGraphNodeId
-          })
-        : []
-      if (failureDamage === null)
-        throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save graph is invalid.')
-      // Grants held by the effect leave with it; only held conditions need removing.
-      if (conditionIds === null)
-        return {
-          applications: failureDamage,
-          terminal,
-          emptyApplicationAllowed: true,
-          ...(saveTally ? { saveTally } : {})
-        }
-      if (
-        escalationConditionId !== undefined &&
-        (typeof escalationConditionId !== 'string' || !UUID.test(escalationConditionId))
-      ) {
-        throw new Dnd5eEffectActionCompilerError(
-          'D&D repeat-save escalation condition identity is invalid.'
-        )
-      }
-      const path = repeatedSavePath === 'ATTEMPT_REFUSED' ? null : repeatedSavePath
-      const application = {
-        sourceActiveEffectId: activeEffectId,
-        targetActorId: target.targetActorId,
-        sourceNodeId: definition.frozenGraphNodeId,
-        sourceOperationKey: DND5E_SAVE_TEST_OPERATION_KEY,
-        authoredPath: path,
-        resolvedPath: path
-      }
-      return terminal
-        ? {
-            applications: [
-              ...failureDamage,
-              ...conditionIds.map((conditionId) => ({
-                ...application,
-                kind: 'CONDITION_REMOVE' as const,
-                conditionId
-              })),
-              // A failed save leaves the escalated condition, unless the target cannot hold it.
-              ...(escalationConditionId !== undefined &&
-              repeatedSavePath === 'ON_SAVE_FAIL' &&
-              !(target.conditionImmunityIds ?? []).includes(escalationConditionId)
-                ? [
-                    {
-                      kind: 'CONDITION_APPLY' as const,
-                      conditionId: escalationConditionId,
-                      sourceNodeId: application.sourceNodeId,
-                      sourceOperationKey: application.sourceOperationKey,
-                      authoredPath: application.authoredPath,
-                      resolvedPath: application.resolvedPath,
-                      targetActorId: application.targetActorId
-                    }
-                  ]
-                : [])
-            ],
-            terminal: true
-          }
-        : {
-            applications: failureDamage,
-            terminal: false,
-            emptyApplicationAllowed: true,
-            ...(saveTally ? { saveTally } : {})
-          }
-    }
+    if (repeatedSavePath !== null)
+      return settleRepeatedSave({
+        execution,
+        activeEffectId,
+        definition,
+        lifecycle,
+        graph,
+        ...target,
+        path: repeatedSavePath,
+        published
+      })
     const resolvedTest = testApplications({
       execution,
       published,
