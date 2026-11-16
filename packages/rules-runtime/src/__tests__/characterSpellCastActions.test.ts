@@ -1696,8 +1696,10 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
       for (const layer of layers) {
         expect(layer.triggerModes).toEqual(zone.triggerModes)
         expect(layer.triggerModes.length).toBeGreaterThan(0)
-        expect(layer).not.toHaveProperty('choosesUnaffected')
       }
+      // The zone's own record spares the designated; its later layers spare whom it spares.
+      for (const layer of zone.layerComponents ?? [])
+        expect(layer).not.toHaveProperty('choosesUnaffected')
       expect(new Set(layers.map(({ entry }) => entry.compiledEntryId)).size).toBe(3)
     }
   })
