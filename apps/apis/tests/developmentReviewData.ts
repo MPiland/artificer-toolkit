@@ -428,7 +428,7 @@ async function seedStoryCampaign(
     commandId: reviewId('story-prepared-run')
   })
   const { userId } = await client.query(api.account.identity, {})
-  await presentStoryRun(client, room, STORY_CAMPAIGN, { campaignId, run, actor }, userId)
+  await presentStoryRun(client, room, STORY_CAMPAIGN, { campaignId, run, actor, crowd: [] }, userId)
   return campaignId
 }
 
