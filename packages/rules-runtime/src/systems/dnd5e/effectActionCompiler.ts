@@ -1966,8 +1966,8 @@ function supported(
       'D&D Effect action resource use must use a normalized charge identity and positive safe cost.'
     )
   const outcome = entry.outcome
-  if (targeting.kind === 'AREA' && outcome.effectKind !== 'CONDITION')
-    unsupported('D&D hit-point pool area outcome must be a timed condition.')
+  if (targeting.kind === 'AREA' && outcome.effectKind !== targeting.outcomeKind)
+    unsupported('D&D area that tests no one must land its timed pool condition or GM ruling.')
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')

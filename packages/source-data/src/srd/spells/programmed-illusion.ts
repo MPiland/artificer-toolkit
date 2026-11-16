@@ -7,6 +7,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -44,6 +45,12 @@ export const programmedIllusion: SpellAuthored = {
           rangeKind: RANGE_KIND.DISTANCE,
           amount: 120,
           unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        // "It must be no larger than a 30-foot cube"
+        shape: {
+          id: spellChildId(SPELL_IDS.PROGRAMMED_ILLUSION, 0x213, 1),
+          shapeKind: SHAPE_KIND.CUBE,
+          edgeLength: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,

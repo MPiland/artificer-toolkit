@@ -784,3 +784,53 @@ describe('hit-point pool area compilation from the SRD (SPELLS-27.T8)', () => {
     }
   })
 })
+
+describe('area ruling compilation from the SRD (QUALITY-15.T3m)', () => {
+  // Each area that tests no one and leaves each creature it catches to the GM compiles to the one
+  // ruling plan the room commits at once over the creatures it catches.
+  it.each([
+    ['Gust of Wind', 'DIRECTED'],
+    ['Zone of Truth', 'POINT'],
+    ['Purify Food and Drink', 'POINT'],
+    ['Private Sanctum', 'POINT'],
+    ['Reverse Gravity', 'POINT'],
+    ['Major Image', 'POINT'],
+    ['Minor Illusion', 'POINT'],
+    ['Programmed Illusion', 'POINT'],
+    ['Move Earth', 'POINT'],
+    ['Fabricate', 'POINT'],
+    ['Creation', 'POINT'],
+    ['Detect Magic', 'CASTER_CENTERED'],
+    ['Detect Poison and Disease', 'CASTER_CENTERED'],
+    ['Speak with Plants', 'CASTER_CENTERED']
+  ] as const)('compiles %s to a GM ruling over the %s area it catches', (label, targetKind) => {
+    const effect = spellEffect(label)
+    const { action, plan } = compile({}, effect)
+    expect(plan?.kind).toBe('SINGLE_GRAPH')
+    const policy = buildCompiledActionTargetPolicy(action)
+    expect(policy.targeting?.selectionKind).toBe('AREA_CONTENTS')
+    expect(policy.targeting).not.toHaveProperty('hitPointPool')
+    expect(encounterActionTargetKind(policy)).toBe(targetKind)
+  })
+
+  // Each area row that stays refused, with why it stays refused.
+  it.each([
+    // A Sight range bounds no distance an area may be placed within.
+    ['Storm of Vengeance', "D&D area outside its user's own space must name its shape."],
+    // A passage of a size the caster picks fits no shape kind.
+    ['Passwall', "D&D area outside its user's own space must name its shape."],
+    // A summoned or created creature is a summon, not a ruling on the creatures an area catches.
+    ['Planar Ally', "D&D area outside its user's own space must name its shape."],
+    ['Create Undead', "D&D area outside its user's own space must name its shape."]
+  ])('still refuses %s', (label, reason) => {
+    expect(() => compile({}, spellEffect(label))).toThrow(reason)
+  })
+
+  it('refuses an area that tests no one when its outcome is not a GM ruling', () => {
+    // Sleep's Unconscious over its sphere, with no hit-point pool deciding who it reaches.
+    const targeting = { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' } as const
+    expect(() => compile({ targeting }, spellEffect('Sleep'), 1)).toThrow(
+      'D&D area that tests no one must land its timed pool condition or GM ruling.'
+    )
+  })
+})

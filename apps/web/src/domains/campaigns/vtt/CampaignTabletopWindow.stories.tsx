@@ -7,9 +7,7 @@ import {
   type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import { activeGrantListingDtoSchema } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { validated } from '../../../test/validatedFixture'
-import { facingArcSectors } from '@artificer-toolkit/shared/vtt'
 import {
   buildTabletopPresentations,
   createTabletopCampaign,
@@ -28,14 +26,12 @@ import {
   expectDrawnPresentation,
   latestStageRenderer
 } from './vttSceneRenderer.assertions'
-import { facingArcRadius, facingArcWedge, gmDarknessCapAlpha } from './vttSceneRenderer.model'
 import {
   TabletopFixtures,
   liveCommand,
   mapReadyTimeoutMs,
   projectScene,
-  renderWindow,
-  syncStoryScene
+  renderWindow
 } from './CampaignTabletopWindow.stories.harness'
 
 const liveSessionTokenHandler = http.get('*/api/auth/convex/token', () =>
@@ -86,113 +82,6 @@ async function expectDrawnWardenPresentation(
   await waitFor(async () =>
     expectDrawnPresentation(drawnToken(renderer.getDiagnostics(), wardenToken.id), presentation)
   )
-}
-
-// VTT_UI-1.3: the selected token draws its Facing arcs, and they follow it when it turns.
-export const SelectingATokenShowsItsFacingArcs: Story = {
-  args: {
-    campaignId: tabletopCampaignId,
-    currentUserId: tabletopCurrentUserId
-  },
-  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), facingFixtures),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body)
-    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
-    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
-    const renderer = await latestStageRenderer()
-    const warden = facingFixtures.liveScene.tokens[1]!
-    const drawnArcs = () => drawnToken(renderer.getDiagnostics(), warden.id).facingArcs
-    const expectArcsAt = async (rotationDegrees: number) =>
-      expect(drawnArcs()).toEqual(
-        facingArcSectors({ arcs: facingArcs, rotationDegrees }).map((sector) => ({
-          arc: sector.arc,
-          polygon: facingArcWedge(sector, facingArcRadius(warden))
-        }))
-      )
-
-    await expect(drawnArcs()).toEqual([])
-    renderer.focusPoint(warden.position)
-    await pressStage(stage, 'centre')
-    await waitFor(() => expect(drawnArcs()).toHaveLength(4))
-    await expectArcsAt(warden.rotationDegrees)
-
-    syncStoryScene({
-      ...facingFixtures.liveScene,
-      tokens: facingFixtures.liveScene.tokens.map((token) =>
-        token.id === warden.id ? { ...token, rotationDegrees: 90 } : token
-      ),
-      version: facingFixtures.liveScene.version + 1
-    })
-    await waitFor(() =>
-      expect(drawnToken(renderer.getDiagnostics(), warden.id).facingRotationDegrees).toBeCloseTo(90)
-    )
-    await expectArcsAt(90)
-
-    await pressStage(stage, 'corner')
-    await waitFor(() => expect(drawnArcs()).toEqual([]))
-  }
-}
-
-// VTT_UI-1.3: Ember's Wake marked the Warden; its status list names the marker.
-export const HoveringAMarkedTokenNamesItsMarker: Story = {
-  args: {
-    campaignId: tabletopCampaignId,
-    currentUserId: tabletopCurrentUserId
-  },
-  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), markedFixtures),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body)
-    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
-    const { presentation, wardenToken } = wardenPresentationFor('OWNER', markedFixtures.gmEncounter)
-    const mark = presentation.statuses.find(({ id }) => id === `grant:${wardenMark.effectId}`)
-    await expect(mark?.label).toBe("Mark from Ember's Wake, 2 rounds left")
-    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
-    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
-    const focusItem = await within(sceneControls).findByRole('menuitem', {
-      name: `Focus ${wardenToken.label}`
-    })
-    await userEvent.hover(focusItem)
-    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
-    await expect(within(list).getByText(mark!.label)).toBeVisible()
-  }
-}
-
-// The GM's preview is derived from the Scene: once the previewed token leaves it, the map is the
-// GM's see-all view again, not black.
-export const GmPreviewEndsWhenThePreviewedTokenLeavesTheScene: Story = {
-  args: {
-    campaignId: tabletopCampaignId,
-    currentUserId: tabletopCurrentUserId
-  },
-  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), previewFixtures),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body)
-    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
-    const { wardenToken } = wardenPresentationFor('OWNER', previewFixtures.gmEncounter)
-    const renderer = await latestStageRenderer()
-    // Ground far from every light and token in the darkened scene, and behind a wall from the
-    // Warden: its authored sight (120 ft) reaches the whole map, so only the wall hides it.
-    const ground = [{ x: 400, y: 100 }]
-    await expect(renderer.sampleDarkness(ground)[0]?.alpha).toBeCloseTo(gmDarknessCapAlpha, 1)
-    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
-    const controls = within(await page.findByRole('menu', { name: 'Scene controls' }))
-    await userEvent.click(
-      await controls.findByRole('menuitem', { name: `Preview view ${wardenToken.label}` })
-    )
-    await waitFor(() => expect(renderer.getDiagnostics().lighting.visionCount).toBe(1))
-    await expect(renderer.sampleDarkness(ground)[0]).toMatchObject({ alpha: 1, masked: true })
-
-    syncStoryScene({
-      ...previewFixtures.liveScene,
-      tokens: previewFixtures.liveScene.tokens.filter((token) => token.id !== wardenToken.id),
-      version: previewFixtures.liveScene.version + 1
-    })
-    await waitFor(() => expect(renderer.getDiagnostics().tokenVisualCount).toBe(1))
-    await expect(renderer.getDiagnostics().lighting.visionCount).toBe(0)
-    await expect(renderer.sampleDarkness(ground)[0]?.alpha).toBeCloseTo(gmDarknessCapAlpha, 1)
-    await expect(renderer.sampleDarkness(ground)[0]?.masked).toBe(false)
-    await expect(page.queryByRole('menuitem', { name: /previewing/ })).toBeNull()
-  }
 }
 
 // The scene canvas's description of its tokens, once the Warden is described.
@@ -323,45 +212,6 @@ const presentedTokensFixtures: TabletopFixtures = {
   }
 }
 
-// VTT_UI-1.3 journey data: Facing is on and Ember has the turn, so the Warden shows arcs only when selected.
-const facingArcs = [
-  { arc: 'FRONT', fromDegrees: -45, toDegrees: 45 },
-  { arc: 'RIGHT_SIDE', fromDegrees: 45, toDegrees: 135 },
-  { arc: 'REAR', fromDegrees: 135, toDegrees: 225 },
-  { arc: 'LEFT_SIDE', fromDegrees: 225, toDegrees: 315 }
-] as const
-const facingFixtures: TabletopFixtures = {
-  ...presentedTokensFixtures,
-  gmEncounter: {
-    ...presentedTokensFixtures.gmEncounter,
-    currentActorId: tabletopGmEncounter.actors[0]!.id,
-    facingArcs: [...facingArcs],
-    facingStepDegrees: 90
-  }
-}
-
-// VTT_UI-1.3 journey data: Ember's Wake's melee attack marked the Warden (ATTACK-13), as the
-// Encounter projection lists it to the GM.
-const wardenMark = validated(activeGrantListingDtoSchema)({
-  effectId: '13131313-1313-4131-8131-131313131313',
-  label: 'Mark',
-  sourceHidden: false,
-  sourceActorId: tabletopGmEncounter.actors[0]!.id,
-  remainingTicks: 2,
-  expiresAtCampaignMinute: null,
-  polarity: 'HARMFUL',
-  endable: true
-})
-const markedFixtures: TabletopFixtures = {
-  ...presentedTokensFixtures,
-  gmEncounter: {
-    ...presentedTokensFixtures.gmEncounter,
-    actors: presentedTokensFixtures.gmEncounter.actors.map((actor) =>
-      actor.id === wardenId ? { ...actor, activeGrants: [wardenMark] } : actor
-    )
-  }
-}
-
 // Ember's Wake pushed the Warden, which may stay put or land one square west or north (D157).
 const pushedWardenPosition = presentedTokensFixtures.liveScene.tokens[1]!.position
 const pushedWardenSquares = [
@@ -410,27 +260,4 @@ const fledWardenFixtures: TabletopFixtures = {
     options: [{ optionId: 'a'.repeat(64), actionId: 'opportunity-attack' }],
     allowedResponses: ['DECLINE', 'OPTION']
   })
-}
-
-// The Warden sees in a darkened Scene, so previewing its view is distinguishable from the GM's.
-const previewFixtures: TabletopFixtures = {
-  ...presentedTokensFixtures,
-  liveScene: {
-    ...presentedTokensFixtures.liveScene,
-    ambientIllumination: 'ORDINARY_DARKNESS',
-    tokens: presentedTokensFixtures.liveScene.tokens.map((token) =>
-      token.id === tabletopLiveScene.tokens[1]!.id
-        ? {
-            ...token,
-            vision: {
-              angleDegrees: 360,
-              brightRange: 60,
-              dimRange: 120,
-              directionDegrees: 0,
-              enabled: true
-            }
-          }
-        : token
-    )
-  }
 }

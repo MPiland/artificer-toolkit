@@ -9,39 +9,18 @@ import {
 const characterId = '00000000-0000-4000-8000-000000000101'
 const systemId = '00000000-0000-4000-8000-000000000102'
 const adjustmentId = '00000000-0000-4000-8000-000000000103'
-const skillId = '00000000-0000-4000-8000-000000000104'
 const passiveSkillId = '00000000-0000-4000-8000-000000000105'
 const passiveInvestigationSkillId = '00000000-0000-4000-8000-000000000111'
 const passiveInsightSkillId = '00000000-0000-4000-8000-000000000112'
 const senseId = '00000000-0000-4000-8000-000000000106'
 const walkingSpeedId = '00000000-0000-4000-8000-000000000107'
 const swimmingSpeedId = '00000000-0000-4000-8000-000000000108'
-const damageTypeId = '00000000-0000-4000-8000-000000000109'
-const languageId = '00000000-0000-4000-8000-000000000110'
 
 const defaultCalculation = {
   base: 8,
   contributions: [],
   effective: 8
 }
-
-const adjustedCalculation = {
-  base: 8,
-  contributions: [
-    {
-      id: 'manual-training',
-      source: {
-        kind: 'MANUAL_ADJUSTMENT',
-        adjustmentId
-      },
-      sourceLabel: 'Manual adjustment',
-      sourceNote: 'Earned after completing the cliffside trial.',
-      value: 2,
-      state: 'APPLIED'
-    }
-  ],
-  effective: 10
-} satisfies Extract<CharacterSheetPanelDto, { kind: 'ABILITY' }>['scoreCalculation']
 
 const numberEditorDefaults = {
   kind: 'NUMBER' as const,
@@ -76,58 +55,6 @@ export const abilityPanelFixture = {
       label: 'Override score',
       value: null,
       validation: { integer: true, minimum: 0 }
-    }
-  ]
-} satisfies CharacterSheetPanelDto
-
-export const adjustedAbilityPanelFixture = {
-  ...abilityPanelFixture,
-  state: 'ADJUSTED',
-  score: 10,
-  modifier: 0,
-  scoreCalculation: adjustedCalculation,
-  editors: [
-    {
-      ...numberEditorDefaults,
-      adjustmentId,
-      field: 'OTHER_MODIFIER',
-      label: 'Other modifier',
-      value: 2,
-      sourceNote: 'Earned after completing the cliffside trial.'
-    },
-    abilityPanelFixture.editors[1]
-  ]
-} satisfies CharacterSheetPanelDto
-
-export const overriddenAbilityPanelFixture = {
-  ...adjustedAbilityPanelFixture,
-  state: 'OVERRIDDEN',
-  score: 12,
-  modifier: 1,
-  scoreCalculation: {
-    ...adjustedCalculation,
-    contributions: adjustedCalculation.contributions.map((contribution) => ({
-      ...contribution,
-      state: 'SUPPRESSED' as const
-    })),
-    override: {
-      adjustmentId: '00000000-0000-4000-8000-000000000111',
-      value: 12,
-      sourceLabel: 'Manual override',
-      sourceNote: 'Temporary score for the alpha playtest.'
-    },
-    effective: 12
-  },
-  editors: [
-    adjustedAbilityPanelFixture.editors[0],
-    {
-      ...numberEditorDefaults,
-      adjustmentId: '00000000-0000-4000-8000-000000000111',
-      field: 'SCORE_OVERRIDE',
-      label: 'Override score',
-      value: 12,
-      validation: { integer: true, minimum: 0 },
-      sourceNote: 'Temporary score for the alpha playtest.'
     }
   ]
 } satisfies CharacterSheetPanelDto
@@ -182,102 +109,6 @@ export const savingThrowPanelFixture = {
     ],
     commitIntent: 'IMMEDIATE'
   }
-} satisfies CharacterSheetPanelDto
-
-export const skillPanelFixture = {
-  kind: 'SKILL',
-  panelId: `skill:${skillId}`,
-  characterId,
-  target: { kind: 'SKILL', skillId },
-  title: 'Arcana',
-  state: 'ADJUSTED',
-  editable: true,
-  allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
-  skillId,
-  code: 'ARCANA',
-  ability: 'INTELLIGENCE',
-  total: 6,
-  proficiency: 'FULL',
-  calculation: {
-    base: 3,
-    contributions: [
-      {
-        id: 'proficiency',
-        source: { kind: 'SYSTEM', systemId },
-        sourceLabel: 'Wizard training',
-        value: 2,
-        state: 'APPLIED'
-      },
-      {
-        id: 'manual-magic',
-        source: { kind: 'MANUAL_ADJUSTMENT', adjustmentId },
-        sourceLabel: 'Manual adjustment',
-        sourceNote: 'Library access',
-        value: 1,
-        state: 'APPLIED'
-      }
-    ],
-    effective: 6
-  },
-  numericEditors: savingThrowPanelFixture.numericEditors.map((editor) =>
-    editor.field === 'MAGIC_BONUS'
-      ? {
-          ...editor,
-          adjustmentId,
-          value: 1,
-          sourceNote: 'Library access'
-        }
-      : editor
-  ),
-  proficiencyEditor: savingThrowPanelFixture.proficiencyEditor,
-  abilityEditor: {
-    kind: 'SELECT',
-    field: 'GOVERNING_ABILITY_OVERRIDE',
-    label: 'Governing ability',
-    value: null,
-    options: [
-      { value: 'STRENGTH', label: 'Strength' },
-      { value: 'DEXTERITY', label: 'Dexterity' },
-      { value: 'CONSTITUTION', label: 'Constitution' },
-      { value: 'INTELLIGENCE', label: 'Intelligence' },
-      { value: 'WISDOM', label: 'Wisdom' },
-      { value: 'CHARISMA', label: 'Charisma' }
-    ],
-    commitIntent: 'IMMEDIATE'
-  }
-} satisfies CharacterSheetPanelDto
-
-export const skillsPanelFixture = {
-  kind: 'SKILLS',
-  panelId: 'skills',
-  characterId,
-  target: { kind: 'SKILLS' },
-  title: 'Skills',
-  state: 'ADJUSTED',
-  editable: false,
-  allowedCommands: [],
-  skills: [
-    {
-      target: { kind: 'SKILL', skillId },
-      skillId,
-      code: 'ARCANA',
-      label: 'Arcana',
-      ability: 'INTELLIGENCE',
-      total: 6,
-      proficiency: 'FULL',
-      state: 'ADJUSTED'
-    },
-    {
-      target: { kind: 'SKILL', skillId: passiveSkillId },
-      skillId: passiveSkillId,
-      code: 'PERCEPTION',
-      label: 'Perception',
-      ability: 'WISDOM',
-      total: 3,
-      proficiency: 'FULL',
-      state: 'DEFAULT'
-    }
-  ]
 } satisfies CharacterSheetPanelDto
 
 export const sensesPanelFixture = {
@@ -448,56 +279,6 @@ export const movementPanelFixture = {
   ]
 } satisfies CharacterSheetPanelDto
 
-export const defensesPanelFixture = {
-  kind: 'DEFENSES',
-  panelId: 'defenses',
-  characterId,
-  target: { kind: 'DEFENSES' },
-  title: 'Defenses',
-  state: 'DEFAULT',
-  editable: true,
-  allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
-  defenses: [],
-  additionOptions: [
-    {
-      defenseKind: 'RESISTANCE',
-      damageTypeId,
-      label: 'Fire resistance'
-    },
-    {
-      defenseKind: 'IMMUNITY',
-      damageTypeId,
-      label: 'Fire immunity'
-    }
-  ]
-} satisfies CharacterSheetPanelDto
-
-export const proficienciesPanelFixture = {
-  kind: 'PROFICIENCIES',
-  panelId: 'proficiencies',
-  characterId,
-  target: { kind: 'PROFICIENCIES' },
-  title: 'Proficiencies',
-  state: 'DEFAULT',
-  editable: true,
-  allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
-  proficiencies: [
-    {
-      kind: 'LANGUAGE',
-      targetId: languageId,
-      label: 'Common',
-      sourceLabel: 'Sea Elf'
-    }
-  ],
-  additionOptions: [
-    {
-      kind: 'LANGUAGE',
-      targetId: '00000000-0000-4000-8000-000000000112',
-      label: 'Primordial'
-    }
-  ]
-} satisfies CharacterSheetPanelDto
-
 const wizardSpellSource = {
   sourceKind: 'CLASS' as const,
   sourceInstanceId: 'class:wizard'
@@ -626,35 +407,6 @@ export const spellPanelAttackDamageFixture = {
     },
     ...spellPanelFixture.customizationOptions
   ]
-} satisfies CharacterSheetPanelDto
-
-export const spellPanelSaveDamageFixture = {
-  ...spellPanelFixture,
-  calculations: {
-    saveDC: {
-      base: 13,
-      contributions: [],
-      effective: 13
-    },
-    damageBonus: {
-      base: 1,
-      contributions: [],
-      effective: 1
-    }
-  },
-  customizationOptions: [
-    {
-      category: 'SAVE_DC',
-      label: 'Spell save DC',
-      supportedModes: ['BONUS', 'OVERRIDE']
-    },
-    ...spellPanelFixture.customizationOptions
-  ]
-} satisfies CharacterSheetPanelDto
-
-export const spellPanelEmptyCustomizationsFixture = {
-  ...spellPanelFixture,
-  customizationOptions: []
 } satisfies CharacterSheetPanelDto
 
 export const spellPanelConfiguredCustomizationsFixture = {
