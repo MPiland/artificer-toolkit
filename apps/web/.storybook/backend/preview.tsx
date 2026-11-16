@@ -1,9 +1,9 @@
 import type { Preview } from '@storybook/tanstack-react'
 import { ConvexQueryClient } from '@convex-dev/react-query'
-import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
-import { useMutation, type ConvexReactClient } from 'convex/react'
+import type { AuthTokenFetcher } from 'convex/browser'
+import { ConvexProviderWithAuth, useMutation, type ConvexReactClient } from 'convex/react'
 import { expect, mocked, sb } from 'storybook/test'
 import { betterAuthClient } from '#app/auth/betterAuthClient'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
@@ -40,6 +40,12 @@ type StoryBackend = {
   reads: ConvexReactClient
   missingQueryFnReports: string[]
   user: AuthSessionUserDto
+  /**
+   * The story account's auth, fixed for the story's lifetime. It must not follow better-auth's
+   * page-wide session store: that store still holds the previous story's account after a sign-in,
+   * and when it catches up, the provider clears the client's auth and queries run unauthenticated.
+   */
+  auth: { isLoading: false; isAuthenticated: true; fetchAccessToken: AuthTokenFetcher }
 }
 
 const storyBackends = new Map<string, StoryBackend>()
@@ -88,9 +94,15 @@ async function connectStoryBackend(
   const reads = unoverriddenReads(convex.convexClient)
   const queryClient = createAppQueryClient(convex)
   if (queryOverride) installQueryOverride(queryOverride, queryClient, convex.convexClient)
-  convex.convexClient.setAuth(
-    async () => (await betterAuthClient.convex.token()).data?.token ?? null
-  )
+  // The provider sets this fetcher again on mount; the cached token keeps that from pausing the
+  // story's first reads on another token request.
+  let token: string | null = null
+  const fetchAccessToken: AuthTokenFetcher = async ({ forceRefreshToken }) => {
+    if (!token || forceRefreshToken)
+      token = (await betterAuthClient.convex.token()).data?.token ?? null
+    return token
+  }
+  convex.convexClient.setAuth(fetchAccessToken)
   const { user } = await convex.convexClient.query(api.account.session, {})
   if (!user) throw new Error('The story account has no session on the seeded deployment.')
   storyBackends.set(storyId, {
@@ -98,7 +110,8 @@ async function connectStoryBackend(
     queryClient,
     reads,
     missingQueryFnReports: recordMissingQueryFnReports(queryClient),
-    user
+    user,
+    auth: { isLoading: false, isAuthenticated: true, fetchAccessToken }
   })
 }
 
@@ -109,12 +122,9 @@ const preview: Preview = {
       bindStoryReads(backend.reads)
       return (
         <StoryFrame theme={context.globals.theme} queryClient={backend.queryClient}>
-          <ConvexBetterAuthProvider
-            client={backend.convex.convexClient}
-            authClient={betterAuthClient}
-          >
+          <ConvexProviderWithAuth client={backend.convex.convexClient} useAuth={() => backend.auth}>
             <Story />
-          </ConvexBetterAuthProvider>
+          </ConvexProviderWithAuth>
         </StoryFrame>
       )
     }
