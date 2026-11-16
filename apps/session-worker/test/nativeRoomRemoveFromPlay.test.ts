@@ -122,6 +122,22 @@ async function gmEndsActiveEffect(room: MazeRoom, characterId: string) {
   })
 }
 
+/** The GM ends the one active effect the Run actor `actorId` holds, from the encounter drawer. */
+async function gmEndsActorEffect(room: MazeRoom, actorId: string) {
+  const [effect] = (await readRoomHistory(room.room.base.stub)).activeEffects.filter(
+    (row) => row.targetActorId === actorId
+  )
+  if (!effect) throw new Error('Expected the actor to hold an active effect.')
+  return room.send({
+    type: 'UPDATE_ACTOR',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version(),
+    actorId,
+    endActiveEffectId: effect.id
+  })
+}
+
 /** The GM ends the caster's Concentration through the Character's Sheet. */
 async function gmEndsConcentration(room: MazeRoom) {
   const commandId = crypto.randomUUID()
@@ -234,6 +250,30 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
     const ended = await gmEndsConcentration(room)
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect(await wolfAbsence(room)).toBeNull()
+  }, 120000)
+
+  it('Imprisonment removes a Wolf that fails its save until the GM ends it (QUALITY-15.T3ae)', async () => {
+    // A natural 1.
+    const { room } = await spellRoom(imprisonment, undefined, [], [0])
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBe('EFFECT')
+
+    const ended = await gmEndsActorEffect(room, WOLF_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBeNull()
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toEqual([])
+  }, 120000)
+
+  it('refuses the GM ending a Maze its Concentration maintains on a Wolf (QUALITY-15.T3ae)', async () => {
+    const { room } = await spellRoom(maze)
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+
+    const refused = await gmEndsActorEffect(room, WOLF_ID)
+    expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
+    expect(await wolfAbsence(room)).toBe('EFFECT')
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toHaveLength(1)
   }, 120000)
 
   it('Etherealness takes the caster out of play and keeps their turn (T2h4)', async () => {

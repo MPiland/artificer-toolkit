@@ -49,7 +49,7 @@ import { engageIdleTurnActor } from './idleTurnMark.js'
 import { endChosenConcentration } from './concentrationChosenEnd.js'
 import { endConcentrationAfterEdit } from './concentrationEditEnd.js'
 import { endGrantsOnHitPointsRegained } from './consumedGrantPersistence.js'
-import { endEncounterActorGrant } from './grantEndPersistence.js'
+import { endEncounterActorEffect } from './actorEffectEndPersistence.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -447,7 +447,7 @@ async function recordEncounterToolCommand(
       input.endActiveEffectId !== undefined &&
       actor.kind === 'CHARACTER'
     )
-      throw new Error("A Character's grant is ended through its Sheet command.")
+      throw new Error("A Character's active effect is ended through its Sheet command.")
     if (
       input.type === 'UPDATE_ACTOR' &&
       input.groupCount !== undefined &&
@@ -572,7 +572,7 @@ async function recordEncounterToolCommand(
       input.endActiveEffectId !== undefined &&
       actor.kind !== 'CHARACTER'
     )
-      await endEncounterActorGrant(ctx, {
+      await endEncounterActorEffect(ctx, {
         state,
         actor,
         effectId: input.endActiveEffectId,

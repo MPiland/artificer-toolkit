@@ -5,7 +5,7 @@ import * as styles from './ActiveGrantList.css'
 
 /**
  * An actor's active grants with their source and time left (D99). Pass `onEnd` only for the GM, who
- * may end one by hand; every other viewer reads the list.
+ * may end one by hand unless a Concentration maintains it; every other viewer reads the list.
  */
 export function ActiveGrantList({
   disabled,
@@ -31,7 +31,7 @@ export function ActiveGrantList({
               {activeGrantTimeLeft(grant)}
             </Text>
           </Text>
-          {onEnd ? (
+          {onEnd && grant.endable ? (
             <Button
               aria-label={`End ${activeGrantLabel(grant)}`}
               disabled={disabled}
