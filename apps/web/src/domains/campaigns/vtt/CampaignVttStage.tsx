@@ -73,6 +73,7 @@ import { useCampaignLiveLoot } from '../loot/useCampaignLiveLoot'
 import { useVttTokenArtUrls } from './useVttTokenArtUrls'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
+import { selectCurrentActionChoices } from './currentActionChoices.model'
 import { CampaignTabletopZoneTool } from './CampaignTabletopZoneTool'
 import { CampaignTabletopPlayerHeaderControls } from './CampaignTabletopPlayerHeaderControls'
 import type { ZonePointPick } from './campaignTabletopZoneTool.model'
@@ -339,13 +340,7 @@ export function CampaignVttStage({
   const loadedActionChoices = roomActionChoices.routed
     ? roomActionChoices.value
     : actionChoices.data
-  const currentActionChoices =
-    actionChoiceScope &&
-    loadedActionChoices?.encounterId === actionChoiceScope.encounterId &&
-    loadedActionChoices.encounterVersion === actionChoiceScope.expectedVersion &&
-    loadedActionChoices.actorId === actionChoiceScope.actorId
-      ? loadedActionChoices
-      : null
+  const currentActionChoices = selectCurrentActionChoices(loadedActionChoices, actionChoiceScope)
   const actionChoicesLoading = roomActionChoices.routed
     ? !currentActionChoices && !roomActionChoices.error
     : actionChoices.isPending || (actionChoices.isFetching && !currentActionChoices)
