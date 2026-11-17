@@ -124,7 +124,7 @@ export async function verifyEncounterZoneMove({
       const row: ZoneMoveRow = {
         label: offered.label,
         activationLabel: 'Bonus Action',
-        distanceLabel: '30 ft'
+        distanceLabel: '30 feet'
       }
       await controls.assertZoneRow(row)
 
