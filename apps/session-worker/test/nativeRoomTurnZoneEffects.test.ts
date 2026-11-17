@@ -26,6 +26,7 @@ import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/ca
 import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { createFoodAndWater } from '@artificer-toolkit/source-data/srd/spells/create-food-and-water.js'
 import { darkness } from '@artificer-toolkit/source-data/srd/spells/darkness.js'
+import { delayedBlastFireball } from '@artificer-toolkit/source-data/srd/spells/delayed-blast-fireball.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -1201,6 +1202,37 @@ describe('the SRD Darkness, a zone that only marks its area, in the room (QUALIT
     expect(incoming).toBeUndefined()
     expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
     expect(await readZones(room)).toHaveLength(1)
+  })
+})
+
+describe('the SRD Delayed Blast Fireball bead, a zone that marks its blast and a GM ruling, in the room (QUALITY-15.T3y4)', () => {
+  it('places the 20-foot sphere at the chosen point held by Concentration, and ending Concentration removes it', async () => {
+    const room = await actionRoom({
+      actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
+      positions: { [WOLF_ID]: FIELD_POINT },
+      characterPlay: { classLevel: 15 },
+      characterSpellcasting: {
+        spells: [delayedBlastFireball],
+        prepared: [delayedBlastFireball.id]
+      },
+      characterAction: (action) => action.label.startsWith(delayedBlastFireball.label),
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE
+    })
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+    const { answer } = await room.startAreaAction(FIELD_POINT)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const [zone, ...others] = await readZones(room)
+    expect(others).toEqual([])
+    expect(zone?.placement).toMatchObject({ label: delayedBlastFireball.label, triggerModes: [] })
+    expect(await readMaintainedStates(room)).toHaveLength(1)
+    // The detonation is the GM's ruling: placing the bead deals no damage.
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
+
+    const ended = await endConcentrationAtSheet(room, CASTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(room)).toEqual([])
+    expect(await readMaintainedStates(room)).toEqual([])
   })
 })
 

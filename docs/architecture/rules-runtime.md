@@ -239,10 +239,12 @@ Eye a stat-block summon (Tiny, flying, invisible, invulnerable, taking no space)
 own initiative (Couatl or Pegasus; the 9th-level challenge rating 5 is not offered), and Calm Emotions a Charisma save
 over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. Of the other 11, Conjure Elemental
 and Conjure Fey now compile (below, QUALITY-15.T3x), and Barkskin (QUALITY-15.T3y) is a granted `ARMOR_CLASS`
-`MINIMUM_VALUE` modifier of 16 on its target, a floor over the final Armor Class, shield and bonuses included. Eight
-stay refused (UNBUILT, cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no plan type (animated
-objects, a stationary sensor, summoned lights, tree travel, a repeat bolt, a delayed detonation, a movable damaging
-sphere, a zone attached to its target).
+`MINIMUM_VALUE` modifier of 16 on its target, a floor over the final Armor Class, shield and bonuses included. Delayed
+Blast Fireball (QUALITY-15.T3y4) is an inert 20-foot-sphere zone at the chosen point, held by Concentration, beside
+its "Detonate the Bead" GM ruling: the detonation when the spell ends, the 1d6 growth at the end of each of the
+caster's turns and the touch-or-throw rider stay the GM's. Seven stay refused (UNBUILT, cited in the golden's
+`REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary sensor, summoned lights,
+tree travel, a repeat bolt, a movable damaging sphere, a zone attached to its target).
 
 **A summon that turns hostile when released (current, QUALITY-15.T3x).** A form summon on its own initiative, of one
 creature a form, may author `turnsHostileOnRelease`; the compiler refuses it on any other summon. The plan carries it
