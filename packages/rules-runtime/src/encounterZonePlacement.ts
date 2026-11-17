@@ -93,7 +93,10 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'placementMustBeUnoccupied',
   'invalidPlacementConsumesInvocation',
   // No antimagic suppression exists, so a zone immune to it is honored as is (D223).
-  'suppressionImmunities'
+  'suppressionImmunities',
+  // What destroys the whole zone (Prismatic Wall's rod of cancellation) is the GM's to apply: the GM
+  // removes the zone's records with `DISARM_ZONE`. Each layer's own criteria are modeled separately.
+  'destructionCriteria'
 ])
 /**
  * The target fact a planner pins `false` when an occupant lacks the sight a zone requires of it, so the
