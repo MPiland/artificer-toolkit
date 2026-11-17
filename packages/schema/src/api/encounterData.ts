@@ -132,12 +132,15 @@ export const encounterActorControllerUserIdsDtoSchema = lazySchema(() =>
  * `turnTiming` is when a summon authored to act apart from its owner's turn takes it (D200); absent
  * means on the owner's turn. `count` is how many creatures a group token stands for (a multi-creature
  * Conjure spell); absent means one. The Attack action makes one attack per creature in it.
+ * `turnsHostileOnRelease` marks a summon that, when its source effect ends, leaves its owner and turns
+ * hostile instead of being removed (`endOrphanedConjuredActors`).
  */
 export const encounterActorOwnerDtoSchema = lazySchema(() =>
   z.strictObject({
     ownerActorId: uuidSchema,
     sourceEffectId: z.optional(uuidSchema),
     turnTiming: z.optional(z.enum(['AFTER_OWNER', 'OWN_INITIATIVE'])),
+    turnsHostileOnRelease: z.optional(z.literal(true)),
     count: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_GROUP_COUNT)))
   })
 )

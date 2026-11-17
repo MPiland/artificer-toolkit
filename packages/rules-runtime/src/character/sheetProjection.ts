@@ -1529,7 +1529,7 @@ export function projectCharacterSheetBundle(
           skillLabels
         })
         if (!kind) return proficiencies
-        const key = `${kind}:${proficiency.subjectId}`
+        const key = `${kind}:${proficiency.category ?? ''}:${proficiency.subjectId}`
         if (displayedProficiencyKeys.has(key)) return proficiencies
         displayedProficiencyKeys.add(key)
         proficiencies.push({

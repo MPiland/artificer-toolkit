@@ -306,6 +306,7 @@ type CreatureManifestAuthored = ManifestAuthoredBase & {
   creatureTypeIds?: never
   cannotAttack?: never
   turnTiming?: never
+  turnsHostileOnRelease?: never
   statBlock?: never
   behaviors?: never
 }
@@ -323,6 +324,12 @@ type SummonManifestAuthored = ManifestAuthoredBase & {
   cannotAttack?: boolean
   /** When the creature acts; absent means on its owner's turn (D200). */
   turnTiming?: SummonTurnTiming
+  /**
+   * When the effect that holds it ends (its caster's Concentration breaks), the creature stays and
+   * turns hostile toward its owner and their allies instead of disappearing; it acts alone on its
+   * own initiative.
+   */
+  turnsHostileOnRelease?: boolean
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never
@@ -337,6 +344,7 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
   creatureTypeIds?: never
   cannotAttack?: never
   turnTiming?: never
+  turnsHostileOnRelease?: never
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never

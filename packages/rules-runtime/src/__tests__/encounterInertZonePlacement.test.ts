@@ -125,3 +125,30 @@ describe('a summon held by its Concentration (QUALITY-15.T3n)', () => {
     })
   })
 })
+
+describe('a summon that turns hostile when its Concentration breaks (QUALITY-15.T3x)', () => {
+  it.each([
+    ['Conjure Elemental', 13, 'Air Elemental'],
+    ['Conjure Fey', 96, 'Blink Dog']
+  ])(
+    'summons one of the real SRD %s forms on its own initiative, released hostile',
+    (label, formCount, firstForm) => {
+      const placement = placementOf(label)
+      const summon = placement?.kind === 'SUMMON' ? placement.summonPlacement : null
+      expect(summon).toMatchObject({
+        turnTiming: 'OWN_INITIATIVE',
+        turnsHostileOnRelease: true,
+        forms: expect.arrayContaining([
+          {
+            id: expect.any(String),
+            label: firstForm,
+            creatureId: expect.any(String),
+            maxTargets: 1
+          }
+        ]),
+        entry: { initialRemaining: 600, maintenance: expect.anything() }
+      })
+      expect(summon && 'forms' in summon ? summon.forms : []).toHaveLength(formCount)
+    }
+  )
+})

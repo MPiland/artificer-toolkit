@@ -784,6 +784,8 @@ export const compiledActionSummonPlacementSchema = lazySchema(() => {
     cannotAttack: z.optional(z.literal(true)),
     /** When the creature acts, if apart from its owner's turn (D200). */
     turnTiming: z.optional(z.enum(['AFTER_OWNER', 'OWN_INITIATIVE'])),
+    /** When its carrier ends, the creature stays and turns hostile instead of leaving (an uncontrolled summon). */
+    turnsHostileOnRelease: z.optional(z.literal(true)),
     entry: compiledActionActiveEffectPlanSchema
   }
   return z.union([

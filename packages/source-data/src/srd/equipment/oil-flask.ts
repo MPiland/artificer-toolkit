@@ -47,6 +47,7 @@ export const oilFlask: EquipmentAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.FLASK],
   attributes: [S.EQUIPMENT_ATTRIBUTE.CONSUMED_ON_USE],
+  modifiers: S.improvisedRangedAttackAbilityModifiers(S.equipId(157)),
   effects: [
     {
       id: S.equipmentChildId(S.equipId(157), 0x210, 1),

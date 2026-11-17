@@ -3359,6 +3359,24 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       for (const authored of refused) expect(compiledCastEntry(authored)).toBeNull()
     })
 
+    it('releases hostile only one creature on its own initiative (QUALITY-15.T3x)', () => {
+      const released = (turnTiming: 'AFTER_OWNER' | 'OWN_INITIATIVE', maxTargets: number) =>
+        familiar((outcome) => {
+          outcome.turnTiming = turnTiming
+          outcome.turnsHostileOnRelease = true
+          outcome.forms = outcome.forms?.map((form) => ({ ...form, maxTargets }))
+        })
+      expect(compiledCast(released('OWN_INITIATIVE', 1))?.summonPlacement).toMatchObject({
+        turnTiming: 'OWN_INITIATIVE',
+        turnsHostileOnRelease: true
+      })
+      expect(compiledCast(FIND_FAMILIAR)?.summonPlacement).not.toHaveProperty(
+        'turnsHostileOnRelease'
+      )
+      expect(compiledCastEntry(released('AFTER_OWNER', 1))).toBeNull()
+      expect(compiledCastEntry(released('OWN_INITIATIVE', 2))).toBeNull()
+    })
+
     it('builds the familiar from its corpus Creature, of the chosen Creature Type, linked to its caster', () => {
       const placement = compiledCast(FIND_FAMILIAR)?.summonPlacement
       if (!placement || !('forms' in placement)) throw new Error('Expected a forms summon plan.')
