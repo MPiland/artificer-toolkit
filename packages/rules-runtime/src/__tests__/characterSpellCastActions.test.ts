@@ -67,7 +67,7 @@ import {
 } from '../character/sheetSpellSummon.js'
 import { resolveSpellSummonStatBlock } from '../spellSummonStatBlock.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
-import { layeredZoneSpell } from '../testing/layeredZoneSpell.js'
+import { layeredZoneSpell, withOccupiedPlacement } from '../testing/layeredZoneSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
@@ -1789,7 +1789,36 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
     expect(compiledCastEntry(layeredZoneSpell(3, 10, ['MOVE_WITHIN', 'START_TURN']))).toBeNull()
   })
 
-  it('keeps the SRD Prismatic Wall refused until its light and placement rules are built', () => {
+  it('plans a placement refused over an occupied space, and one that still spends the casting (QUALITY-15.T3v5)', () => {
+    for (const zone of layeredZones(withOccupiedPlacement(layeredZoneSpell(), false)))
+      expect(zone.occupiedPlacement).toBe('REFUSED')
+    for (const zone of layeredZones(withOccupiedPlacement(layeredZoneSpell(), true)))
+      expect(zone.occupiedPlacement).toBe('SPENDS_CASTING')
+    for (const zone of layeredZones(layeredZoneSpell()))
+      expect(zone).not.toHaveProperty('occupiedPlacement')
+  })
+
+  it('refuses a spent placement that is not refused first, and a refusal on a zone that covers its caster (QUALITY-15.T3v5)', () => {
+    const spendsOnly = layeredZoneSpell()
+    const path = spendsOnly.effects?.[0]?.paths[0]
+    if (path?.selectionKind !== 'CHOICE') throw new Error('The wall must offer its forms.')
+    for (const { resultBlock } of path.options)
+      for (const outcome of resultBlock.outcomes)
+        if (outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'ZONE')
+          outcome.invalidPlacementConsumesInvocation = true
+    expect(compiledCastEntry(spendsOnly)).toBeNull()
+
+    const onCaster = withOccupiedPlacement(layeredZoneSpell(), false)
+    const casterPath = onCaster.effects?.[0]?.paths[0]
+    if (casterPath?.selectionKind !== 'CHOICE') throw new Error('The wall must offer its forms.')
+    for (const { resultBlock } of casterPath.options)
+      for (const outcome of resultBlock.outcomes)
+        if (outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'ZONE')
+          outcome.attachmentKind = 'SOURCE'
+    expect(compiledCastEntry(onCaster)).toBeNull()
+  })
+
+  it('keeps the SRD Prismatic Wall refused until its light rule is built', () => {
     expect(compiledCastEntry(spell('Prismatic Wall'))).toBeNull()
   })
 })

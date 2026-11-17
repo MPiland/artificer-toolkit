@@ -678,6 +678,12 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
     /** Whether the caster designates creatures at cast that the zone never affects. */
     choosesUnaffected: z.optional(z.boolean()),
     /**
+     * What the room does when the zone's area covers a creature's space: REFUSED turns the placement
+     * away, and SPENDS_CASTING leaves no zone but still spends the casting's action and slot. Absent
+     * when a creature's space is no obstacle.
+     */
+    occupiedPlacement: z.optional(z.enum(['REFUSED', 'SPENDS_CASTING'])),
+    /**
      * The continuous bonus the zone adds to every saving throw of an occupant its filter matches
      * (D155); absent for none. A source ability modifier is resolved and pinned at placement.
      */
