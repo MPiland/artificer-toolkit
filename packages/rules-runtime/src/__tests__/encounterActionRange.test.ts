@@ -204,12 +204,16 @@ describe('encounter action range from SRD actions', () => {
     expect(encounterActionChoiceRange(area({ id: 'r', rangeKind: 'UNLIMITED' })).range).toEqual({
       kind: 'UNLIMITED'
     })
+    // Sight bounds no distance; the point's sight is warned on its own (QUALITY-15.T3ac).
+    expect(encounterActionChoiceRange(area({ id: 'r', rangeKind: 'SIGHT' })).range).toEqual({
+      kind: 'UNLIMITED'
+    })
     // A touch origin is measured against the 5 ft. a single-target touch reaches.
     expect(encounterActionChoiceRange(area({ id: 'r', rangeKind: 'TOUCH' })).range).toEqual({
       kind: 'WITHIN',
       distance: { amount: 5, unit: 'FEET' }
     })
-    for (const rangeKind of ['SELF', 'SIGHT', 'SPECIAL'] as const)
+    for (const rangeKind of ['SELF', 'SPECIAL'] as const)
       expect(
         encounterActionChoiceRange(area({ id: 'r', rangeKind })).range,
         rangeKind
