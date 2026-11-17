@@ -842,6 +842,44 @@ describe('room Call Lightning (QUALITY-15.T3y3)', () => {
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect((await room.actionChoices()).effectOffers).toEqual([])
   }, 120000)
+
+  it('calls one free bolt on the cast turn, and a second that turn costs the Action the cast spent', async () => {
+    const room = await actionRoom({
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      positions: { [WOLF_ID]: WOLF_POINT },
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [callLightning], prepared: [callLightning.id] },
+      characterAction: (action) => action.label.startsWith(callLightning.label)
+    })
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+
+    const [free] = (await room.actionChoices()).effectOffers
+    expect(free).toMatchObject({ kind: 'REPEAT_SOURCE_PATH', activation: 'FREE' })
+    if (free?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+    const bolt = await room.startAreaCommand(
+      { kind: 'POINT', point: WOLF_POINT },
+      [],
+      'GM',
+      undefined,
+      free.actionId
+    )
+    expect(bolt.answer.type, JSON.stringify(bolt.answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+
+    const [charged] = (await room.actionChoices()).effectOffers
+    expect(charged).toMatchObject({ activation: 'ACTION' })
+    const second = await room.startAreaCommand(
+      { kind: 'POINT', point: WOLF_POINT },
+      [],
+      'GM',
+      undefined,
+      free.actionId
+    )
+    expect(second.answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(second.answer)).toContain('ACTION_ECONOMY_UNAVAILABLE')
+  }, 120000)
 })
 
 /** The Run's first side. */
