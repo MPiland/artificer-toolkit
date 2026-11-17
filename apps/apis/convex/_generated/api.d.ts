@@ -296292,6 +296292,7 @@ export declare const api: {
             spatialEffectId: string;
           }>;
           placedZones: Array<{
+            destruction: { criteria: Array<string>; next: boolean } | null;
             disarmDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
             id: string;
             label: string | null;
