@@ -126,6 +126,15 @@ export async function applyCheckpointRecords(
   known: LiveSessionRoomAuthorizationRevisions | null,
   io: CheckpointIoMeter
 ): Promise<LiveSessionCheckpointAdoption> {
+  {
+    const tally: Record<string, number> = {}
+    for (const c of records.changes) {
+      const kind = c.delta === null || c.delta === undefined ? 'del' : c.previousChecksum === null ? 'ins' : 'upd'
+      const k = `${c.table}:${kind}`
+      tally[k] = (tally[k] ?? 0) + 1
+    }
+    console.log('PERF1T7', JSON.stringify({ changes: records.changes.length, history: records.history.length, tally }))
+  }
   const heldRuns = new Set<string>()
   const changes = new Map<string, LiveSessionCheckpointRecordChange>()
   const currentRows = new Map<string, Doc<LiveSessionCheckpointTable> | null>()
