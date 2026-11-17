@@ -2291,3 +2291,14 @@ QUALITY-15.T3v's seam trace found that Prismatic Wall's ordered layers cannot be
 - **Leftovers:** a slice report's remaining riders go to `docs/roadmap/future-enhancements.md` (QUALITY-15 zone and summon edges), not to the ledger. A new task is registered only when a spell is wrong or unsafe today; any other growth goes back to the user, default no (D187).
 - **Deferred under this ruling:** T3y8c (Flaming Sphere moved into a creature: the moved-zone contact path, size 8+) and T3y7b (Dryad Tree Stride: a per-turn limit and movement-cost charge on a creature's own action) closed as documented deferrals.
 - **Result:** QUALITY-15 closed at m867.
+
+## D229 (2026-11-17): the Q16 Convex I/O budget is met by engineering, not by moving it
+
+- **Finding (PERF-1.T7, V15 44152282986 and instrumented 44165616524):** the modelled session is 16.6 MB against the 4.3 MB gate (D209). This is not a save-path regression: the PERF-3.T1 single-read rule still holds. Fights now emit about 0.8 chat and roll entries per command, 2 to 4 times the a84 workload. That crosses the 200-entry push window (`LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT`), so a mid-fight BACKLOG checkpoint inserts each fight's per-command Run rows. The COMPLETE checkpoint then reads and deletes about 690 of them, costing about 1.4 MB per fight. One COMPLETE `checkpoint:publish` exceeded the 1 s mutation limit and was retried. With the double counting removed, the session costs about 10 MB.
+- **Ruling (user):** engineer the I/O down. The budget and the model assumptions do not move, except where the model counts a cost twice.
+  1. A mid-Run BACKLOG checkpoint publishes only chat and roll records; Run child rows publish at COMPLETE (ADR 0035 amendment: checkpoint prefix and recovery semantics).
+  2. A chat entry and its payload persist as one document (persisted-shape change; development data migrates in the same change).
+  3. The COMPLETE checkpoint is split so no single mutation nears the 1 s limit.
+  4. `scripts/v15Budgets.mjs` stops scaling the BACKLOG save and a failed attempt per command; the final V15 run is re-measured.
+- **If still over 4.3 MB after steps 1 to 4:** the measured figure goes back to the user to accept or to keep cutting.
+- **Tracking:** PERF-1.T8 (step 1), PERF-1.T9 (step 2), PERF-1.T10 (step 3), PERF-1.T7 (step 4 and the final measurement; waits on T8 to T10).

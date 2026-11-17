@@ -25136,17 +25136,56 @@
             },
             {
               "id": "PERF-1.T7",
+              "status": "TODO",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 2,
+                "after": ["PERF-1.T8", "PERF-1.T9", "PERF-1.T10"]
+              },
+              "text": "D229 step 4: fix scripts/v15Budgets.mjs so it does not scale the BACKLOG save or a failed attempt per command, then run V15 in CI and scripts/v15Budgets.mjs on the final source against 4.3 MB (D209). Bug found at V15 44152282986: 16.6 MB modelled, about 10 MB without double counting. If still over after T8 to T10, report the measured figure to the user (D229)."
+            },
+            {
+              "id": "PERF-1.T8",
               "status": "IN_PROGRESS",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 13,
                 "rr": 8,
-                "size": 3,
+                "size": 5,
                 "after": []
               },
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
-              "text": "Bug (D187 exception): V15 run 44152282986 models 16.6 MB Convex I/O per session against the 4.3 MB gate (D209; a84 was 4.44 MB). The Run COMPLETE save costs 2.03 MB over 424 commands (about 9.6 MB modelled) and one checkpoint:publish failed in the save window. Find the regression, fix it with a failing-first test, and rerun V15 plus scripts/v15Budgets.mjs green."
+              "text": "D229 step 1: a mid-Run BACKLOG checkpoint publishes only chat and roll records; Run child rows (replay index, rule occurrences, turn movements, initiative, rounds) publish at COMPLETE, so no row is inserted and then read back and deleted. Amend ADR 0035 (checkpoint prefix, fence and recovery semantics) and prove recovery after a mid-Run BACKLOG save with a failing-first test.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "PERF-1.T9",
+              "status": "TODO",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 3,
+                "after": ["PERF-1.T8"]
+              },
+              "text": "D229 step 2: a chat entry and its payload persist as one Convex document (persisted shape; migrate development data in the same change); chat paging, gap repair and checkpoint reads keep their contracts."
+            },
+            {
+              "id": "PERF-1.T10",
+              "status": "TODO",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 3,
+                "after": ["PERF-1.T8"]
+              },
+              "text": "D229 step 3: split the COMPLETE checkpoint so no single checkpoint:publish mutation nears the 1 s limit on a 424-command fight (V15 44152282986 timed out once at 1,843 docs); keep the fence and idempotent retry semantics."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
