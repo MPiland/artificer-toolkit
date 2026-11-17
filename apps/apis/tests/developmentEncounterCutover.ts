@@ -879,6 +879,14 @@ async function executeCutoverWorkloadReaction(
   const mover = participantWatch(aggregate, item.participant)
   const reactor = participantWatch(aggregate, cutoverWorkloadParticipant(reactorIndex + 1))
   const gm = aggregate.watches.gm
+  // The cell beside the reactor on the mover's side: in the reactor's reach, and the mover's swept
+  // body (100 wide) only touches the hostile footprint, which voluntary movement may not cross.
+  const offsetX = origin.x - reactorPosition.x
+  const offsetY = origin.y - reactorPosition.y
+  const reactorReachCell =
+    Math.abs(offsetX) >= Math.abs(offsetY)
+      ? { x: reactorPosition.x + Math.sign(offsetX) * 100, y: reactorPosition.y }
+      : { x: reactorPosition.x, y: reactorPosition.y + Math.sign(offsetY) * 100 }
   const startedAt = performance.now()
   const priorSceneVersion = gm.scene.version
   const priorRunVersion = aggregate.run.version
@@ -893,7 +901,7 @@ async function executeCutoverWorkloadReaction(
       correlationId: null,
       movementKind: 'VOLUNTARY',
       tokenId,
-      path: [origin, { x: reactorPosition.x + 100, y: reactorPosition.y }, origin]
+      path: [origin, reactorReachCell, origin]
     })
   )
   // A mover who cannot see the change gets only the version bump; otherwise its result names the
