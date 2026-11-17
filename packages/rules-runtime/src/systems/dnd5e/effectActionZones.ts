@@ -212,8 +212,7 @@ function zonePlacementPlan(
     )
   // A zone that authors no component and no appear save only marks its area for the table (Darkness,
   // Silence): placed with no triggers, held for its duration like terrain placed with no save.
-  if (!first && !appearSave)
-    return withZoneDuration(inertZonePlacementPlan(action, zone), zone.entry)
+  if (!first && !appearSave) return withZoneSettings(inertZonePlacementPlan(action, zone), zone)
   // A zone no creature interacts with is placed with no triggers; its appear save, if any, is its
   // provenance and names the condition it holds (Entangle's restraint), and its one component, if
   // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).
@@ -236,10 +235,7 @@ function zonePlacementPlan(
       'Only a zone no creature interacts with holds the condition its appear save applies.'
     )
   if (first && !first.behavior && !terrain)
-    return withZoneDuration(
-      occupantBonusZonePlacementPlan(action, zone, first.component),
-      zone.entry
-    )
+    return withZoneSettings(occupantBonusZonePlacementPlan(action, zone, first.component), zone)
   const primary =
     first && (!terrain || !appearSave)
       ? zoneComponentPlan(action, zone, first, terrain ? { triggerModes: [] } : undefined)
@@ -276,7 +272,7 @@ function zonePlacementPlan(
     ...laterRecord(zone.proximity.planned)
   }
   const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
-  return withZoneDuration(
+  return withZoneSettings(
     {
       ...primary,
       ...(regionComponents.length ? { regionComponents } : {}),
@@ -285,20 +281,22 @@ function zonePlacementPlan(
       ...(zone.destructionInOrder ? { destructionInOrder: true as const } : {}),
       ...(sourceGrant ? { sourceGrant } : {})
     },
-    zone.entry
+    zone
   )
 }
 
 /**
- * A zone no Concentration holds lasts its authored duration from its placement: its source's turns,
- * or Campaign minutes past the turn bound (D222). A maintained zone ends with its Concentration, and
- * an untimed or scaled duration leaves it until the Encounter ends. A zone that needs lighting counts
- * its turns from its ignition (QUALITY-15.T3w).
+ * What every placed zone's plan carries from its manifest whatever its components: what an occupied
+ * space does to its placement, and its lifetime. A zone no Concentration holds lasts its authored
+ * duration from its placement: its source's turns, or Campaign minutes past the turn bound (D222). A
+ * maintained zone ends with its Concentration, and an untimed or scaled duration leaves it until the
+ * Encounter ends. A zone that needs lighting counts its turns from its ignition (QUALITY-15.T3w).
  */
-function withZoneDuration(
-  plan: CharacterRuleActionZonePlacementPlan,
-  entry: PlacedSpaceZone['entry']
+function withZoneSettings(
+  planned: CharacterRuleActionZonePlacementPlan,
+  { entry, occupiedPlacement }: PlacedSpaceZone
 ): CharacterRuleActionZonePlacementPlan {
+  const plan = occupiedPlacement ? { ...planned, occupiedPlacement } : planned
   const duration = !plan.maintenance && 'duration' in entry ? entry.duration : undefined
   if (!duration) return plan
   const initialRemaining = conditionDurationTurns(duration)

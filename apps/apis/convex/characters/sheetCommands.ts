@@ -69,6 +69,8 @@ import {
   formSummonStats,
   withSummonFormSpeeds
 } from '@artificer-toolkit/rules-runtime/encounterSummon'
+import { summonFormCreature } from '@artificer-toolkit/rules-runtime/spellSummonFormCreature'
+import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { resolveAvailableSpellCast } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintEnemySnapshot'
@@ -399,24 +401,39 @@ export async function executeCharacterSheetCommand(
       command
     )
     if (pick && !('refusal' in pick)) {
-      const setup = await snapshotBlueprintEnemies(ctx, initial.character.userId, {
-        gameSystemId: initial.character.systemId,
-        enemies: [{ kind: 'CREATURE', sourceId: pick.form.creatureId }]
-      })
-      const [creature] = setup.enemies
-      if (creature?.kind === 'CREATURE')
-        summonFormCreatures.set(pick.form.creatureId, {
+      const { form } = pick
+      const systemId = initial.character.systemId
+      const creature =
+        'statBlock' in form
+          ? summonFormCreature({ form, systemId, userId: initial.character.userId })
+          : null
+      if (creature)
+        summonFormCreatures.set(form.id, {
           stats: formSummonStats(
             withSummonFormSpeeds(
-              {
-                systemId: initial.character.systemId,
-                snapshot: blueprintEnemySnapshot(setup, creature)
-              },
-              pick.form.speeds
+              { systemId, snapshot: jsonValueSchema.parse({ payload: creature }) },
+              form.speeds
             )
           ),
-          maxHitPoints: creature.maxHitPoints
+          maxHitPoints: Math.max(creature.hitPoints, 0)
         })
+      else if ('creatureId' in form) {
+        const setup = await snapshotBlueprintEnemies(ctx, initial.character.userId, {
+          gameSystemId: systemId,
+          enemies: [{ kind: 'CREATURE', sourceId: form.creatureId }]
+        })
+        const [enemy] = setup.enemies
+        if (enemy?.kind === 'CREATURE')
+          summonFormCreatures.set(form.id, {
+            stats: formSummonStats(
+              withSummonFormSpeeds(
+                { systemId, snapshot: blueprintEnemySnapshot(setup, enemy) },
+                form.speeds
+              )
+            ),
+            maxHitPoints: enemy.maxHitPoints
+          })
+      }
     }
   }
   // The active Sheet lists the Character's own Equipment, even after its source access ends; the

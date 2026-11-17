@@ -4,16 +4,19 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
   MANIFEST_KIND,
   RANGE_KIND,
   SUBJECT,
+  TARGET_SELECTION_KIND,
   TRIGGER,
   SPELL_ATTRIBUTE,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const scrying: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -48,10 +51,10 @@ export const scrying: SpellAuthored = {
         },
         range: {
           id: spellChildId(SPELL_IDS.SCRYING, 0x211, 1),
-          rangeKind: RANGE_KIND.SPECIAL
+          rangeKind: RANGE_KIND.UNLIMITED
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
         }
       },
@@ -68,14 +71,23 @@ export const scrying: SpellAuthored = {
             resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SCRYING, 0x213, 1),
-              durationKind: 'MINUTE',
+              durationKind: DURATION_KIND.MINUTE,
               amount: 10
             },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SCRYING, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.SENSOR
+                // The caster places the sensor near the target; the Wisdom save, familiarity modifiers and
+                // seeing and hearing through it are the GM's from the description.
+                manifestKind: MANIFEST_KIND.SUMMON,
+                label: 'Sensor',
+                statBlock: {
+                  size: SIZE_CODE.TINY,
+                  damageabilityKind: 'INVULNERABLE',
+                  visibilityKind: 'INVISIBLE',
+                  occupiesSpace: false
+                }
               }
             ]
           }

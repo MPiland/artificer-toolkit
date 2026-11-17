@@ -678,6 +678,12 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
     /** Whether the caster designates creatures at cast that the zone never affects. */
     choosesUnaffected: z.optional(z.boolean()),
     /**
+     * What the room does when the zone's area covers a creature's space: REFUSED turns the placement
+     * away, and SPENDS_CASTING leaves no zone but still spends the casting's action and slot. Absent
+     * when a creature's space is no obstacle.
+     */
+    occupiedPlacement: z.optional(z.enum(['REFUSED', 'SPENDS_CASTING'])),
+    /**
      * The continuous bonus the zone adds to every saving throw of an occupant its filter matches
      * (D155); absent for none. A source ability modifier is resolved and pinned at placement.
      */
@@ -790,6 +796,16 @@ export type CompiledActionZonePlacement = z.infer<typeof compiledActionZonePlace
  * by the caster and places it on the Scene at the point the caster picks (T2v2a2, SPELLS-34.T3a).
  */
 export const compiledActionSummonPlacementSchema = lazySchema(() => {
+  const formBase = {
+    id: serverUuidIdentityDtoSchema,
+    label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+    /** The most creatures one cast conjures of this form: 1 for a single creature. */
+    maxTargets: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_GROUP_COUNT)),
+    /** Speeds the summoned creature has in place of its own of the same kind. */
+    speeds: z.optional(
+      z.array(speedDtoSchema).check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+    )
+  }
   const base = {
     summonOutcomeId: serverUuidIdentityDtoSchema,
     label: z.nullable(z.string().check(z.minLength(1)).check(z.maxLength(160))),
@@ -806,17 +822,10 @@ export const compiledActionSummonPlacementSchema = lazySchema(() => {
       ...base,
       forms: z
         .array(
-          z.strictObject({
-            id: serverUuidIdentityDtoSchema,
-            label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
-            creatureId: serverUuidIdentityDtoSchema,
-            /** The most creatures one cast conjures of this form: 1 for a single creature. */
-            maxTargets: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_GROUP_COUNT)),
-            /** Speeds the summoned creature has in place of its own of the same kind. */
-            speeds: z.optional(
-              z.array(speedDtoSchema).check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
-            )
-          })
+          z.union([
+            z.strictObject({ ...formBase, creatureId: serverUuidIdentityDtoSchema }),
+            z.strictObject({ ...formBase, statBlock: summonStatBlockDtoSchema })
+          ])
         )
         .check(z.minLength(1))
         .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems)),

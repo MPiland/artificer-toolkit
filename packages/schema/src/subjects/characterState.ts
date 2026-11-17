@@ -166,7 +166,8 @@ const characterSpellSummonStateDtoSchemaRaw: z.ZodMiniType<CharacterSpellSummonS
         notes: z.optional(z.string()),
         form: z.optional(
           z.object({
-            creatureId: postgresUuidSchema,
+            /** The summon form the caster picked (its id in the spell's plan). */
+            formId: postgresUuidSchema,
             creatureTypeId: z.optional(postgresUuidSchema),
             /** How many creatures the summon stands for, when the form is conjured in groups. */
             count: z.optional(

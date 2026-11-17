@@ -3,7 +3,8 @@ import { prismaticWall } from '@artificer-toolkit/source-data/srd/spells/prismat
 
 /**
  * What a layered zone authors beyond its layers: proximity, light, placement refusal and what ends
- * the whole zone. A test that needs one puts it back from the SRD wall.
+ * the whole zone. A test that needs one puts it back from the SRD wall (`withOccupiedPlacement` does
+ * so for the placement keys).
  */
 const LATER_SLICE_KEYS = [
   'placementMustBeUnoccupied',
@@ -46,5 +47,22 @@ export function layeredZoneSpell(
         .map(({ blockingRules, ...layer }) => layer)
     }
   }
+  return spell
+}
+
+/**
+ * Authors every zone of `spell` to be refused over an occupied space, as the SRD wall authors it; with
+ * `spendsCasting` the refused placement still spends the casting.
+ */
+export function withOccupiedPlacement(spell: SpellAuthored, spendsCasting: boolean): SpellAuthored {
+  const path = spell.effects?.[0]?.paths[0]
+  if (path?.selectionKind !== 'CHOICE') throw new Error('The spell must offer its forms.')
+  for (const { resultBlock } of path.options)
+    for (const outcome of resultBlock.outcomes) {
+      if (outcome.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
+        throw new Error('Each form must place a zone.')
+      outcome.placementMustBeUnoccupied = true
+      if (spendsCasting) outcome.invalidPlacementConsumesInvocation = true
+    }
   return spell
 }

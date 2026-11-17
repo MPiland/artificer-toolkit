@@ -27933,21 +27933,35 @@
             },
             {
               "id": "QUALITY-15.T3v4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "The zone sheds light into scene perception.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 3,
                 "after": ["QUALITY-15.T3v3"]
               },
-              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace). Resized 2 -> 3 on 2026-11-17: the slice touched schema, compiler, placement, shared illumination and perception composition.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3v4b",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A zone's light is drawn by the web Scene renderer and the room vision display, and holder light (Sunlight Sensitivity) reads it.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3v4 report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3v5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A placement over an occupied space is refused and still spends the casting.",
               "wsjf": {
@@ -27957,11 +27971,13 @@
                 "size": 2,
                 "after": ["QUALITY-15.T3v4"]
               },
-              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace).",
+              "mergedAt": "2026-11-17",
+              "proof": "m859; slice tip 2401af819: Tests 44046128658, Live 44046128640, Browser journeys 44046128638 green. The compiled zone carries occupiedPlacement REFUSED|SPENDS_CASTING; prepareAreaScene refuses with 422 SPACE_OCCUPIED or spends the casting with a null placement. Red proof: characterSpellCastActions RED, nativeRoomOccupiedZonePlacement RED."
             },
             {
               "id": "QUALITY-15.T3v6",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Zone-held repeat saves for its Indigo and Violet layers.",
               "wsjf": {
@@ -27971,7 +27987,8 @@
                 "size": 3,
                 "after": ["QUALITY-15.T3v5"]
               },
-              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3v7",
@@ -28020,7 +28037,7 @@
             },
             {
               "id": "QUALITY-15.T3x2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Animate Objects places animated objects of each size with their own stat block and slam attack (summon forms may carry an inline stat block with actions).",
               "wsjf": {
@@ -28030,11 +28047,12 @@
                 "size": 8
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13). Resized 5 -> 8 on 2026-11-16: a generic spell-defined summon body with authored actions, plus Animate Objects at its base slot; upcasting split to T3x2c.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m859; slice tip 31cd43e02: Tests 44049246542, Live 44049246544, Browser journeys 44049246591 green. Animate Objects authors inline stat-block summon forms; `speeds` is on every summon form. Red proof (run 44039932377): nativeRoomCoreOptionSpells RED-IMPORT, characterSpellCastActions RED, spellSummonFormCreature RED-IMPORT."
             },
             {
               "id": "QUALITY-15.T3x2c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "The summon command carries the cast slot level, and per-slot summon counts apply (Animate Objects; the lowest-slot gap in Conjure Animals and Conjure Minor Elementals).",
               "wsjf": {
@@ -28043,7 +28061,22 @@
                 "rr": 3,
                 "size": 3
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3x2 report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3x2 report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3x2d",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "CI stability: storybook-backend Chromium launch hardening and crash capture, an explicit timeout on the in-test SRD parse, and the proof duration entry.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2
+              },
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3x2 report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3x3",
@@ -28090,7 +28123,7 @@
             },
             {
               "id": "QUALITY-15.T3y2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Scrying places its sensor as a summon near the target creature (the Clairvoyance pattern); the unused SENSOR manifest kind is retired.",
               "wsjf": {
@@ -28100,7 +28133,8 @@
                 "size": 2
               },
               "note": "Registered 2026-11-17 from the QUALITY-15.T3y2 report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m859; slice tip 8454f1a3e: Tests 44046317465, Live 44046317464, Browser journeys 44046317591 green. Scrying places a SUMMON \"Sensor\" near its target (Clairvoyance pattern); the SENSOR manifest kind is retired. Red proof: nativeRoomCoreOptionSpells RED."
             },
             {
               "id": "QUALITY-15.T3y3",
@@ -28119,16 +28153,18 @@
             },
             {
               "id": "QUALITY-15.T3y4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
-              "text": "Delayed Blast Fireball detonates when the spell ends, with damage that grows each round and early detonation when the bead is touched.",
+              "text": "Delayed Blast Fireball places its bead as an inert 20 ft sphere zone held by Concentration; detonation, growth and touch or throw are GM rulings (D226).",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 8
+                "size": 2
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13). Resized 8 -> 2 on 2026-11-17: user ruling D226 (GM ruling): the bead is an inert placed zone held by Concentration; detonation, growth and touch/throw stay GM rulings.",
+              "mergedAt": "2026-11-17",
+              "proof": "m859; slice tip c0a59235d: Tests 44052704428, Live 44052704380, Browser journeys 44052704167 green. Inert zone placement plus a \"Detonate the Bead\" GM ruling (D226). Red proof: nativeRoomTurnZoneEffects RED, encounterInertZonePlacement RED, golden RED."
             },
             {
               "id": "QUALITY-15.T3y5",
@@ -28146,21 +28182,35 @@
               "proof": "m850; slice tip 5a44616c4: Tests 44017882307, Live 44017882251, Browser journeys 44017882421 green. Flaming Sphere places a Concentration-held zone dealing fire damage (Dexterity save for half) to a creature ending its turn within 5 feet. Golden: Flaming Sphere REFUSED -> ZONE_PLACEMENT."
             },
             {
-              "id": "QUALITY-15.T3y6",
-              "status": "TODO",
+              "id": "QUALITY-15.T3y6a",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
-              "text": "Resilient Sphere encloses its target in a target-attached barrier zone after a failed Dexterity save; nothing passes through and the target cannot move it from inside.",
+              "text": "Resilient Sphere's failed Dexterity save places a PRIMARY_TARGET zone anchored to the target's token, through the chosen-creatures area commit.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 8
+                "size": 5
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13). Split from QUALITY-15.T3y6 on 2026-11-17 (8 -> 5 + 5 across contract crossings).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3y6b",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A zone's authored blocking rule stops creature movement across its boundary and moves by its anchored token (Wall of Force and Forcecage adopt it as data); the first movement-blocking zone is recorded as decision D227.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3y6a report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3y7",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Tree Stride lets its caster travel between trees of the same kind within 500 feet once per round.",
               "wsjf": {
@@ -28169,7 +28219,21 @@
                 "rr": 3,
                 "size": 8
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3y7b",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The Dryad's Tree Stride uses the free repeat-teleport pattern instead of its placeholder TELEPORT.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2
+              },
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3y7 report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3y8",
@@ -28184,6 +28248,32 @@
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3y8b",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The Sheet and encounter surface offers a zone move: zoneMoves in the action choices, a drawer with a destination pick, and a browser journey.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3y8 report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3y8c",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Ramming a moved zone into a creature applies its save and damage and stops the move for the turn (Flaming Sphere).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3y8 report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3z",
@@ -28217,7 +28307,7 @@
             },
             {
               "id": "QUALITY-15.T3aa2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Phantom Steed places a Riding Horse form summon with an authored speed override (walk 100 ft).",
               "wsjf": {
@@ -28227,7 +28317,8 @@
                 "size": 2
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3aa report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m855; slice tip 3714b23a0: Tests 44034535772, Live 44034535699, Browser journeys 44034535687 green. Phantom Steed REFUSED -> SUMMON_PLACEMENT; an optional summon form `speeds` override (withSummonFormSpeeds) read at the Worker summon body and the Sheet path. Red proof: encounterSummon RED-IMPORT."
             },
             {
               "id": "QUALITY-15.T3aa3",

@@ -1,8 +1,9 @@
-import { SUMMON_TURN_TIMING } from '#authored'
+import { SUMMON_TURN_TIMING, type SummonStatBlockAuthored } from '#authored'
 import { EFFECT_KIND, MANIFEST_KIND } from '#core'
+import type { NodeMap } from '#utils'
 import {
-  MANIFEST_CREATURE_FORM_FILTER_NODE_MAP,
-  MANIFEST_CREATURE_FORM_NODE_MAP
+  createManifestCreatureFormNodeMap,
+  MANIFEST_CREATURE_FORM_FILTER_NODE_MAP
 } from './creatureForm.js'
 import type { OutcomeNodeMapApi } from './path.js'
 
@@ -24,9 +25,11 @@ export function registerCreatureFormOutcomeFields(
   nodes: OutcomeNodeMapApi['nodes'],
   cond: OutcomeNodeMapApi['cond'],
   logic: OutcomeNodeMapApi['logic'],
-  data: OutcomeNodeMapApi['data']
+  data: OutcomeNodeMapApi['data'],
+  summonStatBlockNodeMap: () => NodeMap<SummonStatBlockAuthored>
 ) {
   const { selectMulti, selectSingle, toggle, groupArray, groupObject } = nodes
+  const formNodeMap = createManifestCreatureFormNodeMap(summonStatBlockNodeMap)
   const local = cond.local()
   const manifestsCreature = logic.and([
     local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
@@ -41,7 +44,7 @@ export function registerCreatureFormOutcomeFields(
   map
     .set(
       'forms',
-      groupArray(['forms'], 'Forms', () => MANIFEST_CREATURE_FORM_NODE_MAP, {
+      groupArray(['forms'], 'Forms', () => formNodeMap, {
         presentation: 'summary',
         showIf: logic.or([manifestsCreature, manifestsSummon])
       })

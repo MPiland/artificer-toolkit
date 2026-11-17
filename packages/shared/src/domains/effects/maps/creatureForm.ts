@@ -1,13 +1,23 @@
-import type { ManifestCreatureFormAuthored, ManifestCreatureFormFilterAuthored } from '#authored'
+import type {
+  ManifestCreatureFormAuthored,
+  ManifestCreatureFormFilterAuthored,
+  SummonStatBlockAuthored
+} from '#authored'
 import { buildNodeMap, type NodeMap } from '#utils'
 import { createBreakpointScalingNodeMap, SPEED_NODE_MAP } from '../../shared/maps/index.js'
 
 const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
 const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthored>()
 
-export const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthored> =
-  manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, data }) => {
-    const { text, number, selectSingle, groupArray } = nodes
+/**
+ * One form of a creature outcome: a System Creature, or for a summon its own authored stat block
+ * (`statBlockNodeMap`, which `path.ts` owns); exactly one of the two.
+ */
+export function createManifestCreatureFormNodeMap(
+  statBlockNodeMap: () => NodeMap<SummonStatBlockAuthored>
+): NodeMap<ManifestCreatureFormAuthored> {
+  return manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, data }) => {
+    const { text, number, selectSingle, groupObject, groupArray } = nodes
     const { table } = data
 
     map
@@ -16,15 +26,14 @@ export const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthor
       .set('label', text(['label'], 'Label', { requiredIf: true }))
       .set(
         'creatureId',
-        selectSingle(
-          ['creatureId'],
-          'Creature',
-          {
-            kind: 'DATA',
-            relationship: table('creatures', { selectColumns: ['id', 'label'] })
-          },
-          { requiredIf: true }
-        )
+        selectSingle(['creatureId'], 'Creature', {
+          kind: 'DATA',
+          relationship: table('creatures', { selectColumns: ['id', 'label'] })
+        })
+      )
+      .set(
+        'statBlock',
+        groupObject(['statBlock'], 'Stat Block', statBlockNodeMap, { presentation: 'inline' })
       )
       .set(
         'maxTargets',
@@ -40,6 +49,7 @@ export const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthor
         })
       )
   })
+}
 
 type CreatureFormFilterScaledCapAuthored = {
   maxChallengeRatingId: string

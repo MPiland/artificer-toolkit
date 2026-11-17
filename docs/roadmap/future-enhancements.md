@@ -699,6 +699,14 @@ Removed-from-play effects (D178) return a creature to the space it left. Candida
 
 Found by SPELLS-4.T2h on 2026-10-22; post-launch.
 
+### QUALITY-15 zone and summon edges (2026-11-17)
+
+- **Hunting Trap (QUALITY-15.T3aa3):** a failed escape check deals no 1 piercing damage; another creature within reach cannot free the trapped creature; the chain length is modeled as Grappled (speed 0, cannot leave its square), and LIMIT_DISTANCE_FROM_ANCHOR has no runtime. Fix if seen: an escape on-failure outcome, rescuer actors for CONDITION_ESCAPE, a distance-limit runtime.
+- **Zone moves (QUALITY-15.T3y8):** a zone move has no distance fence on a gridless Scene, and a zone's sceneId is not checked against the binding Scene. Fix if seen: a gridless distance measure and a sceneId check in the MOVE_ZONE plan.
+- **Summon forms (QUALITY-15.T3x2):** a summon form carries speeds but not its own defenses or senses. Fix if seen: form defenses and senses on the summon stat block.
+- **Zone light before ignition (QUALITY-15.T3v4):** a zone that requires ignition and authors light would shed it before it is lit; no SRD zone authors both today. Fix if seen: gate the zone light on its ignited state.
+- **Resilient Sphere (QUALITY-15.T3y6a):** attacks and effects through the barrier, the enclosed creature rolling the sphere, others moving the globe, and Disintegrate ending it stay GM rulings; movement blocking is QUALITY-15.T3y6b.
+
 ## Deferred rules pieces (D187a, 2026-10-23)
 
 These rare riders ship as description with a GM ruling. Each item names the engine piece that would automate it.
@@ -766,7 +774,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Form filters beyond type and challenge rating (SPELLS-4.T2s, D191):** an excluded creature type (Shapechange's undead and constructs) and a maximum size (Animal Shapes' Large); both ship as GM rulings.
 - **Per-target forms and re-forming (SPELLS-4.T2s, D191):** Animal Shapes' different form per target and its action to re-form, as a per-target form map and a re-form offer.
 - **Project Image illusory double:** a summoned token the caster sees and speaks through (SPELLS-4.T2s ships it as a GM ruling).
-- **Armed or staged zones:** a glyph armed by an authored trigger (Glyph of Warding, Symbol), a bead that grows each turn and detonates when the spell ends (Delayed Blast Fireball), and a storm that runs a different effect each round (Storm of Vengeance). All four ship as GM rulings (SPELLS-4.T2q).
+- **Armed or staged zones:** a glyph armed by an authored trigger (Glyph of Warding, Symbol), a bead that grows at the end of each of the caster's turns and detonates when the spell ends or when touched (Delayed Blast Fireball), and a storm that runs a different effect each round (Storm of Vengeance). All four ship as GM rulings (SPELLS-4.T2q); Delayed Blast Fireball's bead is also placed as an inert zone held by Concentration (QUALITY-15.T3y4).
 - **END_OF_SOURCE_TURN zone interaction:** zones trigger only at the start of the source's turn, so Earthquake's prone save at the end of each turn the caster concentrates is description-only beside its automated difficult-terrain zone (SPELLS-4.T2q).
 - **Sight-range point areas:** an area save must have a fixed distance, Self or Unlimited range, so Storm of Vengeance's cloud centered on a point the caster can see cannot be aimed (SPELLS-4.T2q).
 - **Concentration-maintenance opt-out:** every held effect of a Concentration spell ends with its Concentration, so an effect that should outlast it cannot be automated. This blocks Earthquake's prone on its cast save, which lasts until the creature stands and is description-only, and Storm of Vengeance's 5-minute deafness (SPELLS-4.T2q). A GM ruling on a placed zone's appear-save failure is not supported either.

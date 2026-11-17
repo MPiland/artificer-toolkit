@@ -3,9 +3,12 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -56,6 +59,11 @@ export const delayedBlastFireball: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        },
+        shape: {
+          id: spellChildId(SPELL_IDS.DELAYED_BLAST_FIREBALL, 0x213, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
         }
       },
       paths: [
@@ -63,20 +71,39 @@ export const delayedBlastFireball: SpellAuthored = {
           id: spellChildId(SPELL_IDS.DELAYED_BLAST_FIREBALL, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.DELAYED_BLAST_FIREBALL, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.DELAYED_BLAST_FIREBALL, 0x214, 1),
+              durationKind: DURATION_KIND.MINUTE,
+              amount: 1
+            },
             outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.DELAYED_BLAST_FIREBALL, 0x2f0, 1),
+                // The bead marks the 20-foot sphere it will blast on the map, held by the cast's
+                // Concentration; the detonation itself is the GM's ruling beside it.
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Delayed Blast Fireball',
+                shape: {
+                  id: spellChildId(SPELL_IDS.DELAYED_BLAST_FIREBALL, 0x2f1, 1),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
+              },
               {
                 id: spellChildId(SPELL_IDS.DELAYED_BLAST_FIREBALL, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
                 label: 'Detonate the Bead',
                 reasonCode: 'GM_CHOICE' as const,
                 instructions:
-                  'When the spell ends, the bead explodes: each creature in a 20-foot-radius sphere centered on it makes a Dexterity saving throw, taking the accumulated fire damage on a failure, or half as much on a success. The damage starts at 12d6 (plus 1d6 for each slot level above 7th) and grows by 1d6 at the end of each of your turns before it detonates.'
+                  'When the spell ends, the bead explodes: each creature in a 20-foot-radius sphere centered on it makes a Dexterity saving throw, taking the accumulated fire damage on a failure, or half as much on a success. The damage starts at 12d6 (plus 1d6 for each slot level above 7th) and grows by 1d6 at the end of each of your turns before it detonates. A creature that touches the bead first makes a Dexterity saving throw: on a failure the spell ends and the bead explodes; on a success it can throw the bead up to 40 feet, and the spell ends and the bead explodes where it strikes a creature or a solid object.'
               }
             ]
           }

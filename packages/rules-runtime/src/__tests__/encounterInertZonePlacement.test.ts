@@ -54,6 +54,15 @@ describe('a zone that only marks its area (QUALITY-15.T3b)', () => {
       maintenance: expect.anything()
     })
   })
+
+  it('places the real SRD Delayed Blast Fireball bead as its 20-foot sphere, ended by its Concentration (QUALITY-15.T3y4)', () => {
+    expect(zoneOf('Delayed Blast Fireball')).toMatchObject({
+      label: 'Delayed Blast Fireball',
+      shape: { shapeKind: 'SPHERE', radius: { amount: 20 } },
+      triggerModes: [],
+      maintenance: expect.anything()
+    })
+  })
 })
 
 describe('the zones the SRD sizes in prose (QUALITY-15.T3o)', () => {

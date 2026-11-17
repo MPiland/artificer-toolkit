@@ -54,6 +54,7 @@ import {
   evaluateEncounterZoneTarget,
   zoneAimedPoints
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { occupantActorIdsOfArea } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import type { FacingRule } from '@artificer-toolkit/rules-runtime/optionalCombatPolicyCapability'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -61,7 +62,11 @@ import { chosenZonePlacement } from '@artificer-toolkit/rules-runtime/encounterZ
 import type { EncounterForcedMovementLanding } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
-import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
+import {
+  summonFormPick,
+  type SummonFormPick
+} from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
+import { summonFormActorCreature } from '@artificer-toolkit/rules-runtime/spellSummonFormCreature'
 import { withSummonFormSpeeds } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import {
   creatureSnapshotSize,
@@ -399,6 +404,23 @@ export async function prepareAreaScene(
     })
   const origin =
     target.kind === 'CASTER_CENTERED' ? scene.sourceToken.position : areaActionTargetOrigin(target)
+  // A zone that may not pass through a creature's space is turned away over one, or, when its casting
+  // is spent on a placement that fails, left unplaced.
+  const overOccupiedSpace =
+    zone?.occupiedPlacement !== undefined &&
+    occupantActorIdsOfArea({
+      origin,
+      shape: area.shape,
+      casterActorId: caster.id,
+      tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
+      actors: input.actors
+    }).length > 0
+  if (overOccupiedSpace && zone?.occupiedPlacement === 'REFUSED')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: AREA_REFUSALS.SPACE_OCCUPIED
+    })
   const unaffectedActorIds = ('unaffectedActorIds' in target && target.unaffectedActorIds) || []
   // A zone names any number to spare; an instant area, only as many as the caster's features allow.
   const sparesMax = zone
@@ -435,19 +457,22 @@ export async function prepareAreaScene(
         : null,
     scene: { ...scene, grid },
     area: { ...area, origin },
-    placement: zone
-      ? {
-          zone,
-          appearSave,
-          origin,
-          shape: area.shape,
-          regions: 'regions' in area ? area.regions : [],
-          distanceStep: 'distanceStep' in area ? area.distanceStep : undefined,
-          proximityReach: 'proximityReach' in area ? area.proximityReach : undefined,
-          sourceToken: scene.sourceToken ?? null,
-          unaffectedActorIds
-        }
-      : null
+    /** Whether the casting is spent on a zone left unplaced over a creature's space. */
+    placementSpent: overOccupiedSpace,
+    placement:
+      zone && !overOccupiedSpace
+        ? {
+            zone,
+            appearSave,
+            origin,
+            shape: area.shape,
+            regions: 'regions' in area ? area.regions : [],
+            distanceStep: 'distanceStep' in area ? area.distanceStep : undefined,
+            proximityReach: 'proximityReach' in area ? area.proximityReach : undefined,
+            sourceToken: scene.sourceToken ?? null,
+            unaffectedActorIds
+          }
+        : null
   }
 }
 
@@ -489,17 +514,32 @@ async function readSummonBody(
     return placement && 'statBlock' in placement
       ? { kind: 'STAT_BLOCK', statBlock: placement.statBlock }
       : null
-  if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
+  const { form } = pick
+  const creature = await readFormActorCreature(input, form)
   return {
     kind: 'CREATURE',
-    creature: withSummonFormSpeeds(
-      await input.readFormCreature(input.state.gameSystemId, pick.form.creatureId),
-      pick.form.speeds
-    ),
+    creature: withSummonFormSpeeds(creature, form.speeds),
     creatureTypeId: pick.creatureTypeId,
     count: pick.count,
-    label: pick.form.label
+    label: form.label
   }
+}
+
+/** The Creature a summon form is: its System Creature, or the one its authored stat block makes. */
+async function readFormActorCreature(input: AreaPlanInput, form: SummonFormPick['form']) {
+  if ('statBlock' in form) {
+    const response = await input.capture({ kind: 'SYSTEM_VOCABULARY' })
+    if (response.kind !== 'SYSTEM_VOCABULARY')
+      throw new Error('The System vocabulary is unavailable.')
+    return summonFormActorCreature({
+      form,
+      systemId: input.state.gameSystemId,
+      userId: input.initial.expectedUserId,
+      vocabulary: response.snapshot
+    })
+  }
+  if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
+  return input.readFormCreature(input.state.gameSystemId, form.creatureId)
 }
 
 export type AreaScene = Awaited<ReturnType<typeof prepareAreaScene>>

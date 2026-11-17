@@ -930,7 +930,7 @@ export function applyCharacterSheetCommand(
         null
       const pick = summonFormPick(placement, command)
       if (pick && 'refusal' in pick) throw new CharacterSheetCommandError(pick.refusal)
-      const formCreature = pick && context.summonFormCreatures?.get(pick.form.creatureId)
+      const formCreature = pick && context.summonFormCreatures?.get(pick.form.id)
       if (pick && !formCreature)
         throw new CharacterSheetCommandError('That creature form is not available.')
       if (placement)
