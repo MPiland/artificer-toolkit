@@ -50,10 +50,17 @@ import { discoverCharacterActionCapabilities } from '../characterActionCapabilit
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { singleTargetMeasure } from '../encounterActionTargetPolicy.js'
 import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../encounterAreaAction.js'
-import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
+import { planEncounterPlacedZone, planEncounterZoneLayers } from '../encounterPlacedZone.js'
+import { planSpatialHeldCondition } from '../encounterSpatialHeldCondition.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
-import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
-import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
+import {
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
+  DND5E_SAVE_DC_FACT_KEY
+} from '../systems/dnd5e/effectActionContracts.js'
+import {
+  executeTargetBoundActiveRuleEffectWithPause,
+  resumeTargetBoundActiveRuleEffectWithPause
+} from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
@@ -1787,6 +1794,218 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
 
   it('refuses a proximity rule met by moving within the zone until movement reads sight (QUALITY-15.T3v3b)', () => {
     expect(compiledCastEntry(layeredZoneSpell(3, 10, ['MOVE_WITHIN', 'START_TURN']))).toBeNull()
+  })
+
+  it('keeps every layer’s authored destruction through Green, Blue, Indigo and Violet (QUALITY-15.T3v6)', () => {
+    for (const zone of layeredZones(layeredZoneSpell(7)))
+      expect(
+        [zone, ...(zone.layerComponents ?? [])].map(({ destructionCriteria }) =>
+          destructionCriteria?.map(({ kind }) => kind)
+        )
+      ).toEqual([
+        ['DAMAGE_THRESHOLD'],
+        ['STRONG_WIND'],
+        ['DAMAGE_THRESHOLD'],
+        ['SPELL_CAPABILITY'],
+        ['DAMAGE_THRESHOLD'],
+        ['SPELL_CAPABILITY'],
+        ['SPELL_CAPABILITY']
+      ])
+  })
+
+  it('holds Indigo’s restraint through its repeated Constitution save, three failures petrifying and three successes freeing it (QUALITY-15.T3v6, D146)', () => {
+    for (const zone of layeredZones(layeredZoneSpell(6))) {
+      const indigo = zone.layerComponents?.[4]
+      expect(indigo?.heldCondition).toMatchObject({
+        conditionId: conditionTypeId('RESTRAINED'),
+        repeatSave: {
+          recurrenceStage: 'END_OF_TURN',
+          anchor: 'HOLDER',
+          saveThresholds: { failuresToResolve: 3, successesToEnd: 3, consecutive: false },
+          castSaveDcFactKey: DND5E_SAVE_DC_FACT_KEY,
+          adapterFacts: {
+            [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]:
+              conditionTypeId('PETRIFIED')
+          }
+        }
+      })
+      // Held by the zone, so leaving or ending the zone is not what frees it.
+      expect(indigo?.heldCondition).not.toHaveProperty('holderTurns')
+    }
+  })
+
+  it('holds Violet’s blindness until its caster’s next turn starts, the failed save a GM ruling (QUALITY-15.T3v6, D146)', () => {
+    for (const zone of layeredZones(layeredZoneSpell(7))) {
+      const violet = zone.layerComponents?.[5]
+      expect(violet?.heldCondition).toMatchObject({
+        conditionId: conditionTypeId('BLINDED'),
+        repeatSave: { recurrenceStage: 'START_OF_TURN', anchor: 'SOURCE', initialRemaining: 1 }
+      })
+      expect(
+        violet?.heldCondition?.repeatSave?.frozenGraph.definition.nodes.map(({ id }) => id)
+      ).toContain('manual_adjudication-1')
+    }
+  })
+
+  describe('as placed and held (QUALITY-15.T3v6, D146)', () => {
+    const RESTRAINED = conditionTypeId('RESTRAINED')
+    const BLINDED = conditionTypeId('BLINDED')
+    const ability = (code: string) => SRD_ABILITIES.find((entry) => entry.code === code)!.id
+
+    /** The creature's held effect from the layer at `layer` (0 is the zone's own), met at save DC 15. */
+    function heldFrom(layer: number, conditionId: string) {
+      const zone = layeredZones(layeredZoneSpell(layer + 1))[0]!
+      const layers = zone.layerComponents ?? []
+      const input = {
+        zone,
+        maintainedEffectStateId: null,
+        encounterId: testUuid(0xd9a1),
+        occurrenceId: testUuid(0xd9a2),
+        rootCommandId: testUuid(0xd9a3),
+        sourceActorId: testUuid(0xd9a4),
+        point: { x: 0, y: 0 },
+        area: { kind: 'CUBE', edgeLength: 100 },
+        sourceToken: null,
+        saveDc: 15
+      } as const
+      const [placed] = planEncounterZoneLayers({
+        ...input,
+        zoneId: testUuid(0xd9a5),
+        ids: layers.map((_, index) => testUuid(0xd9b0 + index))
+      }).slice(layer - 1)
+      const held = planSpatialHeldCondition({
+        zone: placed!,
+        holder: { activeEffects: [], conditionIds: [] },
+        applications: [{ kind: 'CONDITION_APPLY', conditionId }],
+        encounterId: input.encounterId,
+        occurrenceId: input.occurrenceId,
+        sourceCommandId: input.rootCommandId,
+        targetActorId: testUuid(0xd9a6)
+      })
+      if (!held) throw new Error('The layer must hold the condition.')
+      return { placed: placed!, held }
+    }
+
+    /** One tick of the held effect, its save answered with `face` (1 fails, 20 succeeds). */
+    async function tick(
+      { held }: ReturnType<typeof heldFrom>,
+      conditionIds: readonly string[],
+      abilityCode: string,
+      face: number,
+      saveTally?: { successes: number; failures: number }
+    ) {
+      const lifecycle = { ...held.lifecycle, ...(saveTally ? { saveTally } : {}) }
+      const input = {
+        activeEffectId: testUuid(0xd9c1),
+        activeEffectVersion: 1,
+        definition: held.definition,
+        lifecycle,
+        lifecycleChecksum: checksumRuleDocument(lifecycle),
+        occurrenceId: testUuid(0xd9c2),
+        targetActorId: testUuid(0xd9a6),
+        currentHitPoints: 100,
+        temporaryHitPoints: 0,
+        maximumHitPoints: 100,
+        targetScalarValues: {},
+        targetConditionIds: conditionIds,
+        targetDerivedFacts: {
+          savingThrowDefinitions: [
+            {
+              abilityDefinitionId: ability(abilityCode),
+              modifier: 0,
+              rollMode: 'NORMAL',
+              contributors: []
+            }
+          ]
+        },
+        defenses: [],
+        runtime: createSrdRulesRuntime()
+      } as const
+      const paused = await executeTargetBoundActiveRuleEffectWithPause(input)
+      if (!('continuation' in paused))
+        throw new Error('Expected the held effect to ask for a save.')
+      return resumeTargetBoundActiveRuleEffectWithPause({
+        ...input,
+        continuation: paused.continuation,
+        resolution: {
+          requestId: paused.continuation.request.requestId,
+          rawFaces: [face],
+          rollMode: 'NORMAL',
+          keep: 'FIRST',
+          addedDice: []
+        }
+      })
+    }
+
+    it('pins the caster’s save DC on Indigo’s repeated save and keeps the zone’s ownership of the restraint', () => {
+      const { placed, held } = heldFrom(5, RESTRAINED)
+      expect(placed.placement.heldCondition?.repeatSave?.adapterFacts).toMatchObject({
+        [DND5E_SAVE_DC_FACT_KEY]: 15
+      })
+      expect(held.definition).toMatchObject({
+        adapterFacts: { [DND5E_SAVE_DC_FACT_KEY]: 15 },
+        recurrence: {
+          recurrenceStage: 'END_OF_TURN',
+          anchor: 'HOLDER',
+          saveThresholds: { successesToEnd: 3, failuresToResolve: 3, consecutive: false }
+        },
+        stateContributions: [
+          { kind: 'CONDITION_OWNERSHIP', conditionId: RESTRAINED, heldBySpatialEffectId: placed.id }
+        ]
+      })
+    })
+
+    it('counts Indigo’s failures and successes apart, three failures petrifying and three successes freeing', async () => {
+      const indigo = heldFrom(5, RESTRAINED)
+      expect(
+        await tick(indigo, [RESTRAINED], 'CONSTITUTION', 1, { successes: 1, failures: 1 })
+      ).toMatchObject({
+        terminal: false,
+        saveTally: { successes: 1, failures: 2 }
+      })
+      expect(
+        await tick(indigo, [RESTRAINED], 'CONSTITUTION', 1, { successes: 2, failures: 2 })
+      ).toMatchObject({
+        terminal: true,
+        applications: [
+          { kind: 'CONDITION_REMOVE', conditionId: RESTRAINED },
+          { kind: 'CONDITION_APPLY', conditionId: conditionTypeId('PETRIFIED') }
+        ]
+      })
+      expect(
+        await tick(indigo, [RESTRAINED], 'CONSTITUTION', 20, { successes: 2, failures: 2 })
+      ).toMatchObject({
+        terminal: true,
+        applications: [{ kind: 'CONDITION_REMOVE', conditionId: RESTRAINED }]
+      })
+    })
+
+    it('holds Violet’s blindness one tick on its caster’s turn start and proposes the plane shift ruling on a failed save', async () => {
+      const violet = heldFrom(6, BLINDED)
+      expect(violet.held.definition.recurrence).toMatchObject({
+        recurrenceStage: 'START_OF_TURN',
+        anchor: 'SOURCE',
+        expiration: { kind: 'TICKS', initialRemaining: 1 }
+      })
+      const failed = await tick(violet, [BLINDED], 'WISDOM', 1)
+      expect(failed).toMatchObject({
+        terminal: true,
+        applications: [{ kind: 'CONDITION_REMOVE', conditionId: BLINDED }]
+      })
+      const ruling =
+        'execution' in failed && failed.execution.status === 'COMPLETE'
+          ? failed.execution.evidence.trace.find(({ nodeId }) => nodeId === 'manual_adjudication-1')
+          : undefined
+      expect(ruling?.outputs).toMatchObject({
+        applicationCandidate: true,
+        resolvedPath: 'ON_SAVE_FAIL'
+      })
+      const saved = await tick(violet, [BLINDED], 'WISDOM', 20)
+      expect(saved).toMatchObject({
+        terminal: true,
+        applications: [{ kind: 'CONDITION_REMOVE', conditionId: BLINDED }]
+      })
+    })
   })
 
   it('keeps the SRD Prismatic Wall refused until its light and placement rules are built', () => {
