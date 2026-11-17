@@ -3,6 +3,7 @@ import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
+  MoveZoneInputDto,
   ReleaseRelationshipInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { ResolveCheckActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -23,6 +24,7 @@ type BasicActionRootCommand =
   | EscapeRelationshipInputDto
   | EndHeldGrantInputDto
   | MoveHeldEffectInputDto
+  | MoveZoneInputDto
   | ChangeFacingInputDto
   | ReleaseRelationshipInputDto
 type BasicActionScopeInput = Omit<LiveSessionEncounterRulesInput, 'request'>
@@ -192,6 +194,24 @@ export async function readMoveHeldEffectAdmission(
         rejectDomain('TARGET_UNAVAILABLE', "A defeated actor can't take the effect.")
     }
   })
+}
+
+/**
+ * Admits moving a maintained zone (QUALITY-15.T3y8) for the room: the caller controls the current
+ * actor, which moves the zone. That it is the zone's source is checked against the zone itself.
+ */
+export async function readMoveZoneAdmission(
+  ctx: EncounterReadTransaction,
+  input: BasicActionScopeInput & { command: MoveZoneInputDto }
+) {
+  const command: MoveZoneInputDto = {
+    ...input.command,
+    encounterId: input.command.encounterId.toLowerCase(),
+    commandId: input.command.commandId.toLowerCase(),
+    actorId: input.command.actorId.toLowerCase(),
+    spatialEffectId: input.command.spatialEffectId.toLowerCase()
+  }
+  return admitCurrentActorCommand(ctx, input, command)
 }
 
 /**

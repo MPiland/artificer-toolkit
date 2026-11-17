@@ -369,6 +369,10 @@ An effect another actor is offered to move (`effectOffers`, D160) is moved with 
 (`MoveHeldEffectInputDto`: `actorId`, `effectId`, `offerIndex`, `target: { kind: 'ACTOR', actorId }`, `acknowledgedWarnings`, optional `sceneContext`),
 which spends the offer's activation, is a PLAYER command for the actor's controller, and is refused for a stale offer,
 a defeated or unchanged holder, or an unacknowledged range warning.
+A zone its source maintains and authors a `move` for is moved with the `MOVE_ZONE` Run command (`MoveZoneInputDto`:
+`actorId`, `spatialEffectId`, `destination`, `acknowledgedWarnings`), a PLAYER command for the actor's controller that
+spends the zone's authored activation and is refused for an actor that did not place the zone or a destination past
+the authored distance from the zone's center (QUALITY-15.T3y8).
 A `REPEAT_SOURCE_PATH` effect offer (D166) is not a Run command of its own: the `effectOffers` entry carries an `actionId`
 (`<actorId>:REPEAT_PATH:<effectId>:<offerIndex>`), started as an ordinary action (`RESOLVE_ACTION`) against the holder. A `CONJURED` offer (SPELLS-4.T2v2a3a) also carries
 `originActorId`, the conjured creature whose token the command's `sceneContext.sourceTokenId` must name; the room's Scene

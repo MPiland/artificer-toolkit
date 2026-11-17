@@ -3,6 +3,7 @@ import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
+  MoveZoneInputDto,
   ReleaseRelationshipInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -29,12 +30,14 @@ type HolderActivationCommand =
   | EndHeldGrantInputDto
   | EscapeRelationshipInputDto
   | MoveHeldEffectInputDto
+  | MoveZoneInputDto
   | ReleaseRelationshipInputDto
 
 /**
  * Admits a command a creature runs on an effect it holds (an Escape, D105, an end of its own
  * grant, D113, or a release of a creature it holds, D152, or a move of an effect
- * it is offered, D160, or a turn of its own facing, ATTACK-12) and reads the Run inputs it plans against: the replay of an already-recorded
+ * it is offered, D160, or a turn of its own facing, ATTACK-12, or a move of a zone it maintains,
+ * QUALITY-15.T3y8) and reads the Run inputs it plans against: the replay of an already-recorded
  * command, or the admitted command with the reads that fence its commit.
  */
 export async function admitNativeLiveHolderCommand(

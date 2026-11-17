@@ -49,6 +49,7 @@ export type RevertScope = {
         | 'IGNITE_ZONE'
         | 'CREATURE_REST'
         | 'MOVE_HELD_EFFECT'
+        | 'MOVE_ZONE'
         | 'CHANGE_FACING'
     }
   >
