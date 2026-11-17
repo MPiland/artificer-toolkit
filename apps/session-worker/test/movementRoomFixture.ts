@@ -45,7 +45,7 @@ import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime
 import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
 import { storedCompilationOf } from '@artificer-toolkit/rules-runtime/testing/storedCompilations'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import type { SceneLength, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { SRD_REUSABLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
@@ -231,6 +231,8 @@ export interface MovementRoomConfig {
     moving?: { activation: 'ONE_SHOT' | 'REPEATABLE'; hidden: boolean }
     /** A Scene-fixed field that is hidden and unrevealed yet flagged for half-speed passage. */
     hiddenHalfSpeedField?: boolean
+    /** The light the zone sheds from its whole area; none unless it says so. */
+    light?: { bright: SceneLength; dimAdditional: SceneLength }
   }[]
   /** Scene lighting and barriers, where the room's open, bright Scene is not what a test needs. */
   sceneOverrides?: Partial<

@@ -105,6 +105,7 @@ import {
   canControlSceneToken,
   resolveViewTokenId,
   stageOverlays,
+  stageZoneLights,
   type VttActionPreview
 } from './vttSceneRenderer.model'
 import { travelFacingDegrees } from './vttFacing.model'
@@ -713,6 +714,15 @@ export function CampaignVttStage({
       renderedScene
     ]
   )
+  // The light the Run's placed zones shed, drawn and read for token visibility beside the Scene's own.
+  const renderedGrid = renderedScene?.grid
+  const zoneLights = useMemo(
+    () =>
+      encounterScene && renderedGrid
+        ? stageZoneLights(encounterSessionState?.placedZones ?? [], renderedGrid)
+        : undefined,
+    [encounterScene, encounterSessionState?.placedZones, renderedGrid]
+  )
   // A selection whose token left the Scene counts as no selection.
   const selectedSceneTokenId = scene?.tokens.find(({ id }) => id === selectedTokenId)?.id ?? null
   // Hover or focus lists a token's statuses; otherwise the selected token's are listed.
@@ -785,6 +795,7 @@ export function CampaignVttStage({
               }
             : null,
         overlays,
+        zoneLights,
         previewTokenId: effectivePreviewTokenId,
         role: effectiveRole,
         scene: renderedScene,
@@ -1068,6 +1079,7 @@ export function CampaignVttStage({
     live.error,
     mapDelivery.data,
     overlays,
+    zoneLights,
     previewTokenId,
     scene,
     selectedSceneTokenId,

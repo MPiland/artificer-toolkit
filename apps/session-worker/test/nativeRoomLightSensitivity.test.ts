@@ -37,7 +37,8 @@ afterEach(() => {
 
 /** The roll mode of the drow's Shortsword on the Wolf, in a Scene lit as `scene` says. */
 async function shortswordRollMode(
-  scene: NonNullable<Parameters<typeof actionRoom>[0]['sceneOverrides']>
+  scene: NonNullable<Parameters<typeof actionRoom>[0]['sceneOverrides']>,
+  spatialEffects?: Parameters<typeof actionRoom>[0]['spatialEffects']
 ) {
   const room = await actionRoom({
     actors: [
@@ -45,7 +46,8 @@ async function shortswordRollMode(
       srdCreatureActor({ id: TARGET_ID, creature: plainWolf })
     ],
     ownerFeatureId: creatureFeature(drow, 'Shortsword').id,
-    sceneOverrides: scene
+    sceneOverrides: scene,
+    spatialEffects
   })
   const { answer } = await room.startAction(TARGET_ID, [], room.sceneContext())
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
@@ -73,5 +75,35 @@ describe('Sunlight Sensitivity authored as attack roll disadvantage, in the room
 
   it('rolls normally in a daylit Scene where the drow stands in dim light (daylight reaches only BRIGHT squares)', async () => {
     expect(await shortswordRollMode({ ambientIllumination: 'DIM', daylight: true })).toBe('NORMAL')
+  })
+
+  it('rolls with disadvantage in a daylit dim Scene when a lit zone brightens the drow square', async () => {
+    expect(
+      await shortswordRollMode({ ambientIllumination: 'DIM', daylight: true }, [
+        {
+          center: { x: 150, y: 150 },
+          radius: 50,
+          light: {
+            bright: { amount: 10, unit: 'FEET' },
+            dimAdditional: { amount: 10, unit: 'FEET' }
+          }
+        }
+      ])
+    ).toBe('DISADVANTAGE')
+  })
+
+  it('rolls normally when the lit zone is a Scene away from the drow', async () => {
+    expect(
+      await shortswordRollMode({ ambientIllumination: 'DIM', daylight: true }, [
+        {
+          center: { x: 2_000, y: 2_000 },
+          radius: 50,
+          light: {
+            bright: { amount: 10, unit: 'FEET' },
+            dimAdditional: { amount: 10, unit: 'FEET' }
+          }
+        }
+      ])
+    ).toBe('NORMAL')
   })
 })

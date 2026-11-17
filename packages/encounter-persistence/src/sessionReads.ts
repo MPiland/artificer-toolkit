@@ -147,7 +147,8 @@ export async function readEncounterSessionState(
                   : []
               ),
               ...(placement.layerIndex === undefined ? {} : { layer: true as const }),
-              ...(spatialState.unlit ? { unlit: true as const } : {})
+              ...(spatialState.unlit ? { unlit: true as const } : {}),
+              ...(placement.light ? { light: placement.light } : {})
             }
           ]
         : []

@@ -22,7 +22,8 @@ import {
   visionRangeInMapPixels,
   type ScenePoint,
   type SceneToken,
-  type SceneTokenVision
+  type SceneTokenVision,
+  type SceneZoneLight
 } from '@artificer-toolkit/shared/vtt'
 import type {
   Application,
@@ -49,6 +50,7 @@ import {
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
   lightBandAlphas,
+  zoneLightReach,
   formatSceneMeasurement,
   formatSceneRoute,
   hasCommittedSceneTokenPositionChanged,
@@ -181,6 +183,8 @@ export interface VttSceneRendererUpdate {
     unnoticedZones: readonly UnnoticedZone[]
   } | null
   overlays?: readonly VttScenePresentationOverlay[]
+  /** The light the placed zones shed from their whole areas (`stageZoneLights`); none when absent. */
+  zoneLights?: readonly SceneZoneLight[]
   /** The GM's token-view preview: draws what a Player controlling this Token sees. */
   previewTokenId?: string | null
   role: 'OWNER' | 'PLAYER'
@@ -397,6 +401,7 @@ export async function createVttSceneRenderer(
   let renderedBarriers: CampaignSceneStateDto['barriers'] | null = null
   let renderedDoorStates: CampaignSceneStateDto['doorStates'] | null = null
   let renderedDarknessZones: CampaignSceneStateDto['darknessZones'] | null = null
+  let renderedZoneLights: VttSceneRendererUpdate['zoneLights'] | null = null
   let renderedGrid: CampaignSceneStateDto['grid'] | null = null
   let renderedLightingBarriers: CampaignSceneStateDto['barriers'] | null = null
   let renderedLights: CampaignSceneStateDto['lights'] | null = null
@@ -970,10 +975,14 @@ export async function createVttSceneRenderer(
    * (darker wins), then lights cut the darkness back inside their radii (brighter wins), then
    * magical darkness forces black. The result is one black texture whose alpha is the class.
    */
-  function drawLighting(scene: CampaignSceneStateDto): void {
+  function drawLighting(
+    scene: CampaignSceneStateDto,
+    zoneLights: VttSceneRendererUpdate['zoneLights']
+  ): void {
     const tokenLights = sceneTokenLights(scene)
     const tokenLightsKey = JSON.stringify(tokenLights)
     if (
+      renderedZoneLights === zoneLights &&
       renderedAmbient === scene.ambientIllumination &&
       renderedLightingMap === scene.map &&
       renderedLightingBarriers === scene.barriers &&
@@ -984,6 +993,7 @@ export async function createVttSceneRenderer(
     ) {
       return
     }
+    renderedZoneLights = zoneLights
     renderedAmbient = scene.ambientIllumination
     renderedLightingMap = scene.map
     renderedLightingBarriers = scene.barriers
@@ -1037,6 +1047,24 @@ export async function createVttSceneRenderer(
         lightCutPolygons.push(core)
         lightTintLayer.addChild(tintShape(core, light, lightTintBrightLabel))
       }
+    }
+    // A placed zone sheds its light from its whole area: the reach of each radius is the area
+    // grown by it, the same nearest-point rule the rules read (`resolveSceneIlluminationAt`).
+    for (const zoneLight of zoneLights ?? []) {
+      const radii = lightRadii(zoneLight)
+      const bands = [
+        ...(radii.dim > radii.bright
+          ? [{ radius: radii.dim, alpha: bandAlpha.dim, label: 'light-dim' }]
+          : []),
+        ...(radii.bright > 0
+          ? [{ radius: radii.bright, alpha: bandAlpha.bright, label: 'light-bright' }]
+          : [])
+      ]
+      for (const { radius, alpha, label } of bands)
+        for (const piece of zoneLightReach(zoneLight.geometry, radius)) {
+          classMap.addChild(overlayShape(piece, alpha, 'min', label))
+          lightCutPolygons.push(piece)
+        }
     }
     for (const area of areas) if (area.level.suppressesLight) drawArea(area)
     for (const zone of scene.darknessZones) drawZoneCues(zone)
@@ -1354,8 +1382,12 @@ export async function createVttSceneRenderer(
         isTokenRevealed({
           halfSize: Math.max(token.height, token.width) / 2,
           illumination: levelOf(
-            resolveSceneIlluminationAt(scene, token.position, barrierIndex, illuminationLevels)
-              .illumination
+            resolveSceneIlluminationAt(
+              { ...scene, zoneLights: next.zoneLights },
+              token.position,
+              barrierIndex,
+              illuminationLevels
+            ).illumination
           ),
           illuminationLevels,
           point: token.position,
@@ -1981,7 +2013,7 @@ export async function createVttSceneRenderer(
       renderedFogMode = next.scene.fogMode
       renderedFogRole = next.role
     }
-    drawLighting(next.scene)
+    drawLighting(next.scene, next.zoneLights)
     drawVision(next)
     drawSenses(next)
     drawPresentationOverlays(next.overlays)
@@ -2023,6 +2055,7 @@ export async function createVttSceneRenderer(
       previous.scene.measurements === next.scene.measurements &&
       previous.scene.tokens === next.scene.tokens &&
       previous.overlays === next.overlays &&
+      previous.zoneLights === next.zoneLights &&
       previous.previewTokenId === next.previewTokenId &&
       previous.selectedTokenId === next.selectedTokenId &&
       previous.tokenPresentations === next.tokenPresentations &&
