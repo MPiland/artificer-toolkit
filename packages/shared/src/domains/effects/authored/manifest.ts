@@ -272,6 +272,11 @@ export type ManifestCreatureFormAuthored = {
   label: string
   creatureId: string
   maxTargets: number
+  /**
+   * Speeds a summon of this form has in place of the Creature's own of the same kind (Phantom
+   * Steed: a Riding Horse that walks 100 feet); the Creature's other speeds stay.
+   */
+  speeds?: SpeedAuthored[]
 }
 
 /**
