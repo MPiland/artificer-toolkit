@@ -59,6 +59,7 @@ export async function prepareRoomForcedMovementContacts(input: {
   )
   const { capture } = reads
   const read = await readNativeLiveActorsAndEffects({ state, capture })
+  const { system } = await capture({ kind: 'INPUTS' })
   const settled = new Map(input.actors.map((actor) => [actor.id, actor]))
   const actors = read.actors.map((actor) => settled.get(actor.id) ?? actor)
   const prepared = await Promise.all(
@@ -126,7 +127,7 @@ export async function prepareRoomForcedMovementContacts(input: {
           userId,
           autoRoll,
           carefully: undefined,
-          captured: { actors, capture, drag: null, spatialEffects, runtime },
+          captured: { actors, capture, drag: null, spatialEffects, runtime, system },
           random,
           finalActors
         },
