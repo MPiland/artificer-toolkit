@@ -35,6 +35,11 @@ const manifestCreatureFormDtoSchema = lazySchema(() =>
     creatureId: z.optional(authoredIdentifierSchema),
     statBlock: z.optional(summonStatBlockDtoSchema),
     maxTargets: z.number().check(z.int()).check(z.positive()),
+    maxTargetsScaling: z.optional(
+      createBreakpointScalingDtoSchema(
+        z.object({ amount: z.number().check(z.int()).check(z.positive()) })
+      )
+    ),
     speeds: z.optional(authoredNestedCollectionSchema(speedDtoSchema))
   })
 )

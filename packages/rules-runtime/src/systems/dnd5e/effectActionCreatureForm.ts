@@ -48,7 +48,8 @@ export function creatureFormPlan(
         creatureId === undefined ||
         !UUID.test(creatureId)
     ) ||
-    filter === undefined
+    filter === undefined ||
+    forms.some(({ maxTargetsScaling }) => maxTargetsScaling)
   )
     return null
   return {

@@ -295,6 +295,12 @@ export type ManifestCreatureFormAuthored = {
   statBlock?: SummonStatBlockAuthored
   maxTargets: number
   /**
+   * How many creatures a summon of this form conjures at the spell's cast level, replacing
+   * `maxTargets` (the count at the lowest slot) from the first row the level reaches (Conjure
+   * Animals: twice as many with a 5th-level slot). A summon form only, scaled by `SPELL_CAST_LEVEL`.
+   */
+  maxTargetsScaling?: BreakpointScalingAuthored<{ amount: number }>
+  /**
    * Speeds a summon of this form has in place of the Creature's own of the same kind (Phantom
    * Steed: a Riding Horse that walks 100 feet); the Creature's other speeds stay.
    */
