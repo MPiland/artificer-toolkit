@@ -1447,7 +1447,7 @@ zone compiles `zonePlacement.maintenance` (the same policy shape as `activeEffec
 `prepareEncounterActionMaintenance` selects it, so a zone-only cast opens Concentration and the zone depends on that
 state (`maintainedEffectStateId`, D135). A zone no Concentration holds whose authored duration is timed
 (Grease, Guardian of Faith; QUALITY-15.T3ag) compiles `zonePlacement.duration { startsAt: 'PLACEMENT', expiration }`
-(`withZoneDuration` in `effectActionZones.ts`): `TICKS` of its source's turns, or `CAMPAIGN_MINUTES` past the turn bound
+(`withZoneSettings` in `effectActionZones.ts`): `TICKS` of its source's turns, or `CAMPAIGN_MINUTES` past the turn bound
 (D222). `startsAt` is the plan-level hook for when the count begins; only placement is built. Each record the zone places
 stores `anchor: 'SOURCE'` with a `TICKS` expiration decremented at `START_OF_TURN` (so an N-turn zone ends as its source's
 Nth turn after the cast starts), or a `CAMPAIGN_MINUTES` expiration stamped `expiresAtCampaignMinute` at placement. The turn
@@ -1537,7 +1537,10 @@ every layer at the same path distance; `compareSpatialMovementCandidates` (and t
 candidates sort the same way, so a crossing runs the layers in authored order rather than by random record id. A
 manifest's `designatedCreatureImmunity` compiles to the zone's `choosesUnaffected` (the caster designates spared
 creatures at cast; every layer record spares them). `suppressionImmunities: ['ANTIMAGIC_FIELD']` is accepted as
-satisfied: no antimagic suppression exists, so nothing can suppress the zone. A zone with no Concentration keeps
+satisfied: no antimagic suppression exists, so nothing can suppress the zone. The manifest's own
+`destructionCriteria` (the Prismatic Wall's rod of cancellation) is likewise accepted as the GM's to apply: nothing
+in the engine evaluates it, and the GM removes the zone's records with `DISARM_ZONE`; each layer's criteria are the
+separate, modeled `DESTROY_ZONE_LAYER` ones (QUALITY-15.T3v7). A zone with no Concentration keeps
 one `zonePlacement.duration` (QUALITY-15.T3ag), and `placedZoneRecord` stamps it on every record it places (its own,
 each band's and each layer's), so all of a timed zone's layers count the same source turns and expire together.
 Destroying layers, the proximity rule, light and the occupied-placement refusal are later slices.
@@ -1567,7 +1570,7 @@ A zone condition the zone does not hold may author a timed duration (`conditionD
 `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to `heldCondition.holderTurns`, and
 `planSpatialHeldCondition` plans a ticking effect whose remaining count the holder's own turn-end decrement runs down,
 independent of the zone's lifetime. `recordsSource` names the zone's source on the condition. This is the held condition's
-own expiry; QUALITY-15.T3ag's `withZoneDuration` is the separate zone-duration mechanism.
+own expiry; QUALITY-15.T3ag's zone duration, set by `withZoneSettings`, is the separate zone-duration mechanism.
 The multiplier applies to every mover for the footprint share of the walk inside the zone: `preparedMovementCost`
 gives `measureScenePathMovementCost` a segment multiplier (`spatialSegmentMovementMultiplier`), so each stretch of
 a segment costs the highest of the terrain multiplier, the multipliers of the zones the footprint is inside, and
@@ -1752,7 +1755,7 @@ duration is held for it generically: `zoneHeldCondition` turns an authored condi
 `heldCondition.holderTurns` (a minute is 10 of the holder's turns), and `planSpatialHeldCondition` makes a
 condition-ownership effect that expires after that many of the holder's turns (this replaces the old
 `endsAtEndOfHolderTurn`, which was `holderTurns` of 1). This is the held condition's own expiry, distinct from a
-zone's duration (`withZoneDuration`, QUALITY-15.T3ag), which ends the zone.
+zone's duration (`withZoneSettings`, QUALITY-15.T3ag), which ends the zone.
 
 **A held condition the holder repeats a save against (QUALITY-15.T3v6, D146, current).** A zone component that
 authors a condition with one `FOLLOW_UP_SAVE` (and no damage, stop, grant or lost-action entry) holds it through that

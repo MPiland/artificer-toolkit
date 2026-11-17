@@ -22,6 +22,7 @@ import { d20CheckTotal, d20MinimumRollDtoSchema, type D20MinimumRollDto } from '
 import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from './spatial.js'
+import { MAX_ZONE_LAYERS } from './spatialFacts.js'
 import {
   characterMechanicsApplicationDtoSchema,
   characterMechanicsResourceReceiptDtoSchema,
@@ -1309,9 +1310,10 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
       ...sourceSpendReceiptShape(),
       /**
        * The spatial effects this action placed in the Scene, which GM undo deletes: a zone's own and
-       * one per band beside its wall (D154). Empty for none.
+       * one per band beside its wall (D154), or one per layer plus the proximity halo of a layered zone
+       * (D223). Empty for none.
        */
-      placedSpatialEffectIds: z.array(uuidSchema).check(z.maxLength(5)),
+      placedSpatialEffectIds: z.array(uuidSchema).check(z.maxLength(MAX_ZONE_LAYERS + 1)),
       /**
        * The Concentration a zone-only or summoning cast opens, which no creature outcome carries (D135). Absent
        * when a creature outcome carries it or the cast maintains nothing.
