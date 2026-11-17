@@ -616,7 +616,8 @@ async function prepareCutoverWorkloadAggregate({
     owner,
     campaignId,
     name: `V15 ${aggregate.toLowerCase()} workload scene`,
-    options: { map: workloadMap, grid: workloadGrid, tokens }
+    // Players name only creatures their map draws (ATTACK-17.3); the workload has no exploration, so no fog.
+    options: { map: workloadMap, grid: workloadGrid, tokens, fogMode: 'OFF' }
   })
   // The workload measures server-rolled turns and reactions: Assisted with the GM's auto-roll on.
   await owner.mutation(api.account.setAutoRollDice, { autoRollDice: true })
