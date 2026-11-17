@@ -970,8 +970,13 @@ async function executeCutoverWorkloadReaction(
       resolution
     })
   }
-  assert.equal(resolved.occurrence?.occurrenceId, pending.occurrenceId)
+  // A chosen reaction is a child action (D219): its answer returns the child's own occurrence, and
+  // the room settles the offered one when it resumes the move.
   assert.equal(resolved.occurrence?.status, 'COMPLETE')
+  await reactor.until(
+    () => (reactor.held?.state.pending?.occurrenceId === pending.occurrenceId ? null : true),
+    'the offered reaction decision to settle'
+  )
   const moverAfter = aggregate.run.actors.find((actor) => actor.id === actorId)
   if (!moverAfter) throw new Error('V15 workload mover disappeared.')
   // The reaction costs the mover one hit point, or two on a critical hit.
