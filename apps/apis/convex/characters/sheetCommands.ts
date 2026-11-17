@@ -67,6 +67,7 @@ import {
 import type { SheetSummonFormCreature } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
 import { formSummonStats } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { summonFormCreature } from '@artificer-toolkit/rules-runtime/spellSummonFormCreature'
+import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { resolveAvailableSpellCast } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintEnemySnapshot'
@@ -407,7 +408,7 @@ export async function executeCharacterSheetCommand(
         summonFormCreatures.set(form.id, {
           stats: formSummonStats({
             systemId: creature.systemId,
-            snapshot: { payload: creature }
+            snapshot: jsonValueSchema.parse({ payload: creature })
           }),
           maxHitPoints: Math.max(creature.hitPoints, 0)
         })
