@@ -613,7 +613,7 @@ function zoneComponentPlan(
   const heldCondition = condition
     ? zoneHeldCondition(
         condition,
-        repeats.length > 0 ? zoneHeldRepeatSave(action, failEntries) : null
+        repeats.length > 0 ? zoneHeldRepeatSave(action, failEntries, condition.entryId) : null
       )
     : null
   const primary = proposed ?? lostAction ?? grant ?? stop
@@ -733,9 +733,11 @@ type ZoneHeldCondition = NonNullable<CharacterRuleActionZonePlacementPlan['heldC
  */
 function zoneHeldRepeatSave(
   action: Dnd5eCompiledEffectActionSource,
-  failEntries: CompiledEffectGroup['entries']
+  failEntries: CompiledEffectGroup['entries'],
+  conditionEntryId: string
 ): NonNullable<ZoneHeldCondition['repeatSave']> {
-  const plan = repeatSaveEffectPlan(action, failEntries)
+  // A zone's result blocks carry no compiled identity of their own; its condition entry does.
+  const plan = repeatSaveEffectPlan(action, failEntries, 'SAVING_THROW', conditionEntryId)
   const save = failEntries.flatMap((entry) =>
     'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE' ? [entry.outcome] : []
   )[0]

@@ -34,10 +34,13 @@ import { canonicalRepeatTriggers } from './effectActionRepeatCarrier.js'
 export function repeatSaveEffectPlan(
   action: Dnd5eCompiledEffectActionSource,
   entries: CompiledEffectGroup['entries'],
-  triggerCode: 'SAVING_THROW' | 'ACTIVATED' = 'SAVING_THROW'
+  triggerCode: 'SAVING_THROW' | 'ACTIVATED' = 'SAVING_THROW',
+  /** The identity the plan is compiled under: the lead result block's, unless its owner has another (a zone's). */
+  compiledEntryId?: string
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { saveEntry, leadEntries } = directRepeatSaveEntries(entries)
   const leadEntry = leadEntries[0]
+  const entryId = compiledEntryId ?? leadEntry?.resultBlockId ?? ''
   const pathCode = triggerCode === 'ACTIVATED' ? 'ON_USE' : 'ON_SAVE_FAIL'
   if (
     // A cast with no save of its own applies only what its save repeats (Power Word Stun).
@@ -143,7 +146,7 @@ export function repeatSaveEffectPlan(
         : null
   if (
     !contribution ||
-    !UUID.test(leadEntry.resultBlockId) ||
+    !UUID.test(entryId) ||
     initialRemaining === null ||
     (!sourceTurn && !repeatCadenceSupported(save, escalation !== null)) ||
     !repeatSave ||
@@ -159,7 +162,7 @@ export function repeatSaveEffectPlan(
   }
   return {
     authoredEffectId: action.effectId,
-    compiledEntryId: leadEntry.resultBlockId,
+    compiledEntryId: entryId,
     frozenGraphNodeId: 'repeat-save-test',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
