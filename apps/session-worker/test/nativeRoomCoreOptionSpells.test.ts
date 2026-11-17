@@ -2023,7 +2023,8 @@ describe('room Unseen Servant (QUALITY-15.T3aa)', () => {
     const servant = await castSummon(room, { x: 350, y: 150 })
     expect(servant.actor).toMatchObject({
       kind: 'CUSTOM',
-      label: 'Unseen Servant',
+      // No stat block names it: it takes the name of the cast, at its slot.
+      label: 'Unseen Servant (1st level)',
       maxHitPoints: 1,
       currentHitPoints: 1
     })
@@ -2043,7 +2044,7 @@ describe('room Unseen Servant (QUALITY-15.T3aa)', () => {
           expect.objectContaining({
             encounterActorId: servant.actor.id,
             spellId: unseenServant.id,
-            displayName: 'Unseen Servant',
+            displayName: servant.actor.label,
             hitPoints: { current: 1, maximum: 1, temp: 0 }
           })
         ]),
@@ -2074,7 +2075,7 @@ describe('room Floating Disk (QUALITY-15.T3aa)', () => {
       characterAction: (action) => action.label.startsWith(floatingDisk.label)
     })
     const disk = await castSummon(room, DISK_POINT)
-    expect(disk.actor).toMatchObject({ label: 'Floating Disk', kind: 'CUSTOM' })
+    expect(disk.actor).toMatchObject({ label: 'Floating Disk (1st level)', kind: 'CUSTOM' })
     const snapshotRow = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
       new RoomEncounterStore(context.storage)
         .documents('encounterActorSnapshots')
