@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { spatialRuleEffectPlacementDtoSchema } from '@artificer-toolkit/schema/shared/spatial'
+import { expandedAreaGeometry } from '@artificer-toolkit/shared/vtt/areaHalo'
 import {
   isDirectedAreaShape,
   undirectedAreaGeometry,
@@ -105,6 +106,31 @@ export function planEncounterZoneLayers(
 }
 
 /**
+ * The record a zone's proximity rule places around it (D223): its halo, the zone's area grown by the
+ * rule's reach and fixed to the Scene, which puts a creature near the zone through the rule's
+ * behavior. It is maintained, pinned and spares creatures as the zone's own record does. Empty for a
+ * zone with no proximity rule.
+ */
+export function planEncounterZoneProximity(
+  input: PlacedZoneInput & { id: string }
+): LiveSessionPlacedSpatialEffect[] {
+  const { proximityComponent } = input.zone
+  if (!proximityComponent) return []
+  const { area, point, proximityReach } = input
+  if (proximityReach === undefined) throw new Error('A proximity rule’s reach is resolved.')
+  if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
+  const shape = expandedAreaGeometry(point, area, proximityReach)
+  if (!shape) throw new Error('A proximity halo covers some of the Scene.')
+  return [
+    placedZoneRecord(input, input.id, proximityComponent, {
+      anchorKind: 'FIXED' as const,
+      sourceTokenId: null,
+      geometry: { frame: 'SCENE_ABSOLUTE' as const, shape }
+    })
+  ]
+}
+
+/**
  * The records a zone's region components place beside its wall (D154), one per component in order
  * with the id at its index: each covers its band on the side the caster picked, fixed to the Scene,
  * and is maintained, pinned and spares creatures as the zone's own record does.
@@ -154,6 +180,8 @@ type PlacedZoneInput = {
   originLevel?: number | null
   /** The zone's per-distance-moved step in Scene distance units; absent when it acts on entry. */
   distanceStep?: number
+  /** How far the zone's proximity halo reaches around it in Scene units; absent without one. */
+  proximityReach?: number
   /**
    * What a zone resolved against its source is resolved against (D155); absent when it needs none.
    * The caller sizes `area` from {@link zoneShapeAtSource}.

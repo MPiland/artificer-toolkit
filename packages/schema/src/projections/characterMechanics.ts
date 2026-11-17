@@ -733,6 +733,17 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ZONE_LAYERS - 1))
     ),
     /**
+     * The halo a zone's proximity rule reaches around its shape (D223): a record of its own that
+     * covers the shape grown by `reach` and puts a creature there through the rule's behavior.
+     * Absent for a zone with no proximity rule.
+     */
+    proximityComponent: z.optional(
+      z.strictObject({
+        reach: z.pick(shapeMeasurementDtoSchema, { amount: true, unit: true }),
+        ...zoneComponentShape()
+      })
+    ),
+    /**
      * Whether the layers that author destruction criteria are destroyed only in their order, each
      * after every layer before it (D223). Absent when any may be destroyed first.
      */

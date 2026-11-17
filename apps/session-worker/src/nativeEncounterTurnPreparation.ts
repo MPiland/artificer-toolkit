@@ -37,7 +37,10 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterRunCharacterActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
-import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
+import {
+  readNativeLiveAttackPerception,
+  readNativeLivePointSight
+} from './nativeAttackPerception.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import { readNativeLiveSpellPins } from './nativeEncounterTargets.js'
 import { readNativeLiveTurnStarted } from './nativeTurnUses.js'
@@ -153,6 +156,20 @@ export function createNativeLiveTurnStages(
             occupantSeesSource: encounterSightHolds(actual, 'TARGET_SEES_ACTOR'),
             sourceSeesOccupant: encounterSightHolds(actual, 'ACTOR_SEES_TARGET')
           }
+        },
+        loadPointSight: async ({ occupantActorId, point }) => {
+          const occupant = await loadTarget(occupantActorId)
+          if (!occupant || !sceneContext) throw new Error('Turn zone sight actors are unavailable.')
+          return (
+            (await readNativeLivePointSight({
+              state,
+              system,
+              observer: occupant,
+              point,
+              sceneContext,
+              capture
+            })) === 'SEES'
+          )
         },
         loadScene: async () => {
           const actorId = stage.boundary.actorId

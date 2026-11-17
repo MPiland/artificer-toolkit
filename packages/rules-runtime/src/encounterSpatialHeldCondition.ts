@@ -68,7 +68,7 @@ export function planSpatialHeldCondition(input: {
       adapterFacts: {},
       perceptionContributions: [],
       recurrence: {
-        recurrenceStage: held.endsAtEndOfHolderTurn ? 'END_OF_TURN' : 'NONE',
+        recurrenceStage: held.holderTurns ? 'END_OF_TURN' : 'NONE',
         anchor: 'HOLDER',
         endTriggers: held.endsOnLeavingArea
           ? [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LEAVING_AREA' }]
@@ -76,8 +76,8 @@ export function planSpatialHeldCondition(input: {
         endOnConditionIds: [],
         holderEnd: null,
         lifetimeScope: 'ENCOUNTER',
-        expiration: held.endsAtEndOfHolderTurn
-          ? { kind: 'TICKS', initialRemaining: 1, decrementStage: 'END_OF_TURN' }
+        expiration: held.holderTurns
+          ? { kind: 'TICKS', initialRemaining: held.holderTurns, decrementStage: 'END_OF_TURN' }
           : { kind: 'INDEFINITE' }
       },
       stateContributions: [
@@ -101,7 +101,7 @@ export function planSpatialHeldCondition(input: {
           : [])
       ]
     }),
-    lifecycle: { schemaVersion: 1 as const, remainingTicks: held.endsAtEndOfHolderTurn ? 1 : null }
+    lifecycle: { schemaVersion: 1 as const, remainingTicks: held.holderTurns ?? null }
   }
 }
 
