@@ -6,6 +6,7 @@ import { activationDtoSchema } from '../effects/activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from '../effects/check.js'
 import { manifestDestructionCriterionDtoSchema } from '../effects/destructionCriterion.js'
 import { zoneMoveDtoSchema } from '../effects/effectOffer.js'
+import { manifestLightDtoSchema } from '../effects/manifest.js'
 import { MAX_ACTIVE_EFFECT_TURNS } from './activeRuleEffectLifecycle.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { manifestBlockingRuleSchema, manifestRequiredSightSchema } from './enums.js'
@@ -318,7 +319,12 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
        * How the zone's source moves it while it maintains it (QUALITY-15.T3y8), as authored; absent
        * for a zone that stays where it was placed.
        */
-      move: z.optional(zoneMoveDtoSchema)
+      move: z.optional(zoneMoveDtoSchema),
+      /**
+       * The light the zone sheds out from its whole area, in its authored lengths; perception converts
+       * them on the Scene's grid. Only a zone's own record carries it.
+       */
+      light: z.optional(manifestLightDtoSchema)
     })
     .check(
       z.superRefine((placement, context) => {

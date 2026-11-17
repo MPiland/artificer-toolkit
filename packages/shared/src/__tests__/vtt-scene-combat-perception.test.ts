@@ -10,7 +10,9 @@ import {
   resolveSceneLightAt,
   sceneLightLevels,
   sceneTokenLights,
-  type SceneIlluminationLevel
+  type PerceptionSceneState,
+  type SceneIlluminationLevel,
+  type SceneZoneLight
 } from '../domains/vtt/sceneCombatPerception.js'
 
 /** A test System's levels, brightest first: only its last level dispels light. */
@@ -453,6 +455,97 @@ describe('Scene combat-perception environment', () => {
       })
 
       expect(resolve(token({ x: 50, y: 850 }), subject, environment).illumination).toBe('DIM')
+    })
+  })
+
+  describe('light a placed zone sheds (QUALITY-15.T3v4)', () => {
+    // A wall 100 wide down the Scene's left edge, bright 200 out from its edge and dim to 400.
+    const wallLight: SceneZoneLight = {
+      geometry: {
+        kind: 'POLYGON',
+        points: [
+          { x: 0, y: 0 },
+          { x: 100, y: 0 },
+          { x: 100, y: 1000 },
+          { x: 0, y: 1000 }
+        ]
+      },
+      brightRadius: 200,
+      dimRadius: 400
+    }
+    const illuminationAt = (point: { x: number; y: number }, environment: PerceptionSceneState) =>
+      resolveSceneIlluminationAt(
+        environment,
+        point,
+        new SceneBarrierIndex(environment.barriers),
+        levels
+      ).illumination
+    const dark = (overrides: Partial<PerceptionScene> = {}) => ({
+      ...scene({ ambientIllumination: 'ORDINARY_DARKNESS', ...overrides }),
+      zoneLights: [wallLight]
+    })
+
+    it('lights its own area and out from its nearest edge', () => {
+      expect(illuminationAt({ x: 50, y: 500 }, dark())).toBe('BRIGHT')
+      expect(illuminationAt({ x: 290, y: 500 }, dark())).toBe('BRIGHT')
+      expect(illuminationAt({ x: 450, y: 990 }, dark())).toBe('DIM')
+      expect(illuminationAt({ x: 600, y: 500 }, dark())).toBe('ORDINARY_DARKNESS')
+      // Past its end the light reaches from its corner, not straight across.
+      expect(illuminationAt({ x: 450, y: 1300 }, dark())).toBe('ORDINARY_DARKNESS')
+    })
+
+    it('is stopped by a wall like any other light', () => {
+      const barrier = {
+        a: { x: 150, y: 0 },
+        b: { x: 150, y: 1000 },
+        blocksLight: true,
+        blocksMovement: true,
+        id: crypto.randomUUID(),
+        kind: 'WALL'
+      } as const
+
+      expect(illuminationAt({ x: 250, y: 500 }, dark({ barriers: [barrier] }))).toBe(
+        'ORDINARY_DARKNESS'
+      )
+    })
+
+    it("lights a ring's hollow from its inner edge", () => {
+      const ring: SceneZoneLight = {
+        geometry: {
+          kind: 'RING',
+          center: { x: 2000, y: 2000 },
+          innerRadius: 300,
+          outerRadius: 400
+        },
+        brightRadius: 50,
+        dimRadius: 100
+      }
+      const environment = {
+        ...scene({ ambientIllumination: 'ORDINARY_DARKNESS' }),
+        zoneLights: [ring]
+      }
+
+      expect(illuminationAt({ x: 2000, y: 2000 }, environment)).toBe('ORDINARY_DARKNESS')
+      expect(illuminationAt({ x: 2260, y: 2000 }, environment)).toBe('BRIGHT')
+      expect(illuminationAt({ x: 2000, y: 2480 }, environment)).toBe('DIM')
+    })
+
+    it('never darkens a brighter Scene, and a light-suppressing darkness still wins', () => {
+      expect(illuminationAt({ x: 450, y: 500 }, { ...scene(), zoneLights: [wallLight] })).toBe(
+        'BRIGHT'
+      )
+      expect(
+        illuminationAt(
+          { x: 50, y: 500 },
+          { ...scene({ ambientIllumination: 'MAGICAL_DARKNESS' }), zoneLights: [wallLight] }
+        )
+      ).toBe('MAGICAL_DARKNESS')
+    })
+
+    it('lights a creature near it for combat perception', () => {
+      const subject = token({ x: 250, y: 450 })
+
+      expect(resolve(token({ x: 850, y: 450 }), subject, dark()).illumination).toBe('BRIGHT')
     })
   })
 

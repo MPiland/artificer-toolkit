@@ -291,16 +291,21 @@ function zonePlacementPlan(
 
 /**
  * What every placed zone's plan carries from its manifest whatever its components: what an occupied
- * space does to its placement, and its lifetime. A zone no Concentration holds lasts its authored
- * duration from its placement: its source's turns, or Campaign minutes past the turn bound (D222). A
- * maintained zone ends with its Concentration, and an untimed or scaled duration leaves it until the
- * Encounter ends. A zone that needs lighting counts its turns from its ignition (QUALITY-15.T3w).
+ * space does to its placement, the light it sheds and its lifetime. Only the zone's own record
+ * carries these; its bands and layers are records of their own. A zone no Concentration holds lasts
+ * its authored duration from its placement: its source's turns, or Campaign minutes past the turn
+ * bound (D222). A maintained zone ends with its Concentration, and an untimed or scaled duration
+ * leaves it until the Encounter ends. A zone that needs lighting counts its turns from its ignition (QUALITY-15.T3w).
  */
 function withZoneSettings(
   planned: CharacterRuleActionZonePlacementPlan,
-  { entry, occupiedPlacement }: PlacedSpaceZone
+  { entry, occupiedPlacement, light }: PlacedSpaceZone
 ): CharacterRuleActionZonePlacementPlan {
-  const plan = occupiedPlacement ? { ...planned, occupiedPlacement } : planned
+  const plan = {
+    ...planned,
+    ...(occupiedPlacement ? { occupiedPlacement } : {}),
+    ...(light ? { light } : {})
+  }
   const duration = !plan.maintenance && 'duration' in entry ? entry.duration : undefined
   if (!duration) return plan
   const initialRemaining = conditionDurationTurns(duration)

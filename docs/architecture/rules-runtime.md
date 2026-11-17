@@ -4595,6 +4595,18 @@ movement reactions and the room's vision display, and `resolveSceneIlluminationA
 as a point light at the token, radii measured from its footprint edge, for both perception (D108) and the
 renderer. Activated item and spell lights are not consumed yet.
 
+Zone light (current, QUALITY-15.T3v4): a ZONE manifest's `light` (bright, then dim for `dimAdditional` more)
+compiles onto `CompiledActionZonePlacement.light` and is written, in its authored lengths, only on the zone's
+own placement record (`spatialRuleEffectPlacementDtoSchema.light`); its bands, layers and halo carry none.
+Nothing stores it on the Scene. `placedZoneLights` (`rules-runtime/src/actorLight.ts`) composes each placed
+zone's light at runtime as a `SceneZoneLight` (its current area, radii in Scene coordinates), and
+`resolveEncounterActorPairPerception` adds them to the Scene it perceives, so attack, point-sight, turn-effect
+and movement-reaction perception all see it. `resolveSceneIlluminationAt` lights a point from the zone's
+nearest point (`nearestZoneLightSource`), so the whole area is its own source, with the same radii rule
+and barrier check as point lights. Transitional: the web renderer, the room's vision display and the holder
+light read by Sunlight Sensitivity (`apps/session-worker/src/nativeHolderLight.ts`) do not read zone light yet,
+and a zone that needs lighting sheds its light before it is lit.
+
 Attack-roll perception (current, D100): the room's `RESOLVE_ACTION` passes an optional
 `loadAttackPerception` to `prepareEncounterActionMechanics`
 (`packages/rules-runtime/src/encounterAttackPerception.ts`). For attack rolls it resolves requirement SEE both

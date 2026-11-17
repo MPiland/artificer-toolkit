@@ -28,6 +28,8 @@ export interface PlacedSpaceZone {
   camouflage?: CompiledActionZonePlacement['camouflage']
   /** How its source moves the zone while it lasts (QUALITY-15.T3y8). Absent for a zone that stays. */
   move?: CompiledActionZonePlacement['move']
+  /** The light the zone sheds out from its area. Absent for a zone that sheds none. */
+  light?: CompiledActionZonePlacement['light']
   /**
    * Its components in authored order, each with the one behavior its entry runs: the first covers
    * the zone's shape, each later one the region it authors (D154). A component that only lends an
@@ -77,6 +79,8 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'wallThickness',
   'camouflage',
   'move',
+  // Perception reads the light the zone sheds beside the Scene's own lights.
+  'light',
   'components',
   'componentsMustResolveInOrder',
   // The GM destroys a layer by its criteria (D223); a destroyed layer is removed, so it stays so.
@@ -265,7 +269,7 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
       )
     return { component, behavior }
   })
-  const { hollow, wallThickness, camouflage, move } = manifest
+  const { hollow, wallThickness, camouflage, move, light } = manifest
   if (Boolean(hollow) !== (wallThickness !== undefined))
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A hollow zone has a wall thickness, and only a hollow zone has one.'
@@ -294,6 +298,7 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     ...(wallThickness ? { ringThickness: wallThickness } : {}),
     ...(camouflage ? { camouflage } : {}),
     ...(move ? { move } : {}),
+    ...(light ? { light } : {}),
     components: planned,
     ...(layered ? { layered: true as const } : {}),
     ...(destructible && manifest.destructionMustResolveInOrder
