@@ -2144,7 +2144,7 @@
         {
           "id": "PLATFORM-28",
           "title": "Stories show real seeded data",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "internal",
           "origin": [
@@ -2153,11 +2153,16 @@
           "acs": [
             {
               "id": "PLATFORM-28.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "User approval 2026-11-11 (D187 growth, D218): Storybook reads seeded data from the CI throwaway Convex backend instead of hand-typed DTO fixtures"
               ],
-              "text": "Page and route stories read seeded data from a real Convex backend, locally and in CI, through createAppQueryClient(convex); writes are spied with fn() and never sent; state stories (loading, error, empty, after-write) are composed from their base story with one single-query override each and reuse its play steps; no hand-typed DTO fixture remains; and a Storybook run logs no \"No queryFn\" message."
+              "text": "Page and route stories read seeded data from a real Convex backend, locally and in CI, through createAppQueryClient(convex); writes are spied with fn() and never sent; state stories (loading, error, empty, after-write) are composed from their base story with one single-query override each and reuse its play steps; no hand-typed DTO fixture remains; and a Storybook run logs no \"No queryFn\" message.",
+              "proof": [
+                "storyOnlyFixtures.test.ts",
+                "storybook-backend-browser (Browser journeys, full Tests 43982658133: no \"No queryFn\")"
+              ],
+              "note": "Closed 2026-11-17: every task merged by m843 (2026-11-16); the AC close was missed at that merge."
             }
           ],
           "wsjf": {
@@ -25358,7 +25363,7 @@
             },
             {
               "id": "PERF-3.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-3.14"],
               "wsjf": {
                 "bv": 2,
@@ -25369,7 +25374,8 @@
                 "finalSource": true
               },
               "text": "Close 3.14 at phase end: one full tests.yml run (full=true) green with fixes, then the V15 load run is PERF-1.T1's output; link both runs. 'Faster suites' is owned by PLATFORM-13 (timing docs exist) and should be dropped from the AC wording rather than re-done here. Also record, from that full run on the final source, the full-suite timing (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (moved from PLATFORM-13.T4b, 2026-10-29).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -29323,7 +29329,7 @@
             },
             {
               "id": "RELEASE-1.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELEASE-1.1"],
               "wsjf": {
                 "bv": 2,
@@ -29333,7 +29339,8 @@
                 "after": ["SPELLS-4.T4e"],
                 "finalSource": true
               },
-              "text": "After SPELLS-4.T4e, confirm ADR 0038 reads accepted and the guides describing closed rules match the source; rerun the link audit on the touched docs."
+              "text": "After SPELLS-4.T4e, confirm ADR 0038 reads accepted and the guides describing closed rules match the source; rerun the link audit on the touched docs.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ],
           "internalReason": "Documentation, ADRs and runbooks; no user flow."
@@ -29733,7 +29740,7 @@
             },
             {
               "id": "RELEASE-7.T3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELEASE-7.3"],
               "wsjf": {
                 "bv": 5,
@@ -29744,7 +29751,8 @@
                 "finalSource": true
               },
               "text": "Release-candidate walkthrough: step through each guide statement on the review data from RELEASE-8 in the running build (Browser pane against local web), correct mismatches, record the checked build identity. Agent drives the browser; owner's judgment on tone is optional.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
