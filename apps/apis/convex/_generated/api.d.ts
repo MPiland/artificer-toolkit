@@ -295499,6 +295499,37 @@ export declare const api: {
             label: string;
             reason: string;
           }>;
+          zoneMoves: Array<{
+            activation: "ACTION" | "BONUS_ACTION";
+            label: string;
+            maxDistance: {
+              amount: number;
+              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+            };
+            spatialEffectId: string;
+            warnings: Array<{
+              code:
+                | "ACTION_ECONOMY_UNAVAILABLE"
+                | "CONDITION_SOURCE_APPROACH"
+                | "CONDITION_SOURCE_FLEE"
+                | "RESOURCE_UNAVAILABLE"
+                | "RETURN_SPACE_OCCUPIED"
+                | "SOURCE_NOT_EQUIPPED"
+                | "TARGET_DEFEATED"
+                | "TARGET_CREATURE_TYPE_EXCLUDED"
+                | "TARGET_DISPOSITION"
+                | "TARGET_FACING_ARC"
+                | "TARGET_ABILITY_EXCLUDED"
+                | "TARGET_NOT_DEAD"
+                | "TARGET_NOT_DYING"
+                | "TARGET_NOTHING_TO_END"
+                | "TARGET_OUT_OF_RANGE"
+                | "TARGET_OUT_OF_SIGHT"
+                | "TARGET_RANGE_UNCHECKED"
+                | "TARGET_TOO_LARGE";
+              message: string;
+            }>;
+          }>;
         } | null
       >;
       items: FunctionReference<

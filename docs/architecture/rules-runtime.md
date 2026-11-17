@@ -272,7 +272,8 @@ four separate lights placed from one cast and moved as a group are not modeled).
 center on the Scene grid (`zoneMoveWithinDistance`), spends the authored activation through the shared rule economy,
 and `persistEncounterMoveZone` re-centers the geometry under a zone-version fence. Occupancy needs no separate path:
 turn triggers read the current geometry, and moving onto a creature is not an entry. A GM undo restores the prior
-geometry and returns the spent activation (`revertZoneMove`). SRD Flaming Sphere moves 30 feet for a Bonus Action and
+geometry and returns the spent activation (`revertZoneMove`). The caster reaches it from the Sheet and encounter
+drawer's zone row, listed as `zoneMoves` on the action choices (QUALITY-15.T3y8b). SRD Flaming Sphere moves 30 feet for a Bonus Action and
 Moonbeam 60 feet for an Action, authored from core options. Target: an offer surface on the Sheet and tabletop (the
 move is a Run command today with no player UI). GM rulings, not authored: steering over barriers and pits, igniting
 unattended flammable objects, the bright and dim light, and the unoccupied-space placement rule.

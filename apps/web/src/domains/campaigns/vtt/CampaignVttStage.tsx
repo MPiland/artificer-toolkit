@@ -73,6 +73,7 @@ import { useCampaignLiveLoot } from '../loot/useCampaignLiveLoot'
 import { useVttTokenArtUrls } from './useVttTokenArtUrls'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
+import { selectCurrentActionChoices } from './currentActionChoices.model'
 import { CampaignTabletopZoneTool } from './CampaignTabletopZoneTool'
 import { CampaignTabletopPlayerHeaderControls } from './CampaignTabletopPlayerHeaderControls'
 import type { ZonePointPick } from './campaignTabletopZoneTool.model'
@@ -339,13 +340,7 @@ export function CampaignVttStage({
   const loadedActionChoices = roomActionChoices.routed
     ? roomActionChoices.value
     : actionChoices.data
-  const currentActionChoices =
-    actionChoiceScope &&
-    loadedActionChoices?.encounterId === actionChoiceScope.encounterId &&
-    loadedActionChoices.encounterVersion === actionChoiceScope.expectedVersion &&
-    loadedActionChoices.actorId === actionChoiceScope.actorId
-      ? loadedActionChoices
-      : null
+  const currentActionChoices = selectCurrentActionChoices(loadedActionChoices, actionChoiceScope)
   const actionChoicesLoading = roomActionChoices.routed
     ? !currentActionChoices && !roomActionChoices.error
     : actionChoices.isPending || (actionChoices.isFetching && !currentActionChoices)
@@ -1559,6 +1554,8 @@ export function CampaignVttStage({
               escapes={currentActionChoices?.escapes ?? []}
               heldGrantEnds={currentActionChoices?.heldGrantEnds ?? []}
               effectOffers={currentActionChoices?.effectOffers ?? []}
+              zoneMoves={currentActionChoices?.zoneMoves ?? []}
+              placedZones={encounterSessionState?.placedZones ?? []}
               releases={currentActionChoices?.releases ?? []}
               openAttackAction={currentActionChoices?.openAttackAction ?? null}
               defaultActionId={currentActionChoices?.defaultActionId ?? null}
@@ -1588,6 +1585,7 @@ export function CampaignVttStage({
               onEscape={(command) => encounterCommand.mutateAsync(command)}
               onEndHeldGrant={(command) => encounterCommand.mutateAsync(command)}
               onMoveHeldEffect={(command) => encounterCommand.mutateAsync(command)}
+              onMoveZone={(command) => encounterCommand.mutateAsync(command)}
               onRelease={(command) => encounterCommand.mutateAsync(command)}
               onLoadOptionalChoices={loadOptionalActionChoices}
               onLoadItemChoices={loadActionItemChoices}

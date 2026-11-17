@@ -7,6 +7,7 @@ import {
 import type {
   EncounterCommandResultDto,
   MoveHeldEffectInputDto,
+  MoveZoneInputDto,
   RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto,
@@ -19,6 +20,7 @@ type CapturedEncounterCommandInput =
   | ResolveEncounterActionInputDto
   | ResolveRuleOccurrenceInputDto
   | MoveHeldEffectInputDto
+  | MoveZoneInputDto
   | RemoveAreaTargetInputDto
   | SetConcealmentObserversInputDto
 
@@ -57,6 +59,7 @@ export function captureEncounterCommands(
           command.type !== 'RESOLVE_ACTION' &&
           command.type !== 'RESOLVE_RULE_OCCURRENCE' &&
           command.type !== 'MOVE_HELD_EFFECT' &&
+          command.type !== 'MOVE_ZONE' &&
           command.type !== 'REMOVE_AREA_TARGET' &&
           command.type !== 'SET_CONCEALMENT_OBSERVERS'
         )
