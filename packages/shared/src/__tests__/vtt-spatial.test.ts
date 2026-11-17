@@ -25,6 +25,7 @@ import {
   spatialGeometryCenter,
   spatialGeometryCenteredAt
 } from '../domains/vtt/spatialGeometryCenter.js'
+import { expandedAreaGeometry } from '../domains/vtt/areaHalo.js'
 import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
 import { VTT_SCENE_LIMITS, type SceneGrid } from '../domains/vtt/scene.js'
 
@@ -1683,5 +1684,66 @@ describe('a zone geometry moved to a new center (QUALITY-15.T3y8)', () => {
         { x: 10, y: 9 }
       ]
     })
+  })
+})
+
+describe('expandedAreaGeometry (QUALITY-15.T3v3, D223)', () => {
+  const origin = { x: 100, y: 100 }
+  const bounds = (geometry: ReturnType<typeof expandedAreaGeometry>) => {
+    if (geometry?.kind !== 'POLYGON') throw new Error('Expected a polygon.')
+    const xs = geometry.points.map(({ x }) => x)
+    const ys = geometry.points.map(({ y }) => y)
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys)
+    }
+  }
+
+  it('grows a circle by the reach', () => {
+    expect(expandedAreaGeometry(origin, { kind: 'RADIUS', radius: 20 }, 10)).toEqual({
+      kind: 'CIRCLE',
+      center: origin,
+      radius: 30
+    })
+  })
+
+  it('grows a cube by the reach on every side', () => {
+    const shape = { kind: 'CUBE', edgeLength: 40 } as const
+    const bare = bounds(expandedAreaGeometry(origin, shape, 0))
+    expect(bounds(expandedAreaGeometry(origin, shape, 10))).toEqual({
+      minX: bare.minX - 10,
+      maxX: bare.maxX + 10,
+      minY: bare.minY - 10,
+      maxY: bare.maxY + 10
+    })
+  })
+
+  it('grows a ring both ways, and fills the hole the reach closes', () => {
+    const ring = { kind: 'RING', innerRadius: 30, outerRadius: 50 } as const
+    expect(expandedAreaGeometry(origin, ring, 10)).toEqual({
+      kind: 'RING',
+      center: origin,
+      innerRadius: 20,
+      outerRadius: 60
+    })
+    expect(expandedAreaGeometry(origin, ring, 30)).toEqual({
+      kind: 'CIRCLE',
+      center: origin,
+      radius: 80
+    })
+  })
+
+  it('grows a wall past its ends and on both sides, and refuses one of no length', () => {
+    const wall = { kind: 'WALL', to: { x: 200, y: 100 }, thickness: 10 } as const
+    const bare = bounds(expandedAreaGeometry(origin, wall, 0))
+    expect(bounds(expandedAreaGeometry(origin, wall, 10))).toEqual({
+      minX: expect.closeTo(bare.minX - 10),
+      maxX: expect.closeTo(bare.maxX + 10),
+      minY: expect.closeTo(bare.minY - 10),
+      maxY: expect.closeTo(bare.maxY + 10)
+    })
+    expect(expandedAreaGeometry(origin, { ...wall, to: origin }, 10)).toBeNull()
   })
 })

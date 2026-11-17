@@ -1,3 +1,4 @@
+export * from './areaHalo.js'
 export * from './combatPerception.js'
 export * from './exploration.js'
 export * from './geometry.js'

@@ -4,7 +4,8 @@ import { buildEncounterMaintenanceTransition } from '@artificer-toolkit/rules-ru
 import {
   planEncounterPlacedZone,
   planEncounterZoneBands,
-  planEncounterZoneLayers
+  planEncounterZoneLayers,
+  planEncounterZoneProximity
 } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
@@ -45,12 +46,13 @@ export async function prepareAreaCommitMaintenance(args: {
       movementTargets.get(carrier.id) ?? input.loadTarget(carrier)
   })
   const removedIds = new Set(maintenance?.removed.map((effect) => effect.id))
-  // The zone's own record, then one per band beside its wall (D154) or per later layer (D223), all
-  // in the cast's maintenance. They are named before the outcomes, so the hold a failed appear save
+  // The zone's own record, then one per band beside its wall (D154), per later layer or its
+  // proximity halo (D223), all in the cast's maintenance. They are named before the outcomes, so the hold a failed appear save
   // leaves names its zone.
   const bandIds = placement ? placement.regions.map(() => crypto.randomUUID()) : []
   const layerIds = (placement?.zone.layerComponents ?? []).map(() => crypto.randomUUID())
   const zoneId = crypto.randomUUID()
+  const proximityId = crypto.randomUUID()
   // A zone lasting Campaign minutes ends at the clock minute it was placed plus its duration (D222).
   const campaignClockMinute =
     placement?.zone.duration?.expiration.kind === 'CAMPAIGN_MINUTES'
@@ -69,6 +71,7 @@ export async function prepareAreaCommitMaintenance(args: {
       area: placement.shape,
       sourceToken: placement.sourceToken,
       distanceStep: placement.distanceStep,
+      proximityReach: placement.proximityReach,
       saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
       originLevel: preparedSpellCastLevel(lead),
       unaffectedActorIds: placement.unaffectedActorIds,
@@ -77,7 +80,8 @@ export async function prepareAreaCommitMaintenance(args: {
     return [
       planEncounterPlacedZone({ ...zoneInput, id: zoneId }),
       ...planEncounterZoneBands({ ...zoneInput, ids: bandIds, regions: placement.regions }),
-      ...planEncounterZoneLayers({ ...zoneInput, zoneId, ids: layerIds })
+      ...planEncounterZoneLayers({ ...zoneInput, zoneId, ids: layerIds }),
+      ...planEncounterZoneProximity({ ...zoneInput, id: proximityId })
     ]
   }
   const holdingZone = placement?.zone.heldCondition

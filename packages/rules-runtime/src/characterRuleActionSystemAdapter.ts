@@ -368,10 +368,14 @@ export interface CharacterRuleActionActiveEffectPlan {
 /** A zone an action leaves on the Scene; see `compiledActionZonePlacementSchema`. */
 export type CharacterRuleActionZonePlacementPlan = Omit<
   CompiledActionZonePlacement,
-  'entry' | 'sourceGrant' | 'regionComponents' | 'layerComponents'
+  'entry' | 'sourceGrant' | 'regionComponents' | 'layerComponents' | 'proximityComponent'
 > & {
   entry: CharacterRuleActionActiveEffectPlan
   sourceGrant?: CharacterRuleActionActiveEffectPlan
+  proximityComponent?: Omit<
+    NonNullable<CompiledActionZonePlacement['proximityComponent']>,
+    'entry'
+  > & { entry: CharacterRuleActionActiveEffectPlan }
   regionComponents?: Array<
     Omit<NonNullable<CompiledActionZonePlacement['regionComponents']>[number], 'entry'> & {
       entry: CharacterRuleActionActiveEffectPlan

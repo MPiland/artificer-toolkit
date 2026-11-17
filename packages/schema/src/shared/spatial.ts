@@ -6,6 +6,7 @@ import { activationDtoSchema } from '../effects/activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from '../effects/check.js'
 import { manifestDestructionCriterionDtoSchema } from '../effects/destructionCriterion.js'
 import { zoneMoveDtoSchema } from '../effects/effectOffer.js'
+import { MAX_ACTIVE_EFFECT_TURNS } from './activeRuleEffectLifecycle.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { manifestBlockingRuleSchema, manifestRequiredSightSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
@@ -183,8 +184,13 @@ export function spatialHeldConditionDtoSchema<TDc extends z.ZodMiniType>(dcSchem
     conditionId: uuidSchema,
     /** The condition ends when the creature leaves the zone's area. */
     endsOnLeavingArea: z.optional(z.literal(true)),
-    /** The condition ends at the end of its holder's own turn, whether or not the zone lasts. */
-    endsAtEndOfHolderTurn: z.optional(z.literal(true)),
+    /**
+     * The condition ends after this many of its holder's own turns, counted at each turn's end,
+     * whether or not the zone lasts.
+     */
+    holderTurns: z.optional(
+      z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
+    ),
     /** The condition records the zone's source as the creature that applied it. */
     recordsSource: z.optional(z.literal(true)),
     escape: z.optional(

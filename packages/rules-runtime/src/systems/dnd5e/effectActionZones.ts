@@ -274,12 +274,18 @@ function zonePlacementPlan(
     ? []
     : later.map((planned) => ({ region: planned.component.region!, ...laterRecord(planned) }))
   const layerComponents = layered ? later.map(laterRecord) : []
+  // The halo around the zone, a record of its own that the rule's behavior acts through (D223).
+  const proximityComponent = zone.proximity && {
+    reach: zone.proximity.reach,
+    ...laterRecord(zone.proximity.planned)
+  }
   const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
   return withZoneDuration(
     {
       ...primary,
       ...(regionComponents.length ? { regionComponents } : {}),
       ...(layerComponents.length ? { layerComponents } : {}),
+      ...(proximityComponent ? { proximityComponent } : {}),
       ...(zone.destructionInOrder ? { destructionInOrder: true as const } : {}),
       ...(sourceGrant ? { sourceGrant } : {})
     },
@@ -449,7 +455,7 @@ function zoneComponentPlan(
   triggers = dnd5eEventVocabularyCapabilityAdapter.zoneSubscription(component.interactionKinds)
 ): Omit<
   CharacterRuleActionZonePlacementPlan,
-  'regionComponents' | 'layerComponents' | 'sourceGrant'
+  'regionComponents' | 'layerComponents' | 'proximityComponent' | 'sourceGrant'
 > {
   if (!behavior && !component.movementCostMultiplier)
     unsupported('Only a zone’s own component lends an occupant save bonus.')
@@ -465,6 +471,9 @@ function zoneComponentPlan(
   if (requiresFullyWithin && triggers?.triggerModes.length)
     unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
   if (!triggers) unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
+  // Only a zone left at a Scene point has a place to see; a source zone follows its token.
+  if (requiredSight?.includes('OCCUPANT_SEES_ZONE') && zone.attachment !== 'PLACED_SPACE')
+    unsupported('A zone is seen only when it is left where its cast places it.')
   if (
     movementCostMultiplier !== undefined &&
     !zoneMovementCostMultiplierSchema.safeParse(movementCostMultiplier).success
@@ -666,7 +675,7 @@ function zoneComponentPlan(
     unsupported('A placed zone grant must last until its end event.')
   const maintenance = maintenancePlan(action, primary)
   // A held condition ends with its zone through the zone's maintenance, which nothing else ends.
-  if (heldCondition && !heldCondition.endsAtEndOfHolderTurn && !maintenance)
+  if (heldCondition && !heldCondition.holderTurns && !maintenance)
     unsupported('A zone-held condition needs a zone that Concentration maintains.')
   if (heldCondition?.escape && !zone.label)
     unsupported('A zone-held condition escape names its zone.')
@@ -727,14 +736,17 @@ function zoneHeldCondition(
   if (!heldBySource) {
     if (leavesArea || escape)
       unsupported('A placed zone condition that its zone does not hold has no leave or escape.')
-    if (!turnAnchor) return null
-    // The one timed form: until the end of the holder's turn, which the occupant's own turn
-    // boundary counts, so it neither outlasts the turn nor depends on the zone's lifetime.
+    const durationTurns = entry.duration ? conditionDurationTurns(entry.duration) : null
+    if (!turnAnchor && durationTurns === null) return null
+    // The timed form counts the holder's own turn ends (D146), so the condition neither outlasts
+    // its duration nor depends on the zone's lifetime. A turn-anchored one ends at the end of the
+    // holder's turn; an unanchored one lasts its authored duration.
     if (
-      turnAnchor.actor !== 'TARGET' ||
-      turnAnchor.boundary !== 'END_OF_TURN' ||
-      !entry.duration ||
-      conditionDurationTurns(entry.duration) !== 1 ||
+      (turnAnchor &&
+        (turnAnchor.actor !== 'TARGET' ||
+          turnAnchor.boundary !== 'END_OF_TURN' ||
+          durationTurns !== 1)) ||
+      durationTurns === null ||
       endTriggers.length > 0 ||
       Object.values(otherLifecycle).some((value) => value !== undefined)
     )
@@ -743,7 +755,7 @@ function zoneHeldCondition(
       )
     return {
       conditionId: entry.outcome.conditionId,
-      endsAtEndOfHolderTurn: true as const,
+      holderTurns: durationTurns,
       ...(entry.outcome.recordsSource ? { recordsSource: true as const } : {})
     }
   }
