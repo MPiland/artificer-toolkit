@@ -11,6 +11,7 @@ import {
   repeatOfferCastTurnUseSchema,
   repeatOfferOriginSchema,
   repeatOfferTargetSchema,
+  repeatOfferUsesPerTurnSchema,
   type MoveHeldEffectOffer,
   type RepeatOfferCastTurnUse,
   type RepeatOfferOrigin,
@@ -44,6 +45,8 @@ export interface CompiledRepeatSourcePathOffer {
   castTurnUse?: RepeatOfferCastTurnUse
   /** The Run's `turnSequence` the cast was made in, which a held `FREE_ONCE` offer freezes. */
   castTurnSequence?: number
+  /** The uses a `FREE` repeat allows in each of its source's own turns. */
+  usesPerTurn?: number
 }
 
 /** The offers a compiled effect action plans, before the cast freezes them onto a held effect. */
@@ -71,7 +74,8 @@ const compiledRepeatSourcePathOfferSchema = lazySchema(() =>
     target: z.optional(repeatOfferTargetSchema),
     origin: z.optional(repeatOfferOriginSchema),
     castTurnUse: z.optional(repeatOfferCastTurnUseSchema),
-    castTurnSequence: z.optional(z.number().check(z.int()).check(z.nonnegative()))
+    castTurnSequence: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+    usesPerTurn: z.optional(repeatOfferUsesPerTurnSchema)
   })
 )
 

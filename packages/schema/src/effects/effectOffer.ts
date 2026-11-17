@@ -62,7 +62,19 @@ export interface RepeatSourcePathOffer {
   origin?: RepeatOfferOrigin
   /** Absent means every use is charged to `activation`. */
   castTurnUse?: RepeatOfferCastTurnUse
+  /**
+   * The uses a `FREE` repeat allows in each of its source's own turns, spending no allowance (Tree
+   * Stride's once-per-round step); set exactly when `activation` is `FREE`.
+   */
+  usesPerTurn?: number
 }
+
+/** The most uses a free repeat may allow in one turn. */
+const MAX_REPEAT_OFFER_USES_PER_TURN = 10
+
+export const repeatOfferUsesPerTurnSchema = lazySchema(() =>
+  z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_REPEAT_OFFER_USES_PER_TURN))
+)
 
 export type EffectOffer = MoveHeldEffectOffer | RepeatSourcePathOffer
 
@@ -91,7 +103,8 @@ const repeatSourcePathOfferSchema = lazySchema(() =>
       effectId: z.optional(authoredIdentifierSchema),
       target: z.optional(repeatOfferTargetSchema),
       origin: z.optional(repeatOfferOriginSchema),
-      castTurnUse: z.optional(repeatOfferCastTurnUseSchema)
+      castTurnUse: z.optional(repeatOfferCastTurnUseSchema),
+      usesPerTurn: z.optional(repeatOfferUsesPerTurnSchema)
     })
     .check(
       z.refine(
@@ -101,20 +114,31 @@ const repeatSourcePathOfferSchema = lazySchema(() =>
     )
 )
 
-/** An offer is charged to an action, a bonus action or a similar allowance, never a Reaction or a free activation. */
-export function checkEffectOfferActivations(offers: readonly { activation: string }[]): boolean {
-  return offers.every((offer) => offer.activation !== 'REACTION' && offer.activation !== 'FREE')
+/**
+ * An offer is charged to an action, a bonus action or a similar allowance, never a Reaction. Only a
+ * repeat with its uses per turn is free, and only a free one counts its uses.
+ */
+export function checkEffectOfferActivations(
+  offers: readonly { kind: string; activation: string; usesPerTurn?: number }[]
+): boolean {
+  return offers.every(
+    (offer) =>
+      offer.activation !== 'REACTION' &&
+      (offer.activation === 'FREE') ===
+        (offer.kind === 'REPEAT_SOURCE_PATH' && offer.usesPerTurn !== undefined)
+  )
 }
 
 export const EFFECT_OFFER_ACTIVATION_MESSAGE =
-  'An effect offer is charged to an action, a bonus action or a similar allowance, never a Reaction or a free activation.'
+  'An effect offer is charged to an action, a bonus action or a similar allowance, never a Reaction; only a repeat with its uses per turn is free.'
 
 /**
  * One choice a held effect offers beside its holder's own turns (D160). `MOVE_HELD_EFFECT` lets
  * `offeredTo` (the effect's source, or its holder) move the effect, with its remaining duration and
  * Concentration, to another creature within `range`, charged to `activation`, once `when` holds for
  * the holder. `REPEAT_SOURCE_PATH` (D166) lets the effect's source re-run the named paths of the
- * Effect that made it against the holder, charged to `activation`; the stored form carries the
+ * Effect that made it against the holder, charged to `activation` (a `FREE` one counts its
+ * `usesPerTurn` instead); the stored form carries the
  * paths as a frozen Effect (`storedEffectOffer.ts`).
  */
 export const effectOffersDtoSchema: z.ZodMiniType<EffectOffer[]> = lazySchema(() =>

@@ -20,7 +20,6 @@ import type {
   ScalarReductionAuthored,
   TelepathicLinkAuthored,
   PlantPortalAuthored,
-  TreeStrideAuthored,
   ActorRelationshipAuthored,
   FacetAuthored,
   FailureMarginRiderAuthored,
@@ -74,6 +73,7 @@ export type CompiledEffectOffer =
       target?: NonNullable<AuthoredEffectOffer['target']>
       origin?: NonNullable<AuthoredEffectOffer['origin']>
       castTurnUse?: NonNullable<AuthoredEffectOffer['castTurnUse']>
+      usesPerTurn?: number
     }
 
 export type CompiledPathLifecycle = Omit<PathLifecycleAuthored, 'effectOffers'> & {
@@ -267,7 +267,6 @@ export type CompiledEffectOutcome =
   | SpellSlotExchangeAuthored
   | TelepathicLinkAuthored
   | PlantPortalAuthored
-  | TreeStrideAuthored
   | ActorRelationshipAuthored
   | import('#authored').ConcealFromObserversAuthored
   | import('#authored').RemoveFromPlayAuthored
@@ -388,7 +387,6 @@ function compileOutcomePayload(
     case EFFECT_KIND.SPELL_SLOT_EXCHANGE:
     case EFFECT_KIND.TELEPATHIC_LINK:
     case EFFECT_KIND.PLANT_PORTAL:
-    case EFFECT_KIND.TREE_STRIDE:
     case EFFECT_KIND.ACTOR_RELATIONSHIP:
     case EFFECT_KIND.CONCEAL_FROM_OBSERVERS:
     case EFFECT_KIND.REMOVE_FROM_PLAY:
@@ -464,7 +462,7 @@ function compileLifecycle(
       if (
         invocation.kind === 'PASSIVE' ||
         invocation.reactionTrigger ||
-        offer.activation === 'FREE' ||
+        (offer.activation === 'FREE') !== (offer.usesPerTurn !== undefined) ||
         offer.activation === 'REACTION'
       )
         throw new Error(
@@ -481,7 +479,8 @@ function compileLifecycle(
         },
         ...(offer.target ? { target: offer.target } : {}),
         ...(offer.origin ? { origin: offer.origin } : {}),
-        ...(offer.castTurnUse ? { castTurnUse: offer.castTurnUse } : {})
+        ...(offer.castTurnUse ? { castTurnUse: offer.castTurnUse } : {}),
+        ...(offer.usesPerTurn === undefined ? {} : { usesPerTurn: offer.usesPerTurn })
       }
     })
   }

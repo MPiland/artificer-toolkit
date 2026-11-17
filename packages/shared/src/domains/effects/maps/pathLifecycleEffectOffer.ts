@@ -28,9 +28,10 @@ const PATH_LIFECYCLE_EFFECT_OFFER_RANGE_NODE_MAP: NodeMap<
 export const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['effectOffers']>[number]
 > = pathLifecycleEffectOffer.define('pathLifecycleEffectOffer', ({ map, nodes, cond }) => {
-  const { selectSingle, selectMulti, groupObject } = nodes
+  const { selectSingle, selectMulti, groupObject, number } = nodes
   const isMove = cond.local().field(['kind']).eq('MOVE_HELD_EFFECT')
   const isRepeat = cond.local().field(['kind']).eq('REPEAT_SOURCE_PATH')
+  const isFree = cond.local().field(['activation']).eq('FREE')
 
   map
     .set(
@@ -145,10 +146,20 @@ export const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
         'Costs',
         {
           kind: 'INLINE_OPTIONS',
-          options: ACTIVATION_OPTIONS.filter(({ code }) => code !== 'REACTION' && code !== 'FREE')
+          // Only a repeat counting its uses per turn is free; the schema rejects any other free offer.
+          options: ACTIVATION_OPTIONS.filter(({ code }) => code !== 'REACTION')
         },
         { requiredIf: true }
       )
+    )
+    .set(
+      'usesPerTurn',
+      number(['usesPerTurn'], 'Uses Per Turn', {
+        requiredIf: isFree,
+        showIf: isFree,
+        hiddenBehavior: 'CLEAR',
+        constraints: { minimum: 1, maximum: 10 }
+      })
     )
     .set(
       'castTurnUse',
