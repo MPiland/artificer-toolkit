@@ -113,7 +113,9 @@ export function buildCharacterGrantFoldProficiencyFacts(
       // The authored category is an identifier the node map limits to equipment categories; the fold
       // does not parse its input, so it is narrowed where it enters.
       category:
-        grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY && grant.category != null
+        (grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT ||
+          grant.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY) &&
+        grant.category != null
           ? equipmentCategoryCodeSchema.parse(grant.category)
           : null,
       scaling: grant.level === 'DOUBLE' ? 'DOUBLE' : grant.level === 'HALF' ? 'HALF' : 'FULL'

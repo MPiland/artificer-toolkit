@@ -29,10 +29,11 @@ export function formatProficiencyKind(kind: string): string {
   }
 }
 
-function formatAllProficiencyLabel(kind: string): string {
+function formatAllProficiencyLabel(proficiency: CharacterRuleProficiency): string {
+  const { kind, category } = proficiency
   switch (kind) {
     case 'EQUIPMENT':
-      return 'All equipment'
+      return category ? `All ${formatCodeLabel(category).toLowerCase()} equipment` : 'All equipment'
     case 'EQUIPMENT_PROPERTY':
       return 'All equipment properties'
     case 'LANGUAGE':
@@ -54,7 +55,7 @@ export function formatProficiencyLabel(params: {
   skillLabels: ReadonlyMap<string, string>
 }): string {
   const { proficiency } = params
-  if (proficiency.subjectId === '*') return formatAllProficiencyLabel(proficiency.kind)
+  if (proficiency.subjectId === '*') return formatAllProficiencyLabel(proficiency)
 
   switch (proficiency.kind) {
     case 'EQUIPMENT':
