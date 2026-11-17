@@ -8,16 +8,19 @@ import { combatPerceptionCapabilityRegistry } from '@artificer-toolkit/rules-run
 import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   requireSceneIlluminationLevel,
+  resolveSceneIlluminationAt,
   SceneBarrierIndex,
   sceneDistanceAsCoordinateLength,
   scenePointInPolygon,
   sceneRangeBand,
   sceneRangeOutline,
+  sceneZoneLight,
   spatialTokensInsideArea,
   type SceneGrid,
   type SceneIlluminationLevel,
   type ScenePoint,
-  type SpatialDirectedAreaSize
+  type SpatialDirectedAreaSize,
+  type SpatialGeometry
 } from '@artificer-toolkit/shared/vtt'
 import { tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import {
@@ -48,6 +51,8 @@ import {
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
   lightRadii,
+  stageZoneLights,
+  zoneLightReach,
   placedZoneColor,
   placedZoneOverlays,
   positionVttMapTiles,
@@ -1375,6 +1380,85 @@ describe('VTT lighting model', () => {
   it('never lets the bright radius exceed the dim reach', () => {
     expect(lightRadii({ brightRadius: 100, dimRadius: 250 })).toEqual({ bright: 100, dim: 250 })
     expect(lightRadii({ brightRadius: 300, dimRadius: 200 })).toEqual({ bright: 300, dim: 300 })
+  })
+
+  describe('placed zone light', () => {
+    const zoneScene = {
+      ...tabletopLiveScene,
+      ambientIllumination: 'ORDINARY_DARKNESS' as const,
+      darknessZones: [],
+      lights: [],
+      tokens: [],
+      barriers: []
+    }
+    const ruleLights = (geometry: SpatialGeometry, radius: number, point: ScenePoint) =>
+      resolveSceneIlluminationAt(
+        { ...zoneScene, zoneLights: [{ geometry, brightRadius: radius, dimRadius: radius }] },
+        point,
+        new SceneBarrierIndex([]),
+        illuminationLevels
+      ).illumination === 'BRIGHT'
+    const drawnLit = (geometry: SpatialGeometry, radius: number, point: ScenePoint) =>
+      zoneLightReach(geometry, radius).some((piece) =>
+        scenePointInPolygon(point, { points: piece })
+      )
+
+    it.each<[string, SpatialGeometry]>([
+      ['circle', { kind: 'CIRCLE', center: { x: 300, y: 300 }, radius: 50 }],
+      ['ring', { kind: 'RING', center: { x: 300, y: 300 }, outerRadius: 160, innerRadius: 100 }],
+      [
+        'concave polygon',
+        {
+          kind: 'POLYGON',
+          points: [
+            { x: 150, y: 150 },
+            { x: 450, y: 150 },
+            { x: 450, y: 250 },
+            { x: 250, y: 250 },
+            { x: 250, y: 450 },
+            { x: 150, y: 450 }
+          ]
+        }
+      ]
+    ])('draws the area the rules light within a radius of a %s', (_name, geometry) => {
+      const disagreements: string[] = []
+      for (const radius of [30, 80])
+        for (let x = 0; x <= 600; x += 11)
+          for (let y = 0; y <= 600; y += 11) {
+            const point = { x, y }
+            // Points within 3 of the radius edge are left to the polygon approximation of arcs.
+            if (ruleLights(geometry, radius - 3, point) && !drawnLit(geometry, radius, point))
+              disagreements.push(`${radius}: ${x},${y} lit by the rules but not drawn`)
+            if (!ruleLights(geometry, radius + 3, point) && drawnLit(geometry, radius, point))
+              disagreements.push(`${radius}: ${x},${y} drawn but not lit by the rules`)
+          }
+      expect(disagreements).toEqual([])
+    })
+
+    it('hands the renderer the light each listed zone sheds, converted as the rules convert it', () => {
+      const shape = { kind: 'CIRCLE' as const, center: { x: 240, y: 160 }, radius: 70 }
+      const base = {
+        label: null,
+        spotDc: null,
+        disarmDc: null,
+        destruction: null,
+        unawareActorIds: []
+      }
+      const light = {
+        bright: { amount: 10, unit: 'FEET' as const },
+        dimAdditional: { amount: 20, unit: 'FEET' as const }
+      }
+      const lights = stageZoneLights(
+        [
+          { ...base, id: '13131313-1313-4131-8131-000000000011', shape, light },
+          { ...base, id: '13131313-1313-4131-8131-000000000012', shape }
+        ],
+        tabletopLiveScene.grid
+      )
+      expect(lights).toEqual([sceneZoneLight(shape, light, tabletopLiveScene.grid)])
+      expect(lights[0]!.dimRadius).toBeGreaterThan(lights[0]!.brightRadius)
+      expect(lights[0]!.brightRadius).toBeGreaterThan(0)
+    })
   })
 
   it('clamps a visibility polygon radially without moving points already inside the radius', () => {

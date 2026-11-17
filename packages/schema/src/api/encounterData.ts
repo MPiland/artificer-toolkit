@@ -6,6 +6,7 @@ import {
   reactionSecondsSchema,
   zoneNoticingModeDtoSchema
 } from './campaignSettings.js'
+import { manifestLightDtoSchema } from '../effects/manifest.js'
 import { featureReferenceDtoSchema } from '../features/reference.js'
 import {
   creatureQualifiedDamageDefenseDtoSchema,
@@ -785,7 +786,9 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           layer: z.optional(z.literal(true)),
           unawareActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
           /** The zone waits for the GM to light it (QUALITY-15.T3w); absent when it acts. */
-          unlit: z.optional(z.literal(true))
+          unlit: z.optional(z.literal(true)),
+          /** The light the zone sheds from its whole area, in its authored lengths; absent for none. */
+          light: z.optional(manifestLightDtoSchema)
         })
       )
       .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),

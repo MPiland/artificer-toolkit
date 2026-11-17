@@ -93,7 +93,10 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'placementMustBeUnoccupied',
   'invalidPlacementConsumesInvocation',
   // No antimagic suppression exists, so a zone immune to it is honored as is (D223).
-  'suppressionImmunities'
+  'suppressionImmunities',
+  // What destroys the whole zone (Prismatic Wall's rod of cancellation) is the GM's to apply: the GM
+  // removes the zone's records with `DISARM_ZONE`. Each layer's own criteria are modeled separately.
+  'destructionCriteria'
 ])
 /**
  * The target fact a planner pins `false` when an occupant lacks the sight a zone requires of it, so the
@@ -259,10 +262,12 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
         )
       return { component, behavior: null }
     }
-    // A component that only changes the cost of moving through it (Entangle's difficult terrain)
-    // is met by no creature, so it authors no behavior either (SPELLS-20 T4d).
+    // A component that only changes the cost of moving through it (Entangle's difficult terrain,
+    // SPELLS-20 T4d) or stops creatures crossing its boundary (Wall of Force, D227) is met by no
+    // creature, so it authors no behavior either.
     if (
-      component.movementCostMultiplier !== undefined &&
+      (component.movementCostMultiplier !== undefined ||
+        component.blockingRules?.includes('CREATURE_MOVEMENT')) &&
       !component.interactionKinds?.length &&
       !component.behaviors?.length
     )

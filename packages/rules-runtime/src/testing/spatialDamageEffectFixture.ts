@@ -8,7 +8,7 @@ import {
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
-import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import type { SceneLength, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_DAMAGE_TYPES,
@@ -76,6 +76,8 @@ export async function buildSpatialDamageEffect(input: {
   triggerModes?: ('ENTER' | 'EXIT' | 'CROSS')[]
   /** Whether a Scene-fixed effect is spent by its first trigger; one-shot unless it says otherwise. */
   activation?: 'ONE_SHOT' | 'REPEATABLE'
+  /** The light the zone sheds from its whole area; none unless it says so. */
+  light?: { bright: SceneLength; dimAdditional: SceneLength }
 }) {
   const fire = SRD_DAMAGE_TYPES.find((type) => type.code === 'FIRE')
   if (!fire) throw new Error('The SRD fire damage type is missing.')
@@ -264,7 +266,8 @@ export async function buildSpatialDamageEffect(input: {
         activation: input.activation ?? ('ONE_SHOT' as const),
         visibility: hiddenField ? ('HIDDEN' as const) : ('PUBLIC' as const),
         revealOnTrigger: false,
-        ...(hiddenField && { bypassAtHalfSpeed: true })
+        ...(hiddenField && { bypassAtHalfSpeed: true }),
+        ...(input.light && { light: input.light })
       }
   return { id: input.ids.effectId, definition, lifecycle, placement, spatialState }
 }

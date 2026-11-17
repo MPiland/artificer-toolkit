@@ -8,6 +8,7 @@ import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-be
 import { bladeBarrier } from '@artificer-toolkit/source-data/srd/spells/blade-barrier.js'
 import { passwall } from '@artificer-toolkit/source-data/srd/spells/passwall.js'
 import { wallOfFire } from '@artificer-toolkit/source-data/srd/spells/wall-of-fire.js'
+import { wallOfForce } from '@artificer-toolkit/source-data/srd/spells/wall-of-force.js'
 import { wallOfThorns } from '@artificer-toolkit/source-data/srd/spells/wall-of-thorns.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -405,6 +406,43 @@ describe('the SRD Wall of Thorns drawn as a straight wall (SPELLS-4.T1i)', () =>
     // The 450-unit walk keeps the Wolf's 100-unit footprint over the 100-unit wall for the 200 units
     // its center crosses from 400 to 600, which cost four times as much as the 250 units outside.
     expect(await wolfFeetMoved(room)).toBeCloseTo((plainFeet * (250 + 4 * 200)) / 450)
+  })
+})
+
+/**
+ * QUALITY-15.T3y6b (D227): the SRD Wall of Force blocks creature movement. A creature's walk across
+ * the wall is refused; one around its end is not.
+ */
+describe('the SRD Wall of Force, which no creature walks through (QUALITY-15.T3y6b, D227)', () => {
+  const WALL_OF_FORCE = { spell: wallOfForce, castLabel: 'Wall of Force (5th level)' }
+  /** A 10-foot wall north to south, its northern end 100 units south of the walk around it. */
+  const FORCE_WALL = { kind: 'WALL', from: { x: 500, y: 500 }, to: { x: 500, y: 700 } } as const
+  const ACROSS = { x: 700, y: 600 }
+
+  it('refuses a walk across the wall and lets the creature walk around its end', async () => {
+    const room = await wallRoom(WEST_OF_THE_WALL, WALL_OF_FORCE)
+    const { answer } = await room.startAreaCommand(FORCE_WALL)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const [wall, ...others] = await readZones(room)
+    expect(others).toEqual([])
+    expect(wall?.placement).toMatchObject({
+      label: 'Wall of Force',
+      triggerModes: [],
+      blockingRules: ['CREATURE_MOVEMENT']
+    })
+    await room.advanceTurn()
+
+    const refused = await room.room.move(
+      [WEST_OF_THE_WALL, ACROSS],
+      await room.version(),
+      room.room.scene.version,
+      room.room.scene.tokens[1]!.id,
+      false
+    )
+    expect(refused).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'MOVEMENT_BLOCKED' })
+
+    const around = await walkerMoves(room, [WEST_OF_THE_WALL, { x: 500, y: 400 }, ACROSS])
+    expect(around.terminalPosition).toEqual(ACROSS)
   })
 })
 

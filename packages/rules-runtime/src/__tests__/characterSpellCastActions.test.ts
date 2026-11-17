@@ -2044,8 +2044,15 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
     })
   })
 
-  it('keeps the SRD Prismatic Wall refused until its light rule is built', () => {
-    expect(compiledCastEntry(spell('Prismatic Wall'))).toBeNull()
+  it('compiles the SRD Prismatic Wall with its seven layers and its proximity halo', () => {
+    const entry = compiledCastEntry(spell('Prismatic Wall'))
+    const placement = entry?.compilation.zonePlacement
+    if (!placement || !('options' in placement)) throw new Error('The wall must offer two zones.')
+    for (const { zone } of placement.options) {
+      expect(zone.layerComponents).toHaveLength(6)
+      expect(zone.proximityComponent).toBeDefined()
+      expect(zone.destructionInOrder).toBe(true)
+    }
   })
 })
 
