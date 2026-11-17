@@ -129,7 +129,10 @@ describe('a zone that blinds a creature seeing it for a minute (QUALITY-15.T3v3,
     expect(heldBlindness(run)).toBeNull()
   })
 
-  it('leaves a creature that is already blinded as it is', async () => {
-    expect(heldBlindness(await startOfGoblinTurn({ seesZone: true, blinded: true }))).toBeNull()
+  it('records the blindness a creature already has as its own, so the hold ends with it still blinded', async () => {
+    const held = heldBlindness(await startOfGoblinTurn({ seesZone: true, blinded: true }))
+    expect(held?.definition.stateContributions).toMatchObject([
+      { conditionId: BLINDED, baselinePresent: true }
+    ])
   })
 })
