@@ -335,6 +335,12 @@ function placedZoneRecord(
                           : castSaveDc(input.saveDc)
                     }
                   }
+                : {}),
+              // The save its holder repeats is made against the caster's DC, pinned like the escape's.
+              ...(heldCondition.repeatSave
+                ? {
+                    repeatSave: pinnedHeldRepeatSave(heldCondition.repeatSave, input.saveDc)
+                  }
                 : {})
             }
           }
@@ -410,6 +416,27 @@ function pinnedOccupantSaveBonus(
 function castSaveDc(saveDc: number | null): number {
   if (saveDc === null) throw new Error('A zone that uses its user’s save DC needs it resolved.')
   return saveDc
+}
+
+/** A held condition's repeated save as placed: its graph compiled, the caster's DC pinned into its facts. */
+function pinnedHeldRepeatSave(
+  {
+    frozenGraph,
+    capabilityContractVersion,
+    castSaveDcFactKey,
+    adapterFacts,
+    ...repeatSave
+  }: NonNullable<NonNullable<CompiledActionZonePlacement['heldCondition']>['repeatSave']>,
+  saveDc: number | null
+) {
+  return {
+    ...repeatSave,
+    frozenGraph: compileEffectGraph(frozenGraph, capabilityContractVersion),
+    adapterFacts: {
+      ...adapterFacts,
+      ...(castSaveDcFactKey ? { [castSaveDcFactKey]: castSaveDc(saveDc) } : {})
+    }
+  }
 }
 
 /** Where a zone sits: fixed at the picked point, or on its user's token and moving with it. */

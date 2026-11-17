@@ -35,7 +35,10 @@ import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import { fixedOutcomeGraphDefinition } from './effectActionFixedOutcomeGraph.js'
 import { durationPublishedGraph, maintenancePlan } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
+import { repeatSaveFailureDamageRows } from './effectActionNestedSave.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
+import { repeatSaveEffectPlan } from './effectActionRepeatSavePlan.js'
+import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
 import { boundedTestOutcome, specializedTestOutcome } from './effectActionTestOutcomes.js'
 import { compileTestDefinition, withMovementInterruption } from './effectActionTestPhase.js'
 import {
@@ -579,16 +582,28 @@ function zoneComponentPlan(
   const [grant] = singles.grant
   const [condition] = singles.condition
   const [lostAction] = singles.lostAction
-  const composed = Object.values(singles).reduce((count, list) => count + list.length, 0)
+  const repeats = outcomeEntries('FOLLOW_UP_SAVE')
+  const composed =
+    Object.values(singles).reduce((count, list) => count + list.length, 0) + repeats.length
   if (
     failEntries.length === 0 ||
     Object.values(singles).some((list) => list.length > 1) ||
+    repeats.length > 1 ||
     damageRows.length + composed !== failEntries.length ||
     madeEntries.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'DAMAGE')
   )
     unsupported(
-      'A placed zone failure composes damage with at most one stop, grant, condition and lost action; a made save only deals damage.'
+      'A placed zone failure composes damage with at most one stop, grant, condition, lost action and repeated save; a made save only deals damage.'
     )
+  // The repeated save is the one its failure's condition runs on its holder (D146), alone.
+  if (
+    repeats.length > 0 &&
+    (!condition ||
+      damageRows.length + singles.stop.length + singles.grant.length + singles.lostAction.length >
+        0 ||
+      madeEntries.length > 0)
+  )
+    unsupported('A placed zone repeated save repeats the one condition its failure holds.')
   if (
     condition &&
     'outcome' in condition &&
@@ -609,7 +624,12 @@ function zoneComponentPlan(
   const proposed =
     damageRows.length > 0 ? zoneDamageRow(damageRows, action.spellCastLevel) : condition
   const besideDamage = damageRows.length > 0 ? condition : undefined
-  const heldCondition = condition ? zoneHeldCondition(condition) : null
+  const heldCondition = condition
+    ? zoneHeldCondition(
+        condition,
+        repeats.length > 0 ? zoneHeldRepeatSave(action, failEntries, condition.entryId) : null
+      )
+    : null
   const primary = proposed ?? lostAction ?? grant ?? stop
   const madeDamageRows =
     madeEntries.length > 0 ? [zoneDamageRow(madeEntries, action.spellCastLevel)] : []
@@ -683,10 +703,17 @@ function zoneComponentPlan(
   )
     unsupported('A placed zone grant must last until its end event.')
   const maintenance = maintenancePlan(action, primary)
-  // A held condition ends with its zone through the zone's maintenance, which nothing else ends. A
-  // zone with no duration stands until the Encounter ends, so it holds until the escape or leaving.
+  // A held condition ends with its zone through the zone's maintenance, which nothing else ends,
+  // unless its holder's turns or its repeated save end it. A zone with no duration stands until the
+  // Encounter ends, so it holds until the escape or leaving.
   const timedZone = 'duration' in zone.entry && zone.entry.duration !== undefined
-  if (heldCondition && !heldCondition.holderTurns && !maintenance && timedZone)
+  if (
+    heldCondition &&
+    !heldCondition.holderTurns &&
+    !heldCondition.repeatSave &&
+    !maintenance &&
+    timedZone
+  )
     unsupported('A zone-held condition needs a Concentration-maintained or untimed zone.')
   if (heldCondition?.escape && !zone.label)
     unsupported('A zone-held condition escape names its zone.')
@@ -718,14 +745,59 @@ function zoneComponentPlan(
   }
 }
 
+type ZoneHeldCondition = NonNullable<CharacterRuleActionZonePlacementPlan['heldCondition']>
+
+/**
+ * The save a zone-held condition repeats on its holder (Prismatic Wall's Indigo and Violet layers):
+ * the effect the repeated save plans for any failed save's condition, frozen with its graph. Its
+ * failure may only continue, end the effect on a condition, or leave GM rulings; failure damage or
+ * repeat triggers would need a graph the zone does not freeze.
+ */
+function zoneHeldRepeatSave(
+  action: Dnd5eCompiledEffectActionSource,
+  failEntries: CompiledEffectGroup['entries'],
+  conditionEntryId: string
+): NonNullable<ZoneHeldCondition['repeatSave']> {
+  // A zone's result blocks carry no compiled identity of their own; its condition entry does.
+  const plan = repeatSaveEffectPlan(action, failEntries, 'SAVING_THROW', conditionEntryId)
+  const save = failEntries.flatMap((entry) =>
+    'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE' ? [entry.outcome] : []
+  )[0]
+  if (
+    !plan ||
+    !save ||
+    plan.recurrenceStage === 'NONE' ||
+    plan.initialRemaining === null ||
+    plan.lifecycle ||
+    plan.conditionContributions?.length !== 1 ||
+    plan.conditionContributions[0]?.fleesSource ||
+    repeatSaveFailureDamageRows(save) !== null
+  )
+    unsupported('A placed zone repeated save holds one condition and deals no damage.')
+  return {
+    compiledEntryId: plan.compiledEntryId,
+    frozenGraphNodeId: plan.frozenGraphNodeId,
+    frozenGraph: repeatFollowUpSavePublishedGraph({ action, plan }),
+    capabilityContractVersion: plan.capabilityContractVersion,
+    adapterFacts: plan.adapterFacts,
+    castSaveDcFactKey: plan.castSaveDcFactKey ?? null,
+    recurrenceStage: plan.recurrenceStage,
+    anchor: plan.tickAnchor ?? 'HOLDER',
+    initialRemaining: plan.initialRemaining,
+    ...(plan.saveThresholds ? { saveThresholds: plan.saveThresholds } : {})
+  }
+}
+
 /**
  * The condition a zone holds on a creature failing its save (D146), or null when it is unheld. An
  * unheld condition carries none of the held terms (the result's other lifecycle is its grant's); a
- * held one ends with its zone, and when authored on leaving the area or through its escape.
+ * held one ends with its zone, and when authored on leaving the area or through its escape. One
+ * whose holder repeats a save ends through that save, and nothing else it authors.
  */
 function zoneHeldCondition(
-  entry: CompiledEffectGroup['entries'][number]
-): NonNullable<CharacterRuleActionZonePlacementPlan['heldCondition']> | null {
+  entry: CompiledEffectGroup['entries'][number],
+  repeatSave: ZoneHeldCondition['repeatSave'] | null
+): ZoneHeldCondition | null {
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'CONDITION')
     unsupported('A placed zone condition is a direct condition outcome.')
   const {
@@ -744,6 +816,17 @@ function zoneHeldCondition(
   const leavesArea = leavingArea.some(Boolean)
   const unread =
     turnAnchor !== undefined || Object.values(otherLifecycle).some((value) => value !== undefined)
+  if (repeatSave) {
+    if (heldBySource || unread || escape || endTriggers.length > 0 || entry.duration)
+      unsupported(
+        'A placed zone condition its holder repeats a save against has no other lifecycle.'
+      )
+    return {
+      conditionId: entry.outcome.conditionId,
+      repeatSave,
+      ...(entry.outcome.recordsSource ? { recordsSource: true as const } : {})
+    }
+  }
   if (!heldBySource) {
     if (leavesArea || escape)
       unsupported('A placed zone condition that its zone does not hold has no leave or escape.')

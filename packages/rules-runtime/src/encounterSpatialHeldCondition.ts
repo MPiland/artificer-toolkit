@@ -14,7 +14,9 @@ const SPATIAL_HELD_CONDITION_NAMESPACE = '8e3c1f52-6a0d-4b7e-a9c4-2d5f7b1e0c93'
  * The effect through which a zone holds the condition a creature gained by failing its save
  * (D146). It owns the condition for the zone: it carries the zone's maintenance, so it ends with
  * the zone's Concentration, ends when the creature leaves the area if the zone says so, and offers
- * the zone's escape. The zone's frozen graph is only its provenance. Null when the zone holds no
+ * the zone's escape. The zone's frozen graph is only its provenance, unless the holder repeats a
+ * save against the condition: then the effect is that repeated save's, counted as any other
+ * (Indigo's three failures, Violet's save at its source's next turn). Null when the zone holds no
  * condition, the save did not apply it (the creature resisted or is immune), or the zone already
  * holds it on the creature.
  */
@@ -45,6 +47,9 @@ export function planSpatialHeldCondition(input: {
     )
   )
     return null
+  // A condition its holder repeats a save against is counted by that save's own graph, not the zone's.
+  const repeat = held.repeatSave
+  const remaining = repeat?.initialRemaining ?? held.holderTurns
   return {
     id: uuidv5(
       `${input.occurrenceId}:${input.sourceCommandId}:${zone.id}:${input.targetActorId}`,
@@ -62,22 +67,27 @@ export function planSpatialHeldCondition(input: {
         sourceActorId: zone.definition.origin.sourceActorId
       },
       authoredEffectId: zone.definition.authoredEffectId,
-      compiledEntryId: zone.definition.compiledEntryId,
-      frozenGraphNodeId: zone.definition.frozenGraphNodeId,
-      frozenGraph: zone.definition.frozenGraph,
-      adapterFacts: {},
+      compiledEntryId: repeat?.compiledEntryId ?? zone.definition.compiledEntryId,
+      frozenGraphNodeId: repeat?.frozenGraphNodeId ?? zone.definition.frozenGraphNodeId,
+      frozenGraph: repeat?.frozenGraph ?? zone.definition.frozenGraph,
+      adapterFacts: repeat?.adapterFacts ?? {},
       perceptionContributions: [],
       recurrence: {
-        recurrenceStage: held.holderTurns ? 'END_OF_TURN' : 'NONE',
-        anchor: 'HOLDER',
+        recurrenceStage: repeat?.recurrenceStage ?? (held.holderTurns ? 'END_OF_TURN' : 'NONE'),
+        anchor: repeat?.anchor ?? 'HOLDER',
         endTriggers: held.endsOnLeavingArea
           ? [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LEAVING_AREA' }]
           : [],
         endOnConditionIds: [],
         holderEnd: null,
+        ...(repeat?.saveThresholds ? { saveThresholds: repeat.saveThresholds } : {}),
         lifetimeScope: 'ENCOUNTER',
-        expiration: held.holderTurns
-          ? { kind: 'TICKS', initialRemaining: held.holderTurns, decrementStage: 'END_OF_TURN' }
+        expiration: remaining
+          ? {
+              kind: 'TICKS',
+              initialRemaining: remaining,
+              decrementStage: repeat?.recurrenceStage ?? 'END_OF_TURN'
+            }
           : { kind: 'INDEFINITE' }
       },
       stateContributions: [
@@ -101,7 +111,7 @@ export function planSpatialHeldCondition(input: {
           : [])
       ]
     }),
-    lifecycle: { schemaVersion: 1 as const, remainingTicks: held.holderTurns ?? null }
+    lifecycle: { schemaVersion: 1 as const, remainingTicks: remaining ?? null }
   }
 }
 

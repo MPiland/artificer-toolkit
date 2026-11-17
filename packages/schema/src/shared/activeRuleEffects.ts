@@ -74,7 +74,7 @@ export const MAX_MAINTENANCE_CLEANUP_REMOVED_EFFECTS =
 export const MAX_MAINTENANCE_CLEANUP_CHARACTER_TRANSITIONS =
   MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
 
-const activeEffectFactsSchema = lazySchema(() =>
+export const activeEffectFactsSchema = lazySchema(() =>
   z
     .record(capabilityKeySchema, ruleValueDtoSchema)
     .check(

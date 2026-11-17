@@ -1734,6 +1734,17 @@ condition-ownership effect that expires after that many of the holder's turns (t
 `endsAtEndOfHolderTurn`, which was `holderTurns` of 1). This is the held condition's own expiry, distinct from a
 zone's duration (`withZoneDuration`, QUALITY-15.T3ag), which ends the zone.
 
+**A held condition the holder repeats a save against (QUALITY-15.T3v6, D146, current).** A zone component that
+authors a condition with one `FOLLOW_UP_SAVE` (and no damage, stop, grant or lost-action entry) holds it through that
+repeated save: `zoneHeldRepeatSave` calls `repeatSaveEffectPlan` (`effectActionRepeatSavePlan.ts`, the plan Flesh to
+Stone, Contagion and Hold Person already compile through; it lives apart from `effectActionCompiler.ts` because the zone
+compiler cannot import it) and carries the plan, its published graph and the cast-DC fact key on
+`heldCondition.repeatSave`. At placement `pinnedHeldRepeatSave` compiles the graph and pins the caster's DC into
+`adapterFacts`; `planSpatialHeldCondition` then builds the held effect from it (its own recurrence stage, anchor, save
+thresholds and tick count) beside the same condition ownership and escape. Indigo (three failures petrify, three
+successes free, not consecutive) holds at the holder's turn end; Violet holds until the source's next turn start, and its
+failed save is the plan's MANUAL_ADJUDICATION ruling (plane shift is a GM ruling).
+
 **Destroying a layer (QUALITY-15.T3v2, D223, current).** A layered zone's component may author `destructionCriteria`;
 the compiler (`placedSpaceZone`) accepts them only on a layered zone whose manifest authors
 `destroyedComponentsRemainDestroyed`, and `destructionMustResolveInOrder` becomes the plan's `destructionInOrder`. Each layer
