@@ -255,6 +255,14 @@ beasts of challenge rating 6 or lower, all fey) use it. GM rulings: which elemen
 creature's 1-hour limit, and the higher slots' challenge rating. A carrier that lapses at its full hour also releases
 rather than removes the creature.
 
+**Flaming Sphere (current, QUALITY-15.T3y5).** The sphere compiles through data alone as a Concentration-held placed
+zone: a 15-foot cube centered on the sphere's square (the space within 5 feet of it) whose one `END_TURN_IN_SPACE`
+component makes a Dexterity save against the caster's DC for the scaled fire damage, halved on a success. Entering the
+area does nothing. Moving the sphere (and Moonbeam's beam) needs a zone-move command that does not exist yet (target, a
+follow-up slice); until then the zone stays where it was placed. GM rulings, not authored: the ram (a creature the sphere is moved into saves and the move
+stops), steering over barriers and pits, igniting unattended flammable objects, the bright and dim light, and the
+unoccupied-space placement rule.
+
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
 save, a timed condition, grant, link, form or GM ruling, a relationship, a recurring result, then a concealment. The compiler
@@ -1522,9 +1530,11 @@ the zones' applications, persistence checks them against `targetStateAfterEndedE
 `deleteGrants`. Occupant save auras lend bonuses and deal no damage. A move's contacts do not pass `damageEnds`: what their
 damage ends and gives settles at each contact, before its saves, as `DAMAGE_END` and `DAMAGE_GRANT` steps ("Movement
 damage ends", D220).
-A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
-`heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
-decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.
+A zone condition the zone does not hold may author a timed duration (`conditionDurationTurns`, MINUTE 1 = 10 turns) or
+`turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to `heldCondition.holderTurns`, and
+`planSpatialHeldCondition` plans a ticking effect whose remaining count the holder's own turn-end decrement runs down,
+independent of the zone's lifetime. `recordsSource` names the zone's source on the condition. This is the held condition's
+own expiry; QUALITY-15.T3ag's `withZoneDuration` is the separate zone-duration mechanism.
 The multiplier applies to every mover for the footprint share of the walk inside the zone: `preparedMovementCost`
 gives `measureScenePathMovementCost` a segment multiplier (`spatialSegmentMovementMultiplier`), so each stretch of
 a segment costs the highest of the terrain multiplier, the multipliers of the zones the footprint is inside, and
@@ -1687,6 +1697,23 @@ the whole zone (`definition`, `lifecycle`, `placement`, `spatialState`) and the 
 (`igniteZone`); a lit zone is `TARGET_UNAVAILABLE`. It shares the `before`/`after` receipt and `revertZoneState` undo, which
 puts the zone out again. The zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
 GM-only in `placedZones`, including for a player who was shown the zone. A botched disarm is the GM's call.
+
+**A proximity rule (QUALITY-15.T3v3, D223, current).** A `PLACED_SPACE` zone may author a `proximityRule`: a behavior
+that acts on a creature within `distance` of the zone. It compiles to `zonePlacement.proximityComponent` (the `reach`,
+plus a record plan like a layer's: its own label, trigger, `requiredSight` and frozen entry). The Worker places it as one
+more record on the zone's anchor (`planEncounterZoneProximity`), a `FIXED` / `SCENE_ABSOLUTE` halo whose geometry is the
+zone's area grown by the reach (`expandedAreaGeometry`; a cube's or wall's corners stay square, so the halo reaches a
+little past the reach there), named on the root and ended with the zone like a layer. Only `START_TURN` is supported:
+a rule that also acts on `MOVE_WITHIN` is refused at compile until the movement path reads sight (QUALITY-15.T3v3b).
+`requiresSight` becomes the `requiredSight` value `OCCUPANT_SEES_ZONE`: at a turn boundary the Worker's `loadPointSight`
+(`readNativeLivePointSight` at the zone's anchor point) says whether the occupant sees the zone, and a creature that
+does not succeeds on the save unrolled, like the source-sight values. A zone placed for the turn path has a fixed
+point to see; a zone that follows its source is refused for this value. A condition a failed save applies for a
+duration is held for it generically: `zoneHeldCondition` turns an authored condition duration into
+`heldCondition.holderTurns` (a minute is 10 of the holder's turns), and `planSpatialHeldCondition` makes a
+condition-ownership effect that expires after that many of the holder's turns (this replaces the old
+`endsAtEndOfHolderTurn`, which was `holderTurns` of 1). This is the held condition's own expiry, distinct from a
+zone's duration (`withZoneDuration`, QUALITY-15.T3ag), which ends the zone.
 
 **Destroying a layer (QUALITY-15.T3v2, D223, current).** A layered zone's component may author `destructionCriteria`;
 the compiler (`placedSpaceZone`) accepts them only on a layered zone whose manifest authors

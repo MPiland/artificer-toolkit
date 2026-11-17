@@ -21,7 +21,6 @@ const DESCRIPTION_ONLY_SPELLS = [
   'Meld into Stone',
   'Mislead',
   'Nondetection',
-  'Passwall',
   'Prestidigitation',
   'Private Sanctum',
   'Programmed Illusion',

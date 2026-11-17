@@ -14,7 +14,6 @@ const DAMAGE_NOT_AUTHORED: Readonly<Record<string, string>> = {
   'Control Water': 'MANUAL_ADJUDICATION: the whirlpool is not authored',
   'Delayed Blast Fireball': 'MANUAL_ADJUDICATION: the detonation is not authored',
   Earthquake: 'ZONE manifest without damage',
-  'Flaming Sphere': 'MANUAL_ADJUDICATION: the sphere is not authored',
   'Glyph of Warding': 'MANUAL_ADJUDICATION: the glyph trigger is not authored',
   'Storm of Vengeance': 'MANUAL_ADJUDICATION: the storm is not authored',
   Symbol: 'MANUAL_ADJUDICATION: the glyph trigger is not authored',

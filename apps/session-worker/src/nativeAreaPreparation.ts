@@ -51,7 +51,8 @@ import {
   evaluateEncounterCasterCenteredAreaTarget,
   evaluateEncounterDirectedAreaTarget,
   evaluateEncounterSummonTarget,
-  evaluateEncounterZoneTarget
+  evaluateEncounterZoneTarget,
+  zoneAimedPoints
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import type { FacingRule } from '@artificer-toolkit/rules-runtime/optionalCombatPolicyCapability'
@@ -339,14 +340,7 @@ export async function prepareAreaScene(
       sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
       capture
     })) === 'SEES'
-  const aimedPoints =
-    target.kind === 'POINT'
-      ? [target.point]
-      : target.kind === 'WALL'
-        ? [target.from, target.to]
-        : target.kind === 'RING'
-          ? [target.center]
-          : []
+  const aimedPoints = zoneAimedPoints(zone?.shape.shapeKind ?? null, target)
   const summonBody = await readSummonBody(input, summonPlacement)
   const summonArea =
     summonBody && target.kind === 'POINT'
@@ -452,6 +446,7 @@ export async function prepareAreaScene(
           shape: area.shape,
           regions: 'regions' in area ? area.regions : [],
           distanceStep: 'distanceStep' in area ? area.distanceStep : undefined,
+          proximityReach: 'proximityReach' in area ? area.proximityReach : undefined,
           sourceToken: scene.sourceToken ?? null,
           unaffectedActorIds
         }
