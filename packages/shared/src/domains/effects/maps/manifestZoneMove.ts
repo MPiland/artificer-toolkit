@@ -30,6 +30,5 @@ export const MANIFEST_ZONE_MOVE_NODE_MAP = manifestZoneMove.define(
           requiredIf: true
         })
       )
-      .set('rams', nodes.toggle(['rams'], 'Rams Creatures'))
   }
 )

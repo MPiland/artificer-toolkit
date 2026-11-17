@@ -108,8 +108,7 @@ describe('a caster moving its Flaming Sphere (QUALITY-15.T3y8)', () => {
     const zone = await castZone(await zoneRoom(flamingSphere, castLabel))
     expect(zone.placement.move).toEqual({
       activation: 'BONUS_ACTION',
-      maxDistance: { amount: 30, unit: 'FEET' },
-      rams: true
+      maxDistance: { amount: 30, unit: 'FEET' }
     })
   }, 120000)
 
