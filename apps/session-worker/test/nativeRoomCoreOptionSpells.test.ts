@@ -44,7 +44,7 @@ import { findFamiliar } from '@artificer-toolkit/source-data/srd/spells/find-fam
 import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
-import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
+import { wordOfRecall } from '@artificer-toolkit/source-data/srd/spells/word-of-recall.js'
 import { animateObjects } from '@artificer-toolkit/source-data/srd/spells/animate-objects.js'
 import { conjureAnimals } from '@artificer-toolkit/source-data/srd/spells/conjure-animals.js'
 import { conjureFey } from '@artificer-toolkit/source-data/srd/spells/conjure-fey.js'
@@ -1949,11 +1949,8 @@ describe('room per-slot summon counts (QUALITY-15.T3x2c)', () => {
   const FEY = creatureTypeId('FEY')
   const POINT = { x: 150, y: 250 }
   const OGRE_ID = testUuid(0xa38)
-  const slotRoom = (
-    spell: typeof conjureAnimals | typeof animateObjects,
-    label: string,
-    characterClass?: typeof bard
-  ) =>
+  /** The room's slots reach the highest spell level its Class publishes, so a 6th-level spell gives a 6th-level slot. */
+  const slotRoom = (spell: typeof conjureAnimals | typeof animateObjects, label: string) =>
     actionRoom({
       autoRoll: 'BOTH',
       rolls: [18, ...Array.from({ length: 30 }, (_, index) => (index % 2 === 0 ? 14 : 1))],
@@ -1962,8 +1959,8 @@ describe('room per-slot summon counts (QUALITY-15.T3x2c)', () => {
         casterActor(),
         srdCreatureActor({ id: OGRE_ID, creature: seededSrdCreature('Ogre') })
       ],
-      characterPlay: { classLevel: 11, ...(characterClass && { characterClass }) },
-      characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+      characterPlay: { classLevel: 11 },
+      characterSpellcasting: { spells: [spell, wordOfRecall], prepared: [spell.id] },
       characterAction: (action) => action.label === label,
       formCreatures: [applyCreatureAttackRolls(wolf)],
       initiativePolicy: initiativePolicySnapshot({
@@ -2005,12 +2002,12 @@ describe('room per-slot summon counts (QUALITY-15.T3x2c)', () => {
   }, 120000)
 
   it('lets a 6th-level Animate Objects slot animate two more objects than a 5th-level one', async () => {
-    const lowest = await slotRoom(animateObjects, 'Animate Objects (5th level)', bard)
+    const lowest = await slotRoom(animateObjects, 'Animate Objects (5th level)')
     expect(await refusedWith(lowest, { formId: mediumForm.id, count: 6 })).toContain(
       'conjured 5 at most'
     )
 
-    const higher = await slotRoom(animateObjects, 'Animate Objects (6th level)', bard)
+    const higher = await slotRoom(animateObjects, 'Animate Objects (6th level)')
     expect(await refusedWith(higher, { formId: mediumForm.id, count: 7 })).toContain(
       'conjured 6 at most'
     )
