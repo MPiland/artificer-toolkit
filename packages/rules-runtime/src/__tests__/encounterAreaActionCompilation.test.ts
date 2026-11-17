@@ -923,9 +923,6 @@ describe('area ruling compilation from the SRD (QUALITY-15.T3m)', () => {
 
   // Each area row that stays refused, with why it stays refused.
   it.each([
-    // A passage aimed into a surface from a point within range is a line placed away from its
-    // caster: the room aims a line only from its caster.
-    ['Passwall', 'D&D area shape is not one its range places.'],
     // The warded area is "shaped as you desire": the SRD gives it no shape.
     ['Guards and Wards', "D&D area outside its user's own space must name its shape."],
     // Find Traps' "within range" is a sphere centered on its caster (QUALITY-15.T3ac3, above).
@@ -934,6 +931,11 @@ describe('area ruling compilation from the SRD (QUALITY-15.T3m)', () => {
     ['Create Undead', "D&D area outside its user's own space must name its shape."]
   ])('still refuses %s', (label, reason) => {
     expect(() => compile({}, spellEffect(label))).toThrow(reason)
+  })
+
+  it('compiles Passwall to a placed line zone aimed from a point within range', () => {
+    // A line from the caster (Self range) stays a directed area: see the directed describe above.
+    expect(() => compile({}, spellEffect('Passwall'))).not.toThrow()
   })
 
   it('refuses an area that tests no one when its outcome is not a GM ruling', () => {

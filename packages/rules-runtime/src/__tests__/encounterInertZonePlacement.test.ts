@@ -85,6 +85,14 @@ describe('the zones the SRD sizes in prose (QUALITY-15.T3o)', () => {
         thickness: { amount: 6, unit: 'INCHES' }
       }
     ],
+    [
+      'Passwall',
+      {
+        shapeKind: 'LINE',
+        length: { amount: 20, unit: 'FEET' },
+        width: { amount: 5, unit: 'FEET' }
+      }
+    ],
     ['Gate', { shapeKind: 'CIRCLE', radius: { amount: 10 } }],
     [
       'Magnificent Mansion',

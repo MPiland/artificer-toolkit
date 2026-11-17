@@ -3042,6 +3042,46 @@ describe('a zone that acts per distance moved inside it (SPELLS-4.T1h, D156)', (
     expect(() => place(undefined)).toThrow('per distance moved')
   })
 
+  describe('a line aimed from a point within range (Passwall, QUALITY-15.T3ac2)', () => {
+    const entry = compiledCastEntry(spell('Passwall'))
+    const zone = entry?.compilation.zonePlacement
+    if (!entry?.targetPolicy || !zone || 'options' in zone)
+      throw new Error('Passwall places one line zone.')
+    const feetGrid = {
+      kind: 'SQUARE' as const,
+      cellSize: 100,
+      diagonalPolicy: 'EQUAL' as const,
+      distancePerCell: 5,
+      origin: { x: 0, y: 0 },
+      unit: 'FEET' as const
+    }
+    const aimed = (from: { x: number; y: number }, to: { x: number; y: number }) =>
+      evaluateEncounterZoneTarget({
+        zone,
+        range: entry.targetPolicy!.range,
+        target: { kind: 'WALL', from, to },
+        grid: feetGrid,
+        sourceToken: { position: { x: 0, y: 0 }, height: 1, width: 1, rotationDegrees: 0 },
+        aimSeen: true
+      })
+
+    it('places the line from an origin in range, whatever range its far end lies at', () => {
+      // 30 feet is 600 units: the origin is in range though the far end, 20 feet on, is not.
+      const placed = aimed({ x: 500, y: 0 }, { x: 500, y: 400 })
+      expect(placed).toMatchObject({ shape: { kind: 'WALL' }, warnings: [] })
+    })
+
+    it('warns when the origin is out of range, however near the far end is', () => {
+      const placed = aimed({ x: 800, y: 0 }, { x: 500, y: 0 })
+      if (!('warnings' in placed)) throw new Error('A far origin still places, with a warning.')
+      expect(placed.warnings.map((warning) => warning.code)).toEqual(['TARGET_OUT_OF_RANGE'])
+    })
+
+    it('refuses a line longer than the passage is deep', () => {
+      expect(aimed({ x: 500, y: 0 }, { x: 500, y: 500 })).toEqual({ refusal: 'AREA_TOO_LARGE' })
+    })
+  })
+
   it.each([
     [
       'a turn trigger',

@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
 import { bladeBarrier } from '@artificer-toolkit/source-data/srd/spells/blade-barrier.js'
+import { passwall } from '@artificer-toolkit/source-data/srd/spells/passwall.js'
 import { wallOfFire } from '@artificer-toolkit/source-data/srd/spells/wall-of-fire.js'
 import { wallOfThorns } from '@artificer-toolkit/source-data/srd/spells/wall-of-thorns.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -404,6 +405,69 @@ describe('the SRD Wall of Thorns drawn as a straight wall (SPELLS-4.T1i)', () =>
     // The 450-unit walk keeps the Wolf's 100-unit footprint over the 100-unit wall for the 200 units
     // its center crosses from 400 to 600, which cost four times as much as the 250 units outside.
     expect(await wolfFeetMoved(room)).toBeCloseTo((plainFeet * (250 + 4 * 200)) / 450)
+  })
+})
+
+/**
+ * QUALITY-15.T3ac2: the SRD Passwall, cast at a point within 30 feet and a direction. Range and sight
+ * are measured at the point it opens from, and the line runs 20 feet along the direction drawn.
+ */
+describe('the SRD Passwall aimed from a point and a direction (QUALITY-15.T3ac2)', () => {
+  const PASSWALL = { spell: passwall, castLabel: 'Passwall (5th level)' }
+  /** 350 units (17.5 feet) from the caster, opening 400 units (20 feet) south. */
+  const PASSAGE = { kind: 'WALL', from: { x: 500, y: 150 }, to: { x: 500, y: 550 } } as const
+  /** 750 units (37.5 feet) from the caster: past the 30-foot range. */
+  const BEYOND_RANGE = { kind: 'WALL', from: { x: 900, y: 150 }, to: { x: 900, y: 550 } } as const
+
+  it('opens a 5-foot-wide passage 20 feet long from the point, along the direction drawn', async () => {
+    const room = await wallRoom(WEST_OF_THE_WALL, PASSWALL)
+
+    const { answer } = await room.startAreaCommand(PASSAGE)
+
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const [passage, ...others] = await readZones(room)
+    expect(others).toEqual([])
+    expect(passage?.placement).toMatchObject({
+      anchorKind: 'FIXED',
+      label: 'Passwall',
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: {
+          kind: 'POLYGON',
+          points: [
+            { x: 450, y: 150 },
+            { x: 450, y: 550 },
+            { x: 550, y: 550 },
+            { x: 550, y: 150 }
+          ]
+        }
+      }
+    })
+  })
+
+  it('refuses a point beyond range with the warning, and opens the passage once it is acknowledged', async () => {
+    const room = await wallRoom(WEST_OF_THE_WALL, PASSWALL)
+
+    const refused = await room.startAreaCommand(BEYOND_RANGE)
+    expect(refused.answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'RULE_WARNINGS' })
+    expect(await readZones(room)).toEqual([])
+
+    const opened = await room.startAreaCommand(BEYOND_RANGE, ['TARGET_OUT_OF_RANGE'])
+    expect(opened.answer.type, JSON.stringify(opened.answer)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(room)).toHaveLength(1)
+  })
+
+  it('refuses a passage deeper than 20 feet and leaves no zone', async () => {
+    const room = await wallRoom(WEST_OF_THE_WALL, PASSWALL)
+
+    const { answer } = await room.startAreaCommand({ ...PASSAGE, to: { x: 500, y: 750 } })
+
+    expect(answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'This area is larger than the action allows.'
+    })
+    expect(await readZones(room)).toEqual([])
   })
 })
 
