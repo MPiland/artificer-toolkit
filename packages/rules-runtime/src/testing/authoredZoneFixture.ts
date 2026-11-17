@@ -16,25 +16,30 @@ import { discoverCharacterActionCapabilities } from '../characterActionCapabilit
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { chosenZonePlacement } from '../encounterZonePlacement.js'
 import { testUuid } from './dnd5eSrdEncounter.js'
-import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
 
 const CALTROPS = 'Caltrops (bag of 20)'
 
 /**
- * A Character carrying an item (real SRD Caltrops unless a further authored record is given),
- * compiled through the real policy and entry compiler.
+ * A Character carrying an item (real SRD Caltrops unless another SRD or further authored record is
+ * given), with the action of its first effect, or of the effect named, compiled through the real
+ * policy and entry compiler.
  */
-export function compileItemEntry(equipment?: EquipmentAuthored) {
+export function compileItemEntry(equipment?: EquipmentAuthored, effectId?: string) {
   const label = equipment?.label ?? CALTROPS
   const character = evaluateSrdCharacter({
     abilities: { DEXTERITY: 14 },
     classes: [{ label: 'Fighter', level: 1 }],
     items: [{ label }],
-    ...(equipment ? { extraEquipment: [equipment] } : {})
+    ...(equipment && !SRD.equipment.some(({ id }) => id === equipment.id)
+      ? { extraEquipment: [equipment] }
+      : {})
   })
   const itemInstanceId = character.itemInstanceId(label)
   const candidate = character.facts.actionCandidates.find(
-    (entry) => entry.equipment?.itemInstanceId === itemInstanceId
+    (entry) =>
+      entry.equipment?.itemInstanceId === itemInstanceId &&
+      (effectId === undefined || entry.effectId === effectId)
   )
   if (!candidate) throw new Error('The item must offer an action.')
   const entry = compileCharacterActionEntryPoints({
