@@ -23,6 +23,9 @@ const recoverStorage = makeFunctionReference<'mutation', JsonObject, unknown>(
 const checkpoint = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/checkpoint:publish'
 )
+const chatCheckpoint = makeFunctionReference<'mutation', JsonObject, unknown>(
+  'liveSessions/checkpoint:publishChat'
+)
 const present = makeFunctionReference<'mutation', JsonObject, unknown>(
   'scenes/presentations:setFromRoom'
 )
@@ -83,6 +86,11 @@ export const checkpointHttp = liveStateHttp(
   false,
   'Live Session checkpoint unavailable.',
   (ctx, input) => ctx.runMutation(checkpoint, input)
+)
+export const chatCheckpointHttp = liveStateHttp(
+  false,
+  'Live Session chat checkpoint unavailable.',
+  (ctx, input) => ctx.runMutation(chatCheckpoint, input)
 )
 export const presentHttp = liveStateHttp(
   false,

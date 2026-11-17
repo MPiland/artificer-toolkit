@@ -425,6 +425,7 @@ const HTTP_ROUTE_ACCESS: Record<string, string> = {
   'POST /live-sessions/bootstrap': workerSecretAndUser,
   'POST /live-sessions/capture': workerSecretAndUser,
   'POST /live-sessions/checkpoint': workerSecret,
+  'POST /live-sessions/chat-checkpoint': workerSecret,
   'POST /live-sessions/present': workerSecret,
   'POST /live-sessions/recover-storage': workerSecret,
   'POST /live-sessions/release': workerSecret,

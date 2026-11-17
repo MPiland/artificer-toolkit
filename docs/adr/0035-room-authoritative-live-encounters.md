@@ -610,6 +610,52 @@ Risk accepted: Convex validates and applies a checkpoint in one mutation under i
 and that work grows with the payload. A save near 1 MiB is mostly appended chat and roll records, which
 insert without re-reads (Amendment 27). V15 measures it.
 
+**Amendment 32: a mid-Run backlog save publishes only chat and roll records (PERF-1.T8, D229 step 1).**
+The Run's child rows (replay index, rule occurrences, turn movements, initiative participants, rounds)
+are created per command and dropped at COMPLETE (Amendment 30). A BACKLOG save during an ACTIVE Run
+folded them into a prefix checkpoint, so a later save read each back and deleted it: about 0.84 MB of
+documents (about 1.2 MB billed with index rows) at BACKLOG and 1.43 to 1.51 MB at COMPLETE per fight (V15 runs 44152282986 and 44165616524).
+
+- _Rule._ While any Run is ACTIVE, a BACKLOG save publishes through a private route
+  (`/live-sessions/chat-checkpoint`) only the chat tables and retained rolls of the unsaved journal. It
+  carries no history, scene or Run record and moves no fence: `persistedSequence`,
+  `persistedStateChecksum`, the journal's `publishedSequence` and the checkpoint base stay as the last
+  full save left them, so every recovery check of Amendments 25 to 31 holds unchanged. Out-of-combat
+  BACKLOG saves, and every lifecycle save, stay full prefix saves.
+- _Invariant._ During an ACTIVE Run, Convex chat may lead the Run head and is append-only. A
+  storage-loss rebuild yields the last full save plus that chat.
+- _D90 loss window._ The window is unchanged for the Run: a room lost with its storage returns to the
+  last full save. Chat saved by a chat-only save survives that loss, so the rebuilt room shows chat
+  that is newer than its Run head, and no command is lost that was not already inside the window.
+- _Idempotency._ The Room Durable Object records the chat watermark and the target of an in-flight
+  chat save (`room_chat_publication`) in the same SQLite transaction as its acknowledgement. Convex
+  applies a chat save with the checkpoint validation and skips a record only on an exact
+  `nextChecksum` match; any other mismatch with `previousChecksum` is rejected. A crash between the
+  Convex commit and the acknowledgement therefore retries the same, deterministically recomputed
+  input, and a full save resolves a pending chat save first.
+- _Folding._ A full fold starts from the watermark's chat, so it omits the sealed chat and clears the
+  retained-roll buffer at that point: COMPLETE carries no chat or roll twice and no Run child row that
+  was created and dropped inside the fight. `unsavedChatEntries` counts only chat after the watermark,
+  so the push window frees after each chat save.
+
+- _Splitting._ A full prefix is bounded by `LIVE_SESSION_CHECKPOINT_MAX_CHANGES` as well as bytes
+  (validation cost grows with the change count, and a COMPLETE save already uses 0.86 to 0.98 s of the
+  1 s mutation limit). A prefix may end below the chat watermark: Convex already holds all chat through
+  the watermark, so such a prefix drops the chat-table changes and retained rolls the chat save
+  published, and the fold that reaches the watermark applies the reset as above. An oversize fold
+  therefore splits and publishes whatever the watermark; no single command is forced past it.
+- _Authorization._ The chat route applies the same room authorization-revision tracking and adoption
+  as a full save (`knownAuthorization`).
+- _Storage loss with chat ahead._ A rebuilt room hydrates the chat headers Convex holds, so a re-run
+  command's fold never re-emits them. A command that derived its roll nonce from a stored roll id may
+  create a second card for a command lost with the storage; that duplicate is an accepted edge.
+
+Figures: the BACKLOG save costs about 1.2 MB billed (0.84 MB of documents plus about 380 KB of index
+rows). The modeled fight crosses the push window twice, so a fight saves twice at BACKLOG.
+
+Risk accepted: the COMPLETE fold must still fit its checkpoints (Amendment 31), split by bytes and
+change count. Option C (a Run-only COMPLETE) is PERF-1.T10.
+
 ## Also decided with this ADR
 
 - **Development and tests use the local backend only (Q15 option c).** Development, automated tests, load checks and agents run against the local Docker backend. Cloud deployments are touched only for a deliberate, approved staging smoke check.

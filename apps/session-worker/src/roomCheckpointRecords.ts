@@ -1,4 +1,5 @@
 import {
+  LIVE_SESSION_CHECKPOINT_CHAT_TABLES,
   liveSessionCheckpointKeyFields,
   liveSessionCheckpointHistoryKeyFields,
   liveSessionCheckpointRecordsSchema,
@@ -43,6 +44,9 @@ type CheckpointRecord = {
 function isMutable(table: string): table is LiveSessionCheckpointTable {
   return Object.hasOwn(liveSessionCheckpointKeyFields, table)
 }
+
+const isChat = (table: string) =>
+  (LIVE_SESSION_CHECKPOINT_CHAT_TABLES as readonly string[]).includes(table)
 
 function isHistory(table: string): table is LiveSessionCheckpointHistoryTable {
   return Object.hasOwn(liveSessionCheckpointHistoryKeyFields, table)
@@ -130,19 +134,28 @@ function sceneRecord(record: RoomRecord): SceneRecord {
  * base is the store's acknowledged snapshot, which it validated when hydrating or replaying, so only
  * the rows the entries touch are validated and decoded here: a build costs its range, not the Run's
  * retained history. `entries` is consumed once, so a caller can stream a range page by page.
+ *
+ * `chatPublishedThrough` is the sequence through which a mid-Run chat save already published chat
+ * rows and rolls (ADR 0035 Amendment 32): their changes are measured from the state at that
+ * sequence, and rolls published then are not sent again. `chatOnly` emits just those chat changes
+ * and rolls, as that mid-Run save does.
  */
 export function buildRoomCheckpointRecords({
   documents,
   records,
   fromSequence,
   fromChecksum,
-  entries
+  entries,
+  chatPublishedThrough = 0,
+  chatOnly = false
 }: {
   documents: readonly RoomDocument[]
   records: readonly RoomRecord[]
   fromSequence: number
   fromChecksum: string
   entries: Iterable<LiveSessionCheckpointJournalEntry>
+  chatPublishedThrough?: number
+  chatOnly?: boolean
 }): LiveSessionCheckpointRecords {
   if (!Number.isSafeInteger(fromSequence) || fromSequence < 0)
     throw new Error('Invalid checkpoint base sequence.')
@@ -388,15 +401,22 @@ export function buildRoomCheckpointRecords({
     }
     sequence = entry.sequence
     chain = entry.chainChecksum
+    if (sequence === chatPublishedThrough) {
+      for (const [identity, record] of after) if (isChat(record.table)) before.set(identity, record)
+      retainedRolls.clear()
+    }
   }
 
+  if (sequence < chatPublishedThrough) retainedRolls.clear()
   const changes: LiveSessionCheckpointRecords['changes'] = []
   const identities = [...new Set([...before.keys(), ...after.keys()])].sort()
   for (const identity of identities) {
     const previous = before.get(identity)
     const next = after.get(identity)
     const record = next ?? previous!
-    if (!isMutable(record.table)) continue
+    if (!isMutable(record.table) || (chatOnly && !isChat(record.table))) continue
+    // A prefix that ends before the watermark leaves out chat: Convex holds its later state.
+    if (sequence < chatPublishedThrough && isChat(record.table)) continue
     const previousChecksum = previous ? checksumCanonicalJson(previous.value) : null
     const nextChecksum = next ? checksumCanonicalJson(next.value) : null
     if (previousChecksum === nextChecksum) continue
@@ -408,6 +428,13 @@ export function buildRoomCheckpointRecords({
       delta: next ? (previous ? diffJson(previous.value, next.value) : { set: next.value }) : null
     })
   }
+  if (chatOnly)
+    return liveSessionCheckpointRecordsSchema.parse({
+      changes,
+      history: [],
+      scenes: [],
+      ...(retainedRolls.size ? { retainedRolls: [...retainedRolls.values()] } : {})
+    })
   const sceneIdFor = (row: SceneRecord, rows: ReadonlyMap<string, SceneRecord>): string => {
     let sceneId: unknown = row.value.sceneId
     if (row.table === 'sceneFogChunks') {

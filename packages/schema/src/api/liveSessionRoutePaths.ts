@@ -8,6 +8,7 @@ export const LIVE_SESSION_ROUTE_PATHS = {
   activate: '/live-sessions/activate',
   recoverStorage: '/live-sessions/recover-storage',
   checkpoint: '/live-sessions/checkpoint',
+  chatCheckpoint: '/live-sessions/chat-checkpoint',
   present: '/live-sessions/present',
   beginDrain: '/live-sessions/begin-drain',
   release: '/live-sessions/release'

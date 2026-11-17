@@ -318,6 +318,13 @@ export class RoomEncounterStore {
   #rowsWritten = 0
   /** New chat entries and roll cards in the log beyond the acknowledged snapshot (see `unsavedChatEntries`). */
   #unsavedChatEntries = 0
+  /**
+   * The journal sequence through which chat and rolls are already in Convex, ahead of the last full
+   * checkpoint (0 when none), and the target of a chat save sent but not yet acknowledged
+   * (ADR 0035 Amendment 32). Both live in `room_chat_publication`.
+   */
+  #chatThrough = 0
+  #chatPending: number | null = null
 
   constructor(
     storage: RoomStorage,
@@ -367,6 +374,11 @@ export class RoomEncounterStore {
       json TEXT NOT NULL,
       checksum TEXT NOT NULL,
       chain TEXT NOT NULL
+    )`)
+    this.#exec(`CREATE TABLE IF NOT EXISTS room_chat_publication (
+      singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+      through_sequence INTEGER NOT NULL,
+      pending_sequence INTEGER
     )`)
     try {
       this.#recover()
@@ -430,6 +442,54 @@ export class RoomEncounterStore {
    */
   get unsavedChatEntries() {
     return this.#unsavedChatEntries
+  }
+
+  /** Chat already published beyond the last full checkpoint, and an unacknowledged chat save's target. */
+  get chatPublication() {
+    return { throughSequence: this.#chatThrough, pendingSequence: this.#chatPending }
+  }
+
+  /** Records, before it is sent, the journal sequence a chat save publishes through. */
+  beginChatPublication(sequence: number) {
+    this.#assertClosed()
+    if (
+      sequence <= Math.max(this.#chatThrough, this.#snapshotSequence) ||
+      sequence > this.#sequence
+    )
+      throw new Error('The chat publication is outside the unpublished journal.')
+    this.#storage.transactionSync(() => {
+      this.#exec(
+        'INSERT INTO room_chat_publication (singleton, through_sequence, pending_sequence) VALUES (1, ?, ?) ON CONFLICT (singleton) DO UPDATE SET pending_sequence = excluded.pending_sequence',
+        this.#chatThrough,
+        sequence
+      )
+    })
+    this.#chatPending = sequence
+  }
+
+  /**
+   * Acknowledges the pending chat save: the watermark moves to its target in one SQLite
+   * transaction, and the chat entries it published leave `unsavedChatEntries`.
+   */
+  completeChatPublication(sequence: number) {
+    this.#assertClosed()
+    if (this.#chatPending !== sequence) throw new Error('The chat publication is not pending.')
+    let published = 0
+    for (const row of this.#exec(
+      'SELECT json FROM room_writeset_log WHERE sequence > ? AND sequence <= ?',
+      Math.max(this.#chatThrough, this.#snapshotSequence),
+      sequence
+    ))
+      published += countChatEntries(JSON.parse(text(row, 'json')) as RoomWrite[])
+    this.#storage.transactionSync(() => {
+      this.#exec(
+        'UPDATE room_chat_publication SET through_sequence = ?, pending_sequence = NULL',
+        sequence
+      )
+    })
+    this.#chatThrough = sequence
+    this.#chatPending = null
+    this.#unsavedChatEntries -= published
   }
 
   /** SQLite rows read and written by this store since it was constructed. */
@@ -592,9 +652,12 @@ export class RoomEncounterStore {
       for (const [id, { text }] of pages) this.#writePage(id, text)
       this.#writeHead(epoch, sequence, chain, content.counters, pages.size)
       this.#exec('DELETE FROM room_writeset_log')
+      this.#exec('DELETE FROM room_chat_publication')
       commitDurable?.()
     })
     this.#unsavedChatEntries = 0
+    this.#chatThrough = 0
+    this.#chatPending = null
     this.#memory = memory
     this.#records = recordMap
     this.#base = this.#snapshotMemory(content)
@@ -750,7 +813,9 @@ export class RoomEncounterStore {
               `log row ${entry.sequence} is not applicable to the state`
             )
           }
-          retiredChatEntries += countChatEntries(documentWrites)
+          // Chat a mid-Run save already published has left `unsavedChatEntries`.
+          if (entry.sequence > this.#chatThrough)
+            retiredChatEntries += countChatEntries(documentWrites)
           for (const write of recordWrites)
             if (write.op === 'RECORD_SET')
               recordChanges.set(recordId(write.record.kind, write.record.key), write.record)
@@ -774,6 +839,8 @@ export class RoomEncounterStore {
         }
         this.#writeHead(epoch, sequence, checksum, this.#base.counters(), pageCount)
         this.#exec('DELETE FROM room_writeset_log WHERE sequence <= ?', sequence)
+        // The full checkpoint now holds everything the chat watermark covered.
+        if (sequence >= this.#chatThrough) this.#exec('DELETE FROM room_chat_publication')
         commitDurable?.()
       })
     } catch (error) {
@@ -793,6 +860,10 @@ export class RoomEncounterStore {
     this.#snapshotSequence = sequence
     this.#snapshotChain = checksum
     this.#unsavedChatEntries -= retiredChatEntries
+    if (sequence >= this.#chatThrough) {
+      this.#chatThrough = 0
+      this.#chatPending = null
+    }
   }
 
   /** The durable base to which the retained committed journal applies. */
@@ -1013,6 +1084,8 @@ export class RoomEncounterStore {
     this.#sequence = 0
     this.#chain = EMPTY_CHAIN
     this.#unsavedChatEntries = 0
+    this.#chatThrough = 0
+    this.#chatPending = null
     this.#corruption = corruption
   }
 
@@ -1032,6 +1105,18 @@ export class RoomEncounterStore {
       return
     }
     this.#loadSnapshot(head, pageRows)
+    // The watermark is read before the replay so only chat beyond it counts as unsaved.
+    const [chat] = this.#exec(
+      'SELECT through_sequence, pending_sequence FROM room_chat_publication WHERE singleton = 1'
+    )
+    if (chat) {
+      this.#chatThrough = integer(chat, 'through_sequence')
+      this.#chatPending =
+        chat['pending_sequence'] === null ? null : integer(chat, 'pending_sequence')
+      const last = integer(head, 'sequence') + rows.length
+      if (this.#chatThrough > last || (this.#chatPending !== null && this.#chatPending > last))
+        throw new RoomStoreCorruptError('the chat publication is beyond the journal')
+    }
     for (const row of rows) {
       const failure = this.#replayRow(row)
       if (failure)
@@ -1154,7 +1239,7 @@ export class RoomEncounterStore {
     if (failure) return failure
     this.#sequence += 1
     this.#chain = chain
-    this.#unsavedChatEntries += countChatEntries(writes)
+    if (this.#sequence > this.#chatThrough) this.#unsavedChatEntries += countChatEntries(writes)
     return null
   }
 

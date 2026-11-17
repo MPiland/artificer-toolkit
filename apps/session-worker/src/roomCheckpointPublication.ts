@@ -1,4 +1,8 @@
 import {
+  liveSessionChatCheckpointInputSchema,
+  type LiveSessionChatCheckpointInput
+} from '@artificer-toolkit/schema/api/liveSessionChatCheckpoint'
+import {
   liveSessionCheckpointInputSchema,
   type LiveSessionCheckpointInput,
   type LiveSessionCheckpointReason,
@@ -14,6 +18,22 @@ interface RoomCheckpointPublication {
   response: LiveSessionCheckpointResponse
   payloadBytes: number
   requests: number
+}
+
+/** Publishes one mid-Run chat save; it is idempotent, so a failed request is simply sent again. */
+export async function publishRoomChatCheckpoint(
+  environment: NativeLiveSessionEnvironment,
+  input: LiveSessionChatCheckpointInput
+): Promise<RoomCheckpointPublication> {
+  const validated = liveSessionChatCheckpointInputSchema.parse(input)
+  const byteLength = new TextEncoder().encode(canonicalizeJson(validated)).byteLength
+  if (byteLength > LIVE_SESSION_CHECKPOINT_MAX_BYTES)
+    throw new Error('Chat checkpoint payload exceeds its byte limit.')
+  return {
+    response: await callLiveSessionRoute(environment, null, 'chatCheckpoint', validated),
+    payloadBytes: byteLength,
+    requests: 1
+  }
 }
 
 /** Publishes one fixed committed prefix; a failed request leaves acknowledgement to the caller. */

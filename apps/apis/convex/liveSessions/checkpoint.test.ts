@@ -43,7 +43,7 @@ import { disarmInRoom, nativeDisarmFixture } from '../../tests/fixtures/nativeDi
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readReceiptHeaders, readReceiptLedger } from '../lib/receiptLedgers'
 import { presentCampaignLiveAuthority } from './authority'
-import { publishCheckpoint } from './checkpoint'
+import { publishChatCheckpoint, publishCheckpoint } from './checkpoint'
 import { requireSystem } from '../content/systemDocuments'
 import { retainUserRolls } from '../rollDocuments'
 import {
@@ -1758,4 +1758,153 @@ it('reads a Scene and a conversation once however many records of a save name th
   expect(published.status).toBe('COMMITTED')
   expect(totals.reads.byTable.campaignConversations?.documents).toBe(1)
   expect(totals.reads.byTable.campaignScenes?.documents).toBe(1)
+})
+
+it('saves chat mid-Run without a Run row, replays idempotently, refuses a stale record, and COMPLETE then drops the bindings (ADR 0035 Amendment 32)', async () => {
+  const base = await createEncounterSceneFixture()
+  const now = new Date().toISOString()
+  const conversation = campaignStoredConversationSchema.parse({
+    id: crypto.randomUUID(),
+    campaignId: base.campaign.id,
+    kind: 'TABLE',
+    participantUserIds: [],
+    createdAt: now
+  })
+  const bindings = base.run.actors.slice(0, 2).map((actor, index) => ({
+    encounterId: base.run.id,
+    actorId: actor.id,
+    sceneId: base.sceneId,
+    tokenId: base.tokens[index]!.id.toLowerCase()
+  }))
+  await base.t.run(async (ctx) => {
+    await ctx.db.insert('campaignConversations', conversation)
+    for (const binding of bindings) await ctx.db.insert('encounterActorTokenBindings', binding)
+  })
+  const claimed = await base.other.caller.mutation(claim, { campaignId: base.campaign.id })
+  const authority = await base.t.mutation(commitActivation, {
+    campaignId: base.campaign.id,
+    epoch: claimed.epoch,
+    activationFingerprint: claimed.activationFingerprint,
+    stateChecksum: 'a'.repeat(64)
+  })
+  const entry = (body: string) => {
+    const payload = campaignStoredEntryPayloadSchema.parse({
+      entryId: crypto.randomUUID(),
+      kind: 'CHAT',
+      mode: 'ROLEPLAY',
+      body,
+      roll: null,
+      revealedByGm: false,
+      authorUsername: 'GM',
+      characterId: null,
+      characterLabel: null,
+      editedAt: null,
+      unsentAt: null,
+      consumedAt: null
+    })
+    const header = createCampaignEntryHeader(
+      {
+        id: payload.entryId,
+        campaignId: base.campaign.id,
+        conversationId: conversation.id,
+        authorUserId: base.other.userId,
+        clientNonce: crypto.randomUUID(),
+        createdAt: now
+      },
+      payload
+    )
+    return {
+      payload,
+      changes: [
+        recordChange(
+          'campaignConversationEntryPayloads',
+          [payload.entryId],
+          null,
+          decodeCheckpointRecord('campaignConversationEntryPayloads', payload)
+        ),
+        recordChange(
+          'campaignConversationEntries',
+          [header.id],
+          null,
+          decodeCheckpointRecord('campaignConversationEntries', header)
+        )
+      ]
+    }
+  }
+  const first = entry('Chat before the Run completes')
+  const chatInput = {
+    campaignId: base.campaign.id,
+    epoch: authority.epoch,
+    changes: first.changes,
+    retainedRolls: [],
+    knownAuthorization: null
+  }
+  const backlog = createDatabaseIoTotals()
+  const saved = await base.t.run((ctx) =>
+    publishChatCheckpoint({ ...ctx, db: countDatabaseIo(ctx.db, backlog) }, chatInput)
+  )
+  expect(saved.status).toBe('COMMITTED')
+  // The authority head and every Run row stay where the last full save left them.
+  expect(saved.authority.persistedSequence).toBe(authority.persistedSequence)
+  expect(Object.keys(backlog.writes.byTable).sort()).toEqual([
+    'campaignConversationEntries',
+    'campaignConversationEntryPayloads'
+  ])
+  expect(
+    Object.keys(backlog.reads.byTable).filter((table) => table.startsWith('encounter'))
+  ).toEqual([])
+
+  const replayed = createDatabaseIoTotals()
+  const again = await base.t.run((ctx) =>
+    publishChatCheckpoint({ ...ctx, db: countDatabaseIo(ctx.db, replayed) }, chatInput)
+  )
+  expect(again.status).toBe('COMMITTED')
+  expect(replayed.writes.documents).toBe(0)
+
+  // A create over a row that has since changed is a stale save, not a replay.
+  const stale = {
+    ...chatInput,
+    changes: [
+      recordChange(
+        'campaignConversationEntryPayloads',
+        [first.payload.entryId],
+        null,
+        decodeCheckpointRecord('campaignConversationEntryPayloads', {
+          ...first.payload,
+          body: 'A different body'
+        })
+      )
+    ]
+  }
+  await expect(base.t.run((ctx) => publishChatCheckpoint(ctx, stale))).rejects.toThrow(
+    'Checkpoint record changed before publication.'
+  )
+
+  const second = entry('Chat that arrives with the completion')
+  const complete = await base.t.run((ctx) =>
+    publishCheckpoint(
+      ctx,
+      frame(authority, {
+        changes: [
+          ...bindings.map((binding) =>
+            recordChange(
+              'encounterActorTokenBindings',
+              [binding.encounterId, binding.actorId],
+              decodeCheckpointRecord('encounterActorTokenBindings', binding),
+              null
+            )
+          ),
+          ...second.changes
+        ],
+        history: []
+      })
+    )
+  )
+  expect(complete.status).toBe('COMMITTED')
+  const stored = await base.t.run(async (ctx) => ({
+    bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
+    entries: await ctx.db.query('campaignConversationEntries').collect()
+  }))
+  expect(stored.bindings).toEqual([])
+  expect(stored.entries).toHaveLength(2)
 })

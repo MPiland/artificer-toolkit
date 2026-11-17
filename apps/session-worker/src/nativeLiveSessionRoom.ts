@@ -43,7 +43,7 @@ import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomTestDice } from './roomTestDice.js'
 import { RoomInputs } from './roomInputs.js'
 import { RoomCheckpoints } from './roomCheckpoints.js'
-import { publishRoomCheckpoint } from './roomCheckpointPublication.js'
+import { publishRoomCheckpoint, publishRoomChatCheckpoint } from './roomCheckpointPublication.js'
 import { meterStorage, RoomMeter, sqlRoomMeterStore } from './roomMeter.js'
 import { stageSceneFog } from './roomSceneCommit.js'
 import type { RoomCommandHost } from './roomCommandHost.js'
@@ -209,6 +209,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             ...cached,
             characterRevisions: adoptSceneVisionRevisions(cached.characterRevisions, sent, adopted)
           })
+      },
+      async (input) => {
+        const started = Date.now()
+        const published = await publishRoomChatCheckpoint(this.env, input)
+        this.#meter.checkpoint({
+          reason: 'BACKLOG',
+          payloadBytes: published.payloadBytes,
+          requests: published.requests,
+          wallMs: Date.now() - started,
+          io: published.response.io
+        })
+        return published.response
       }
     )
     const contentSnapshots = new RoomContentSnapshots(this.env)

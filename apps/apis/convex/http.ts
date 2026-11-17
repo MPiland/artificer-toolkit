@@ -9,6 +9,7 @@ import {
   beginDrainHttp,
   bootstrapHttp,
   presentHttp,
+  chatCheckpointHttp,
   checkpointHttp,
   releaseHttp,
   roomAuthorizationHttp,
@@ -31,6 +32,7 @@ const liveSessionHandlers = {
   activate: activateHttp,
   recoverStorage: recoverStorageHttp,
   checkpoint: checkpointHttp,
+  chatCheckpoint: chatCheckpointHttp,
   present: presentHttp,
   beginDrain: beginDrainHttp,
   release: releaseHttp

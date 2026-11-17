@@ -6,6 +6,7 @@ import {
   liveRoomInputsInputSchema,
   liveRoomInputsResponseSchema
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
+import { liveSessionChatCheckpointInputSchema } from '@artificer-toolkit/schema/api/liveSessionChatCheckpoint'
 import {
   liveSessionCheckpointRequestSchema,
   liveSessionCheckpointResponseSchema
@@ -81,6 +82,10 @@ type Parser<T> = { parse(value: unknown): T }
 const liveSessionRoutes = {
   checkpoint: {
     input: liveSessionCheckpointRequestSchema,
+    output: liveSessionCheckpointResponseSchema
+  },
+  chatCheckpoint: {
+    input: liveSessionChatCheckpointInputSchema,
     output: liveSessionCheckpointResponseSchema
   },
   capture: {
