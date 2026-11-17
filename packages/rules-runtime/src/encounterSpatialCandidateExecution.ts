@@ -6,6 +6,7 @@ import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 
 import { encounterActorBody } from './encounterActorBody.js'
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
@@ -24,6 +25,8 @@ import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
 import { isEncounterPassiveZone } from './encounterPassiveZones.js'
+import { zoneSightPoint } from './encounterZoneConcealment.js'
+import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from './encounterZonePlacement.js'
 import { isVisibleHalfSpeedField } from './halfSpeedField.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -150,6 +153,53 @@ function toSpatialInstance(
         sourceActorId !== null &&
         defeatedActorIds.has(sourceActorId))
   } as const
+}
+
+/**
+ * The sight facts a zone that requires sight reads for one occupant's contact, or undefined for a
+ * zone that needs none. The first sight the occupant lacks pins the requirement unmet, so the zone's
+ * save succeeds unrolled. A zone left at a Scene point is seen at that point; the caller says from
+ * where (a turn reads the occupant where it stands, a move where it began, D223).
+ */
+export async function zoneSightContactFacts(input: {
+  effect: EncounterSpatialRuleEffectRecord
+  occupantActorId: string
+  loadSourceSight?: (input: {
+    sourceActorId: string
+    occupantActorId: string
+  }) => Promise<{ occupantSeesSource: boolean; sourceSeesOccupant: boolean }>
+  loadPointSight?: (input: { occupantActorId: string; point: ScenePoint }) => Promise<boolean>
+}): Promise<Record<string, boolean> | undefined> {
+  const { effect, occupantActorId } = input
+  const required = effect.placement.requiredSight
+  if (!required) return undefined
+  const { origin } = effect.definition
+  const { anchorKind, geometry } = effect.placement
+  let sourceSight: ReturnType<NonNullable<typeof input.loadSourceSight>> | undefined
+  const readSourceSight = () => {
+    if (origin.kind !== 'ENCOUNTER' || !origin.sourceActorId || !input.loadSourceSight)
+      throw new Error('Zone sight is unavailable.')
+    return (sourceSight ??= input.loadSourceSight({
+      sourceActorId: origin.sourceActorId,
+      occupantActorId
+    }))
+  }
+  const readZoneSight = () => {
+    // Only a zone left at a Scene point has a place to see; a source zone's geometry is token-local.
+    if (!input.loadPointSight || anchorKind !== 'FIXED' || geometry.frame !== 'SCENE_ABSOLUTE')
+      throw new Error('Zone sight is unavailable.')
+    return input.loadPointSight({ occupantActorId, point: zoneSightPoint(geometry.shape) })
+  }
+  for (const sight of required) {
+    const seen =
+      sight === 'OCCUPANT_SEES_ZONE'
+        ? await readZoneSight()
+        : sight === 'OCCUPANT_SEES_SOURCE'
+          ? (await readSourceSight()).occupantSeesSource
+          : (await readSourceSight()).sourceSeesOccupant
+    if (!seen) return { [ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY]: false }
+  }
+  return { [ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY]: true }
 }
 
 export function spatialExecutionInput(input: {

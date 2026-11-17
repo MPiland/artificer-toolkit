@@ -54,7 +54,12 @@ export const root = turnCoordinatorRootDtoSchema.parse({
  * boundaries, with any other component options authored on it and any further `change`.
  */
 export function authoredZone(
-  interactionKinds: ('ENTER_SPACE' | 'START_TURN_IN_SPACE' | 'END_TURN_IN_SPACE')[],
+  interactionKinds: (
+    | 'ENTER_SPACE'
+    | 'ENTER_OR_PASS_THROUGH'
+    | 'START_TURN_IN_SPACE'
+    | 'END_TURN_IN_SPACE'
+  )[],
   maxApplicationsPerTurn?: number,
   componentOptions: Partial<ZoneParts['component']> = {},
   change?: (parts: ZoneParts) => void

@@ -1705,12 +1705,18 @@ that acts on a creature within `distance` of the zone. It compiles to `zonePlace
 plus a record plan like a layer's: its own label, trigger, `requiredSight` and frozen entry). The Worker places it as one
 more record on the zone's anchor (`planEncounterZoneProximity`), a `FIXED` / `SCENE_ABSOLUTE` halo whose geometry is the
 zone's area grown by the reach (`expandedAreaGeometry`; a cube's or wall's corners stay square, so the halo reaches a
-little past the reach there), named on the root and ended with the zone like a layer. Only `START_TURN` is supported:
-a rule that also acts on `MOVE_WITHIN` is refused at compile until the movement path reads sight (QUALITY-15.T3v3b).
-`requiresSight` becomes the `requiredSight` value `OCCUPANT_SEES_ZONE`: at a turn boundary the Worker's `loadPointSight`
+little past the reach there), named on the root and ended with the zone like a layer. `START_TURN` becomes the
+`START_TURN_IN_SPACE` interaction and `MOVE_WITHIN` becomes `ENTER_OR_PASS_THROUGH` (QUALITY-15.T3v3b), so a creature
+that moves into or through the halo meets it, through the same movement contacts as any zone.
+`requiresSight` becomes the `requiredSight` value `OCCUPANT_SEES_ZONE`: the Worker's `loadPointSight`
 (`readNativeLivePointSight` at the zone's anchor point) says whether the occupant sees the zone, and a creature that
-does not succeeds on the save unrolled, like the source-sight values. A zone placed for the turn path has a fixed
-point to see; a zone that follows its source is refused for this value. A condition a failed save applies for a
+does not succeeds on the save unrolled, like the source-sight values. Both paths read it through one
+`zoneSightContactFacts` (`encounterSpatialCandidateExecution.ts`): at a turn boundary from where the occupant stands,
+and on a move from where the occupant began it (its walk's first point, `observerPosition`), so a resumed move reads
+the same sight however far the pause moved the token. A creature that only gains sight of the zone by moving is a
+deferred edge case. A movement contact has no source sight to read, so a zone that needs sight between its source and
+occupant and acts on movement is refused at compile. Only a zone left at a Scene point has a fixed point to see; a zone
+that follows its source is refused for `OCCUPANT_SEES_ZONE`. A condition a failed save applies for a
 duration is held for it generically: `zoneHeldCondition` turns an authored condition duration into
 `heldCondition.holderTurns` (a minute is 10 of the holder's turns), and `planSpatialHeldCondition` makes a
 condition-ownership effect that expires after that many of the holder's turns (this replaces the old
