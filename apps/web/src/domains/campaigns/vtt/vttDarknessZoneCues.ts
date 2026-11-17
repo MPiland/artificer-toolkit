@@ -1,5 +1,5 @@
 import type * as Pixi from 'pixi.js'
-import type { Graphics } from 'pixi.js'
+import type { Container, Graphics } from 'pixi.js'
 import type { SceneIlluminationLevel, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { dashedPolygonSegments, darknessZoneStyle } from './vttSceneRenderer.model'
@@ -22,22 +22,22 @@ export function dashedOutline(
   return outline.stroke({ ...stroke, cap: 'round' })
 }
 
-/** What a darkness zone shows beyond its class: a visual-only fill, and non-colour outlines. */
-export function darknessZoneCues(
+/** Adds what a darkness zone shows beyond its class: a visual-only fill, and non-colour outlines. */
+export function drawDarknessZoneCues(
   pixi: typeof Pixi,
+  layer: Container,
   zone: CampaignSceneStateDto['darknessZones'][number],
   illuminationLevels: readonly SceneIlluminationLevel[],
   colors: { arcane: number; barrier: number; darkness: number }
-): Graphics[] {
+): void {
   const { illuminationOutline, obscurementOutline } = darknessZoneStyle(zone, illuminationLevels)
   const points = zone.polygon.points
-  const cues: Graphics[] = []
   if (zone.mechanicalIllumination === null) {
     const fill = new pixi.Graphics()
       .poly(points.flatMap((point) => [point.x, point.y]))
       .fill({ alpha: zone.opacity, color: colors.darkness })
     fill.label = `${darknessZoneLabelPrefix}VISUAL`
-    cues.push(fill)
+    layer.addChild(fill)
   }
   if (obscurementOutline) {
     const outline =
@@ -50,15 +50,14 @@ export function darknessZoneCues(
             width: obscurementOutline.width
           })
     outline.label = `${obscurementLabelPrefix}${zone.mechanicalObscurement}`
-    cues.push(outline)
+    layer.addChild(outline)
   }
   if (illuminationOutline) {
-    cues.push(
+    layer.addChild(
       dashedOutline(pixi, points, illuminationOutline.dash, illuminationOutline.gap, {
         color: colors.arcane,
         width: illuminationOutline.width
       })
     )
   }
-  return cues
 }

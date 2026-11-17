@@ -91,8 +91,8 @@ import {
   tokenFacingLabel
 } from './vttTokenFacing'
 import {
-  darknessZoneCues,
   darknessZoneLabelPrefix,
+  drawDarknessZoneCues,
   dashedOutline,
   obscurementLabelPrefix
 } from './vttDarknessZoneCues'
@@ -1070,7 +1070,7 @@ export async function createVttSceneRenderer(
     }
     for (const area of areas) if (area.level.suppressesLight) drawArea(area)
     for (const zone of scene.darknessZones)
-      obscurementLayer.addChild(...darknessZoneCues(pixi, zone, illuminationLevels, colors))
+      drawDarknessZoneCues(pixi, obscurementLayer, zone, illuminationLevels, colors)
     darknessTexture = textureForMap(darknessTexture, map)
     renderLightingTexture(classMap, darknessTexture, map)
     darknessSprite.texture = darknessTexture
