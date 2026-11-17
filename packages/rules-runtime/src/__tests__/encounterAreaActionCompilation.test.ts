@@ -928,9 +928,7 @@ describe('area ruling compilation from the SRD (QUALITY-15.T3m)', () => {
     ['Passwall', 'D&D area shape is not one its range places.'],
     // The warded area is "shaped as you desire": the SRD gives it no shape.
     ['Guards and Wards', "D&D area outside its user's own space must name its shape."],
-    // The traps sensed "within range" are around the caster, but a distance range places a round
-    // area at a point: no authored shape is centered on its caster with a distance range.
-    ['Find Traps', "D&D area outside its user's own space must name its shape."],
+    // Find Traps' "within range" is a sphere centered on its caster (QUALITY-15.T3ac3, above).
     // A summoned or created creature is a summon, not a ruling on the creatures an area catches.
     ['Planar Ally', "D&D area outside its user's own space must name its shape."],
     ['Create Undead', "D&D area outside its user's own space must name its shape."]
