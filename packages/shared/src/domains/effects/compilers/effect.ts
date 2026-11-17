@@ -14,7 +14,6 @@ import type {
   ManifestComponentAuthored,
   ManifestProximityRuleAuthored,
   OptionalOnHitAuthored,
-  ArmorClassFloorAuthored,
   RestoreResourceAuthored,
   SpellSlotExchangeAuthored,
   HitPointMaximumReductionAuthored,
@@ -264,7 +263,6 @@ export type CompiledEffectOutcome =
   | import('#authored').StabilizeAuthored
   | import('#authored').KillAuthored
   | import('#authored').HitPointsToZeroAuthored
-  | ArmorClassFloorAuthored
   | RestoreResourceAuthored
   | SpellSlotExchangeAuthored
   | TelepathicLinkAuthored
@@ -386,7 +384,6 @@ function compileOutcomePayload(
     case EFFECT_KIND.KILL:
     case EFFECT_KIND.HIT_POINTS_TO_ZERO:
     case EFFECT_KIND.REVIVE:
-    case EFFECT_KIND.ARMOR_CLASS_FLOOR:
     case EFFECT_KIND.RESTORE_RESOURCE:
     case EFFECT_KIND.SPELL_SLOT_EXCHANGE:
     case EFFECT_KIND.TELEPATHIC_LINK:

@@ -821,6 +821,12 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant(
       'ARMOR_CLASS',
+      'MINIMUM_VALUE',
+      emptyDomainDtoSchema,
+      amountPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'ARMOR_CLASS',
       'ABILITY_MODIFIER_BONUS',
       emptyDomainDtoSchema,
       abilityModifierBonusPayloadDtoSchema
