@@ -39,14 +39,11 @@ describe('a zone its source moves (QUALITY-15.T3y8)', () => {
       move: { activation: 'BONUS_ACTION', maxDistance: { amount: 30, unit: 'FEET' }, rams: true }
     },
     { spell: moonbeam, move: { activation: 'ACTION', maxDistance: { amount: 60, unit: 'FEET' } } }
-  ])(
-    'compiles $spell.label with its authored move, held by Concentration',
-    ({ spell, move }) => {
-      const zone = zonePlacementOf(spell)
-      expect(zone.maintenance).not.toBeNull()
-      expect(zone.move).toEqual(move)
-    }
-  )
+  ])('compiles $spell.label with its authored move, held by Concentration', ({ spell, move }) => {
+    const zone = zonePlacementOf(spell)
+    expect(zone.maintenance).not.toBeNull()
+    expect(zone.move).toEqual(move)
+  })
 
   it('refuses a move on a zone its source does not maintain', () => {
     expect(() => zonePlacementOf({ ...flamingSphere, attributes: [] })).toThrow(
