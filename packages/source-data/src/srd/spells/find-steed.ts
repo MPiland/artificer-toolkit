@@ -5,6 +5,7 @@ import {
   CASTING_TIME_UNIT_CODE,
   EFFECT_KIND,
   MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -13,8 +14,17 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { CLASS_IDS, CREATURE_IDS, SPELL_IDS } from '../ids.js'
+import { conjuredCreatureForms } from './conjuredCreatureForms.js'
+import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+/** The steed forms the caster chooses from: one creature each. */
+const steedForms = [
+  [CREATURE_IDS.WARHORSE, 'Warhorse', 1],
+  [CREATURE_IDS.PONY, 'Pony', 1],
+  [CREATURE_IDS.CAMEL, 'Camel', 1],
+  [CREATURE_IDS.ELK, 'Elk', 1],
+  [CREATURE_IDS.MASTIFF, 'Mastiff', 1]
+] as const
 export const findSteed: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.FIND_STEED,
@@ -41,7 +51,9 @@ export const findSteed: SpellAuthored = {
         },
         range: {
           id: spellChildId(SPELL_IDS.FIND_STEED, 0x211, 1),
-          rangeKind: RANGE_KIND.SPECIAL
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 30,
+          unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
@@ -62,8 +74,19 @@ export const findSteed: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FIND_STEED, 0x212, 1),
+                // The steed serves as its caster's mount and acts on its caster's turn; it has no
+                // duration and goes when it drops to 0 hit points. Its Intelligence of 6, the
+                // language it understands, the telepathic bond, sharing self-targeted spells and
+                // dismissing or releasing it are GM rulings.
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.SUMMON,
+                forms: conjuredCreatureForms(SPELL_IDS.FIND_STEED, steedForms),
+                // The steed is a celestial, fey, or fiend (the caster's choice) instead of its type.
+                creatureTypeIds: [
+                  creatureTypeId('CELESTIAL'),
+                  creatureTypeId('FEY'),
+                  creatureTypeId('FIEND')
+                ]
               }
             ]
           }

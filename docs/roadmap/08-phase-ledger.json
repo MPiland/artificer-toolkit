@@ -27887,7 +27887,7 @@
             },
             {
               "id": "QUALITY-15.T3v2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Layers are destroyed in order and stay destroyed: the GM destroys the next layer by command, which shows its authored criterion, refuses out of order and can be undone (D223, user ruling 2026-11-16).",
               "wsjf": {
@@ -27898,11 +27898,12 @@
                 "after": ["QUALITY-15.T3v1"]
               },
               "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace). Resized 3 -> 5 on 2026-11-16: schema plumbing for the authored destruction criteria, a GM-only read projection and the receipt shape.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m848; slice tip 6196e00d1: Tests 44003672209, Live 44003672198, Browser journeys 44003672206 green. DESTROY_ZONE_LAYER destroys the next layer in order with GM-visible authored criteria; layer records carry layer: true and offer no Disarm; undo restores the layer. Proofs RED at the merge-base: nativeRoomZoneLayerDestruction.test (3/3), CampaignTabletopEncounterDrawer.test, characterSpellCastActions.test, nativeRoomPlayerParity.test, zoneConcealmentReads.test."
             },
             {
               "id": "QUALITY-15.T3v3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "A 20 ft proximity rule blinds a creature that can see the zone, with a timed condition.",
               "wsjf": {
@@ -27912,7 +27913,8 @@
                 "size": 3,
                 "after": ["QUALITY-15.T3v2"]
               },
-              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3v4",
@@ -28003,7 +28005,7 @@
             },
             {
               "id": "QUALITY-15.T3x2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Animate Objects places animated objects of each size with their own stat block and slam attack (summon forms may carry an inline stat block with actions).",
               "wsjf": {
@@ -28012,7 +28014,8 @@
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3x3",
@@ -28029,7 +28032,7 @@
             },
             {
               "id": "QUALITY-15.T3y",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Barkskin sets a minimum armor class of 16 while Concentration holds, on Characters and Creatures (a generic MINIMUM_VALUE armor-class modifier; the unused ARMOR_CLASS_FLOOR effect kind is retired).",
               "wsjf": {
@@ -28039,11 +28042,12 @@
                 "size": 8
               },
               "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m847; slice tip 60876bd6a: Tests 44000629791, Live 44000629747, Browser journeys 44000629777 green. Barkskin compiles as a Concentration-held ARMOR_CLASS MINIMUM_VALUE modifier of 16 on Characters and Creatures; the unused ARMOR_CLASS_FLOOR effect kind is retired. Golden: Barkskin REFUSED -> SINGLE_GRAPH."
             },
             {
               "id": "QUALITY-15.T3y2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Clairvoyance places a maintained sensor its caster perceives through.",
               "wsjf": {
@@ -28052,11 +28056,12 @@
                 "rr": 3,
                 "size": 3
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3y3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Call Lightning is a maintained effect that grants its caster a repeat bolt action (Dexterity save, 3d10 lightning, 5-foot radius, more at a higher slot) while Concentration holds.",
               "wsjf": {
@@ -28066,7 +28071,8 @@
                 "size": 5
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m848; slice tip bc651ceda: Tests 44002697775, Live 44002697644, Browser journeys 44002697713 green. Call Lightning is a Concentration effect granting a repeat bolt (Dexterity save, 3d10 lightning, half on save, +1d10 per slot); one free bolt on the cast turn; area commits now spend turnUses. Golden: Call Lightning REFUSED -> SINGLE_GRAPH plus a bolt TEST_OUTCOME row. Four test files RED at the merge-base."
             },
             {
               "id": "QUALITY-15.T3y4",
@@ -28153,15 +28159,41 @@
               "id": "QUALITY-15.T3aa",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
-              "text": "Area spells that create a creature or object (Create Undead, Find Steed, Planar Ally, Unseen Servant, Phantom Steed, Floating Disk, Hunting Trap, Create Food and Water) compile through generic summon or object plans the room places.",
+              "text": "Spells that create a creature or object compile on the generic summon and inert-zone plans (Create Food and Water, Create Undead, Find Steed, Floating Disk, Unseen Servant); Planar Ally is a GM ruling (D225).",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 5
+                "size": 3
               },
-              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13).",
+              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13). Resized 5 -> 3 on 2026-11-16: data-only conversions; Phantom Steed and Hunting Trap split to T3aa2 and T3aa3; Planar Ally ruled description-only (D225).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3aa2",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Phantom Steed places a Riding Horse form summon with an authored speed override (walk 100 ft).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3aa report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3aa3",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Hunting Trap is a placed-space zone that holds a creature in place (a distance limit from the trap) until it escapes with a check.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3aa report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3ab",
@@ -28195,7 +28227,7 @@
             },
             {
               "id": "QUALITY-15.T3ac2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Passwall places a line at a distant point in a chosen direction (a point-plus-direction area target).",
               "wsjf": {
@@ -28204,11 +28236,12 @@
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3ac report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3ac report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3ac3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "An area centered on its caster with a distance range (Find Traps: 120 feet, \"within range\") compiles and places: the shape names where it is centered.",
               "wsjf": {
@@ -28218,11 +28251,12 @@
                 "size": 3
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3ac report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m848; slice tip 49c181851: Tests 44004964369, Live 44004964184, Browser journeys 44004964171 green. Round shapes gain an optional centeredOnUser flag; Find Traps (120 ft range) compiles as a CASTER_CENTERED area. Proofs RED at the merge-base: nativeRoomCasterCenteredAreaAction.test (2/15), encounterAreaActionCompilation.test (2/129)."
             },
             {
               "id": "QUALITY-15.T3ac4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Every SRD spell's casting time matches its SRD 5.1 Casting Time line (corpus-wide check; Control Weather and Guards and Wards take 10 minutes).",
               "wsjf": {
@@ -28232,11 +28266,12 @@
                 "size": 1
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3ac report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m847; slice tip 16c43e374: Tests 44000766475, Live 44000766509, Browser journeys 44000766403 green. 20 spells corrected to their SRD 5.1 Casting Time line; new corpus test spellCastingTimes.test.ts (RED 20/320 at the merge-base)."
             },
             {
               "id": "QUALITY-15.T3ad",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A threshold escalation on an effect with its own duration, and a duration-complete outcome that applies a condition when the effect runs its full course (Flesh to Stone), compile and the room applies them.",
               "wsjf": {
@@ -28246,7 +28281,8 @@
                 "size": 5
               },
               "note": "Registered 2026-11-16 from the T3r report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m847; slice tip 104c81fe7: Tests 44000720889, Live 44000720788, Browser journeys 44000720813 green. A threshold escalation holds an effect with its own duration, and a duration-complete outcome applies a condition (Flesh to Stone: restrained, then petrified after three failed saves or when the duration completes). Golden: Flesh to Stone REFUSED -> TEST_OUTCOME. All four changed test files RED at the merge-base."
             },
             {
               "id": "QUALITY-15.T3ae",
