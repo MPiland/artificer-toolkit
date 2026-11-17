@@ -20,6 +20,7 @@ import { barkskin } from '@artificer-toolkit/source-data/srd/spells/barkskin.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { arcaneSword } from '@artificer-toolkit/source-data/srd/spells/arcane-sword.js'
+import { callLightning } from '@artificer-toolkit/source-data/srd/spells/call-lightning.js'
 import { faithfulHound } from '@artificer-toolkit/source-data/srd/spells/faithful-hound.js'
 import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
 import { goodberry } from '@artificer-toolkit/source-data/srd/spells/goodberry.js'
@@ -54,6 +55,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
+import { answerAllSaves, areaReceipts } from './areaRoomReads.js'
 import { closeTrackedSockets, connectPlayer, ROOM_REPLY_WAIT } from './liveRoomFixture.js'
 import { seededSrdCreature } from './seededSrdCreature.js'
 import { endConcentrationAtSheet } from './placedZoneRoomReads.js'
@@ -799,6 +801,108 @@ describe('room free cast-turn repeat (SPELLS-4.T2v2a3b)', () => {
     expect((await room.actionChoices()).effectOffers).toEqual([
       expect.objectContaining({ activation: 'ACTION' })
     ])
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3y3: Call Lightning leaves the caster a repeat bolt while it concentrates: on a later
+ * turn its Action calls a 5-foot-radius bolt at a point, and each creature there makes a Dexterity
+ * save against 3d10 lightning. The bolt is gone once Concentration ends.
+ */
+describe('room Call Lightning (QUALITY-15.T3y3)', () => {
+  /** Four cells from the caster, so a bolt at the Wolf's point catches the Wolf alone. */
+  const WOLF_POINT = { x: 550, y: 150 }
+
+  it('calls the bolt as an Action on a later turn for 3d10 lightning, until Concentration ends', async () => {
+    const room = await actionRoom({
+      // Every die shows 1: the Wolf fails its save, and each d10 deals 1.
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      positions: { [WOLF_ID]: WOLF_POINT },
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [callLightning], prepared: [callLightning.id] },
+      characterAction: (action) => action.label.startsWith(callLightning.label)
+    })
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    await room.advanceTurn()
+    await room.advanceTurn()
+
+    const [offer] = (await room.actionChoices()).effectOffers
+    expect(offer).toMatchObject({
+      kind: 'REPEAT_SOURCE_PATH',
+      holderActorId: CHARACTER_ACTOR_ID,
+      activation: 'ACTION',
+      target: 'INVOCATION'
+    })
+    if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+
+    const bolt = await room.startAreaCommand(
+      { kind: 'POINT', point: WOLF_POINT },
+      [],
+      'GM',
+      undefined,
+      offer.actionId
+    )
+    expect(bolt.answer.type, JSON.stringify(bolt.answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    expect(decision.pending.saves.map(({ actorId }) => actorId)).toEqual([WOLF_ID])
+    await answerAllSaves(room)
+
+    const { children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(
+      children.flatMap(({ outputs }) =>
+        outputs.applications.flatMap((application) =>
+          application.kind === 'DAMAGE'
+            ? [[application.requestedAmount, application.damageTypeId]]
+            : []
+        )
+      )
+    ).toEqual([[3, damageTypeId('LIGHTNING')]])
+    expect((await room.actionChoices()).effectOffers).toHaveLength(1)
+
+    const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect((await room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
+
+  it('calls one free bolt on the cast turn, and a second that turn costs the Action the cast spent', async () => {
+    const room = await actionRoom({
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      positions: { [WOLF_ID]: WOLF_POINT },
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [callLightning], prepared: [callLightning.id] },
+      characterAction: (action) => action.label.startsWith(callLightning.label)
+    })
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+
+    const [free] = (await room.actionChoices()).effectOffers
+    expect(free).toMatchObject({ kind: 'REPEAT_SOURCE_PATH', activation: 'FREE' })
+    if (free?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+    const bolt = await room.startAreaCommand(
+      { kind: 'POINT', point: WOLF_POINT },
+      [],
+      'GM',
+      undefined,
+      free.actionId
+    )
+    expect(bolt.answer.type, JSON.stringify(bolt.answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+
+    const [charged] = (await room.actionChoices()).effectOffers
+    expect(charged).toMatchObject({ activation: 'ACTION' })
+    const second = await room.startAreaCommand(
+      { kind: 'POINT', point: WOLF_POINT },
+      [],
+      'GM',
+      undefined,
+      free.actionId
+    )
+    expect(second.answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(second.answer)).toContain('ACTION_ECONOMY_UNAVAILABLE')
   }, 120000)
 })
 

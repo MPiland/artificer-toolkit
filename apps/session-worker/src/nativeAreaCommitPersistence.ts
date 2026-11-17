@@ -44,7 +44,10 @@ import {
   nativeConcentrationDamageSourceLabels
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
+import {
+  evaluateNativeLiveActionEconomy,
+  sourceGrantedUseKey
+} from './nativeEncounterActionEconomy.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { prepareNativeLiveMaintainedState } from './nativeEncounterMaintenance.js'
 import type {
@@ -167,6 +170,8 @@ export async function settleAreaCommit(args: {
       }
     : sourceSpend!
   const sourceLabel = encounterActionSourceLabel(lead.source)
+  // A free cast-turn repeat (D190a) spends its once-per-turn key with the commit.
+  const grantedUseKey = sourceGrantedUseKey(lead.source)
   const damageSources = children.map((child) => ({
     targetActorId: child.actorId,
     applications: child.mechanics.mechanics.receiptApplications,
@@ -433,6 +438,7 @@ export async function settleAreaCommit(args: {
     placedZones,
     zoneSourceGrant,
     forcedMovements,
+    turnUses: grantedUseKey ? [grantedUseKey] : [],
     summonedTokens
   }
 }

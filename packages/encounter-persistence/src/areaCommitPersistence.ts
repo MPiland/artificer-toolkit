@@ -92,6 +92,7 @@ import { insertReinforcementInitiative } from './actorReinforcementInitiative.js
 import { persistSummonInitiativeRollCard } from './initiativeRollCards.js'
 import { insertRunActor, readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
+import { spendTurnUses } from './turnMovement.js'
 import { storedInitiativeReceipt } from './initiativeReceipt.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
 import { createActiveRuleEffectStore, readActiveEffectsByActorId } from './effectStore.js'
@@ -1017,7 +1018,8 @@ export async function persistEncounterAreaCommit(
       summonedTokens: summoned,
       ...storedInitiativeReceipt(seatedInitiative),
       forcedMovementLandings: settledMovements.landings,
-      turnUses: null,
+      // A free cast-turn repeat (D190a) spends its once-per-turn key from the caster's turn record.
+      turnUses: await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses }),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),
       issuerLines: children.flatMap(({ actor, batch }) => {
         // A cast on chosen creatures asks no save, so it has nothing to report per creature.

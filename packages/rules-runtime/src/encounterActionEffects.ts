@@ -19,7 +19,7 @@ import {
 } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
 import {
-  preparedSpellAttackBonus,
+  preparedSpellcasting,
   preparedSpellCastLevel,
   preparedSpellDamageExpressions
 } from './encounterPreparedSpellCast.js'
@@ -100,7 +100,7 @@ export function prepareNativeSourceEffect<
     activeEffectPlan: input.plan,
     castModifierParameters: prepared.castModifier?.parameters,
     spellCastLevel: preparedSpellCastLevel(prepared) ?? undefined,
-    attackBonus: preparedSpellAttackBonus(prepared),
+    ...preparedSpellcasting(prepared),
     damageExpressions: preparedSpellDamageExpressions(prepared),
     turnSequence: prepared.state.turnSequence,
     published: input.published,
@@ -423,7 +423,7 @@ function prepareNativeActionEffectsForPlan<TCharacterFacts extends CharacterActi
     castModifierParameters: prepared.castModifier?.parameters,
     ...(chosen ? { chosenItem: { item: chosen.item, released } } : {}),
     spellCastLevel: preparedSpellCastLevel(prepared) ?? undefined,
-    attackBonus: preparedSpellAttackBonus(prepared),
+    ...preparedSpellcasting(prepared),
     damageExpressions: preparedSpellDamageExpressions(prepared),
     turnSequence: prepared.state.turnSequence,
     published: execution.published,

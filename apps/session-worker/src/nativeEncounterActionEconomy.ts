@@ -41,6 +41,16 @@ export function captureActionEconomyDefinitions(
 }
 
 /**
+ * The once-per-turn key a granted action or a free cast-turn repeat spends in place of an allowance
+ * (D160, D190a); null for none.
+ */
+export function sourceGrantedUseKey(source: Prepared['source']) {
+  return source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH'
+    ? (source.grantedUseKey ?? null)
+    : null
+}
+
+/**
  * The action allowance the chosen action spends and the Attack action it opens or continues, for a
  * single target or for every creature an area caught. A suppressed allowance only warns: the
  * command may acknowledge it.
@@ -86,12 +96,8 @@ export async function evaluateNativeLiveActionEconomy(input: {
   const equipment =
     prepared.source.kind === 'CHARACTER_ACTION' ? prepared.source.candidate.equipment : null
   if (!activation) throw new Error('The selected action activation is not normalized.')
-  // A free action (Action Surge, a Legendary Action) spends no allowance; its charge is its cost. A
-  // granted action or a free cast-turn repeat spends a once-per-turn key instead (D160, D190a).
-  const grantedUseKey =
-    prepared.source.kind === 'BASIC_ACTION' || prepared.source.kind === 'REPEAT_PATH'
-      ? (prepared.source.grantedUseKey ?? null)
-      : null
+  // A free action (Action Surge, a Legendary Action) spends no allowance; its charge is its cost.
+  const grantedUseKey = sourceGrantedUseKey(prepared.source)
   if (activation.code === 'FREE')
     return {
       activationCode: activation.code,
