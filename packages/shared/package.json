@@ -178,6 +178,11 @@
       "types": "./dist/domains/vtt/spatial.d.ts",
       "default": "./dist/domains/vtt/spatial.js"
     },
+    "./vtt/spatialGeometryCenter": {
+      "source": "./src/domains/vtt/spatialGeometryCenter.ts",
+      "types": "./dist/domains/vtt/spatialGeometryCenter.d.ts",
+      "default": "./dist/domains/vtt/spatialGeometryCenter.js"
+    },
     "./account/username": {
       "source": "./src/domains/account/usernamePolicy.ts",
       "types": "./dist/domains/account/usernamePolicy.d.ts",

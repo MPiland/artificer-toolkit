@@ -9,8 +9,6 @@ import {
   zoneApplicationKey,
   collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
-  spatialGeometryCenter,
-  spatialGeometryCenteredAt,
   spatialGeometryOverlapsTokenFootprint,
   spatialSegmentShareInside,
   type SpatialEffectInstance,
@@ -23,6 +21,10 @@ import {
   wallOutline,
   wallSideBandGeometry
 } from '../domains/vtt/spatial.js'
+import {
+  spatialGeometryCenter,
+  spatialGeometryCenteredAt
+} from '../domains/vtt/spatialGeometryCenter.js'
 import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
 import { VTT_SCENE_LIMITS, type SceneGrid } from '../domains/vtt/scene.js'
 

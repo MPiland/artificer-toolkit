@@ -3,7 +3,7 @@ import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema
 import { measureSceneDistance } from '@artificer-toolkit/shared/vtt/geometry'
 import type { SceneGrid, ScenePoint } from '@artificer-toolkit/shared/vtt/scene'
 import { lengthMeasurementInSceneUnits } from '@artificer-toolkit/shared/vtt/sceneReducer'
-import { spatialGeometryCenter } from '@artificer-toolkit/shared/vtt/spatial'
+import { spatialGeometryCenter } from '@artificer-toolkit/shared/vtt/spatialGeometryCenter'
 
 type MovableZone = Pick<
   EncounterSpatialRuleEffectRecord,

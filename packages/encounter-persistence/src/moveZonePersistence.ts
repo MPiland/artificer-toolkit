@@ -10,7 +10,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { spatialGeometryCenteredAt } from '@artificer-toolkit/shared/vtt/spatial'
+import { spatialGeometryCenteredAt } from '@artificer-toolkit/shared/vtt/spatialGeometryCenter'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { sourceZoneMove } from '@artificer-toolkit/rules-runtime/encounterZoneMove'

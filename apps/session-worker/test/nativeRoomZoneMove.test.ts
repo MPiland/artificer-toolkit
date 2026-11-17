@@ -2,7 +2,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { spatialGeometryCenter } from '@artificer-toolkit/shared/vtt/spatial'
+import { spatialGeometryCenter } from '@artificer-toolkit/shared/vtt/spatialGeometryCenter'
 import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION,
@@ -34,6 +34,7 @@ const OTHER_ID = testUuid(0x2482)
 
 const ZONE_CENTER = { x: 200, y: 600 }
 const TWENTY_FIVE_FEET_EAST = { x: 700, y: 600 }
+const THIRTY_FEET_EAST = { x: 800, y: 600 }
 const THIRTY_FIVE_FEET_EAST = { x: 900, y: 600 }
 /** Past 30 feet from the cast point, wherever on its square the zone is centered. */
 const FORTY_FEET_EAST = { x: 1000, y: 600 }
@@ -171,9 +172,9 @@ describe('a caster moving its Flaming Sphere (QUALITY-15.T3y8)', () => {
   }, 120000)
 
   it('acts on a creature it was moved beside when that creature ends its turn there', async () => {
-    // The Brown Bear's 10-foot token reaches 100 units from (900, 600): clear of the cube around the
-    // cast point, inside the 150-unit half edge of the cube around the destination.
-    const room = await zoneRoom(flamingSphere, castLabel, THIRTY_FIVE_FEET_EAST, brownBear)
+    // The Bear stands 5 feet east of the destination: clear of the cube around the cast point, and
+    // sharing area with the cube around the destination (150 units each side of its center).
+    const room = await zoneRoom(flamingSphere, castLabel, THIRTY_FEET_EAST, brownBear)
     const zone = await castZone(room)
     expect((await moveZone(room, zone.id, TWENTY_FIVE_FEET_EAST)).type).toBe('COMMAND_COMMITTED')
     const hitPointsBefore = await hitPointsOf(room, OTHER_ID)
