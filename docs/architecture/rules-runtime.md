@@ -264,17 +264,31 @@ area does nothing.
 
 **Moving a zone (current, QUALITY-15.T3y8).** A fixed placed-space zone its source maintains may author a `move`
 (`activation`, `maxDistance`) on its ZONE manifest; the compiler carries it onto the placement
-(`encounterZonePlacement.ts`) and refuses it on a zone that is not maintained or whose components do not act on
-creatures. The Run command `MOVE_ZONE` (actor, zone, destination) is admitted like any holder command: the Worker
+(`encounterZonePlacement.ts`) and refuses it on a zone that is not maintained, whose component only prices movement
+or lends a benefit, or that acts only through its appear save; a zone that only marks its area moves too (QUALITY-15.T3x3: SRD Dancing Lights is a
+5-foot light zone shedding dim light 10 feet, the lights combined as one form, moved 60 feet for a Bonus Action;
+four separate lights placed from one cast and moved as a group are not modeled). The Run command `MOVE_ZONE` (actor, zone, destination) is admitted like any holder command: the Worker
 (`nativeMoveZoneAction.ts`) checks the actor placed the zone (`sourceZoneMove`), measures the move from the zone's
 center on the Scene grid (`zoneMoveWithinDistance`), spends the authored activation through the shared rule economy,
 and `persistEncounterMoveZone` re-centers the geometry under a zone-version fence. Occupancy needs no separate path:
 turn triggers read the current geometry, and moving onto a creature is not an entry. A GM undo restores the prior
 geometry and returns the spent activation (`revertZoneMove`). SRD Flaming Sphere moves 30 feet for a Bonus Action and
 Moonbeam 60 feet for an Action, authored from core options. Target: an offer surface on the Sheet and tabletop (the
-move is a Run command today with no player UI). GM rulings, not authored: the ram (a creature the sphere is moved into saves and the move
-stops), steering over barriers and pits, igniting unattended flammable objects, the bright and dim light, and the
-unoccupied-space placement rule.
+move is a Run command today with no player UI). GM rulings, not authored: steering over barriers and pits, igniting
+unattended flammable objects, the bright and dim light, and the unoccupied-space placement rule.
+
+**A moved zone meeting a creature (target, QUALITY-15.T3y8c; not built).** Moving a zone into a creature is the same
+contact as a moving source carrying its zone onto one. `collectSpatialMovementCandidates` already raises it for a
+TOKEN-anchored zone whose source moves (`sourceMoved`). In the target, `MOVE_ZONE` runs that collection with the
+zone's own move path and settles its contacts through the spatial movement settlement, persistence and undo, with the
+same zone-save roller as every other zone contact. Two generic authored options make Flaming Sphere's SRD text data:
+
+- a zone interaction kind for "the zone moved into this creature", distinct from a creature entering, which is all
+  `ENTER` covers today;
+- a zone-move option that stops the move at the first creature it moves into. The stop happens on contact, whatever
+  the save result. The move's activation is its per-turn budget, so the stop also spends it.
+
+The seams and size are recorded in the future-enhancements rider "QUALITY-15 zone and summon edges".
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up

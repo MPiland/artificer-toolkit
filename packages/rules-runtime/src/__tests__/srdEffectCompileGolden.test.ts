@@ -372,9 +372,7 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D bonus healing requires one exact resolved amount.': 'INVALID_INPUT',
   'D&D subtract-from-triggering-roll action requires one exact resolved die.': 'INVALID_INPUT',
 
-  // Rows whose maintained effect has no plan type yet (QUALITY-15.T3n): Animate Objects (animated
-  // objects with no stat block), Clairvoyance (a stationary sensor), Dancing Lights (lights with no
-  // summon light or count) and Call Lightning (a repeat bolt each turn).
+  // Rows whose maintained effect has no plan type yet (QUALITY-15.T3n): Tree Stride.
   'D&D Concentration spell has no supported maintained effect.': 'UNBUILT',
   'D&D Effect action must have one fixed direct result without lifecycle overrides. Its duration, lifecycle or maintenance has no plan that holds it.':
     'UNBUILT',

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { compileSpellEffect } from '@artificer-toolkit/shared/compilers'
+import { dancingLights } from '@artificer-toolkit/source-data/srd/spells/dancing-lights.js'
 import { flamingSphere } from '@artificer-toolkit/source-data/srd/spells/flaming-sphere.js'
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -46,6 +47,28 @@ describe('a zone its source moves (QUALITY-15.T3y8)', () => {
 
   it('refuses a move on a zone its source does not maintain', () => {
     expect(() => zonePlacementOf({ ...flamingSphere, attributes: [] })).toThrow(
+      'Only a zone its source maintains is moved by its source.'
+    )
+  })
+})
+
+describe('a light-shedding zone its source moves (QUALITY-15.T3x3)', () => {
+  it('compiles Dancing Lights as a Concentration-held light it moves 60 feet for a Bonus Action', () => {
+    const zone = zonePlacementOf(dancingLights)
+    expect(zone.maintenance).not.toBeNull()
+    expect(zone.triggerModes).toEqual([])
+    expect(zone.light).toEqual({
+      bright: { amount: 0, unit: 'FEET' },
+      dimAdditional: { amount: 10, unit: 'FEET' }
+    })
+    expect(zone.move).toEqual({
+      activation: 'BONUS_ACTION',
+      maxDistance: { amount: 60, unit: 'FEET' }
+    })
+  })
+
+  it('refuses a move on a light its source does not maintain', () => {
+    expect(() => zonePlacementOf({ ...dancingLights, attributes: [] })).toThrow(
       'Only a zone its source maintains is moved by its source.'
     )
   })

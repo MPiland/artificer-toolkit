@@ -8,6 +8,7 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -18,6 +19,12 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+/** The square the lights fill as one Medium form, shedding dim light 10 feet out. */
+const lightSpace = (kind: number) => ({
+  id: spellChildId(SPELL_IDS.DANCING_LIGHTS, kind, 1),
+  shapeKind: SHAPE_KIND.CUBE,
+  edgeLength: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET }
+})
 export const dancingLights: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.DANCING_LIGHTS,
@@ -48,6 +55,7 @@ export const dancingLights: SpellAuthored = {
           amount: 120,
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
+        shape: lightSpace(0x215),
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
@@ -73,7 +81,18 @@ export const dancingLights: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.DANCING_LIGHTS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.ILLUSION
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Dancing Lights',
+                shape: lightSpace(0x220),
+                light: {
+                  bright: { amount: 0, unit: MEASUREMENT_UNIT_CODE.FEET },
+                  dimAdditional: { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                move: {
+                  activation: ACTIVATION_CODE.BONUS_ACTION,
+                  maxDistance: { amount: 60, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }

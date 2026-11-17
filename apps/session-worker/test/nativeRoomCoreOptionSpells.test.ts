@@ -44,6 +44,7 @@ import { findFamiliar } from '@artificer-toolkit/source-data/srd/spells/find-fam
 import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { wordOfRecall } from '@artificer-toolkit/source-data/srd/spells/word-of-recall.js'
 import { animateObjects } from '@artificer-toolkit/source-data/srd/spells/animate-objects.js'
 import { conjureAnimals } from '@artificer-toolkit/source-data/srd/spells/conjure-animals.js'
 import { conjureFey } from '@artificer-toolkit/source-data/srd/spells/conjure-fey.js'
@@ -1922,6 +1923,101 @@ describe('room Animate Objects (QUALITY-15.T3x2)', () => {
     expect(await refusedWith({ formId: mediumForm.id, count: 6 })).toContain('conjured 5 at most')
     expect(await refusedWith({})).toContain('needs one of its creature forms')
     expect(await conjured(room)).toEqual([])
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3x2c: each slot level is its own cast, and a summon's count is the one its authored
+ * rows give at that slot, so a higher slot conjures more of the same form.
+ */
+describe('room per-slot summon counts (QUALITY-15.T3x2c)', () => {
+  const summonForms = (spell: typeof conjureAnimals | typeof animateObjects) => {
+    const outcome = spell.effects
+      ?.flatMap((effect) => effect.paths)
+      .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
+      .find(
+        (candidate) => candidate.effectKind === 'MANIFEST' && candidate.manifestKind === 'SUMMON'
+      )
+    return outcome?.effectKind === 'MANIFEST' ? (outcome.forms ?? []) : []
+  }
+  const wolfForm = summonForms(conjureAnimals).find((form) => form.creatureId === CREATURE_IDS.WOLF)
+  const singleForm = summonForms(conjureAnimals).find((form) => form.maxTargets === 1)
+  const mediumForm = summonForms(animateObjects).find(({ label }) => label === 'Medium objects')
+  const hugeForm = summonForms(animateObjects).find(({ label }) => label === 'Huge objects')
+  if (!wolfForm || !singleForm || !mediumForm || !hugeForm)
+    throw new Error('The summon spells must offer the forms the room casts.')
+  const FEY = creatureTypeId('FEY')
+  const POINT = { x: 150, y: 250 }
+  const OGRE_ID = testUuid(0xa38)
+  /** The room's slots reach the highest spell level its Class publishes, so a 6th-level spell gives a 6th-level slot. */
+  const slotRoom = (spell: typeof conjureAnimals | typeof animateObjects, label: string) =>
+    actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [18, ...Array.from({ length: 30 }, (_, index) => (index % 2 === 0 ? 14 : 1))],
+      fallbackRoll: 0,
+      actors: [
+        casterActor(),
+        srdCreatureActor({ id: OGRE_ID, creature: seededSrdCreature('Ogre') })
+      ],
+      characterPlay: { classLevel: 11 },
+      characterSpellcasting: { spells: [spell, wordOfRecall], prepared: [spell.id] },
+      characterAction: (action) => action.label === label,
+      formCreatures: [applyCreatureAttackRolls(wolf)],
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
+    })
+  const refusedWith = async (
+    room: ActionRoom,
+    picks: { formId: string; count: number; creatureTypeId?: string }
+  ) => {
+    const { answer } = await room.startAreaCommand({ kind: 'POINT', point: POINT, ...picks })
+    expect(answer.type).toBe('COMMAND_REJECTED')
+    return JSON.stringify(answer)
+  }
+
+  it('conjures twice as many creatures from a 5th-level Conjure Animals slot as from a 3rd-level one', async () => {
+    const lowest = await slotRoom(conjureAnimals, 'Conjure Animals (3rd level)')
+    expect(
+      await refusedWith(lowest, { formId: wolfForm.id, creatureTypeId: FEY, count: 9 })
+    ).toContain('conjured 8 at most')
+    expect(
+      await refusedWith(lowest, { formId: singleForm.id, creatureTypeId: FEY, count: 2 })
+    ).toContain('conjured one at a time')
+
+    const higher = await slotRoom(conjureAnimals, 'Conjure Animals (5th level)')
+    expect(
+      await refusedWith(higher, { formId: wolfForm.id, creatureTypeId: FEY, count: 17 })
+    ).toContain('conjured 16 at most')
+    const group = await castSummon(higher, POINT, {
+      formId: wolfForm.id,
+      creatureTypeId: FEY,
+      count: 16
+    })
+    expect(group.actor).toMatchObject({
+      sourceId: CREATURE_IDS.WOLF,
+      owner: { ownerActorId: CHARACTER_ACTOR_ID, count: 16 }
+    })
+  }, 120000)
+
+  it('lets a 6th-level Animate Objects slot animate two more objects than a 5th-level one', async () => {
+    const lowest = await slotRoom(animateObjects, 'Animate Objects (5th level)')
+    expect(await refusedWith(lowest, { formId: mediumForm.id, count: 6 })).toContain(
+      'conjured 5 at most'
+    )
+
+    const higher = await slotRoom(animateObjects, 'Animate Objects (6th level)')
+    expect(await refusedWith(higher, { formId: mediumForm.id, count: 7 })).toContain(
+      'conjured 6 at most'
+    )
+    expect(await refusedWith(higher, { formId: hugeForm.id, count: 2 })).toContain(
+      'conjured one at a time'
+    )
+    const group = await castSummon(higher, POINT, { formId: mediumForm.id, count: 6 })
+    expect(group.actor).toMatchObject({
+      owner: { ownerActorId: CHARACTER_ACTOR_ID, count: 6 }
+    })
   }, 120000)
 })
 
