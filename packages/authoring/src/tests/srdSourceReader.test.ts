@@ -10,7 +10,8 @@ import { normalizeNodeRuntimeValues } from '../nodeRuntime/nodeRuntimeService.js
 
 // Building the SRD source facts parses about a thousand records (seconds on a loaded machine). The
 // fixture parses them while its module loads, so a test's first resolve never pays for them inside
-// its own timeout.
+// its own timeout. This test must import the fixture itself (the spy has to exist before the module
+// loads), so that parse cost is inherently inside it and needs more than the 5 s default.
 it('parses every SRD record when the fixture loads, not on the first resolve', async () => {
   const parse = vi.spyOn(authoredDocumentVersionSchema, 'parse')
   const { createSrdNodeRuntimeReader } = await import('./srdSourceReader.js')
@@ -26,4 +27,4 @@ it('parses every SRD record when the fixture loads, not on the first resolve', a
     values: structuredClone(lifeDomainCleric) as unknown as Record<string, unknown>
   })
   expect(parse).not.toHaveBeenCalled()
-})
+}, 30_000)
