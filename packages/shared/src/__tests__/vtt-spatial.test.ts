@@ -10,6 +10,7 @@ import {
   collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
   spatialGeometryOverlapsTokenFootprint,
+  spatialPathBlockingEffect,
   spatialSegmentShareInside,
   type SpatialEffectInstance,
   spatialTokensInsideArea,
@@ -1745,5 +1746,142 @@ describe('expandedAreaGeometry (QUALITY-15.T3v3, D223)', () => {
       maxY: expect.closeTo(bare.maxY + 10)
     })
     expect(expandedAreaGeometry(origin, { ...wall, to: origin }, 10)).toBeNull()
+  })
+})
+
+describe('a zone that blocks creature movement (QUALITY-15.T3y6b, D227)', () => {
+  const wall = undirectedAreaGeometry(
+    { x: 0, y: -50 },
+    { kind: 'WALL', to: { x: 0, y: 50 }, thickness: 0.01 }
+  )
+  if (!wall) throw new Error('The wall must have an outline.')
+  const barrier = effect({
+    blocksMovement: true,
+    triggerModes: [],
+    geometry: { frame: 'SCENE_ABSOLUTE', shape: wall }
+  })
+  const sphere = effect({
+    blocksMovement: true,
+    triggerModes: [],
+    anchorKind: 'TOKEN',
+    sourceTokenId: ids.sourceToken,
+    geometry: { frame: 'TOKEN_LOCAL', shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 } }
+  })
+  const blocking = (
+    effects: readonly SpatialEffectInstance[],
+    path: readonly { x: number; y: number }[],
+    moverTokenId = ids.targetToken
+  ) =>
+    spatialPathBlockingEffect({
+      effects,
+      tokens: [
+        token(ids.sourceToken, 0, 0),
+        ...(moverTokenId === ids.targetToken
+          ? [token(ids.targetToken, path[0]!.x, path[0]!.y)]
+          : [])
+      ],
+      moverTokenId,
+      path
+    })
+
+  it('refuses a walk through a thin wall, either way, and not one beside it or around its end', () => {
+    expect(
+      blocking(
+        [barrier],
+        [
+          { x: -10, y: 0 },
+          { x: 10, y: 0 }
+        ]
+      )
+    ).toBe(barrier)
+    expect(
+      blocking(
+        [barrier],
+        [
+          { x: 10, y: 0 },
+          { x: -10, y: 0 }
+        ]
+      )
+    ).toBe(barrier)
+    // The footprint touches the wall, but the center never crosses it.
+    expect(
+      blocking(
+        [barrier],
+        [
+          { x: -10, y: 0 },
+          { x: -1, y: 0 }
+        ]
+      )
+    ).toBeNull()
+    expect(
+      blocking(
+        [barrier],
+        [
+          { x: -10, y: 0 },
+          { x: -10, y: 60 },
+          { x: 10, y: 60 },
+          { x: 10, y: 0 }
+        ]
+      )
+    ).toBeNull()
+  })
+
+  it('refuses entering or leaving a sphere, but carries the token it is anchored to', () => {
+    expect(
+      blocking(
+        [sphere],
+        [
+          { x: 20, y: 0 },
+          { x: 3, y: 0 }
+        ]
+      )
+    ).toBe(sphere)
+    expect(
+      blocking(
+        [sphere],
+        [
+          { x: 2, y: 2 },
+          { x: 20, y: 2 }
+        ]
+      )
+    ).toBe(sphere)
+    // On the boundary is outside, so a creature beside the sphere walks away freely.
+    expect(
+      blocking(
+        [sphere],
+        [
+          { x: 5, y: 0 },
+          { x: 20, y: 0 }
+        ]
+      )
+    ).toBeNull()
+    expect(
+      blocking(
+        [sphere],
+        [
+          { x: 5, y: 0 },
+          { x: 4, y: 0 }
+        ]
+      )
+    ).toBe(sphere)
+    expect(
+      blocking(
+        [sphere],
+        [
+          { x: 0, y: 0 },
+          { x: 20, y: 0 }
+        ],
+        ids.sourceToken
+      )
+    ).toBeNull()
+  })
+
+  it('ignores a zone that blocks nothing or rests suppressed', () => {
+    const path = [
+      { x: -10, y: 0 },
+      { x: 10, y: 0 }
+    ]
+    expect(blocking([effect({ triggerModes: [], geometry: barrier.geometry })], path)).toBeNull()
+    expect(blocking([{ ...barrier, suppressed: true }], path)).toBeNull()
   })
 })

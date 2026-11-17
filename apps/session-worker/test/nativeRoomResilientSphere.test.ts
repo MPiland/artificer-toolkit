@@ -10,7 +10,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readMaintainedStates, readZones } from './placedZoneRoomReads.js'
+import { readMaintainedStates, readZones, walkerMoves } from './placedZoneRoomReads.js'
 import { readPendingActionDecision } from './roomHistoryReads.js'
 
 /**
@@ -75,6 +75,20 @@ describe('Resilient Sphere as a zone a failed save leaves on its target (QUALITY
       label: 'Resilient Sphere'
     })
     expect(await readMaintainedStates(room)).toHaveLength(1)
+  }, 120000)
+
+  it('blocks creature movement across its boundary, yet moves with the creature it encloses (QUALITY-15.T3y6b, D227)', async () => {
+    const room = await castSphere(FAILED_SAVE_DIE)
+    const [zone] = await readZones(room)
+    expect(zone?.placement).toMatchObject({
+      triggerModes: [],
+      blockingRules: ['CREATURE_MOVEMENT']
+    })
+    await room.advanceTurn()
+
+    const away = { x: WOLF_AT.x + 200, y: WOLF_AT.y }
+    const walk = await walkerMoves(room, [WOLF_AT, away])
+    expect(walk.terminalPosition).toEqual(away)
   }, 120000)
 
   it('leaves no sphere, and holds no Concentration, when the creature makes its save', async () => {

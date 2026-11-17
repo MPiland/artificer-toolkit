@@ -235,8 +235,9 @@ function zonePlacementPlan(
     return withZoneSettings(inertZonePlacementPlan(action, zone), zone)
   // A zone no creature interacts with is placed with no triggers; its appear save, if any, is its
   // provenance and names the condition it holds (Entangle's restraint), and its one component, if
-  // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).
-  // A zone with components holds only theirs.
+  // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save)
+  // or stops creatures crossing its boundary (Wall of Force, or the sphere a failed save leaves
+  // around its target, D227). A zone with components holds only theirs.
   const terrain =
     first &&
     !first.behavior &&
@@ -257,7 +258,7 @@ function zonePlacementPlan(
   if (first && !first.behavior && !terrain)
     return withZoneSettings(occupantBonusZonePlacementPlan(action, zone, first.component), zone)
   const primary =
-    first && (!terrain || !appearSave)
+    first && (!terrain || !appearSave?.entries.length)
       ? zoneComponentPlan(action, zone, first, terrain ? { triggerModes: [] } : undefined)
       : zoneComponentPlan(
           action,
@@ -478,7 +479,11 @@ function zoneComponentPlan(
   CharacterRuleActionZonePlacementPlan,
   'regionComponents' | 'layerComponents' | 'proximityComponent' | 'sourceGrant'
 > {
-  if (!behavior && !component.movementCostMultiplier)
+  if (
+    !behavior &&
+    !component.movementCostMultiplier &&
+    !component.blockingRules?.includes('CREATURE_MOVEMENT')
+  )
     unsupported('Only a zone’s own component lends an occupant save bonus.')
   const {
     requiresFullyWithin,

@@ -1490,6 +1490,11 @@ learns which fields offer the choice from `halfSpeedFields` on the Encounter ses
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
 preview offers "Move carefully" and "Move normally" before sending. A zone's authored `movementCostMultiplier`
 (D154: more than 1, up to 100) and `blockingRules` (including the new `BLOCKS_SIGHT`) compile onto the placement.
+A component whose only rule is `blockingRules` or a cost multiplier places like terrain, with no trigger modes.
+`CREATURE_MOVEMENT` (D227, QUALITY-15.T3y6b) marks the spatial instance `blocksMovement` (`toSpatialInstance`), and
+the Worker refuses a fresh non-teleport route whose mover's center crosses the zone's boundary
+(`spatialPathBlockingEffect` in `@artificer-toolkit/shared/vtt`, `MOVEMENT_BLOCKED`); a zone anchored on the mover's
+own token moves with it and never blocks it. Resilient Sphere, Wall of Force and Forcecage author it.
 A zone's own component may author `perDistanceMoved` (D156, SPELLS-4.T1h): placement resolves it to the
 placement's `distanceStep` in Scene distance units, and `collectSpatialMovementCandidates` raises one `ENTER` candidate
 per whole step the footprint travels inside, measured by the Scene grid and carrying its `step` ordinal, so the loop runs
@@ -4543,7 +4548,8 @@ The room prices each passed creature's footprint as a token-anchored zone at the
 D154's highest-of terrain, zones and passage applies. A passage through blocking barriers is checked by
 the server from the same prepared targets, and the room's Scene read model marks the token
 `passesBlockingBarriers` from the same resolved passage (`roomSceneVision`) so the client's drag
-validation (`sceneTokenMovementIndex`) cannot drift from it.
+validation (`sceneTokenMovementIndex`) cannot drift from it. A movement-blocking zone (D227) is not a Scene
+barrier: no passage grant admits it, and only a teleport passes it.
 
 **Spell school immunity and checks against the holder (current, SPELLS-33.T6m1).** Two authored `ADD_OPTION`
 modifier grants. `SPELL_SCHOOL_IMMUNITY` (`magicSchoolId`) folds into `spellSchoolImmunityIds`, a required

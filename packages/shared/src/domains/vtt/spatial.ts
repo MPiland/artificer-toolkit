@@ -1,5 +1,9 @@
 import type { LengthUnitCode } from '../core/measurement.js'
-import { measureScenePathDistance, sceneDistanceAsCoordinateLength } from './geometry.js'
+import {
+  measureScenePathDistance,
+  sceneDistanceAsCoordinateLength,
+  scenePointInPolygon
+} from './geometry.js'
 import { lengthMeasurementInSceneUnits } from './sceneReducer.js'
 import { segmentsIntersect } from './segments.js'
 import {
@@ -116,6 +120,8 @@ export interface SpatialEffectInstance {
   readonly knownByActorIds?: readonly string[]
   /** What moving through the effect costs a creature it catches, as a multiplier (D154); absent for 1. */
   readonly movementCostMultiplier?: number
+  /** No creature's walk crosses its boundary, in or out (D227); absent for none. */
+  readonly blocksMovement?: boolean
   /** Creatures the effect never catches (designated by the caster at cast). */
   readonly unaffectedActorIds?: readonly string[]
   /** How many times the effect may catch one creature in one turn; absent for no limit. */
@@ -1251,6 +1257,67 @@ export function zoneMovementSegmentMultiplier(input: {
   return input.dragDoublesCost
     ? (from, to, floor) => (zoned?.(from, to, floor) ?? floor) * 2
     : zoned
+}
+
+/**
+ * Whether the point lies inside the geometry, off its boundary: the zero-size footprint of the
+ * overlap rule for a circle or ring, and the polygon's interior off its edges.
+ */
+function pointWithinSpatialGeometryInterior(point: ScenePoint, geometry: SpatialGeometry): boolean {
+  if (geometry.kind !== 'POLYGON')
+    return footprintOverlapsSpatialGeometry(
+      { center: point, halfWidth: 0, halfHeight: 0 },
+      geometry
+    )
+  const { points } = geometry
+  return (
+    !points.some((from, index) =>
+      segmentsIntersect(point, point, from, points[(index + 1) % points.length]!)
+    ) && scenePointInPolygon(point, { points: [...points] })
+  )
+}
+
+/**
+ * The first zone whose boundary the mover's walked path crosses, in or out, among those that block
+ * creature movement (D227), or null. A crossing is the token's center passing from the zone's
+ * interior to outside it or back, as a Scene wall is met by the center path; a center on the
+ * boundary is outside, so a creature beside the zone or sliding along it crosses nothing. The
+ * barrier stops every creature whoever placed it, but never the token it is anchored to, which
+ * carries it along (Resilient Sphere). A teleport crosses nothing, so the caller does not ask.
+ */
+export function spatialPathBlockingEffect(input: {
+  readonly effects: readonly SpatialEffectInstance[]
+  readonly tokens: readonly SpatialSceneToken[]
+  readonly moverTokenId: string
+  readonly path: readonly ScenePoint[]
+}): SpatialEffectInstance | null {
+  const { path } = input
+  return (
+    input.effects.find((effect) => {
+      if (
+        !effect.blocksMovement ||
+        effect.suppressed ||
+        (effect.anchorKind === 'TOKEN' && effect.sourceTokenId === input.moverTokenId)
+      )
+        return false
+      const geometry = effectiveSpatialGeometry(effect, input.tokens)
+      if (!geometry || !path.length) return false
+      const startsInside = pointWithinSpatialGeometryInterior(path[0]!, geometry)
+      return path.slice(1).some((to, index) => {
+        const from = path[index]!
+        const times = candidateTimes(from, to, geometry, { halfWidth: 0, halfHeight: 0 })
+        return times
+          .slice(1)
+          .some(
+            (end, step) =>
+              pointWithinSpatialGeometryInterior(
+                interpolate(from, to, (times[step]! + end) / 2),
+                geometry
+              ) !== startsInside
+          )
+      })
+    }) ?? null
+  )
 }
 
 /**

@@ -2276,3 +2276,11 @@ QUALITY-15.T3v's seam trace found that Prismatic Wall's ordered layers cannot be
 - **Ruling (user, 2026-11-17):** The bead is an inert 20 ft sphere zone placed at the chosen point and held by Concentration. Detonation when the spell ends, the 1d6 growth at the end of each of the caster's turns, and early detonation when the bead is touched or thrown stay GM rulings ("Detonate the Bead").
 - **Found by:** QUALITY-15.T3y; built by QUALITY-15.T3y4 (m859).
 - **Tracking:** `docs/roadmap/future-enhancements.md`, armed or staged zones (an end-of-zone burst trigger, a per-zone turn counter and a touch interaction if ever automated).
+
+## D227 (2026-11-17): A zone can block creature movement across its boundary
+
+- **Ruling (orchestrator, 2026-11-17):** A ZONE component that authors the `CREATURE_MOVEMENT` blocking rule makes its zone a barrier. The Session Worker refuses a fresh walk, fly, climb or swim route (`MOVEMENT_BLOCKED`) whose mover's center enters or leaves the zone's interior. A center on the boundary counts as outside. A zone anchored on a token moves with that token, and never blocks that token. Resilient Sphere, Wall of Force and Forcecage adopt the rule as data; it applies in every automation mode.
+- **Not blocked:** teleports (consistent with "a teleport crosses nothing"), suppressed zones, GM-dragged tokens, forced push rays, and a resumed movement settlement. The client route preview does not show the barrier; the walker sees the server refusal.
+- **Deferred riders (GM rulings):** Forcecage's Charisma save to teleport out, its block on ethereal travel and its push of partly enclosed creatures; attacks, spells and line of sight through any barrier; the enclosed creature rolling Resilient Sphere, others moving it, and Disintegrate ending it.
+- **Found by:** QUALITY-15.T3y6a; built by QUALITY-15.T3y6b.
+- **Tracking:** `docs/roadmap/future-enhancements.md`, QUALITY-15 zone and summon edges (movement-blocking zones).

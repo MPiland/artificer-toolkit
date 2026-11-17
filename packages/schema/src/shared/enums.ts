@@ -13,14 +13,19 @@ export const activationCodeSchema = lazySchema(() =>
 
 export const authoredRecordStatusSchema = lazySchema(() => z.enum(['DRAFT', 'ACTIVE']))
 
-/** What an authored manifest blocks; a placed zone carries its rules for consumers such as cover (D154). */
+/**
+ * What an authored manifest blocks; a placed zone carries its rules for consumers such as cover
+ * (D154) and movement validation, which refuses a creature's move across the boundary of a zone
+ * that blocks `CREATURE_MOVEMENT` (D227).
+ */
 export const manifestBlockingRuleSchema = lazySchema(() =>
   z.enum([
     'NONMAGICAL_RANGED_ATTACKS',
     'MAGICAL_RANGED_ATTACKS',
     'SPELLS',
     'THREE_QUARTERS_COVER',
-    'BLOCKS_SIGHT'
+    'BLOCKS_SIGHT',
+    'CREATURE_MOVEMENT'
   ])
 )
 

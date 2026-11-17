@@ -84,7 +84,16 @@ export const wallOfForce: SpellAuthored = {
                   length: { amount: 100, unit: MEASUREMENT_UNIT_CODE.FEET },
                   height: { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET },
                   thickness: { amount: 0.25, unit: MEASUREMENT_UNIT_CODE.INCHES }
-                }
+                },
+                // "Nothing can physically pass through the wall."
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.WALL_OF_FORCE, 0x215, 1),
+                    order: 1,
+                    label: 'Wall of Force',
+                    blockingRules: ['CREATURE_MOVEMENT']
+                  }
+                ]
               }
             ]
           }

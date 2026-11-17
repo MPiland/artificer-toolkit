@@ -140,6 +140,7 @@ function toSpatialInstance(
       knownByActorIds: effect.spatialState.concealment.knownByActorIds
     }),
     movementCostMultiplier: effect.placement.movementCostMultiplier,
+    ...(effect.placement.blockingRules?.includes('CREATURE_MOVEMENT') && { blocksMovement: true }),
     unaffectedActorIds: effect.placement.unaffectedActorIds,
     maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn,
     requiresFullyWithin: effect.placement.requiresFullyWithin,
