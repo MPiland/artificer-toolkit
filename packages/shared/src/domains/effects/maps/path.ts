@@ -110,7 +110,6 @@ import { PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP } from './pathLifecycleEffectOffer
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { CHOICE_OPTION_REQUIRED_RULE_NODE_MAP } from './choiceOptionRequiredRule.js'
 import { registerForcedMovementOutcomeFields, type ForcedMovementCond } from './forcedMovement.js'
-import { registerTreeStrideOutcomeFields } from './treeStrideOutcomeFields.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
@@ -1829,8 +1828,6 @@ function registerOutcomeFields(
         showIf: local.field(['effectKind']).eq(EFFECT_KIND.PLANT_PORTAL)
       })
     )
-  registerTreeStrideOutcomeFields(map, nodes, cond)
-  map
     .set(
       'actionEconomyRuleKind',
       selectSingle(

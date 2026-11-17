@@ -5,6 +5,7 @@ import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blad
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
 import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
+import { treeStride } from '@artificer-toolkit/source-data/srd/spells/tree-stride.js'
 import { vampiricTouch } from '@artificer-toolkit/source-data/srd/spells/vampiric-touch.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -333,6 +334,7 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
     const authored = featureActionMechanic(resolve(LATER_TURN.turn).capability).activation
     const freeKey = repeatOfferFreeUseKey({
       offer: { effectId: CARRIER_ID, offerIndex: 0, castTurnSequence: CAST_TURN },
+      actorId: SOURCE_ID,
       turn: castTurn,
       spentKeys: []
     })
@@ -404,6 +406,58 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
           }
         })
       ).toThrow('stale')
+    })
+  })
+
+  describe('a free repeat that counts its uses per turn (QUALITY-15.T3y7)', () => {
+    const stride = compiledOffer(treeStride)
+    const ownTurn = { turnSequence: CAST_TURN, currentActorId: SOURCE_ID }
+    const resolve = (
+      turn: { turnSequence: number; currentActorId: string | null },
+      spentKeys: readonly string[] = []
+    ) => {
+      const source = resolveEncounterActionSource({
+        actor: caster,
+        actionId,
+        gameSystemId: DND5E_SYSTEM_ID,
+        system,
+        spells: new Map(),
+        repeat: { effectsByHolder: new Map([[HOLDER_ID, [heldCarrier(stride)]]]), turn, spentKeys }
+      })
+      if (source.kind !== 'REPEAT_PATH') throw new Error('The id must resolve to a repeat.')
+      return source
+    }
+
+    it('is stored free only with its uses per turn', () => {
+      const stored = (offer: ReturnType<typeof compiledOffer>) =>
+        activeRuleEffectDefinitionDtoSchema.safeParse(heldCarrier(offer).definition).success
+      const { usesPerTurn: _uses, ...uncounted } = stride
+      expect(stride).toMatchObject({ activation: 'FREE', usesPerTurn: 1 })
+      expect(stored(stride)).toBe(true)
+      expect(stored(uncounted)).toBe(false)
+      expect(stored({ ...compiledOffer(flameBlade), usesPerTurn: 1 })).toBe(false)
+    })
+
+    it('costs nothing in its source’s own turn, spending a once-per-turn key', () => {
+      const first = resolve(ownTurn)
+      expect(first.grantedUseKey).toEqual(expect.any(String))
+      expect(featureActionMechanic(first.capability).activation).toEqual({
+        code: 'FREE',
+        amount: 1
+      })
+      expect(() => resolve(ownTurn, [first.grantedUseKey ?? ''])).toThrow('no use left this turn')
+      // The key is counted per turn, so the next turn of its source offers the use again.
+      expect(resolve({ ...ownTurn, turnSequence: CAST_TURN + 2 }).grantedUseKey).toBe(
+        first.grantedUseKey
+      )
+    })
+
+    it('is not taken in another creature’s turn or between turns', () => {
+      for (const turn of [
+        { turnSequence: CAST_TURN, currentActorId: HOLDER_ID },
+        { turnSequence: CAST_TURN, currentActorId: null }
+      ])
+        expect(() => resolve(turn)).toThrow('no use left this turn')
     })
   })
 

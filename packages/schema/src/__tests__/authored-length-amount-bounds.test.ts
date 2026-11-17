@@ -5,7 +5,6 @@ import { forcedMovementDtoSchema } from '../effects/forcedMovement.js'
 import { manifestDtoSchema } from '../effects/manifest.js'
 import { movementRuleDtoSchema } from '../effects/movementRule.js'
 import { plantPortalDtoSchema } from '../effects/plantPortal.js'
-import { treeStrideDtoSchema } from '../effects/treeStride.js'
 import { AUTHORED_LENGTH_AMOUNT_MAX } from '../shared/authoredLimits.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import { rangeDtoSchema } from '../shared/range.js'
@@ -117,20 +116,6 @@ const relationshipModule = (fields: Record<string, unknown>) => ({
   ...fields
 })
 
-const treeStride = (fields: Record<string, unknown>) => ({
-  id: 'stride-1',
-  effectKind: 'TREE_STRIDE',
-  destinationDistance: measurement(5),
-  entryMovementCost: measurement(5),
-  exitMovementCost: measurement(5),
-  sameTreeKind: true,
-  livingTreesOnly: true,
-  minimumTreeSizeRelativeToTraveler: false,
-  usesPerRound: 1,
-  mustEndTurnOutside: true,
-  ...fields
-})
-
 /** Authored lengths where zero is meaningful, so zero parses. */
 const parsers: Record<string, (amount: number) => boolean> = {
   'range amount': (amount) => rangeDtoSchema.safeParse(distanceRange({ amount })).success,
@@ -198,12 +183,6 @@ const parsers: Record<string, (amount: number) => boolean> = {
 const positiveParsers: Record<string, (amount: number) => boolean> = {
   'range long amount': (amount) =>
     rangeDtoSchema.safeParse(distanceRange({ amount: 0, longAmount: amount })).success,
-  'tree stride destination distance': (amount) =>
-    treeStrideDtoSchema.safeParse(treeStride({ destinationDistance: measurement(amount) })).success,
-  'tree stride entry movement cost': (amount) =>
-    treeStrideDtoSchema.safeParse(treeStride({ entryMovementCost: measurement(amount) })).success,
-  'tree stride exit movement cost': (amount) =>
-    treeStrideDtoSchema.safeParse(treeStride({ exitMovementCost: measurement(amount) })).success,
   'plant portal movement cost': (amount) =>
     plantPortalDtoSchema.safeParse({
       id: 'portal-1',
