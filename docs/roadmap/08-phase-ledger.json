@@ -25189,7 +25189,7 @@
             },
             {
               "id": "PERF-1.T11",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25198,7 +25198,8 @@
                 "size": 3,
                 "after": []
               },
-              "text": "D229 step 4 (user, 2026-11-17): an action posts one chat card holding its attack, damage and save rolls (Foundry midi-qol style) instead of one card per roll; private and revealed rolls keep their visibility rules; follow DESIGN.md for the card; prove the card content and the entries-per-command drop with real-code tests and a browser check of the card."
+              "text": "D229 step 4 (user, 2026-11-17): an action posts one chat card holding its attack, damage and save rolls (Foundry midi-qol style) instead of one card per roll; private and revealed rolls keep their visibility rules; follow DESIGN.md for the card; prove the card content and the entries-per-command drop with real-code tests and a browser check of the card.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
