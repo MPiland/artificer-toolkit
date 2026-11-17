@@ -1,6 +1,6 @@
 {
-  "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 1776,
-  "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2572,
+  "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 1764,
+  "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2561,
   "packages/rules-runtime/src/character/sheetPanel.ts": 1688,
   "packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts": 3352,
   "packages/shared/src/domains/effects/maps/path.ts": 2783,

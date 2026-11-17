@@ -15,7 +15,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { buildSpatialDamageEffect } from '@artificer-toolkit/rules-runtime/testing/spatialDamageEffectFixture'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import type { SceneLength, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { adultBlackDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-black-dragon.js'
@@ -274,6 +274,8 @@ export async function spatialDamageEffect(input: {
   triggerModes?: ('ENTER' | 'EXIT' | 'CROSS')[]
   /** Whether a Scene-fixed effect is spent by its first trigger; one-shot unless it says otherwise. */
   activation?: 'ONE_SHOT' | 'REPEATABLE'
+  /** The light the zone sheds from its whole area; none unless it says so. */
+  light?: { bright: SceneLength; dimAdditional: SceneLength }
 }) {
   const offset = (input.variant ?? 0) * 0x10
   return buildSpatialDamageEffect({
@@ -297,7 +299,8 @@ export async function spatialDamageEffect(input: {
     hiddenHalfSpeedField: input.hiddenHalfSpeedField,
     movementKinds: input.movementKinds,
     triggerModes: input.triggerModes,
-    activation: input.activation
+    activation: input.activation,
+    light: input.light
   })
 }
 

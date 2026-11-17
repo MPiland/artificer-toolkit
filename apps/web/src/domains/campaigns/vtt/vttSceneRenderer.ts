@@ -22,7 +22,8 @@ import {
   visionRangeInMapPixels,
   type ScenePoint,
   type SceneToken,
-  type SceneTokenVision
+  type SceneTokenVision,
+  type SceneZoneLight
 } from '@artificer-toolkit/shared/vtt'
 import type {
   Application,
@@ -40,8 +41,6 @@ import {
   canControlSceneToken,
   canPreserveSceneTokenDrag,
   clampPolygonToRadius,
-  darknessZoneStyle,
-  dashedPolygonSegments,
   dimOverlayAlpha,
   ellipseArcPoints,
   describeAreaOverlays,
@@ -49,6 +48,7 @@ import {
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
   lightBandAlphas,
+  zoneLightReach,
   formatSceneMeasurement,
   formatSceneRoute,
   hasCommittedSceneTokenPositionChanged,
@@ -90,6 +90,12 @@ import {
   facingArcDiagnostics,
   tokenFacingLabel
 } from './vttTokenFacing'
+import {
+  darknessZoneLabelPrefix,
+  drawDarknessZoneCues,
+  dashedOutline,
+  obscurementLabelPrefix
+} from './vttDarknessZoneCues'
 import { createVttAreaAimGesture } from './vttAreaAimGesture'
 import type { VttSceneRendererDiagnostics } from './vttSceneRendererDiagnostics'
 import { createVttPingPress, isVttPingKey, vttPingRingFrame } from './vttPing'
@@ -181,6 +187,8 @@ export interface VttSceneRendererUpdate {
     unnoticedZones: readonly UnnoticedZone[]
   } | null
   overlays?: readonly VttScenePresentationOverlay[]
+  /** The light the placed zones shed from their whole areas (`stageZoneLights`); none when absent. */
+  zoneLights?: readonly SceneZoneLight[]
   /** The GM's token-view preview: draws what a Player controlling this Token sees. */
   previewTokenId?: string | null
   role: 'OWNER' | 'PLAYER'
@@ -260,10 +268,8 @@ const tokenSelectionLabel = 'token-selection'
 const zoomFactor = 1.1
 /** A larger map renders its darkness and sight textures at a lower resolution than this. */
 const maxLightingTextureSize = 2048
-const darknessZoneLabelPrefix = 'darkness-zone:'
 /** A zone whose System level dispels light; other zones are labelled by their render class. */
 const darknessZoneSuppressingLabel = `${darknessZoneLabelPrefix}SUPPRESSES_LIGHT`
-const obscurementLabelPrefix = 'obscurement:'
 const lightTintDimLabel = 'light-tint-dim'
 const lightTintBrightLabel = 'light-tint-bright'
 
@@ -397,6 +403,7 @@ export async function createVttSceneRenderer(
   let renderedBarriers: CampaignSceneStateDto['barriers'] | null = null
   let renderedDoorStates: CampaignSceneStateDto['doorStates'] | null = null
   let renderedDarknessZones: CampaignSceneStateDto['darknessZones'] | null = null
+  let renderedZoneLights: VttSceneRendererUpdate['zoneLights'] | null = null
   let renderedGrid: CampaignSceneStateDto['grid'] | null = null
   let renderedLightingBarriers: CampaignSceneStateDto['barriers'] | null = null
   let renderedLights: CampaignSceneStateDto['lights'] | null = null
@@ -970,10 +977,14 @@ export async function createVttSceneRenderer(
    * (darker wins), then lights cut the darkness back inside their radii (brighter wins), then
    * magical darkness forces black. The result is one black texture whose alpha is the class.
    */
-  function drawLighting(scene: CampaignSceneStateDto): void {
+  function drawLighting(
+    scene: CampaignSceneStateDto,
+    zoneLights: VttSceneRendererUpdate['zoneLights']
+  ): void {
     const tokenLights = sceneTokenLights(scene)
     const tokenLightsKey = JSON.stringify(tokenLights)
     if (
+      renderedZoneLights === zoneLights &&
       renderedAmbient === scene.ambientIllumination &&
       renderedLightingMap === scene.map &&
       renderedLightingBarriers === scene.barriers &&
@@ -984,6 +995,7 @@ export async function createVttSceneRenderer(
     ) {
       return
     }
+    renderedZoneLights = zoneLights
     renderedAmbient = scene.ambientIllumination
     renderedLightingMap = scene.map
     renderedLightingBarriers = scene.barriers
@@ -1038,60 +1050,31 @@ export async function createVttSceneRenderer(
         lightTintLayer.addChild(tintShape(core, light, lightTintBrightLabel))
       }
     }
+    // A placed zone sheds its light from its whole area: the reach of each radius is the area
+    // grown by it, the same nearest-point rule the rules read (`resolveSceneIlluminationAt`).
+    for (const zoneLight of zoneLights ?? []) {
+      const radii = lightRadii(zoneLight)
+      const bands = [
+        ...(radii.dim > radii.bright
+          ? [{ radius: radii.dim, alpha: bandAlpha.dim, label: 'light-dim' }]
+          : []),
+        ...(radii.bright > 0
+          ? [{ radius: radii.bright, alpha: bandAlpha.bright, label: 'light-bright' }]
+          : [])
+      ]
+      for (const { radius, alpha, label } of bands)
+        for (const piece of zoneLightReach(zoneLight.geometry, radius)) {
+          classMap.addChild(overlayShape(piece, alpha, 'min', label))
+          lightCutPolygons.push(piece)
+        }
+    }
     for (const area of areas) if (area.level.suppressesLight) drawArea(area)
-    for (const zone of scene.darknessZones) drawZoneCues(zone)
+    for (const zone of scene.darknessZones)
+      drawDarknessZoneCues(pixi, obscurementLayer, zone, illuminationLevels, colors)
     darknessTexture = textureForMap(darknessTexture, map)
     renderLightingTexture(classMap, darknessTexture, map)
     darknessSprite.texture = darknessTexture
     darknessSprite.scale.set(map.width / darknessTexture.width)
-  }
-
-  /** What a zone shows beyond its class: a visual-only fill, and non-colour outlines. */
-  function drawZoneCues(zone: CampaignSceneStateDto['darknessZones'][number]): void {
-    const style = darknessZoneStyle(zone, illuminationLevels)
-    const points = zone.polygon.points
-    if (zone.mechanicalIllumination === null) {
-      const fill = new pixi.Graphics()
-        .poly(points.flatMap((point) => [point.x, point.y]))
-        .fill({ alpha: zone.opacity, color: colors.darkness })
-      fill.label = `${darknessZoneLabelPrefix}VISUAL`
-      obscurementLayer.addChild(fill)
-    }
-    const { obscurementOutline } = style
-    if (obscurementOutline) {
-      const outline =
-        obscurementOutline.dash === null
-          ? new pixi.Graphics()
-              .poly(points.flatMap((point) => [point.x, point.y]))
-              .stroke({ color: colors.barrier, width: obscurementOutline.width })
-          : dashedOutline(points, obscurementOutline.dash, obscurementOutline.gap, {
-              color: colors.barrier,
-              width: obscurementOutline.width
-            })
-      outline.label = `${obscurementLabelPrefix}${zone.mechanicalObscurement}`
-      obscurementLayer.addChild(outline)
-    }
-    if (style.illuminationOutline) {
-      obscurementLayer.addChild(
-        dashedOutline(points, style.illuminationOutline.dash, style.illuminationOutline.gap, {
-          color: colors.arcane,
-          width: style.illuminationOutline.width
-        })
-      )
-    }
-  }
-
-  function dashedOutline(
-    points: readonly ScenePoint[],
-    dash: number,
-    gap: number,
-    stroke: { color: number; width: number }
-  ): Graphics {
-    const outline = new pixi.Graphics()
-    for (const [from, to] of dashedPolygonSegments(points, dash, gap)) {
-      outline.moveTo(from.x, from.y).lineTo(to.x, to.y)
-    }
-    return outline.stroke({ ...stroke, cap: 'round' })
   }
 
   /**
@@ -1354,8 +1337,12 @@ export async function createVttSceneRenderer(
         isTokenRevealed({
           halfSize: Math.max(token.height, token.width) / 2,
           illumination: levelOf(
-            resolveSceneIlluminationAt(scene, token.position, barrierIndex, illuminationLevels)
-              .illumination
+            resolveSceneIlluminationAt(
+              { ...scene, zoneLights: next.zoneLights },
+              token.position,
+              barrierIndex,
+              illuminationLevels
+            ).illumination
           ),
           illuminationLevels,
           point: token.position,
@@ -1834,6 +1821,7 @@ export async function createVttSceneRenderer(
     token: CampaignSceneStateDto['tokens'][number]
   ): void {
     const outline = dashedOutline(
+      pixi,
       ellipseArcPoints(
         token.width / 2 + selectionOutlineOffset,
         token.height / 2 + selectionOutlineOffset,
@@ -1981,7 +1969,7 @@ export async function createVttSceneRenderer(
       renderedFogMode = next.scene.fogMode
       renderedFogRole = next.role
     }
-    drawLighting(next.scene)
+    drawLighting(next.scene, next.zoneLights)
     drawVision(next)
     drawSenses(next)
     drawPresentationOverlays(next.overlays)
@@ -2023,6 +2011,7 @@ export async function createVttSceneRenderer(
       previous.scene.measurements === next.scene.measurements &&
       previous.scene.tokens === next.scene.tokens &&
       previous.overlays === next.overlays &&
+      previous.zoneLights === next.zoneLights &&
       previous.previewTokenId === next.previewTokenId &&
       previous.selectedTokenId === next.selectedTokenId &&
       previous.tokenPresentations === next.tokenPresentations &&

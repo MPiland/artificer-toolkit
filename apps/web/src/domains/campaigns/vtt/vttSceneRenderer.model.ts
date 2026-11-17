@@ -16,6 +16,7 @@ import {
   SceneBarrierIndex,
   sceneDistanceAsCoordinateLength,
   scenePointInPolygon,
+  sceneZoneLight,
   sceneRangeBand,
   sceneRangeOutline,
   sceneLightLevels,
@@ -26,7 +27,9 @@ import {
   type SceneIlluminationRenderClass,
   type ScenePoint,
   type SceneTokenSense,
+  type SceneZoneLight,
   type SpatialAreaShape,
+  type SpatialGeometry,
   type SpatialDirectedAreaSize,
   type SpatialPointAreaShape,
   type SpatialTokenFootprint,
@@ -1146,6 +1149,75 @@ export function clampPolygonToRadius(
       y: origin.y + (point.y - origin.y) * ratio
     }
   })
+}
+
+/** A disc of `radius` about `center`, as a polygon. */
+function discPolygon(center: ScenePoint, radius: number): ScenePoint[] {
+  return ellipseArcPoints(radius, radius, 0, 2 * Math.PI)
+    .slice(0, -1)
+    .map((point) => ({ x: center.x + point.x, y: center.y + point.y }))
+}
+
+/** The rectangle `radius` to each side of the segment `from` to `to`. */
+function segmentBand(from: ScenePoint, to: ScenePoint, radius: number): ScenePoint[] {
+  const length = Math.hypot(to.x - from.x, to.y - from.y) || 1
+  const normal = { x: (-(to.y - from.y) / length) * radius, y: ((to.x - from.x) / length) * radius }
+  return [
+    { x: from.x + normal.x, y: from.y + normal.y },
+    { x: to.x + normal.x, y: to.y + normal.y },
+    { x: to.x - normal.x, y: to.y - normal.y },
+    { x: from.x - normal.x, y: from.y - normal.y }
+  ]
+}
+
+const ZONE_LIGHT_RING_SEGMENTS = 48
+/** Neighbouring ring pieces overlap by this angle so no seam shows between them. */
+const ZONE_LIGHT_RING_OVERLAP = 0.01
+
+/**
+ * The area within `radius` of a zone's area, as overlapping unobstructed pieces whose union it is:
+ * the zone's own area grown by `radius`, where its light reaches (the nearest-point rule of
+ * `resolveSceneIlluminationAt`). A ring whose hole `radius` closes is a disc.
+ */
+export function zoneLightReach(geometry: SpatialGeometry, radius: number): ScenePoint[][] {
+  if (geometry.kind === 'POLYGON') {
+    const { points } = geometry
+    return [
+      [...points],
+      ...points.flatMap((from, index) => [
+        segmentBand(from, points[(index + 1) % points.length]!, radius),
+        discPolygon(from, radius)
+      ])
+    ]
+  }
+  const [inner, outer] =
+    geometry.kind === 'CIRCLE' ? [0, geometry.radius] : [geometry.innerRadius, geometry.outerRadius]
+  const hole = Math.max(0, inner - radius)
+  if (hole === 0) return [discPolygon(geometry.center, outer + radius)]
+  const { center } = geometry
+  const at = (distance: number, angle: number) => ({
+    x: center.x + distance * Math.cos(angle),
+    y: center.y + distance * Math.sin(angle)
+  })
+  const step = (2 * Math.PI) / ZONE_LIGHT_RING_SEGMENTS
+  return Array.from({ length: ZONE_LIGHT_RING_SEGMENTS }, (_, index) => {
+    const start = index * step - ZONE_LIGHT_RING_OVERLAP
+    const end = (index + 1) * step + ZONE_LIGHT_RING_OVERLAP
+    return [at(outer + radius, start), at(outer + radius, end), at(hole, end), at(hole, start)]
+  })
+}
+
+/**
+ * The light each visible placed zone sheds, in Scene units: the one conversion the rules use
+ * (`sceneZoneLight`), so the renderer draws what holder light and room vision read.
+ */
+export function stageZoneLights(
+  placedZones: EncounterSessionStateDto['placedZones'],
+  grid: SceneGrid
+): SceneZoneLight[] {
+  return placedZones.flatMap(({ light, shape }) =>
+    light ? [sceneZoneLight(shape, light, grid)] : []
+  )
 }
 
 interface VttDarknessZoneStyle {

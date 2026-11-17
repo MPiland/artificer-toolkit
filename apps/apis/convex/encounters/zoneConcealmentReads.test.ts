@@ -80,7 +80,10 @@ function definition(encounterId: string): ActiveRuleEffectDefinitionDto {
  * the `unknown` actor knows of, and one in plain sight with a disarm DC. The player controls the
  * `known` actor, and the `unknown` one too when `controlsBoth`.
  */
-async function seedZones(controlsBoth: boolean) {
+async function seedZones(
+  controlsBoth: boolean,
+  light?: NonNullable<EncounterSessionStateDto['placedZones'][number]['light']>
+) {
   const base = await createEncounterSceneFixture()
   const [known, unknown] = base.run.actors
   if (!known || !unknown) throw new Error('The fixture Run has two actors.')
@@ -143,7 +146,8 @@ async function seedZones(controlsBoth: boolean) {
           revealOnTrigger: false,
           label: `Zone ${index}`,
           bypassAtHalfSpeed: true,
-          movementCostMultiplier: 2
+          movementCostMultiplier: 2,
+          ...(light && { light })
         },
         spatialState
       })
@@ -194,6 +198,23 @@ it('reads a concealed zone only for the GM and the players whose Characters know
     movementCostZones: [effectId(20), effectId(22)]
   })
   expect(JSON.stringify(player)).not.toContain(effectId(21))
+}, 60000)
+
+it('lists the light a zone sheds, and no light of a concealed zone a player does not know (QUALITY-15.T3v4b)', async () => {
+  const light = {
+    bright: { amount: 10, unit: 'FEET' as const },
+    dimAdditional: { amount: 10, unit: 'FEET' as const }
+  }
+  const { base, input } = await seedZones(false, light)
+  const gm = await base.other.caller.query(activeState, input)
+  expect(gm.placedZones.map((placed) => placed.light)).toEqual([light, light, light])
+  const player = await base.owner.caller.query(activeState, input)
+  const noDcs = { spotDc: null, disarmDc: null }
+  expect(player.placedZones).toEqual([
+    { ...zone(0, noDcs), light },
+    { ...zone(2, noDcs), light }
+  ])
+  expect(JSON.stringify(player.placedZones)).not.toContain(effectId(21))
 }, 60000)
 
 it('names to a player only their own Characters that have not noticed a zone (MOVE-3.6)', async () => {

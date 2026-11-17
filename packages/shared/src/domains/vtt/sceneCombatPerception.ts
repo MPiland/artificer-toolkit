@@ -12,9 +12,16 @@ import {
   sceneDistanceAsCoordinateLength,
   scenePointInPolygon
 } from './geometry.js'
-import type { CampaignSceneState, SceneGrid, SceneLight, ScenePoint, SceneToken } from './scene.js'
+import type {
+  CampaignSceneState,
+  SceneGrid,
+  SceneLength,
+  SceneLight,
+  ScenePoint,
+  SceneToken
+} from './scene.js'
 import { SYSTEM_BASE_SQUARE_FEET } from './scene.js'
-import { feetInSceneUnit } from './sceneReducer.js'
+import { feetInSceneUnit, lengthMeasurementInSceneUnits } from './sceneReducer.js'
 import type { SpatialGeometry } from './spatial.js'
 
 /** How the canvas draws an illumination level: as lit ground, as dim light, or as darkness. */
@@ -94,6 +101,21 @@ export interface SceneZoneLight {
   dimRadius: number
 }
 
+/**
+ * The light a zone's authored lengths shed from `geometry` on `grid`, in Scene coordinates: the one
+ * conversion perception, drawing and holder light all share.
+ */
+export function sceneZoneLight(
+  geometry: SpatialGeometry,
+  light: { bright: SceneLength; dimAdditional: SceneLength },
+  grid: SceneGrid
+): SceneZoneLight {
+  const coordinates = (length: SceneLength) =>
+    sceneDistanceAsCoordinateLength(grid, lengthMeasurementInSceneUnits(length, grid))
+  const brightRadius = coordinates(light.bright)
+  return { geometry, brightRadius, dimRadius: brightRadius + coordinates(light.dimAdditional) }
+}
+
 /** What perception reads of a Scene, with the light its placed zones shed beside its own lights. */
 export type PerceptionSceneState = Pick<
   CampaignSceneState,
@@ -102,8 +124,8 @@ export type PerceptionSceneState = Pick<
 
 type PerceptionSceneToken = Pick<SceneToken, 'height' | 'position' | 'width'>
 
-const TOKEN_LIGHT_COLOR = '#f6c56f'
-const TOKEN_LIGHT_INTENSITY = 0.8
+/** How the canvas tints a light composed at runtime from a token or a placed zone. */
+export const COMPOSED_LIGHT_PRESENTATION = { color: '#f6c56f', intensity: 0.8 } as const
 
 function closestIntervalCoordinates(
   leftStart: number,
@@ -313,10 +335,9 @@ export function sceneTokenLights(
     return [
       {
         brightRadius: edge + sceneDistanceAsCoordinateLength(scene.grid, token.light.brightRadius),
-        color: TOKEN_LIGHT_COLOR,
+        ...COMPOSED_LIGHT_PRESENTATION,
         dimRadius: edge + sceneDistanceAsCoordinateLength(scene.grid, token.light.dimRadius),
         id: `TOKEN_LIGHT:${token.id}`,
-        intensity: TOKEN_LIGHT_INTENSITY,
         kind: 'POINT',
         position: token.position
       }

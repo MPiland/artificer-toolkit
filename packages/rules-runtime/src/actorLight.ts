@@ -6,8 +6,7 @@ import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import {
   effectiveSpatialGeometry,
-  lengthMeasurementInSceneUnits,
-  sceneDistanceAsCoordinateLength,
+  sceneZoneLight,
   type CampaignSceneState,
   type SceneActorVision,
   type SceneZoneLight
@@ -95,18 +94,10 @@ export function placedZoneLights(
   effects: readonly Pick<EncounterSpatialRuleEffectRecord, 'placement'>[],
   scene: Pick<CampaignSceneState, 'grid' | 'tokens'>
 ): SceneZoneLight[] {
-  const coordinates = (length: Parameters<typeof lengthMeasurementInSceneUnits>[0]) =>
-    sceneDistanceAsCoordinateLength(scene.grid, lengthMeasurementInSceneUnits(length, scene.grid))
   return effects.flatMap(({ placement }) => {
     const geometry = placement.light && effectiveSpatialGeometry(placement, scene.tokens)
-    if (!placement.light || !geometry) return []
-    const brightRadius = coordinates(placement.light.bright)
-    return [
-      {
-        geometry,
-        brightRadius,
-        dimRadius: brightRadius + coordinates(placement.light.dimAdditional)
-      }
-    ]
+    return placement.light && geometry
+      ? [sceneZoneLight(geometry, placement.light, scene.grid)]
+      : []
   })
 }
