@@ -173,6 +173,11 @@
       "types": "./dist/domains/vtt/sceneReducer.d.ts",
       "default": "./dist/domains/vtt/sceneReducer.js"
     },
+    "./vtt/areaHalo": {
+      "source": "./src/domains/vtt/areaHalo.ts",
+      "types": "./dist/domains/vtt/areaHalo.d.ts",
+      "default": "./dist/domains/vtt/areaHalo.js"
+    },
     "./vtt/spatial": {
       "source": "./src/domains/vtt/spatial.ts",
       "types": "./dist/domains/vtt/spatial.d.ts",
