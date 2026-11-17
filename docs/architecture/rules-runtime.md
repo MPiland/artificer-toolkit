@@ -274,9 +274,21 @@ and `persistEncounterMoveZone` re-centers the geometry under a zone-version fenc
 turn triggers read the current geometry, and moving onto a creature is not an entry. A GM undo restores the prior
 geometry and returns the spent activation (`revertZoneMove`). SRD Flaming Sphere moves 30 feet for a Bonus Action and
 Moonbeam 60 feet for an Action, authored from core options. Target: an offer surface on the Sheet and tabletop (the
-move is a Run command today with no player UI). GM rulings, not authored: the ram (a creature the sphere is moved into saves and the move
-stops), steering over barriers and pits, igniting unattended flammable objects, the bright and dim light, and the
-unoccupied-space placement rule.
+move is a Run command today with no player UI). GM rulings, not authored: steering over barriers and pits, igniting
+unattended flammable objects, the bright and dim light, and the unoccupied-space placement rule.
+
+**A moved zone meeting a creature (target, QUALITY-15.T3y8c; not built).** Moving a zone into a creature is the same
+contact as a moving source carrying its zone onto one. `collectSpatialMovementCandidates` already raises it for a
+TOKEN-anchored zone whose source moves (`sourceMoved`). In the target, `MOVE_ZONE` runs that collection with the
+zone's own move path and settles its contacts through the spatial movement settlement, persistence and undo, with the
+same zone-save roller as every other zone contact. Two generic authored options make Flaming Sphere's SRD text data:
+
+- a zone interaction kind for "the zone moved into this creature", distinct from a creature entering, which is all
+  `ENTER` covers today;
+- a zone-move option that stops the move at the first creature it moves into. The stop happens on contact, whatever
+  the save result. The move's activation is its per-turn budget, so the stop also spends it.
+
+The seams and size are recorded in the future-enhancements rider "QUALITY-15 zone and summon edges".
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
