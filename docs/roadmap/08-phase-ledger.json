@@ -27894,10 +27894,10 @@
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["QUALITY-15.T3v1"]
               },
-              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace).",
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace). Resized 3 -> 5 on 2026-11-16: schema plumbing for the authored destruction criteria, a GM-only read projection and the receipt shape.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -27988,23 +27988,50 @@
             },
             {
               "id": "QUALITY-15.T3x",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
-              "text": "Summoned and animated creatures from Concentration spells: Animate Objects stat blocks per object size, Dancing Lights as several light-shedding objects, and Conjure Elemental and Conjure Fey creatures turning hostile when Concentration breaks, through generic summon and light plans.",
+              "text": "Conjure Elemental and Conjure Fey place their creature, which turns hostile and stays in play when the caster's Concentration ends (a generic summon option, not a spell rule).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8
+              },
+              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13). Resized 5 -> 8 on 2026-11-16: the release behavior needed a new option across schema, compiler, room and persistence plus a receipt change; Animate Objects and Dancing Lights split to T3x2 and T3x3.",
+              "mergedAt": "2026-11-16",
+              "proof": "m844; slice tip a5f7b8b82: Tests 43988387047, Live 43988387179, Browser journeys 43988386963 green. Generic summon option turnsHostileOnRelease: when the carrier ends, the creature leaves its owner, flips disposition and keeps its token and initiative (SUMMONS_ENDED \"Summon released\", receipt releasedActorIds). Conjure Elemental (13 elementals CR<=5) and Conjure Fey (96 fey/beast forms CR<=6) REFUSED -> SUMMON_PLACEMENT. Proof RED at the merge-base: nativeRoomCoreOptionSpells.test (\"room Conjure Fey\")."
+            },
+            {
+              "id": "QUALITY-15.T3x2",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Animate Objects places animated objects of each size with their own stat block and slam attack (summon forms may carry an inline stat block with actions).",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3x3",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Dancing Lights places several light-shedding objects the caster moves together.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3y",
               "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
-              "text": "Maintained Concentration effects with ongoing behavior: Barkskin AC floor, Call Lightning repeat bolt, Delayed Blast Fireball detonating when the spell ends, Flaming Sphere as a movable damaging sphere, Resilient Sphere as a zone attached to its target, Clairvoyance sensor, and Tree Stride, through generic plans.",
+              "text": "Barkskin sets a minimum armor class of 16 while Concentration holds, on Characters and Creatures (a generic MINIMUM_VALUE armor-class modifier; the unused ARMOR_CLASS_FLOOR effect kind is retired).",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
@@ -28013,6 +28040,99 @@
               },
               "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3y2",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Clairvoyance places a maintained sensor its caster perceives through.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3y3",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "Call Lightning is a maintained effect that grants its caster a repeat bolt action (Dexterity save, 3d10 lightning, 5-foot radius, more at a higher slot) while Concentration holds.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3y4",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Delayed Blast Fireball detonates when the spell ends, with damage that grows each round and early detonation when the bead is touched.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3y5",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "Flaming Sphere places a Concentration-held zone that deals fire damage (Dexterity save for half) to a creature ending its turn within 5 feet.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13). Narrowed from 8 to 3: the movable-sphere command split to T3y8.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3y6",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Resilient Sphere encloses its target in a target-attached barrier zone after a failed Dexterity save; nothing passes through and the target cannot move it from inside.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3y7",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Tree Stride lets its caster travel between trees of the same kind within 500 feet once per round.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3y8",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The caster moves a maintained zone by an authored distance with an authored action (Flaming Sphere: bonus action, 30 feet; Moonbeam: action, 60 feet), and the GM can undo the move.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 8
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3z",
@@ -28031,7 +28151,7 @@
             },
             {
               "id": "QUALITY-15.T3aa",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Area spells that create a creature or object (Create Undead, Find Steed, Planar Ally, Unseen Servant, Phantom Steed, Floating Disk, Hunting Trap, Create Food and Water) compile through generic summon or object plans the room places.",
               "wsjf": {
@@ -28040,7 +28160,8 @@
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3ab",
@@ -28059,9 +28180,9 @@
             },
             {
               "id": "QUALITY-15.T3ac",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
-              "text": "Areas with a Sight or Special range or a slot-scaled size (Storm of Vengeance, Control Weather, Create or Destroy Water) place, and Guards and Wards, Passwall and Find Traps get SRD-cited shapes, through generic placement data.",
+              "text": "Area spells with a Sight range, a caster-centered radius or a size scaled by cast level (Control Weather, Create or Destroy Water, Storm of Vengeance) place their area.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
@@ -28069,6 +28190,48 @@
                 "size": 5
               },
               "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-16",
+              "proof": "m845; slice tip 2811964cb: Tests 43988733435, Live 43992222051, Browser journeys 43988733581 green. Control Weather (Self, 5-mile radius), Create or Destroy Water (cube scaled by cast level) and Storm of Vengeance (Sight-range 360-ft cylinder) REFUSED -> SINGLE_GRAPH; a Sight-range point area bounds no distance (the out-of-sight warning is separate); Passwall refusal reclassified UNBUILT. Proofs RED at the merge-base: encounterActionRange.test (1/15), encounterAreaActionCompilation.test (11/128), srdEffectCompileGolden.test."
+            },
+            {
+              "id": "QUALITY-15.T3ac2",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "Passwall places a line at a distant point in a chosen direction (a point-plus-direction area target).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 5
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3ac report under the standing approval for QUALITY growth (2026-11-13)."
+            },
+            {
+              "id": "QUALITY-15.T3ac3",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "An area centered on its caster with a distance range (Find Traps: 120 feet, \"within range\") compiles and places: the shape names where it is centered.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3ac report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3ac4",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "Every SRD spell's casting time matches its SRD 5.1 Casting Time line (corpus-wide check; Control Weather and Guards and Wards take 10 minutes).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 1
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3ac report under the standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -28245,7 +28408,7 @@
             },
             {
               "id": "QUALITY-15.T3t2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A MANIFEST object attached to its target deals damage at the start of the attached target's turn or the end of its next turn, with cast-level scaling frozen into the effect, and the attached target can escape it (Acid Arrow, Alchemist's Fire across its two ON_HIT paths).",
               "wsjf": {
@@ -28256,12 +28419,12 @@
                 "after": ["QUALITY-15.T3t"]
               },
               "note": "Registered 2026-11-16 from the T3t split as a resize in approved scope. Seams: effectActionObjectManifestation.ts and the plan chain in effectActionCompiler.ts. Resized 5 -> 8 on 2026-11-16: the improvised thrown items (Acid, Alchemist's Fire, Holy Water, Oil) lacked their Dexterity attack modifier, and Shields proficiency lost its category in the grant fold so it matched every attack item. First green tip c7b0b96e3; re-syncing onto m843.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m845; slice tip 3f22b0ae9: Tests 43991134052, Live 43991134070, Browser journeys 43991134156 green. Acid Arrow and Alchemist's Fire compile as TEST_OUTCOME with attached-object turn damage; improvised thrown items (Acid, Alchemist's Fire, Holy Water, Oil) carry their Dexterity attack modifier; EQUIPMENT proficiency keeps its category in the grant fold (Shields no longer matches every attack item); compiler cap -> 3511."
             },
             {
               "id": "QUALITY-15.T3ai",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "The Sheet lists a category-scoped all-items equipment proficiency (a Fighter's Shields) on the Character's proficiency list.",
               "wsjf": {
@@ -28270,7 +28433,9 @@
                 "rr": 3,
                 "size": 2
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3t2 review (sheetProficiency.ts looks the proficiency up by item id \"*\")."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3t2 review (sheetProficiency.ts looks the proficiency up by item id \"*\").",
+              "mergedAt": "2026-11-16",
+              "proof": "m845; slice tip 691c76e0d: Tests 43992525485, Live 43992525522, Browser journeys 43992525540 green. An all-items EQUIPMENT proficiency resolves its kind from its category; the label reads \"All shield equipment\"; the Sheet dedupe key includes the category. Proof RED at the merge-base: sheetCategoryProficiency.test."
             },
             {
               "id": "QUALITY-15.T3f",
