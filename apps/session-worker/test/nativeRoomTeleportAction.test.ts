@@ -229,8 +229,15 @@ describe('room Tree Stride (QUALITY-15.T3y7)', () => {
     return offer?.kind === 'REPEAT_SOURCE_PATH' ? offer : undefined
   }
 
-  const stride = (room: Room, actionId: string) =>
-    room.startAction(CHARACTER_ACTOR_ID, [], room.sceneContext(0), null, actionId)
+  /** Takes the step against the Scene as it stands once `moves` player teleports have landed. */
+  const stride = (room: Room, actionId: string, moves = 0) =>
+    room.startAction(
+      CHARACTER_ACTOR_ID,
+      [],
+      { ...room.sceneContext(0), expectedSceneVersion: room.room.scene.version + moves },
+      null,
+      actionId
+    )
 
   it('steps 400 ft once a turn for no action, again on a later turn, until Concentration ends', async () => {
     const room = await treeStrideRoom()
@@ -254,13 +261,13 @@ describe('room Tree Stride (QUALITY-15.T3y7)', () => {
 
     // Its one use this turn is spent: the step is no longer offered, and taking it is refused.
     expect(await strideOffer(room)).toBeUndefined()
-    expect((await stride(room, offer.actionId)).answer).toMatchObject({ type: 'COMMAND_REJECTED' })
+    expect((await stride(room, offer.actionId, 1)).answer).toMatchObject({ type: 'COMMAND_REJECTED' })
 
     // On the caster's next turn the step is offered, free, again.
     await room.advanceTurn()
     await room.advanceTurn()
     expect(await strideOffer(room)).toMatchObject({ activation: 'FREE', warnings: [] })
-    committed((await stride(room, offer.actionId)).answer)
+    committed((await stride(room, offer.actionId, 1)).answer)
     committed(
       await playerTeleport(room, START, {
         from: FAR,
