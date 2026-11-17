@@ -261,7 +261,9 @@ describe('room Tree Stride (QUALITY-15.T3y7)', () => {
 
     // Its one use this turn is spent: the step is no longer offered, and taking it is refused.
     expect(await strideOffer(room)).toBeUndefined()
-    expect((await stride(room, offer.actionId, 1)).answer).toMatchObject({ type: 'COMMAND_REJECTED' })
+    expect((await stride(room, offer.actionId, 1)).answer).toMatchObject({
+      type: 'COMMAND_REJECTED'
+    })
 
     // On the caster's next turn the step is offered, free, again.
     await room.advanceTurn()
