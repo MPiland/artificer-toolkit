@@ -50,7 +50,11 @@ import {
   type EncounterRuleWarningDto
 } from '../shared/encounterRuleWarnings.js'
 import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
-import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
+import {
+  MAX_ZONE_LAYERS,
+  spatialPointDtoSchema,
+  type SpatialPointDto
+} from '../shared/spatialFacts.js'
 import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
@@ -474,7 +478,9 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
       area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
       unaffectedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       removal: z.nullable(removeAreaTargetInputDtoSchema),
-      placedZones: z.array(liveSessionPlacedSpatialEffectSchema).check(z.maxLength(5)),
+      placedZones: z
+        .array(liveSessionPlacedSpatialEffectSchema)
+        .check(z.maxLength(MAX_ZONE_LAYERS + 1)),
       zoneSourceGrant: z.nullable(activeRuleEffectRecordSchema),
       summonedTokens: z.array(liveSessionSummonedTokenSchema).check(z.maxLength(1)),
       rules: encounterActorRuleOutputSchema,
