@@ -37,13 +37,23 @@ export function preparedSpellCastLevel(prepared: PreparedSpellCastFacts): number
   return prepared.characterActionState?.actionMechanic.spellCastLevel ?? null
 }
 
-/** The spell attack bonus a Character's cast freezes into the attack repeats it offers (D166). */
-export function preparedSpellAttackBonus(
+/**
+ * The spell attack bonus and spell save DC a Character's cast freezes into the repeats it offers
+ * (D166); empty for a caster with no spellcasting.
+ */
+export function preparedSpellcasting(
   prepared: Pick<Awaited<ReturnType<typeof prepareEncounterActionMechanics>>, 'source'>
-): number | undefined {
-  return prepared.source.kind === 'CHARACTER_ACTION'
-    ? prepared.source.effectivePolicyOutput.derivedStats.spellcasting?.attackBonus.effective
-    : undefined
+): { attackBonus?: number; spellSaveDc?: number } {
+  const spellcasting =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.effectivePolicyOutput.derivedStats.spellcasting
+      : null
+  return spellcasting
+    ? {
+        attackBonus: spellcasting.attackBonus.effective,
+        spellSaveDc: spellcasting.saveDc.effective
+      }
+    : {}
 }
 
 /**

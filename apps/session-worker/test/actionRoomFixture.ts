@@ -759,7 +759,9 @@ export async function actionRoom(config: ActionRoomConfig) {
           },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       sender: 'GM' | 'PLAYER' = 'GM',
-      castModifier?: CastModifierChoice
+      castModifier?: CastModifierChoice,
+      /** The action aimed: the room's own, or one an Effect offers (a repeat). */
+      chosenActionId = actionId
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -774,7 +776,7 @@ export async function actionRoom(config: ActionRoomConfig) {
           sceneId: room.scene.id,
           expectedSceneVersion: room.scene.version
         },
-        actionId,
+        actionId: chosenActionId,
         optionalCombatIntent: null,
         sceneContext: null,
         ...(castModifier && {

@@ -3591,6 +3591,78 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
   })
 })
 
+/**
+ * QUALITY-15.T3y3: Call Lightning's cast holds, under its Concentration, an offer of its bolt as the
+ * caster's Action, free once on the cast turn; the bolt is a Dexterity save in a 5-foot radius for
+ * 3d10 lightning, halved on a success, and 1d10 more per slot level above 3rd.
+ */
+describe('a maintained effect that offers its caster a repeat bolt (QUALITY-15.T3y3)', () => {
+  const CALL_LIGHTNING = spell('Call Lightning')
+  const bolt = CALL_LIGHTNING.effects?.[1]
+
+  it('holds the bolt as an Action offer, free once on the cast turn, under Concentration', () => {
+    const plan = compiledCast(CALL_LIGHTNING)?.activeEffectPlan
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+    expect(plan?.modifierGrantContribution).toMatchObject({
+      modifiers: [],
+      effectOffers: [
+        {
+          kind: 'REPEAT_SOURCE_PATH',
+          activation: 'ACTION',
+          target: 'INVOCATION',
+          castTurnUse: 'FREE_ONCE',
+          effect: { id: bolt?.id, invocation: { activation: { code: 'ACTION' } } }
+        }
+      ]
+    })
+  })
+
+  it('resolves the bolt at each cast’s level, on a failed save and a successful one', () => {
+    const casts = [3, 5].map((level, sequence) => candidate(CALL_LIGHTNING, level, { sequence }))
+    const { spellActionFacts } = buildCharacterSpellActionRuleFacts({
+      spellIds: [CALL_LIGHTNING.id],
+      spells: [compileSpell(CALL_LIGHTNING)]
+    })
+    expect(spellActionFacts).toEqual([
+      expect.objectContaining({
+        repeatedEffects: [expect.objectContaining({ effectId: bolt?.id })]
+      })
+    ])
+    const evaluated = evaluateDnd5e2014CharacterActions({
+      candidates: [],
+      abilityDefinitions: [],
+      spellCandidates: casts,
+      spellSlots: [],
+      spellEffects: spellActionFacts,
+      spellMechanics: [{ source: casts[0]!.source, attackBonus: 5, saveDc: 13, damageBonus: 0 }],
+      spellcastingLocked: false,
+      proficiencies: [],
+      itemAdjustments: [],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups: [],
+      totalLevel: 5,
+      classLevels: [],
+      proficiencyBonus: 3,
+      abilities: [],
+      skills: [],
+      spellcasting: null
+    })
+
+    expect(
+      evaluated.spellCastMechanics.map(({ repeatMechanics }) =>
+        repeatMechanics?.flatMap(({ outcomes }) =>
+          outcomes.map((outcome) => outcome.kind === 'DAMAGE' && outcome.diceExpression)
+        )
+      )
+    ).toEqual([
+      ['3d10', '3d10'],
+      ['5d10', '5d10']
+    ])
+  })
+})
+
 describe('the healing a caster’s HEALING_DEALT bonus adds to a heal spell (SPELLS-31.T4n)', () => {
   const discipleOfLife = (addsSpellLevel: boolean) => ({
     domainKey: `HEALING_DEALT:BONUS${addsSpellLevel ? '|addsSpellLevel=true' : ''}`,
