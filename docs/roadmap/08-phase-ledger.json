@@ -27903,7 +27903,7 @@
             },
             {
               "id": "QUALITY-15.T3v3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A 20 ft proximity rule blinds a creature that can see the zone, with a timed condition.",
               "wsjf": {
@@ -27914,11 +27914,12 @@
                 "after": ["QUALITY-15.T3v2"]
               },
               "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace). Resized 3 -> 5 on 2026-11-16: OCCUPANT_SEES_ZONE sight rule, proximity halo, timed held condition and the turn-boundary proof; movement entry split to T3v3b.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m852; slice tip a220154ba: Tests 44029764681, Live 44029764684, Browser journeys 44029764777 green. A proximity rule is a halo record on the zone anchor (areaHalo.ts); requiredSight OCCUPANT_SEES_ZONE; holderTurns replaces endsAtEndOfHolderTurn, so a condition applied for one minute is held for 10 holder turns. Red proof: characterSpellCastActions RED, srdChainDevilUnnervingMask RED, encounterZoneSightBlinding and vtt-spatial RED-IMPORT."
             },
             {
               "id": "QUALITY-15.T3v3b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "A creature that moves within range of a proximity zone it can see triggers its effect, with the Worker computing sight from the mover's pre-move position.",
               "wsjf": {
@@ -27927,7 +27928,8 @@
                 "rr": 3,
                 "size": 3
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3v3 report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3v3 report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3v4",
@@ -28073,7 +28075,7 @@
             },
             {
               "id": "QUALITY-15.T3y2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Clairvoyance places a maintained sensor its caster perceives through.",
               "wsjf": {
@@ -28083,6 +28085,21 @@
                 "size": 3
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-17",
+              "proof": "m853; slice tip e6163caf5: Tests 44030477725, Live 44030477723, Browser journeys 44030477619 green. Clairvoyance authors an invisible, invulnerable, Tiny, non-space-occupying SUMMON \"Sensor\" (Arcane Eye pattern); seeing or hearing is a GM ruling. Golden: Clairvoyance REFUSED -> SUMMON_PLACEMENT."
+            },
+            {
+              "id": "QUALITY-15.T3y2b",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "Scrying places its sensor as a summon near the target creature (the Clairvoyance pattern); the unused SENSOR manifest kind is retired.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2
+              },
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3y2 report under the standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -28200,7 +28217,7 @@
             },
             {
               "id": "QUALITY-15.T3aa2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Phantom Steed places a Riding Horse form summon with an authored speed override (walk 100 ft).",
               "wsjf": {
@@ -28209,11 +28226,12 @@
                 "rr": 3,
                 "size": 2
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3aa report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3aa report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3aa3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Hunting Trap is a placed-space zone that holds a creature in place (a distance limit from the trap) until it escapes with a check.",
               "wsjf": {
@@ -28222,7 +28240,8 @@
                 "rr": 3,
                 "size": 3
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3aa report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3aa report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3ab",
@@ -28256,7 +28275,7 @@
             },
             {
               "id": "QUALITY-15.T3ac2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Passwall places a line at a distant point in a chosen direction (a point-plus-direction area target).",
               "wsjf": {
@@ -28266,7 +28285,8 @@
                 "size": 5
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3ac report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m851; slice tip 54eed1cf2: Tests 44022019276, Live 44022019279, Browser journeys 44022019247 green. Passwall places an inert LINE zone (20 ft by 5 ft) aimed from a point within range; zoneAimedPoints is shared by the room and rules-runtime, so a line is range- and sight-checked at its origin. Golden: Passwall REFUSED -> ZONE_PLACEMENT."
             },
             {
               "id": "QUALITY-15.T3ac3",
