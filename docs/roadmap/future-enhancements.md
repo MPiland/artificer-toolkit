@@ -699,6 +699,14 @@ Removed-from-play effects (D178) return a creature to the space it left. Candida
 
 Found by SPELLS-4.T2h on 2026-10-22; post-launch.
 
+### QUALITY-15 zone and summon edges (2026-11-17)
+
+- **Hunting Trap (QUALITY-15.T3aa3):** a failed escape check deals no 1 piercing damage; another creature within reach cannot free the trapped creature; the chain length is modeled as Grappled (speed 0, cannot leave its square), and LIMIT_DISTANCE_FROM_ANCHOR has no runtime. Fix if seen: an escape on-failure outcome, rescuer actors for CONDITION_ESCAPE, a distance-limit runtime.
+- **Zone moves (QUALITY-15.T3y8):** a zone move has no distance fence on a gridless Scene, and a zone's sceneId is not checked against the binding Scene. Fix if seen: a gridless distance measure and a sceneId check in the MOVE_ZONE plan.
+- **Summon forms (QUALITY-15.T3x2):** a summon form carries speeds but not its own defenses or senses. Fix if seen: form defenses and senses on the summon stat block.
+- **Zone light before ignition (QUALITY-15.T3v4):** a zone that requires ignition and authors light would shed it before it is lit; no SRD zone authors both today. Fix if seen: gate the zone light on its ignited state.
+- **Resilient Sphere (QUALITY-15.T3y6a):** attacks and effects through the barrier, the enclosed creature rolling the sphere, others moving the globe, and Disintegrate ending it stay GM rulings; movement blocking is QUALITY-15.T3y6b.
+
 ## Deferred rules pieces (D187a, 2026-10-23)
 
 These rare riders ship as description with a GM ruling. Each item names the engine piece that would automate it.
