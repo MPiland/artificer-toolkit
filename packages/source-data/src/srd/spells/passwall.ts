@@ -3,7 +3,9 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SHAPE_KIND,
@@ -48,14 +50,6 @@ export const passwall: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        },
-        // A passage up to 5 feet wide, 8 feet tall and 20 feet deep into the surface at a point you
-        // can see within range (SRD 5.1, Passwall).
-        shape: {
-          id: spellChildId(SPELL_IDS.PASSWALL, 0x214, 1),
-          shapeKind: SHAPE_KIND.LINE,
-          length: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET },
-          width: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET }
         }
       },
       paths: [
@@ -69,14 +63,25 @@ export const passwall: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.PASSWALL, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.PASSWALL, 0x213, 1),
+              durationKind: DURATION_KIND.HOUR,
+              amount: 1
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PASSWALL, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: 'Open the Passage',
-                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions:
-                  'A passage appears at a point of your choice that you can see on a wooden, plaster, or stone surface (such as a wall, a ceiling, or a floor) within range, and lasts for the duration.'
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Passwall',
+                // The passage is an inert placed zone; the GM rules which surface it opens in.
+                shape: {
+                  id: spellChildId(SPELL_IDS.PASSWALL, 0x2f0, 1),
+                  shapeKind: SHAPE_KIND.LINE,
+                  length: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET },
+                  width: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }
