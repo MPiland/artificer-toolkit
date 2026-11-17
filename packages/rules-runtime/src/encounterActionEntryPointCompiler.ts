@@ -29,6 +29,7 @@ import {
 import { castChoiceOptions } from './encounterCastChoice.js'
 import { hitPointTierCeilings } from './hitPointTiers.js'
 import { placedSpaceManifest, zoneAppearSave } from './encounterZonePlacement.js'
+import { shapeAtSpellCastLevel } from './shapeMeasurement.js'
 
 class CharacterActionEntryPointIntegrityError extends Error {
   constructor(message: string) {
@@ -41,21 +42,25 @@ export function buildCompiledActionTargetPolicy(
   descriptor: EffectActionCapabilityDescriptor
 ): CompiledActionTargetPolicy {
   const targeting = descriptor.compiledEffect.invocation.targeting
+  // A zone an action places is the area it takes a point for, when the invocation names none.
+  const shape =
+    descriptor.compiledEffect.invocation.shape ??
+    placedSpaceManifest(descriptor.compiledEffect)?.shape ??
+    null
   return {
     range: descriptor.compiledEffect.invocation.range,
-    // A spell's cap or pool scaled by its cast level is the number it is at this cast (Magic Missile's
-    // darts, Sleep's hit points).
+    // A spell's cap, pool or area size scaled by its cast level is the one it is at this cast (Magic
+    // Missile's darts, Sleep's hit points, Create or Destroy Water's cube).
     targeting:
       targeting?.selectionKind === 'CHOSEN_CREATURES'
         ? resolveChosenCreaturesTargeting(targeting, descriptor)
         : targeting?.selectionKind === 'AREA_CONTENTS'
           ? resolveAreaContentsTargeting(targeting, descriptor)
           : (targeting ?? null),
-    // A zone an action places is the area it takes a point for, when the invocation names none.
     shape:
-      descriptor.compiledEffect.invocation.shape ??
-      placedSpaceManifest(descriptor.compiledEffect)?.shape ??
-      null,
+      shape && descriptor.spellCastLevel !== undefined
+        ? shapeAtSpellCastLevel(shape, descriptor.spellCastLevel)
+        : shape,
     pathOverrides: descriptor.compiledEffect.entries.flatMap((entry) => {
       const range = 'rangeOverride' in entry ? (entry.rangeOverride ?? null) : null
       const targeting = 'targetingOverride' in entry ? (entry.targetingOverride ?? null) : null
@@ -263,8 +268,9 @@ function compileActionPlans(
     )
   }
   // A grant freezes its own graph and reads only the TEST's hit path, a condition's repeated
-  // save is its own graph that reads only the cast's save DC, and a creature form, GM ruling or
-  // removal from play is gated on the TEST's result path, so only those join the two-phase execution.
+  // save is its own graph that reads only the cast's save DC, and a creature form, GM ruling,
+  // removal from play or attached object is gated on the TEST's result path, so only those join the
+  // two-phase execution.
   if (
     executionPlan.kind === 'TEST_OUTCOME' &&
     activeEffectPlans.some(
@@ -273,11 +279,12 @@ function compileActionPlans(
         !plan.conditionContributions?.length &&
         !plan.creatureFormContribution &&
         !plan.rulingContribution &&
-        !plan.playAbsenceContribution
+        !plan.playAbsenceContribution &&
+        !plan.objectManifestationContribution
     )
   ) {
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'TEST/OUTCOME actions combine only with grant, repeated-save, creature-form, GM ruling or removal-from-play active-effect plans.'
+      'TEST/OUTCOME actions combine only with grant, repeated-save, creature-form, GM ruling, removal-from-play or object active-effect plans.'
     )
   }
   return {

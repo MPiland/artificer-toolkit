@@ -194,6 +194,24 @@ export function rangedWeaponAbilityModifiers(
   )
   return modifiers
 }
+/**
+ * An item thrown as an improvised ranged attack (Acid, Alchemist's Fire) adds Dexterity to its
+ * attack roll only: its damage is the item's own.
+ */
+export function improvisedRangedAttackAbilityModifiers(
+  childId: EquipmentChildId
+): WeaponAbilityModifier[] {
+  return [
+    fixedAbilityWeaponModifier(
+      childId,
+      0x300,
+      1,
+      VALUE_DOMAIN_CODE.ATTACK_ROLL,
+      ATTACK_DOMAIN_CODE.RANGED,
+      'DEXTERITY'
+    )
+  ]
+}
 export function thrownWeaponAbilityModifiers(childId: EquipmentChildId): WeaponAbilityModifier[] {
   const modifiers: WeaponAbilityModifier[] = []
   modifiers.push(

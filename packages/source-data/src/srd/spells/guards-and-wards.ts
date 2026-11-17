@@ -48,7 +48,7 @@ export const guardsAndWards: SpellAuthored = {
         },
         range: {
           id: spellChildId(SPELL_IDS.GUARDS_AND_WARDS, 0x211, 1),
-          rangeKind: RANGE_KIND.SIGHT
+          rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,

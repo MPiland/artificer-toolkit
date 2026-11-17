@@ -5,7 +5,7 @@ import {
   hitPointPoolDiceOptions,
   hitPointPoolIsAuthored
 } from '../../encounterAreaAction.js'
-import { shapeExtent } from '../../shapeMeasurement.js'
+import { scaledShapeMeasurements, shapeExtent } from '../../shapeMeasurement.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import {
@@ -155,9 +155,10 @@ function requireTargetRange(invocation: Dnd5eActionInvocation): void {
  * that rolls a pool and tests no one, or an area ruling that tests no one and leaves each creature it
  * catches to the GM (its outcome is checked with its result). Any of them may filter by creature type: the area still catches a
  * creature of a type it has no effect on, which takes no save. Either a sphere, cylinder, circle or cube
- * centered on a point within a distance (or unlimited), or a cone, line or cube that extends from
- * the caster (a Self range), or no shape at all on a Self range (the caster's own space). Walls,
- * domes, a Self sphere, Touch origins and breakpoint-scaled sizes stay refused. The area only
+ * centered on a point within a distance (or unlimited, or in sight), or a cone, line or cube that
+ * extends from the caster (a Self range), or no shape at all on a Self range (the caster's own
+ * space). Its size may scale with the spell's cast level. Walls, domes, Touch origins and sizes
+ * scaled by anything else stay refused. The area only
  * decides who is caught: each caught creature runs the same
  * per-creature test plan a single target does. Each part an area breaks refuses with its own rule.
  */
@@ -198,19 +199,26 @@ function requireSupportedArea(
     encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null
   )
     unsupported('D&D area shape is not one its range places.')
-  if (range.rangeKind !== 'SELF' && range.rangeKind !== 'UNLIMITED' && !isPlainDistance(range))
-    unsupported('D&D area needs a Self, unlimited or plain distance range.')
+  // A Sight range bounds no distance: the area is centered on any point its user can see.
+  if (
+    range.rangeKind !== 'SELF' &&
+    range.rangeKind !== 'UNLIMITED' &&
+    range.rangeKind !== 'SIGHT' &&
+    !isPlainDistance(range)
+  )
+    unsupported('D&D area needs a Self, unlimited, Sight or plain distance range.')
+  // A size scaled by the spell's cast level is the size it is at each cast (Create or Destroy
+  // Water's cube), which the target policy resolves.
   const size = shapeExtent(shape)
   if (
     size === null ||
-    size.scaling !== undefined ||
+    scaledShapeMeasurements(shape).some(
+      ({ scalingSource }) => scalingSource !== 'SPELL_CAST_LEVEL'
+    ) ||
     !(size.amount > 0) ||
-    (shape.shapeKind === 'LINE' &&
-      shape.width !== undefined &&
-      (shape.width.scaling !== undefined || !(shape.width.amount > 0))) ||
-    (shape.shapeKind === 'CYLINDER' && shape.height.scaling !== undefined)
+    (shape.shapeKind === 'LINE' && shape.width !== undefined && !(shape.width.amount > 0))
   )
-    unsupported('D&D area size must be a fixed positive extent.')
+    unsupported('D&D area size must be a positive extent, fixed or scaled by its cast level.')
 }
 
 function isBoundedDice(value: string): boolean {
