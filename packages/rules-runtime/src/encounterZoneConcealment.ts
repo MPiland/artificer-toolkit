@@ -33,12 +33,12 @@ export function withZoneDcs(
   state: SpatialRuleEffectStateDto,
   input: { spotDc: ZoneDcDto | null; disarmDc: ZoneDcDto | null; placerActorId: string | null }
 ): SpatialRuleEffectStateDto {
+  const { concealment, disarmDc: _disarmDc, ...kept } = state
   const knownByActorIds =
-    state.concealment?.knownByActorIds ?? (input.placerActorId ? [input.placerActorId] : [])
-  const sightings = state.concealment?.sightings ?? []
+    concealment?.knownByActorIds ?? (input.placerActorId ? [input.placerActorId] : [])
+  const sightings = concealment?.sightings ?? []
   return {
-    schemaVersion: state.schemaVersion,
-    revealed: state.revealed,
+    ...kept,
     ...(input.spotDc ? { concealment: { spotDc: input.spotDc, knownByActorIds, sightings } } : {}),
     ...(input.disarmDc ? { disarmDc: input.disarmDc } : {})
   }

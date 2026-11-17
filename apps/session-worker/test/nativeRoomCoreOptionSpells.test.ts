@@ -42,6 +42,7 @@ import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/cre
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { conjureAnimals } from '@artificer-toolkit/source-data/srd/spells/conjure-animals.js'
+import { conjureFey } from '@artificer-toolkit/source-data/srd/spells/conjure-fey.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
 import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
@@ -1830,6 +1831,68 @@ describe('room Arcane Eye (QUALITY-15.T3n)', () => {
     const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect(await conjured(room)).toEqual([])
+  }, 120000)
+})
+
+describe('room Conjure Fey (QUALITY-15.T3x)', () => {
+  it('keeps the creature when the caster’s Concentration breaks, released from its owner and hostile', async () => {
+    const outcome = conjureFey.effects
+      ?.flatMap((effect) => effect.paths)
+      .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
+      .find((candidate) => candidate.effectKind === 'MANIFEST')
+    const wolfForm =
+      outcome?.effectKind === 'MANIFEST'
+        ? outcome.forms?.find((form) => form.creatureId === CREATURE_IDS.WOLF)
+        : undefined
+    if (!wolfForm) throw new Error('Conjure Fey must offer the Wolf form.')
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [conjureFey], prepared: [conjureFey.id] },
+      characterAction: (action) => action.label.startsWith(conjureFey.label),
+      formCreatures: [applyCreatureAttackRolls(wolf)],
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
+    })
+    const fey = await castSummon(
+      room,
+      { x: 150, y: 250 },
+      {
+        formId: wolfForm.id,
+        creatureTypeId: creatureTypeId('FEY')
+      }
+    )
+    expect(fey.actor).toMatchObject({
+      sourceId: CREATURE_IDS.WOLF,
+      disposition: 'FRIENDLY',
+      owner: {
+        ownerActorId: CHARACTER_ACTOR_ID,
+        turnTiming: 'OWN_INITIATIVE',
+        turnsHostileOnRelease: true
+      }
+    })
+
+    const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.room.base.stub)
+    const released = history.actors
+      .map((row) => readStoredRunActor(row))
+      .find(({ id }) => id === fey.actor.id)
+    // It stays on its token and in the initiative order, but no longer answers to its caster.
+    expect(released).toMatchObject({ sourceId: CREATURE_IDS.WOLF, disposition: 'HOSTILE' })
+    expect(released).not.toHaveProperty('owner')
+    expect(await conjured(room)).toEqual([])
+    const bindings = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage).documents('encounterActorTokenBindings')
+    )
+    expect(bindings.map(({ actorId }) => actorId)).toContain(fey.actor.id)
+    expect((await initiativeOrder(room)).participants.map(({ actorId }) => actorId)).toContain(
+      fey.actor.id
+    )
+    expect(history.commands.filter(({ commandType }) => commandType === 'SUMMONS_ENDED')).toEqual([
+      expect.objectContaining({ label: 'Summon released' })
+    ])
   }, 120000)
 })
 

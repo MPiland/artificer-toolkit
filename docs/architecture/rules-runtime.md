@@ -222,19 +222,38 @@ modes, held for its duration by the cast's Concentration (`lastingZoneEntry`), s
 what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input. (QUALITY-15.T3o) The
 corpus authors a shape for every inert SRD zone from its own text, with the existing shape kinds: Wall of Force, Ice and
 Stone as a straight `WALL` of ten 10-foot panels, Gate as a `CIRCLE`, Forbiddance and the Magnificent Mansion entrance as
-a `CYLINDER`, Mirage Arcane as a `CUBE` a mile on a side. Prismatic Wall and Oil (flask) stay refused as UNBUILT: they
-author zone fields the placement does not model (ordered layers and their destruction, proximity rule, light, placement
-surface and occupancy, ignition, application limits), and each needs room behavior, not data.
+a `CYLINDER`, Mirage Arcane as a `CUBE` a mile on a side. Prismatic Wall stays refused as UNBUILT: it authors zone fields
+the placement does not model (ordered layers and their destruction, proximity rule, light), and needs room behavior, not
+data. (QUALITY-15.T3w) Oil (flask) poured on the ground compiles: its one component burns on `ENTER_OR_PASS_THROUGH` and
+`END_TURN_IN_SPACE` with the component's `maxApplicationsPerTurn` 1 (the Run's per-turn count is keyed by zone and actor,
+so both triggers share it), and `requiresIgnition` places the zone `unlit` until the GM lights it (`IGNITE_ZONE`, below).
+Its timed duration (T3ag) has `startsAt: 'IGNITION'`: `planEncounterZoneTicks` counts nothing off an unlit zone, so the
+oil's 2 rounds run from its lighting. A zone that needs lighting and lasts Campaign minutes is refused.
+A zone that needs lighting has one component. The manifest-level `maxApplicationsPerTurn` and `placementSurfaceKind` keys
+are deleted: the per-turn limit is the component's, and a level surface is the GM's call, as for Wall of Fire. A zone
+outcome with no save deals one fixed damage row (`fixedZoneDamageGraph`) or rolls one damage dice row.
 
 **Concentration spells re-authored onto existing plans (current, QUALITY-15.T3n).** Four of the 15 now compile with
 their effect held by the cast's Concentration, through data alone: Silent Image is an inert 15-foot-cube zone, Arcane
 Eye a stat-block summon (Tiny, flying, invisible, invulnerable, taking no space), Conjure Celestial a form summon on its
 own initiative (Couatl or Pegasus; the 9th-level challenge rating 5 is not offered), and Calm Emotions a Charisma save
-over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. Barkskin (QUALITY-15.T3y) is a granted
-`ARMOR_CLASS` `MINIMUM_VALUE` modifier of 16 on its target, a floor over the final Armor Class, shield and bonuses
-included. The other 10 stay refused (UNBUILT, cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no
-plan type (animated objects, a stationary sensor, summoned lights, a creature that stays hostile after Concentration
-breaks, tree travel, a repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to its target).
+over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. Of the other 11, Conjure Elemental
+and Conjure Fey now compile (below, QUALITY-15.T3x), and Barkskin (QUALITY-15.T3y) is a granted `ARMOR_CLASS`
+`MINIMUM_VALUE` modifier of 16 on its target, a floor over the final Armor Class, shield and bonuses included. Eight
+stay refused (UNBUILT, cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no plan type (animated
+objects, a stationary sensor, summoned lights, tree travel, a repeat bolt, a delayed detonation, a movable damaging
+sphere, a zone attached to its target).
+
+**A summon that turns hostile when released (current, QUALITY-15.T3x).** A form summon on its own initiative, of one
+creature a form, may author `turnsHostileOnRelease`; the compiler refuses it on any other summon. The plan carries it
+onto the summoned actor's `owner`. When the carrier ends (Concentration breaks or ends, dispel, expiry), the sweep in
+`endOrphanedConjuredActors` does not remove that creature: it drops the `owner` (so control falls back to the GM and
+the creature leaves its caster's Sheet Extras), flips its disposition (`HOSTILE` becomes `FRIENDLY`, anything else
+`HOSTILE`), keeps its token and initiative place, and records the `SUMMONS_ENDED` command as "Summon released" with
+`releasedActorIds`. Conjure Elemental (13 SRD elementals of challenge rating 5 or lower) and Conjure Fey (6 fey and 90
+beasts of challenge rating 6 or lower, all fey) use it. GM rulings: which elemental suits the chosen area, the released
+creature's 1-hour limit, and the higher slots' challenge rating. A carrier that lapses at its full hour also releases
+rather than removes the creature.
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
@@ -1297,7 +1316,8 @@ turn preparation plans the same START records (`plannedSpatialEffectRecord`). Re
 rebinding its token, deletes them first. While the source is defeated its passive zones stay stored and drawn but are
 `suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
 candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
-placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
+placement. The same flag holds a zone whose `spatialState.unlit` is set (QUALITY-15.T3w): it catches no one until the GM
+lights it. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
 A Creature's passive damage trigger (SPELLS-33 T6e3a) is a PASSIVE feature Effect with `triggerCode: INCOMING_DAMAGE` and a non-empty
 `damageTypeIds`, whose single FIXED outcome is a timed self `APPLY_GRANT` (roll-mode or speed modifiers, `turnAnchor` the holder's end of
 turn). It is derived, not stored: `discoverEncounterFeatureActions` returns it as `passiveDamageGrants` (compiled by the System adapter's
@@ -1660,9 +1680,11 @@ mover.
 
 **Reveal and disarm (MOVE-3.7, current).** `REVEAL_ZONE` (GM-only, `actorIds`) adds the chosen Characters to
 `knownByActorIds` (`withZoneRevealedTo`), so they read the zone like its placer, and their sightings settle (removed). It shares `SET_ZONE_DCS`'s receipt (`before`/`after`) and its undo
-(`revertZoneDcs`, which also restores the settled sightings). `DISARM_ZONE` (GM-only) deletes a zone fixed to the Scene that no Concentration holds; its receipt keeps
+(`revertZoneState`, which also restores the settled sightings). `DISARM_ZONE` (GM-only) deletes a zone fixed to the Scene that no Concentration holds; its receipt keeps
 the whole zone (`definition`, `lifecycle`, `placement`, `spatialState`) and the GM's undo recreates it under the same id
-(`revertZoneDisarm`). The four zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
+(`revertZoneDisarm`). `IGNITE_ZONE` (GM-only, QUALITY-15.T3w) clears `unlit` from a zone placed waiting to be lit
+(`igniteZone`); a lit zone is `TARGET_UNAVAILABLE`. It shares the `before`/`after` receipt and `revertZoneState` undo, which
+puts the zone out again. The five zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
 GM-only in `placedZones`, including for a player who was shown the zone. A botched disarm is the GM's call.
 
 **Unnoticed zones (MOVE-3.6, current).** An actor not in a concealed zone's `knownByActorIds` has not noticed it.
@@ -3968,6 +3990,22 @@ kind, and a lit one attached to the source, primary target or touched object she
 capture each read the actor's effects in their own transaction, so the light starts with the effect and ends with its
 duration, dispel or undo; the vision-revision triggers on effect writes already refresh the Scene cache. The compiler names no spell; any `MANIFEST` / `OBJECT` with these fields compiles the same way.
 
+**Attached objects that deal damage (QUALITY-15.T3t2).** A test whose result path authors one `MANIFEST` / `OBJECT`
+attached to the `PRIMARY_TARGET` (no duration, lifecycle, shape or light) with one component naming one holder turn
+boundary and one behavior that rolls one dice damage on use compiles to `attachedObjectDamagePlan`
+(`effectActionObjectManifestation.ts`), the lifetime aspect's `ATTACHED_OBJECT` kind, checked right after
+`SEQUENTIAL`; its plan needs no cast level, so the source compile detects it too. `START_OF_ATTACHED_TARGET_TURN` recurs at the start of each of the
+holder's turns until it ends (`initialRemaining` null); `END_OF_ATTACHED_TARGET_NEXT_TURN` fires once at the end of
+the holder's next turn. The damage row the descriptor's cast level reaches is frozen into the plan's own dice graph
+(`attachedObjectDamageGraph`, `castLevelDiceDamage`, `effectActionCastLevelDamage.ts`, shared with a repeated save's failure damage), node
+`attached-object-damage`, and the turn kernel rolls it through `interpretDirect`; only a held object's
+`object-manifestation` node (`HELD_OBJECT_NODE_ID`) stays hold-only. A repeatable `FOLLOW_UP_CHECK` on the same
+result path that ends on success is the plan's `conditionEscapeContribution` (`followUpCheckEscape`), so the
+holder escapes the object through the one escape path, which removes no condition. The test keeps the action's other
+entries, which must be damage (Acid Arrow's 4d4 on a hit, half on a miss); the manifest and its check are the plan's
+(`isActiveEffectPlanOutcome`), and a test left with no outcome of its own (Alchemist's Fire) selects no OUTCOME graph.
+The entry-point compiler admits an object plan beside a TEST/OUTCOME execution. Acid Arrow and Alchemist's Fire compile this way; no item or spell is named.
+
 **Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
 `dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form
 `maxTargets`, the duration, `excessDamageCarriesOver`). The chosen target is `{ kind: 'ACTORS', actorIds, formId }`;
@@ -4098,8 +4136,8 @@ block also authors one `FOLLOW_UP_CHECK` that is repeatable, ends on success (`E
 (`CONTINUE`), has a fixed DC and names an ability or skill (no tool) compiles that check into the plan's
 `conditionEscapeContribution` (`followUpCheckEscape`); any other follow-up check beside conditions still refuses.
 The effect persists it as a `CONDITION_ESCAPE` carrying `escapeOutcome { outcomeId, actorKinds }`, which the
-schema allows only beside a `CONDITION_OWNERSHIP` (a zone's escape keeps `heldBySpatialEffectId` and no
-`escapeOutcome`). The escape bounds conditions with no duration, like Concentration does. `findEncounterHolderEscape`
+schema allows only beside a `CONDITION_OWNERSHIP` or, with `escapeOutcome`, an attached `OBJECT_MANIFESTATION`
+(QUALITY-15.T3t2; a zone's escape keeps `heldBySpatialEffectId` and no `escapeOutcome`). The escape bounds conditions with no duration, like Concentration does. `findEncounterHolderEscape`
 offers it to the held creature (`escapeSourceId` = the check outcome id, `zoneLabel` null), and
 `findEncounterRescues` offers it to another creature when `actorKinds` allows `CREATURE_WITHIN_REACH`, within the
 rescuer's own reach, taken as Touch (5 ft) because no actor reach model exists. Settlement is the one escape path.

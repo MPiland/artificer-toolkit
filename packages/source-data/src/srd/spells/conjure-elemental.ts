@@ -16,8 +16,25 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, CREATURE_IDS, SPELL_IDS } from '../ids.js'
+import { conjuredCreatureForms } from './conjuredCreatureForms.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+/** The SRD elementals of challenge rating 5 or lower: one is conjured. */
+const elementalForms = [
+  [CREATURE_IDS.AIR_ELEMENTAL, 'Air Elemental', 1],
+  [CREATURE_IDS.AZER, 'Azer', 1],
+  [CREATURE_IDS.DUST_MEPHIT, 'Dust Mephit', 1],
+  [CREATURE_IDS.EARTH_ELEMENTAL, 'Earth Elemental', 1],
+  [CREATURE_IDS.FIRE_ELEMENTAL, 'Fire Elemental', 1],
+  [CREATURE_IDS.GARGOYLE, 'Gargoyle', 1],
+  [CREATURE_IDS.ICE_MEPHIT, 'Ice Mephit', 1],
+  [CREATURE_IDS.MAGMA_MEPHIT, 'Magma Mephit', 1],
+  [CREATURE_IDS.MAGMIN, 'Magmin', 1],
+  [CREATURE_IDS.SALAMANDER, 'Salamander', 1],
+  [CREATURE_IDS.STEAM_MEPHIT, 'Steam Mephit', 1],
+  [CREATURE_IDS.WATER_ELEMENTAL, 'Water Elemental', 1],
+  [CREATURE_IDS.XORN, 'Xorn', 1]
+] as const
 export const conjureElemental: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.CONJURE_ELEMENTAL,
@@ -74,7 +91,13 @@ export const conjureElemental: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CONJURE_ELEMENTAL, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.SUMMON,
+                // The elemental has its own initiative and turns (D200); when Concentration breaks
+                // it stays and turns hostile. Which elemental suits the chosen area, its 1-hour
+                // limit once uncontrolled and the higher slots' challenge rating are GM rulings.
+                turnTiming: 'OWN_INITIATIVE',
+                turnsHostileOnRelease: true,
+                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_ELEMENTAL, elementalForms)
               }
             ]
           }

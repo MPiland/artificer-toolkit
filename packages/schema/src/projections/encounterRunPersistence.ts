@@ -600,10 +600,11 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       receipt: z.strictObject({ spatialEffectId: postgresUuidSchema })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.enum(['SET_ZONE_DCS', 'REVEAL_ZONE']),
+      commandType: z.enum(['SET_ZONE_DCS', 'REVEAL_ZONE', 'IGNITE_ZONE']),
       /**
-       * The zone's state before and after the GM set its DCs (MOVE-3.3) or revealed it (MOVE-3.7), so
-       * the GM's undo restores it while nothing but sightings has changed the zone since (MOVE-3.5).
+       * The zone's state before and after the GM set its DCs (MOVE-3.3), revealed it (MOVE-3.7) or lit
+       * it (QUALITY-15.T3w), so the GM's undo restores it while nothing but sightings has changed the
+       * zone since (MOVE-3.5).
        */
       receipt: z.strictObject({
         spatialEffectId: postgresUuidSchema,
@@ -737,11 +738,15 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('SUMMONS_ENDED'),
-      /** The timeline label: plain "Summon ended", which never names a creature a player cannot see. */
+      /** The timeline label: plain "Summon ended" or "Summon released", which never names a creature a player cannot see. */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-      /** The conjured creatures removed, so a replay removes the same ones. An undo does not restore them. */
+      /**
+       * The conjured creatures removed, so a replay removes the same ones, and those released to stand
+       * alone as hostile. An undo restores neither.
+       */
       receipt: z.strictObject({
-        removedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+        removedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        releasedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       }),
       /** The round's initiative after the removal; null when no removed creature held a place in it. */
       initiativeStateJson: z.nullable(z.string()),

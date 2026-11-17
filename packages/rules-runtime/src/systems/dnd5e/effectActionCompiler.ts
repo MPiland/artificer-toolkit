@@ -41,7 +41,6 @@ import {
   directGates,
   gateFacts,
   gateNodeInputs,
-  isGated,
   refuseDirectGates,
   refuseUnboundGate,
   testPathGates
@@ -156,7 +155,6 @@ import {
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
   MAX_CONDITIONS_PER_PATH,
-  conditionImmuneFactKey,
   DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS,
   DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
   DND5E_HEALING_MAXIMIZED_FACT_KEY,
@@ -220,12 +218,8 @@ import {
   type Dnd5eAuthoredOutcome
 } from './effectActionOutcomes.js'
 import { damageSizedOutcomeGraph } from './effectActionDamageSized.js'
-import {
-  forcedMovementProposalNode,
-  dnd5eResultGate,
-  saveAudit,
-  saveOutcomeFact
-} from './effectActionOperationRegistry.js'
+import { fixedOutcomeGraphDefinition } from './effectActionFixedOutcomeGraph.js'
+import { dnd5eResultGate, saveAudit, saveOutcomeFact } from './effectActionOperationRegistry.js'
 import {
   testApplications,
   interpretDirect,
@@ -249,7 +243,13 @@ import {
   isDnd5eRolledTest,
   type Dnd5eTest
 } from './effectActionTest.js'
-import { objectManifestationPlan } from './effectActionObjectManifestation.js'
+import {
+  attachedObjectDamageGraph,
+  attachedObjectDamagePlan,
+  HELD_OBJECT_NODE_ID,
+  objectManifestationPlan
+} from './effectActionObjectManifestation.js'
+import { sourceImmunityPlan } from './effectActionSourceImmunity.js'
 import { timedRulingPlan } from './effectActionTimedRuling.js'
 import {
   dnd5eDirectOutcomeEntry,
@@ -399,7 +399,8 @@ function isCheckOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean 
  * holds alone (see `saveGrantPlan`; Enthrall's disadvantage on Perception, Vicious Mockery's on an
  * attack), a failed save's repeated save (see `repeatingDirectFollowUpSavePlan`), the check that
  * escapes the conditions the plan holds (see `timedConditionPlan`), and a bond or a
- * creature form its plan carries on a test's result path. Any other save
+ * creature form its plan carries on a test's result path, and an object a test's result attaches with
+ * the check that escapes it (see `attachedObjectDamagePlan`). Any other save
  * grant, bond or form stays a test outcome, which refuses it. A source immunity and a chosen item's
  * release are always the plan's (see `sourceImmunityPlan` and `chosenItemPlan`). An equipment
  * degradation is the resolver's (see `planEncounterEquipmentDegradation`).
@@ -434,7 +435,9 @@ function isActiveEffectPlanOutcome(
     (entry.outcome.effectKind === 'MANIFEST' &&
       entry.outcome.manifestKind === 'CREATURE' &&
       entry.pathCode !== 'ON_USE' &&
-      creatureFormPlan(action) !== null)
+      creatureFormPlan(action) !== null) ||
+    ((entry.outcome.effectKind === 'MANIFEST' || entry.outcome.effectKind === 'FOLLOW_UP_CHECK') &&
+      attachedObjectDamagePlan(action) !== null)
   )
 }
 
@@ -1074,67 +1077,6 @@ function entriesBesideSourceImmunity(action: Dnd5eCompiledEffectActionSource) {
   return action.compiledEffect.entries.filter(
     (entry) => !('outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY')
   )
-}
-
-/**
- * The immunity the action leaves on its target against this source (D156). A successful save's
- * ("immune to this effect for 24 hours") is one SOURCE_IMMUNITY outcome on the success path, lasting
- * its result block's duration in the target's turns, keyed by the action. An at-will grant's lockout
- * (Chains of Carceri's "can't target it again until you finish a long rest") lands on every creature
- * the cast meets, keyed by the grant, and lasts until the source Character's long rest.
- */
-function sourceImmunityPlan(
-  action: Dnd5eCompiledEffectActionSource
-): CharacterRuleActionActiveEffectPlan['sourceImmunity'] {
-  const entries = action.compiledEffect.entries.flatMap((entry) =>
-    'outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY' ? [entry] : []
-  )
-  const entry = entries[0]
-  const lockout = action.perTargetLockout
-  if (lockout) {
-    if (entry || !UUID.test(lockout.grantId))
-      unsupported('A D&D lockout is the grant’s alone, keyed by the grant.')
-    const plan = {
-      compiledEntryId: lockout.grantId,
-      frozenGraphNodeId: 'source-lockout'
-    }
-    return {
-      ...plan,
-      appliesTo: 'EVERY_TARGET',
-      immuneToId: lockout.grantId,
-      initialRemaining: null,
-      frozenGraph: durationPublishedGraph({
-        effectId: action.effectId,
-        plan: { ...plan, marginRiders: [] }
-      })
-    }
-  }
-  if (!entry) return null
-  const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
-  if (
-    entries.length > 1 ||
-    dnd5eTestKind(action.compiledEffect.invocation) !== 'SAVE' ||
-    entry.pathCode !== 'ON_SAVE_SUCCESS' ||
-    initialRemaining === null ||
-    Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
-    entry.maintenanceDefinitionId ||
-    !UUID.test(entry.entryId)
-  )
-    unsupported('D&D source immunity is one timed outcome of a successful saving throw.')
-  const plan = {
-    compiledEntryId: entry.entryId,
-    frozenGraphNodeId: 'source-immunity'
-  }
-  return {
-    ...plan,
-    appliesTo: 'SAVE_SUCCESS',
-    immuneToId: action.effectId,
-    initialRemaining,
-    frozenGraph: durationPublishedGraph({
-      effectId: action.effectId,
-      plan: { ...plan, marginRiders: [] }
-    })
-  }
 }
 
 /**
@@ -2174,76 +2116,6 @@ function exactDiceConfiguration(
   return resolved
 }
 
-function fixedOutcomeGraphDefinition(input: {
-  action: Dnd5eCompiledEffectActionSource
-  entry: CompiledEffectGroup['entries'][number]
-  outcome: Outcome
-  nodePrefix?: string
-  /** The condition's place among its path's conditions, which selects its immunity fact. */
-  conditionOrdinal?: number
-  /** The hit-point band that gates the outcome: a hit-point tier's. */
-  hitPointBand?: { above: number; atMost: number }
-  /** The damage proposal node the outcome follows: it applies only if that damage reduced the target to 0. */
-  reducedToZeroByNodeId?: string
-  /** The challenge rating cap the source's level reaches for the outcome's gate. */
-  challengeRatingCap?: number | undefined
-}): RuleGraphDefinition {
-  const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
-  const gates = testPathGates(input.entry, input.outcome.kind, input)
-  // The OUTCOME phase runs only on its selected path, so the push is authorized by construction.
-  if (input.outcome.kind === 'FORCED_MOVEMENT') {
-    uuid(input.entry.entryId, 'D&D forced movement identity')
-    return {
-      schemaVersion: 1,
-      id: input.action.effectId,
-      gameSystemId: DND5E_SYSTEM_ID,
-      definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-      nodes: [
-        forcedMovementProposalNode({
-          id: proposalId,
-          sourceEntryId: input.entry.entryId,
-          resultPath: { kind: 'LITERAL', value: input.entry.pathCode },
-          authoredPath: input.entry.pathCode,
-          outcome: input.outcome
-        })
-      ],
-      outputs: {
-        targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' }
-      },
-      sourceEntryBindings: [{ sourceEntryId: input.entry.entryId, nodeId: proposalId }]
-    }
-  }
-  const definition = dnd5eOutcomeDefinition(input.outcome.kind)
-  return {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      effectOutcomeProposalNode({
-        id: proposalId,
-        definition,
-        outcome: input.outcome,
-        context: {
-          conditionImmuneFactKey: conditionImmuneFactKey(
-            input.entry.pathCode,
-            input.conditionOrdinal ?? 1
-          )
-        },
-        target: DND5E_OUTCOME_TARGET,
-        phase: { kind: 'DIRECT', contractVersion: isGated(gates) ? 2 : 1 },
-        extraInputs: isGated(gates) ? gateNodeInputs(gates) : {}
-      })
-    ],
-    outputs: effectOutcomeProposalOutputs(definition, proposalId),
-    ...(UUID.test(input.entry.entryId)
-      ? {
-          sourceEntryBindings: [{ sourceEntryId: input.entry.entryId, nodeId: proposalId }]
-        }
-      : {})
-  }
-}
-
 /**
  * The node of the damage proposal a `REDUCED_TO_ZERO_BY` outcome follows. That damage outcome is
  * owed earlier in the same path, so its proposal is committed (and applied) before this one.
@@ -2585,6 +2457,7 @@ function lastingRowPlan(rowAction: Dnd5eCompiledEffectActionSource) {
 /** The plans the lifetime aspect chooses among; it builds recurring and concealment plans itself. */
 const LIFETIME_CANDIDATES: Dnd5eLifetimeCandidates = {
   sequential: sequentialCompositionPlan,
+  attachedObject: attachedObjectDamagePlan,
   repeatSave: repeatingFollowUpSavePlan,
   timed: timedActiveEffectPlan,
   relationship: relationshipPlan
@@ -2613,6 +2486,8 @@ function dnd5eActiveEffectPlans(
   if (results) return results.flatMap((result) => dnd5eActiveEffectPlans(result, published))
   const lifetime = dnd5eLifetime(action, LIFETIME_CANDIDATES)
   if (lifetime?.kind === 'SEQUENTIAL') return [lifetime.plan]
+  if (lifetime?.kind === 'ATTACHED_OBJECT')
+    return [{ ...lifetime.plan, frozenGraph: attachedObjectDamageGraph(action, lifetime.plan) }]
   const plan = lifetime?.plan
   const timedPlan = lifetime?.kind === 'TIMED' ? lifetime.plan : null
   // A chosen item rides a grant plan; with any other plan its binding or release would vanish.
@@ -3040,6 +2915,7 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
     creatureFormPlan(action) === null &&
     actorLinkPlan(action) === null &&
     modifierGrantPlan(action) === null &&
+    attachedObjectDamagePlan(action) === null &&
     !action.compiledEffect.entries.some(
       (entry) => 'outcome' in entry && entry.outcome.effectKind === 'DEGRADE_EQUIPMENT'
     )
@@ -3949,8 +3825,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : { applications: [], terminal: false, emptyApplicationAllowed: true }
     }
-    // A link, a creature form, a source immunity or a ruling holds state for its duration: each
-    // counted turn applies nothing, and the turn pass expires the effect after the last one.
+    // A link, a creature form, a source immunity, a ruling or a held object holds state for its
+    // duration: each counted turn applies nothing, and the turn pass expires the effect after the
+    // last one.
     if (
       definition.stateContributions.some(
         ({ kind }) =>
@@ -3959,7 +3836,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           kind === 'PLAY_ABSENCE' ||
           kind === 'SOURCE_IMMUNITY' ||
           kind === 'GM_RULING' ||
-          kind === 'OBJECT_MANIFESTATION'
+          // An attached object that deals damage rolls it at its holder's turn boundary.
+          (kind === 'OBJECT_MANIFESTATION' && definition.frozenGraphNodeId === HELD_OBJECT_NODE_ID)
       )
     )
       return { applications: [], terminal: false, emptyApplicationAllowed: true }

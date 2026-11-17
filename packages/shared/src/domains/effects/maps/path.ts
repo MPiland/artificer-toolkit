@@ -1556,22 +1556,6 @@ function registerOutcomeFields(
       })
     )
     .set(
-      'manifestMaxApplicationsPerTurn',
-      number(['maxApplicationsPerTurn'], 'Maximum Applications per Turn', {
-        constraints: { minimum: 1 },
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
-      })
-    )
-    .set(
-      'placementSurfaceKind',
-      selectSingle(
-        ['placementSurfaceKind'],
-        'Placement Surface',
-        { kind: 'INLINE_OPTIONS', options: [{ code: 'LEVEL', label: 'Level Surface' }] },
-        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
-      )
-    )
-    .set(
       'applicationTargetKind',
       selectSingle(
         ['applicationTargetKind'],

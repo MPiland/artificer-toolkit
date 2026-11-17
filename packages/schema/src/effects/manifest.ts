@@ -258,8 +258,6 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       label: z.optional(authoredShortTextSchema),
       shape: z.optional(shapeDtoSchema),
       attachmentKind: z.optional(attachmentKindSchema),
-      maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
-      placementSurfaceKind: z.optional(z.literal('LEVEL')),
       applicationTargetKind: z.optional(z.enum(['WEAPON', 'AMMUNITION'])),
       applicationCount: z.optional(z.number().check(z.int()).check(z.positive())),
       qualifyingDamageTypeIds: z.optional(
@@ -371,6 +369,8 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
         /** The creature makes no attack of its own; one its owner's grant delegates still resolves. */
         cannotAttack: z.optional(z.boolean()),
         turnTiming: z.optional(summonTurnTimingSchema),
+        /** When the effect holding it ends, the creature stays and turns hostile toward its owner's allies. */
+        turnsHostileOnRelease: z.optional(z.boolean()),
         statBlock: z.optional(summonStatBlockDtoSchema),
         behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema))
       }),
