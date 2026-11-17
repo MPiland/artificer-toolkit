@@ -83,7 +83,10 @@ async function startOfGoblinTurn(input: { seesZone: boolean; blinded?: boolean }
     autoRollByActorId: AUTO_ROLL
   })
   if (result.kind !== 'COMPLETE') throw new Error('Expected a completed zone phase.')
-  return { phase: result, holder: { activeEffects: [], conditionIds: goblin.conditions } }
+  return {
+    phase: result,
+    holder: { activeEffects: [], conditionIds: input.blinded ? [BLINDED] : [] }
+  }
 }
 
 const heldBlindness = ({ phase, holder }: Awaited<ReturnType<typeof startOfGoblinTurn>>) =>
