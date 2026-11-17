@@ -226,8 +226,12 @@ function zonePlacementPlan(
           ? 'A source zone is centered on the caster.'
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
-  if (zone.move && !first?.behavior)
-    unsupported('Only a zone whose component acts on creatures is moved by its source.')
+  // A moved zone acts on creatures through its component, or only marks its area; terrain or a
+  // condition its appear save holds stays where its cast left it.
+  if (zone.move && (first ? !first.behavior : appearSave?.entries.length))
+    unsupported(
+      'Only a zone whose component acts on creatures, or that only marks its area, is moved by its source.'
+    )
   // A zone that authors no component and no appear save outcome only marks its area for the table
   // (Darkness, Silence, or the sphere a failed save leaves around its target): placed with no
   // triggers, held for its duration like terrain placed with no save.
@@ -419,13 +423,17 @@ function inertZonePlacementPlan(
 ): CharacterRuleActionZonePlacementPlan {
   if (zone.sourceGrantEntry || zone.designatedCreatureImmunity)
     unsupported('A zone that marks its area holds no grant and spares no one.')
+  const lasting = lastingZoneEntry(action, zone)
+  if (zone.move && !lasting.maintenance)
+    unsupported('Only a zone its source maintains is moved by its source.')
   return {
     attachment: zone.attachment,
     label: zone.label,
     shape: zone.shape,
     ...(zone.ringThickness ? { ringThickness: zone.ringThickness } : {}),
+    ...(zone.move ? { move: zone.move } : {}),
     triggerModes: [],
-    ...lastingZoneEntry(action, zone)
+    ...lasting
   }
 }
 

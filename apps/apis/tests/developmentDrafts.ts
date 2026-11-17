@@ -1544,8 +1544,10 @@ try {
       name: 'Storybook backend stories',
       command: 'test:storybook:backend',
       environment: {
-        // Playwright's browser logger records Chromium's stderr and exit reason in playwright.log.
-        DEBUG: 'pw:browser',
+        // Playwright's browser logger records Chromium's stderr and exit reason in playwright.log;
+        // Vite's file-change, HMR and dependency-optimizer loggers and Vitest's browser pool record
+        // why the dev server drops its websocket.
+        DEBUG: 'pw:browser,vite:hmr,vite:deps,vitest:browser*',
         VITE_CONVEX_URL: deploymentUrl.origin,
         VITE_LIVE_SESSION_WEBSOCKET_URL: liveSessionWorkerUrl(deploymentUrl.origin).origin
       }
