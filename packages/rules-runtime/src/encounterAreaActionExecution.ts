@@ -7,6 +7,7 @@ import {
 import { type ScenePoint } from '@artificer-toolkit/shared/vtt/scene'
 
 import type { CharacterHitPointOutcomeApplication } from './characterRuleActionSystemAdapter.js'
+import { encounterActorBody } from './encounterActorBody.js'
 import { advanceNativeActionGraphs } from './encounterActionAdvance.js'
 import {
   continueNativeActionAfterTest,
@@ -119,6 +120,27 @@ export function catchEncounterAreaActorIds(input: {
   const actorByTokenId = new Map(tokens.map((token) => [token.id, token.actorId]))
   const caught = new Set(tokenIds.map((tokenId) => actorByTokenId.get(tokenId)!))
   return [...caught]
+}
+
+/**
+ * The actors whose space an area covers: the creatures a zone left there would pass through. An actor
+ * out of play and a body that takes no space (`encounterActorBody`) are not in the way.
+ */
+export function occupantActorIdsOfArea(input: {
+  origin: ScenePoint
+  shape: SpatialAreaShape
+  casterActorId: string
+  tokens: readonly (SpatialSceneToken & { actorId: string })[]
+  actors: readonly { id: string; absence: unknown; snapshot: unknown }[]
+}): string[] {
+  const { actors, ...area } = input
+  return catchEncounterAreaActorIds({
+    ...area,
+    absentActorIds: absentEncounterActorIds(actors)
+  }).filter((actorId) => {
+    const actor = actors.find((candidate) => candidate.id === actorId)
+    return actor !== undefined && encounterActorBody(actor).occupiesSpace
+  })
 }
 
 function requireDistinctEntries(targets: readonly EncounterAreaTarget[]) {

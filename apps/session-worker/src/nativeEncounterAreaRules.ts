@@ -143,9 +143,10 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   // A zone is entered later, by movement; placing it puts nobody through its entry save, only
   // through the save its cast authors for when it appears. A creature immune to this source's use
   // of the action (D156), or of a creature type the action has no effect on, is caught but left
-  // out, with no save.
+  // out, with no save. A zone left unplaced over a creature's space catches nobody, and still spends
+  // the casting as an area that caught nobody does.
   const inArea =
-    base.summon || (base.placement && !base.placement.appearSave)
+    base.summon || base.placementSpent || (base.placement && !base.placement.appearSave)
       ? []
       : catchEncounterAreaActorIds({
           origin: area.origin,

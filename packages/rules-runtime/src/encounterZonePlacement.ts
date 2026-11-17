@@ -53,6 +53,8 @@ export interface PlacedSpaceZone {
   }
   /** Whether the caster designates creatures at cast that the zone never affects. */
   designatedCreatureImmunity?: true
+  /** What the room does when the zone's area covers a creature's space; absent when it is no obstacle. */
+  occupiedPlacement?: CompiledActionZonePlacement['occupiedPlacement']
   /** The save each creature in the area makes when the zone appears; null for none. */
   appearSave: CompiledEffectGroup | null
   /** The zone's compiled entry: its manifest outcome. */
@@ -80,6 +82,9 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   // Its halo is a record of the zone's own (D223); a rule that acts as a creature moves is refused.
   'proximityRule',
   'designatedCreatureImmunity',
+  // The room turns a placement over a creature's space away, spending the casting if it authors so.
+  'placementMustBeUnoccupied',
+  'invalidPlacementConsumesInvocation',
   // No antimagic suppression exists, so a zone immune to it is honored as is (D223).
   'suppressionImmunities'
 ])
@@ -257,6 +262,15 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A hollow zone has a wall thickness, and only a hollow zone has one.'
     )
+  // Spending the casting is what becomes of a refused placement, so it needs one to be refused, and
+  // a zone centered on its source would always cover that creature's own space.
+  if (
+    (manifest.invalidPlacementConsumesInvocation && !manifest.placementMustBeUnoccupied) ||
+    (manifest.placementMustBeUnoccupied && manifest.attachmentKind !== 'PLACED_SPACE')
+  )
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'Only a zone left where its cast places it is refused over an occupied space, and a refused placement spends the casting only then.'
+    )
   return {
     attachment: manifest.attachmentKind === 'SOURCE' ? 'SOURCE' : 'PLACED_SPACE',
     label,
@@ -272,6 +286,13 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
       ? { destructionInOrder: true as const }
       : {}),
     ...(manifest.designatedCreatureImmunity ? { designatedCreatureImmunity: true as const } : {}),
+    ...(manifest.placementMustBeUnoccupied
+      ? {
+          occupiedPlacement: manifest.invalidPlacementConsumesInvocation
+            ? ('SPENDS_CASTING' as const)
+            : ('REFUSED' as const)
+        }
+      : {}),
     appearSave,
     entry,
     sourceGrantEntry

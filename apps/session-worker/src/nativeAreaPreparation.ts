@@ -54,6 +54,7 @@ import {
   evaluateEncounterZoneTarget,
   zoneAimedPoints
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { occupantActorIdsOfArea } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import type { FacingRule } from '@artificer-toolkit/rules-runtime/optionalCombatPolicyCapability'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -398,6 +399,23 @@ export async function prepareAreaScene(
     })
   const origin =
     target.kind === 'CASTER_CENTERED' ? scene.sourceToken.position : areaActionTargetOrigin(target)
+  // A zone that may not pass through a creature's space is turned away over one, or, when its casting
+  // is spent on a placement that fails, left unplaced.
+  const overOccupiedSpace =
+    zone?.occupiedPlacement !== undefined &&
+    occupantActorIdsOfArea({
+      origin,
+      shape: area.shape,
+      casterActorId: caster.id,
+      tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
+      actors: input.actors
+    }).length > 0
+  if (overOccupiedSpace && zone?.occupiedPlacement === 'REFUSED')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: AREA_REFUSALS.SPACE_OCCUPIED
+    })
   const unaffectedActorIds = ('unaffectedActorIds' in target && target.unaffectedActorIds) || []
   // A zone names any number to spare; an instant area, only as many as the caster's features allow.
   const sparesMax = zone
@@ -434,19 +452,22 @@ export async function prepareAreaScene(
         : null,
     scene: { ...scene, grid },
     area: { ...area, origin },
-    placement: zone
-      ? {
-          zone,
-          appearSave,
-          origin,
-          shape: area.shape,
-          regions: 'regions' in area ? area.regions : [],
-          distanceStep: 'distanceStep' in area ? area.distanceStep : undefined,
-          proximityReach: 'proximityReach' in area ? area.proximityReach : undefined,
-          sourceToken: scene.sourceToken ?? null,
-          unaffectedActorIds
-        }
-      : null
+    /** Whether the casting is spent on a zone left unplaced over a creature's space. */
+    placementSpent: overOccupiedSpace,
+    placement:
+      zone && !overOccupiedSpace
+        ? {
+            zone,
+            appearSave,
+            origin,
+            shape: area.shape,
+            regions: 'regions' in area ? area.regions : [],
+            distanceStep: 'distanceStep' in area ? area.distanceStep : undefined,
+            proximityReach: 'proximityReach' in area ? area.proximityReach : undefined,
+            sourceToken: scene.sourceToken ?? null,
+            unaffectedActorIds
+          }
+        : null
   }
 }
 
