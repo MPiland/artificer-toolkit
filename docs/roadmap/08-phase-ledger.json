@@ -25143,9 +25143,9 @@
                 "tc": 13,
                 "rr": 8,
                 "size": 2,
-                "after": ["PERF-1.T8", "PERF-1.T9", "PERF-1.T10"]
+                "after": ["PERF-1.T8", "PERF-1.T9", "PERF-1.T10", "PERF-1.T11"]
               },
-              "text": "D229 step 4: fix scripts/v15Budgets.mjs so it does not scale the BACKLOG save or a failed attempt per command, then run V15 in CI and scripts/v15Budgets.mjs on the final source against 4.3 MB (D209). Bug found at V15 44152282986: 16.6 MB modelled, about 10 MB without double counting. If still over after T8 to T10, report the measured figure to the user (D229)."
+              "text": "D229 step 5: scripts/v15Budgets.mjs stops scaling fixed COMPLETE costs (actors, scenes) per command and includes the post-START save, then V15 runs in CI on the final source and scripts/v15Budgets.mjs gates it at 4.3 MB (D209). Projected 3.6 to 4.2 MB; if still over, report the measured figure to the user."
             },
             {
               "id": "PERF-1.T8",
@@ -25158,7 +25158,7 @@
                 "size": 5,
                 "after": []
               },
-              "text": "D229 step 1: a mid-Run BACKLOG checkpoint publishes only chat and roll records; Run child rows (replay index, rule occurrences, turn movements, initiative, rounds) publish at COMPLETE, so no row is inserted and then read back and deleted. Amend ADR 0035 (checkpoint prefix, fence and recovery semantics) and prove recovery after a mid-Run BACKLOG save with a failing-first test.",
+              "text": "D229 step 1 (option A, ADR 0035 Amendment 32): during an ACTIVE Run a BACKLOG save publishes only chat and roll records through a non-advancing chat route with its own watermark; Run child rows publish at the next full save. A full mid-fight save may end below the chat watermark (dropping already-published chat) and prefixes are bounded by change count as well as bytes. Tests: oversize mid-fight split, storage loss with chat ahead of the Run head, authorization revision on the chat route, out-of-combat BACKLOG stays a full save.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -25172,7 +25172,7 @@
                 "size": 3,
                 "after": ["PERF-1.T8"]
               },
-              "text": "D229 step 2: a chat entry and its payload persist as one Convex document (persisted shape; migrate development data in the same change); chat paging, gap repair and checkpoint reads keep their contracts."
+              "text": "D229 step 2: a chat entry and its payload persist as one Convex document with trimmed indexes (keep only indexes a reader uses; migrate development data in the same change); chat paging, gap repair and checkpoint reads keep their contracts."
             },
             {
               "id": "PERF-1.T10",
@@ -25182,10 +25182,23 @@
                 "bv": 8,
                 "tc": 13,
                 "rr": 8,
-                "size": 3,
+                "size": 2,
                 "after": ["PERF-1.T8"]
               },
-              "text": "D229 step 3: split the COMPLETE checkpoint so no single checkpoint:publish mutation nears the 1 s limit on a 424-command fight (V15 44152282986 timed out once at 1,843 docs); keep the fence and idempotent retry semantics."
+              "text": "D229 step 3 (revised): the checkpoint path refreshes scene-vision scope once per save instead of through per-row triggers (withSceneVisionTracking), so actor and Run rows are not re-read per change; prove the same visibility result and the lower read count with real-code tests."
+            },
+            {
+              "id": "PERF-1.T11",
+              "status": "TODO",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 3,
+                "after": []
+              },
+              "text": "D229 step 4 (user, 2026-11-17): an action posts one chat card holding its attack, damage and save rolls (Foundry midi-qol style) instead of one card per roll; private and revealed rolls keep their visibility rules; follow DESIGN.md for the card; prove the card content and the entries-per-command drop with real-code tests and a browser check of the card."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."

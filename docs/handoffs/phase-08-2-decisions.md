@@ -2295,10 +2295,25 @@ QUALITY-15.T3v's seam trace found that Prismatic Wall's ordered layers cannot be
 ## D229 (2026-11-17): the Q16 Convex I/O budget is met by engineering, not by moving it
 
 - **Finding (PERF-1.T7, V15 44152282986 and instrumented 44165616524):** the modelled session is 16.6 MB against the 4.3 MB gate (D209). This is not a save-path regression: the PERF-3.T1 single-read rule still holds. Fights now emit about 0.8 chat and roll entries per command, 2 to 4 times the a84 workload. That crosses the 200-entry push window (`LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT`), so a mid-fight BACKLOG checkpoint inserts each fight's per-command Run rows. The COMPLETE checkpoint then reads and deletes about 690 of them, costing about 1.4 MB per fight. One COMPLETE `checkpoint:publish` exceeded the 1 s mutation limit and was retried. With the double counting removed, the session costs about 10 MB.
-- **Ruling (user):** engineer the I/O down. The budget and the model assumptions do not move, except where the model counts a cost twice.
+- **Ruling (user chose the orchestrator's recommended plan):** engineer the I/O down. The budget and the model assumptions do not move, except where the model counts a cost twice. The three-step plan below was the orchestrator's recommendation, and the option A design for step 1 was the orchestrator's call.
   1. A mid-Run BACKLOG checkpoint publishes only chat and roll records; Run child rows publish at COMPLETE (ADR 0035 amendment: checkpoint prefix and recovery semantics).
   2. A chat entry and its payload persist as one document (persisted-shape change; development data migrates in the same change).
   3. The COMPLETE checkpoint is split so no single mutation nears the 1 s limit.
   4. `scripts/v15Budgets.mjs` stops scaling the BACKLOG save and a failed attempt per command; the final V15 run is re-measured.
 - **If still over 4.3 MB after steps 1 to 4:** the measured figure goes back to the user to accept or to keep cutting.
 - **Tracking:** PERF-1.T8 (step 1), PERF-1.T9 (step 2), PERF-1.T10 (step 3), PERF-1.T7 (step 4 and the final measurement; waits on T8 to T10).
+- **Revision (2026-11-17, independent Fable review of V15 44152282986, 44165616524 and the option A branch 55f52a5b8):** the plan above does not reach 4.3 MB.
+  - **Projection:** about 6.2 MB after step 1 and about 4.4 to 4.8 MB after steps 1 to 3.
+  - **Chat cost:** chat writes alone cost about 3.2 MB per session. Each chat entry is about 1.95 KB billed, and about 40% of that is index rows. The rate is about 0.8 cards per command because auto-roll posts one card per roll (0.21 at a84). That is correct behaviour, not duplication.
+  - **Corrections:**
+    - The BACKLOG save is about 1.2 MB billed, not 0.84 MB (documents only).
+    - The model's fight crosses the push window twice.
+    - The failed 1 s attempt is real billed I/O, not double counting.
+    - Successful COMPLETE saves already use 0.86 to 0.98 s of user time.
+  - **Revised steps:**
+    1. Option A, plus a watermark-floor fix so a full mid-fight save can split below the chat watermark; prefixes are bounded by change count as well as bytes. This removes the COMPLETE read-back and with it the 1 s risk.
+    2. One chat document per entry, with trimmed indexes.
+    3. Replace the old split step: the checkpoint path refreshes scene-vision scope once instead of through per-row triggers.
+    4. **One chat card per action (user chose the orchestrator's recommendation):** an action posts one card holding its attack, damage and save rolls, as Foundry does with midi-qol. Projected total: 3.6 to 4.2 MB.
+    5. The model stops scaling fixed COMPLETE costs per command and includes the post-START save; the final V15 run is re-measured.
+  - **Tracking:** T8 (1), T9 (2), T10 (3), T11 (4), T7 (5; waits on T8 to T11).
