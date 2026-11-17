@@ -25145,11 +25145,11 @@
                 "size": 2,
                 "after": ["PERF-1.T8", "PERF-1.T9", "PERF-1.T10", "PERF-1.T11", "PERF-1.T12"]
               },
-              "text": "D229 step 5: scripts/v15Budgets.mjs stops scaling fixed COMPLETE costs (actors, scenes) per command and includes the post-START save, then V15 runs in CI on the final source and scripts/v15Budgets.mjs gates it at 4.3 MB (D209). Projected 3.6 to 4.2 MB; if still over, report the measured figure to the user."
+              "text": "D229 step 5: scripts/v15Budgets.mjs stops scaling fixed COMPLETE costs (actors, scenes) per command and includes the post-START save, then V15 runs in CI on the final source and scripts/v15Budgets.mjs gates it at 4.3 MB (D209). Projected 3.6 to 4.2 MB; if still over, report the measured figure to the user. scripts/v15Budgets.mjs also classifies the chat checkpoint route (liveSessions/checkpoint:publishChat, POST /live-sessions/chat-checkpoint) as checkpoint ingestion and counts the BACKLOG chat save under it."
             },
             {
               "id": "PERF-1.T8",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25159,11 +25159,11 @@
                 "after": []
               },
               "text": "D229 step 1 (option A, ADR 0035 Amendment 32): during an ACTIVE Run a BACKLOG save publishes only chat and roll records through a non-advancing chat route with its own watermark; Run child rows publish at the next full save. A full mid-fight save may end below the chat watermark (dropping already-published chat) and prefixes are bounded by change count as well as bytes. Tests: oversize mid-fight split, storage loss with chat ahead of the Run head, authorization revision on the chat route, out-of-combat BACKLOG stays a full save.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "proof": "m870 (8918b9b8f): Tests 44186819029, Browser journeys 44186819224, Live 44182519852 green; V15 44193062129 modelled 6.32 MB (from 16.6 MB): BACKLOG 0.41 MB chat-only, COMPLETE 0.67 MB at 0.39 s."
             },
             {
               "id": "PERF-1.T9",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25172,11 +25172,12 @@
                 "size": 3,
                 "after": ["PERF-1.T8"]
               },
-              "text": "D229 step 2: a chat entry and its payload persist as one Convex document with trimmed indexes (keep only indexes a reader uses; migrate development data in the same change); chat paging, gap repair and checkpoint reads keep their contracts."
+              "text": "D229 step 2: a chat entry and its payload persist as one Convex document with trimmed indexes (keep only indexes a reader uses; migrate development data in the same change); chat paging, gap repair and checkpoint reads keep their contracts.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-1.T10",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25185,7 +25186,8 @@
                 "size": 2,
                 "after": ["PERF-1.T8"]
               },
-              "text": "D229 step 3 (revised): the checkpoint path refreshes scene-vision scope once per save instead of through per-row triggers (withSceneVisionTracking), so actor and Run rows are not re-read per change; prove the same visibility result and the lower read count with real-code tests."
+              "text": "D229 step 3 (revised): the checkpoint path refreshes scene-vision scope once per save instead of through per-row triggers (withSceneVisionTracking), so actor and Run rows are not re-read per change; prove the same visibility result and the lower read count with real-code tests.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-1.T11",
