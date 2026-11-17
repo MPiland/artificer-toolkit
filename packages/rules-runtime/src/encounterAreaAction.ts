@@ -52,21 +52,21 @@ const POINT_AREA_SHAPE_KINDS: ReadonlySet<string> = new Set([...ROUND_AREA_SHAPE
 const DIRECTED_AREA_SHAPE_KINDS: ReadonlySet<string> = new Set(['CONE', 'LINE', 'CUBE'])
 
 /**
- * Which target an area of `shapeKind` takes from `rangeKind`: a Self range over a cone, line or
- * cube takes an origin on the caster and a direction, and over a sphere, cylinder or circle it is
- * centered on the caster and takes no aim; any other range over a sphere, cylinder, circle or cube
- * takes a point. Null is a pairing this path cannot resolve (a wall or dome area, a cone or line
- * with another range). This is the one support table: the System compiler and the target policy
- * both read it.
+ * Which target an area of `shape` takes from `rangeKind`: a sphere, cylinder or circle on a Self
+ * range, or one authored as centered on its user whatever its range (Find Traps' "within range"), is
+ * centered on the caster and takes no aim; a Self range over a cone, line or cube takes an origin on
+ * the caster and a direction; any other range over a sphere, cylinder, circle or cube takes a point.
+ * Null is a pairing this path cannot resolve (a wall or dome area, a cone or line with another
+ * range). This is the one support table: the System compiler and the target policy both read it.
  */
 export function encounterAreaTargetKind(
   rangeKind: string,
-  shapeKind: string
+  shape: { shapeKind: string; centeredOnUser?: boolean }
 ): 'POINT' | 'DIRECTED' | 'CASTER_CENTERED' | null {
-  if (rangeKind === 'SELF') {
-    if (ROUND_AREA_SHAPE_KINDS.has(shapeKind)) return 'CASTER_CENTERED'
-    return DIRECTED_AREA_SHAPE_KINDS.has(shapeKind) ? 'DIRECTED' : null
-  }
+  const { shapeKind } = shape
+  if (ROUND_AREA_SHAPE_KINDS.has(shapeKind) && (rangeKind === 'SELF' || shape.centeredOnUser))
+    return 'CASTER_CENTERED'
+  if (rangeKind === 'SELF') return DIRECTED_AREA_SHAPE_KINDS.has(shapeKind) ? 'DIRECTED' : null
   return POINT_AREA_SHAPE_KINDS.has(shapeKind) ? 'POINT' : null
 }
 
@@ -167,10 +167,13 @@ export function hitPointPoolDiceOptions(targeting: AreaContentsTargeting): strin
  * Whether a list of chosen creatures may be bounded by an area (Mass Cure Wounds): a round shape
  * around a point picked within the range, the same point the creatures are then chosen inside.
  */
-export function chosenCreaturesAreaSupported(rangeKind: string, shapeKind: string): boolean {
+export function chosenCreaturesAreaSupported(
+  rangeKind: string,
+  shape: Parameters<typeof encounterAreaTargetKind>[1]
+): boolean {
   return (
-    ROUND_AREA_SHAPE_KINDS.has(shapeKind) &&
-    encounterAreaTargetKind(rangeKind, shapeKind) === 'POINT'
+    ROUND_AREA_SHAPE_KINDS.has(shape.shapeKind) &&
+    encounterAreaTargetKind(rangeKind, shape) === 'POINT'
   )
 }
 
@@ -188,8 +191,7 @@ export function encounterActionTargetKind(
   if (policy.pathOverrides.length !== 0) return null
   if (policy.targeting?.selectionKind === 'CHOSEN_CREATURES')
     return chosenCreaturesCap(policy.targeting) !== null &&
-      (policy.shape === null ||
-        chosenCreaturesAreaSupported(policy.range.rangeKind, policy.shape.shapeKind))
+      (policy.shape === null || chosenCreaturesAreaSupported(policy.range.rangeKind, policy.shape))
       ? 'ACTORS'
       : null
   if (policy.targeting?.selectionKind === 'AREA_CONTENTS')
@@ -197,7 +199,7 @@ export function encounterActionTargetKind(
       ? policy.range.rangeKind === 'SELF'
         ? 'CASTER_CENTERED'
         : null
-      : encounterAreaTargetKind(policy.range.rangeKind, policy.shape.shapeKind)
+      : encounterAreaTargetKind(policy.range.rangeKind, policy.shape)
   return policy.shape === null ? 'ACTOR' : null
 }
 
@@ -258,7 +260,7 @@ export function encounterZoneChoiceTarget(
         }
       : null
   if (band) return null
-  const kind = encounterAreaTargetKind(rangeKind, shape.shapeKind)
+  const kind = encounterAreaTargetKind(rangeKind, shape)
   if (kind === 'POINT' && area) return { kind, area }
   return kind === 'CASTER_CENTERED' && area?.kind === 'RADIUS' ? { kind, area } : null
 }

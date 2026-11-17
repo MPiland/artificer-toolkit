@@ -1210,8 +1210,9 @@ only in contests); there is no roof or indoor daylight model (see future-enhance
 
 ### Caster-centered radius areas (current, SPELLS-22)
 
-An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth
-target, `{ kind: 'CASTER_CENTERED', sceneId, expectedSceneVersion }`: it names no origin or direction. The
+An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle, or whose sphere,
+cylinder or circle is authored `centeredOnUser` whatever its range (Find Traps' "any trap within range" over its
+120 ft range, QUALITY-15.T3ac3), takes the fourth target, `{ kind: 'CASTER_CENTERED', sceneId, expectedSceneVersion }`: it names no origin or direction. The
 origin is the caster's own token (`evaluateEncounterCasterCenteredAreaTarget` returns the `RADIUS` shape; the room
 reads the caster's token with the Scene and seals its position), and the sealed area is the same `RADIUS` shape a point area seals, so no persisted shape changes;
 the caster-centered meaning lives in the persisted command's target kind. "Within N feet of you" is measured

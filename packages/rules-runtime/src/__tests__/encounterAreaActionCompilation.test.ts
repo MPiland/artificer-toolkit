@@ -253,6 +253,35 @@ describe('caster-centered area action compilation', () => {
   })
 })
 
+describe('area centered on its user over a distance range (QUALITY-15.T3ac3)', () => {
+  const sphere = { id: 's', shapeKind: 'SPHERE', radius: feet(20) } as const
+
+  it('compiles SRD Find Traps to a GM ruling over the sphere centered on its caster, keeping its 120 ft range', () => {
+    const { action, plan } = compile({}, spellEffect('Find Traps'))
+    expect(plan?.kind).toBe('SINGLE_GRAPH')
+    const policy = buildCompiledActionTargetPolicy(action)
+    expect(policy.range).toMatchObject({ rangeKind: 'DISTANCE', amount: 120, unit: 'FEET' })
+    expect(encounterActionTargetKind(policy)).toBe('CASTER_CENTERED')
+    expect(encounterActionChoiceTarget(policy)).toEqual({
+      kind: 'CASTER_CENTERED',
+      area: { kind: 'RADIUS', radius: feet(120) }
+    })
+  })
+
+  it('centers a distance-ranged sphere on its user only when the shape says so', () => {
+    const centered = buildCompiledActionTargetPolicy(
+      compile({ shape: { ...sphere, centeredOnUser: true } }).action
+    )
+    expect(encounterActionTargetKind(centered)).toBe('CASTER_CENTERED')
+    expect(compileEncounterPointArea(centered, FEET_GRID)).toEqual({
+      kind: 'RADIUS',
+      radius: 4 * FEET_GRID.cellSize
+    })
+    const aimed = compile({ shape: sphere })
+    expect(encounterActionTargetKind(buildCompiledActionTargetPolicy(aimed.action))).toBe('POINT')
+  })
+})
+
 describe('chosen-creature heal compilation from the SRD (D118)', () => {
   const MASS_CURE_WOUNDS = spellEffect('Mass Cure Wounds')
   const MASS_HEALING_WORD = spellEffect('Mass Healing Word')

@@ -74,7 +74,7 @@ export function compileDnd5eTargeting(
         unsupported('D&D chosen-creature list must resolve its cap at every cast.')
       // A list that names each creature once may be bounded by a round area at a point (Volley,
       // Mass Cure Wounds, D156).
-      if (shape && (repeated || !chosenCreaturesAreaSupported(range.rangeKind, shape.shapeKind)))
+      if (shape && (repeated || !chosenCreaturesAreaSupported(range.rangeKind, shape)))
         unsupported('D&D chosen-creature area must be a round area at a point.')
       requireDisposition(targeting.dispositionKind)
       // The room measures each chosen creature by distance; only a single target is held to sight.
@@ -155,8 +155,9 @@ function requireTargetRange(invocation: Dnd5eActionInvocation): void {
  * that rolls a pool and tests no one, or an area ruling that tests no one and leaves each creature it
  * catches to the GM (its outcome is checked with its result). Any of them may filter by creature type: the area still catches a
  * creature of a type it has no effect on, which takes no save. Either a sphere, cylinder, circle or cube
- * centered on a point within a distance (or unlimited), or a cone, line or cube that extends from
- * the caster (a Self range), or no shape at all on a Self range (the caster's own space). Walls,
+ * centered on a point within a distance (or unlimited), a sphere, cylinder or circle centered on the
+ * caster (a Self range, or one authored as centered on its user), a cone, line or cube that extends
+ * from the caster (a Self range), or no shape at all on a Self range (the caster's own space). Walls,
  * domes, a Self sphere, Touch origins and breakpoint-scaled sizes stay refused. The area only
  * decides who is caught: each caught creature runs the same
  * per-creature test plan a single target does. Each part an area breaks refuses with its own rule.
@@ -195,7 +196,7 @@ function requireSupportedArea(
   // A wall is drawn only as a zone (D154): only the save made as the zone appears is tested over it.
   if (
     !(overZone && shape.shapeKind === 'WALL') &&
-    encounterAreaTargetKind(range.rangeKind, shape.shapeKind) === null
+    encounterAreaTargetKind(range.rangeKind, shape) === null
   )
     unsupported('D&D area shape is not one its range places.')
   if (range.rangeKind !== 'SELF' && range.rangeKind !== 'UNLIMITED' && !isPlainDistance(range))
