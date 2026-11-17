@@ -7,6 +7,7 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -63,8 +64,18 @@ export const createFoodAndWater: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CREATE_FOOD_AND_WATER, 0x212, 1),
+                // The food and water mark where they lie on the map until the Encounter ends; how
+                // many they sustain and the food spoiling after 24 hours are the GM's.
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.OBJECT
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Food and water',
+                // The SRD names no area; they are drawn in one 5-foot square.
+                shape: {
+                  id: spellChildId(SPELL_IDS.CREATE_FOOD_AND_WATER, 0x2f0, 1),
+                  shapeKind: SHAPE_KIND.CUBE,
+                  edgeLength: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }
