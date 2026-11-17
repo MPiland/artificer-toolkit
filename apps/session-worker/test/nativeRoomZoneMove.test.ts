@@ -8,6 +8,7 @@ import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION,
   SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID as BONUS_ACTION
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { dancingLights } from '@artificer-toolkit/source-data/srd/spells/dancing-lights.js'
 import { flamingSphere } from '@artificer-toolkit/source-data/srd/spells/flaming-sphere.js'
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -24,8 +25,9 @@ import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * QUALITY-15.T3y8: the caster moves a zone it maintains by the zone's authored move. The SRD Flaming
- * Sphere moves 30 feet for a Bonus Action and Moonbeam 60 feet for an Action, as authored from core
- * options; nothing here or in the product names either spell. 5 feet is 100 Scene units.
+ * Sphere moves 30 feet for a Bonus Action, Moonbeam 60 feet for an Action and Dancing Lights 60 feet
+ * for a Bonus Action, as authored from core options; nothing here or in the product names any of
+ * them. 5 feet is 100 Scene units.
  */
 
 const CASTER_ACTOR_ID = testUuid(0x2480)
@@ -185,6 +187,27 @@ describe('a caster moving its Flaming Sphere (QUALITY-15.T3y8)', () => {
 
     // 2d6 fire, every die a 1, on the failed save.
     expect(await hitPointsOf(room, OTHER_ID)).toBe((hitPointsBefore ?? 0) - 2)
+  }, 120000)
+})
+
+describe('a caster moving its Dancing Lights (QUALITY-15.T3x3)', () => {
+  it('places the light and moves it up to 60 feet for its Bonus Action', async () => {
+    const room = await zoneRoom(dancingLights, 'Dancing Lights')
+    const zone = await castZone(room)
+    expect(zone.placement.light).toEqual({
+      bright: { amount: 0, unit: 'FEET' },
+      dimAdditional: { amount: 10, unit: 'FEET' }
+    })
+    expect(zone.placement.move).toEqual({
+      activation: 'BONUS_ACTION',
+      maxDistance: { amount: 60, unit: 'FEET' }
+    })
+
+    const moved = await moveZone(room, zone.id, FORTY_FEET_EAST)
+
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+    expect(await zoneCenter(room)).toEqual(FORTY_FEET_EAST)
+    expect(await spentOf(room, CASTER_ACTOR_ID)).toContainEqual([BONUS_ACTION, 1])
   }, 120000)
 })
 
