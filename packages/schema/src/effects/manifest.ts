@@ -33,7 +33,8 @@ const manifestCreatureFormDtoSchema = lazySchema(() =>
     order: z.number().check(z.int()),
     label: authoredShortTextSchema,
     creatureId: authoredIdentifierSchema,
-    maxTargets: z.number().check(z.int()).check(z.positive())
+    maxTargets: z.number().check(z.int()).check(z.positive()),
+    speeds: z.optional(authoredNestedCollectionSchema(speedDtoSchema))
   })
 )
 

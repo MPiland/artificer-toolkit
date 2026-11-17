@@ -1,13 +1,13 @@
 import type { ManifestCreatureFormAuthored, ManifestCreatureFormFilterAuthored } from '#authored'
 import { buildNodeMap, type NodeMap } from '#utils'
-import { createBreakpointScalingNodeMap } from '../../shared/maps/index.js'
+import { createBreakpointScalingNodeMap, SPEED_NODE_MAP } from '../../shared/maps/index.js'
 
 const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
 const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthored>()
 
 export const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthored> =
   manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, data }) => {
-    const { text, number, selectSingle } = nodes
+    const { text, number, selectSingle, groupArray } = nodes
     const { table } = data
 
     map
@@ -31,6 +31,12 @@ export const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthor
         number(['maxTargets'], 'Maximum Creatures', {
           constraints: { minimum: 1 },
           requiredIf: true
+        })
+      )
+      .set(
+        'speeds',
+        groupArray(['speeds'], 'Speed Overrides', () => SPEED_NODE_MAP, {
+          presentation: 'inline'
         })
       )
   })

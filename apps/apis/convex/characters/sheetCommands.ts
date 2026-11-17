@@ -65,7 +65,10 @@ import {
   prepareRestStandingEffects
 } from '@artificer-toolkit/rules-runtime/standingEffectPlans'
 import type { SheetSummonFormCreature } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
-import { formSummonStats } from '@artificer-toolkit/rules-runtime/encounterSummon'
+import {
+  formSummonStats,
+  withSummonFormSpeeds
+} from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { resolveAvailableSpellCast } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintEnemySnapshot'
@@ -403,10 +406,15 @@ export async function executeCharacterSheetCommand(
       const [creature] = setup.enemies
       if (creature?.kind === 'CREATURE')
         summonFormCreatures.set(pick.form.creatureId, {
-          stats: formSummonStats({
-            systemId: initial.character.systemId,
-            snapshot: blueprintEnemySnapshot(setup, creature)
-          }),
+          stats: formSummonStats(
+            withSummonFormSpeeds(
+              {
+                systemId: initial.character.systemId,
+                snapshot: blueprintEnemySnapshot(setup, creature)
+              },
+              pick.form.speeds
+            )
+          ),
           maxHitPoints: creature.maxHitPoints
         })
     }
