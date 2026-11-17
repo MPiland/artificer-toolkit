@@ -8,7 +8,6 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
-  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -17,8 +16,13 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, CREATURE_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_SPEEDS } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+
+const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
+if (!walkSpeedId)
+  throw new Error('SRD WALK speed vocabulary entry is required for Phantom Steed source data.')
 export const phantomSteed: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.PHANTOM_STEED,
@@ -53,14 +57,6 @@ export const phantomSteed: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        },
-        shape: {
-          id: spellChildId(SPELL_IDS.PHANTOM_STEED, 0x212, 1),
-          shapeKind: SHAPE_KIND.CIRCLE,
-          radius: {
-            amount: 5,
-            unit: MEASUREMENT_UNIT_CODE.FEET
-          }
         }
       },
       paths: [
@@ -82,8 +78,23 @@ export const phantomSteed: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PHANTOM_STEED, 0x213, 1),
+                // The steed is a Riding Horse that walks 100 feet; riding it, its travel pace, the
+                // equipment that vanishes, the rider's minute to dismount and ending on damage are
+                // GM rulings.
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.SUMMON,
+                forms: [
+                  {
+                    id: spellChildId(SPELL_IDS.PHANTOM_STEED, 0x215, 1),
+                    order: 1,
+                    label: 'Riding Horse',
+                    creatureId: CREATURE_IDS.RIDING_HORSE,
+                    maxTargets: 1,
+                    speeds: [
+                      { speedId: walkSpeedId, amount: 100, unit: MEASUREMENT_UNIT_CODE.FEET }
+                    ]
+                  }
+                ]
               }
             ]
           }

@@ -22,6 +22,7 @@ import {
   pathLifecycleExclusivitySchema
 } from '../shared/enums.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
+import { speedDtoSchema } from '../shared/speed.js'
 import {
   MAX_ZONE_LAYERS,
   SPATIAL_TURN_TRIGGERS,
@@ -793,7 +794,11 @@ export const compiledActionSummonPlacementSchema = lazySchema(() => {
     id: serverUuidIdentityDtoSchema,
     label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
     /** The most creatures one cast conjures of this form: 1 for a single creature. */
-    maxTargets: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_GROUP_COUNT))
+    maxTargets: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_GROUP_COUNT)),
+    /** Speeds the summoned creature has in place of its own of the same kind. */
+    speeds: z.optional(
+      z.array(speedDtoSchema).check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+    )
   }
   const base = {
     summonOutcomeId: serverUuidIdentityDtoSchema,

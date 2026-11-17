@@ -115,12 +115,14 @@ export function compileDnd5eSummonPlacement(
         ...identity,
         forms: [...forms]
           .sort((left, right) => left.order - right.order)
-          .flatMap(({ id, label, creatureId, statBlock, maxTargets }): SummonPlacementForm[] => {
-            const form = { id, label, maxTargets }
-            // The guard above leaves each form exactly one of the two.
-            if (creatureId !== undefined) return [{ ...form, creatureId }]
-            return statBlock ? [{ ...form, statBlock }] : []
-          }),
+          .flatMap(
+            ({ id, label, creatureId, statBlock, maxTargets, speeds }): SummonPlacementForm[] => {
+              const form = { id, label, maxTargets, ...(speeds?.length ? { speeds } : {}) }
+              // The guard above leaves each form exactly one of the two.
+              if (creatureId !== undefined) return [{ ...form, creatureId }]
+              return statBlock ? [{ ...form, statBlock }] : []
+            }
+          ),
         creatureTypeIds: [...new Set(creatureTypeIds)].sort()
       }
   if (carrierEntry) {

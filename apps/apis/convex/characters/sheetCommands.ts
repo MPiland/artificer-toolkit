@@ -65,7 +65,10 @@ import {
   prepareRestStandingEffects
 } from '@artificer-toolkit/rules-runtime/standingEffectPlans'
 import type { SheetSummonFormCreature } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
-import { formSummonStats } from '@artificer-toolkit/rules-runtime/encounterSummon'
+import {
+  formSummonStats,
+  withSummonFormSpeeds
+} from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { summonFormCreature } from '@artificer-toolkit/rules-runtime/spellSummonFormCreature'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
@@ -399,32 +402,36 @@ export async function executeCharacterSheetCommand(
     )
     if (pick && !('refusal' in pick)) {
       const { form } = pick
-      if ('statBlock' in form) {
-        const creature = summonFormCreature({
-          form,
-          systemId: initial.character.systemId,
-          userId: initial.character.userId
-        })
+      const systemId = initial.character.systemId
+      const creature =
+        'statBlock' in form
+          ? summonFormCreature({ form, systemId, userId: initial.character.userId })
+          : null
+      if (creature)
         summonFormCreatures.set(form.id, {
-          stats: formSummonStats({
-            systemId: creature.systemId,
-            snapshot: jsonValueSchema.parse({ payload: creature })
-          }),
+          stats: formSummonStats(
+            withSummonFormSpeeds(
+              { systemId, snapshot: jsonValueSchema.parse({ payload: creature }) },
+              form.speeds
+            )
+          ),
           maxHitPoints: Math.max(creature.hitPoints, 0)
         })
-      } else {
+      else if ('creatureId' in form) {
         const setup = await snapshotBlueprintEnemies(ctx, initial.character.userId, {
-          gameSystemId: initial.character.systemId,
+          gameSystemId: systemId,
           enemies: [{ kind: 'CREATURE', sourceId: form.creatureId }]
         })
-        const [creature] = setup.enemies
-        if (creature?.kind === 'CREATURE')
+        const [enemy] = setup.enemies
+        if (enemy?.kind === 'CREATURE')
           summonFormCreatures.set(form.id, {
-            stats: formSummonStats({
-              systemId: initial.character.systemId,
-              snapshot: blueprintEnemySnapshot(setup, creature)
-            }),
-            maxHitPoints: creature.maxHitPoints
+            stats: formSummonStats(
+              withSummonFormSpeeds(
+                { systemId, snapshot: blueprintEnemySnapshot(setup, enemy) },
+                form.speeds
+              )
+            ),
+            maxHitPoints: enemy.maxHitPoints
           })
       }
     }

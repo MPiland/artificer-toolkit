@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest'
+import { compileSpellEffect } from '@artificer-toolkit/shared/compilers'
 import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterActorBody, encounterActorCannotAttack } from '../encounterActorBody.js'
 import type { EncounterActorFormCreature } from '../encounterActorForm.js'
-import { buildEncounterSummon } from '../encounterSummon.js'
+import { compileActionPlacement } from '../encounterActionEntryPointCompiler.js'
+import { snapshotStatBlock } from '../encounterProjection.js'
+import { buildEncounterSummon, formSummonStats, withSummonFormSpeeds } from '../encounterSummon.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
+import {
+  ACTION_EFFECT_ID,
+  characterActionDescriptor
+} from '../testing/characterActionDescriptor.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { groupCountChange, groupHitPointPool, summonHitPoints } from '../summonHitPoints.js'
 
 const USER = crypto.randomUUID()
@@ -189,6 +198,74 @@ describe('buildEncounterSummon', () => {
       maxHitPoints: 12
     })
     expect(build({}).actor).toMatchObject({ maxHitPoints: 0 })
+  })
+})
+
+describe('a form summon with authored speeds (QUALITY-15.T3aa2)', () => {
+  const spell = srdByLabel(SRD.spells, 'Phantom Steed')
+  const placement = compileActionPlacement(
+    dnd5eCharacterRuleActionSystemAdapter,
+    characterActionDescriptor(
+      compileSpellEffect(spell, { ...spell.effects![0]!, id: ACTION_EFFECT_ID }),
+      spell.level,
+      20
+    )
+  )
+  const summon = placement?.kind === 'SUMMON' ? placement.summonPlacement : null
+  if (!summon || !('forms' in summon)) throw new Error('Phantom Steed summons a form.')
+  const [form] = summon.forms
+  const horse = srdByLabel(SRD.creatures, 'Riding Horse')
+  const horseOf = (speeds: readonly unknown[]) =>
+    ({
+      sourceId: horse.id,
+      sourceRevision: 1,
+      systemId: caster.systemId,
+      maxHitPoints: horse.hitPoints,
+      snapshot: { kind: 'CREATURE', payload: { speeds, hitPoints: horse.hitPoints } }
+    }) as unknown as EncounterActorFormCreature
+  const walkOf = (speeds: readonly { speedId: string; amount: number }[]) =>
+    speeds.find(({ speedId }) => speedId === horse.speeds[0]!.speedId)?.amount
+
+  it('compiles Phantom Steed as a Riding Horse form that walks 100 feet', () => {
+    expect(form).toMatchObject({
+      label: 'Riding Horse',
+      creatureId: horse.id,
+      maxTargets: 1,
+      speeds: [{ speedId: horse.speeds[0]!.speedId, amount: 100, unit: 'FEET' }]
+    })
+  })
+
+  it('places the steed with 100 feet of walking in its actor and in the values its owner lists', () => {
+    const creature = withSummonFormSpeeds(horseOf(horse.speeds), form!.speeds)
+    const { actor } = buildEncounterSummon({
+      summon: { kind: 'CREATURE', creature, creatureTypeId: null, count: null },
+      spellSummon: null,
+      caster,
+      casterHitPointMaximum: 40,
+      label: 'Riding Horse',
+      sourceEffectId: CARRIER_ID,
+      point: { x: 250, y: 150 },
+      edgeLength: 100,
+      occurredAt: NOW
+    })
+    expect(walkOf(snapshotStatBlock(actor)!.speeds)).toBe(100)
+    expect(walkOf(formSummonStats(creature).speeds ?? [])).toBe(100)
+  })
+
+  it('keeps the creature’s other speeds and adds a speed it lacks', () => {
+    const fly = { speedId: crypto.randomUUID(), amount: 30, unit: 'FEET' as const }
+    const [walk] = horse.speeds
+    expect(withSummonFormSpeeds(horseOf([walk, fly]), form!.speeds).snapshot).toMatchObject({
+      payload: { speeds: [{ ...walk, amount: 100 }, fly] }
+    })
+    expect(withSummonFormSpeeds(horseOf([fly]), form!.speeds).snapshot).toMatchObject({
+      payload: { speeds: [fly, { ...walk, amount: 100 }] }
+    })
+  })
+
+  it('leaves a form without authored speeds as it is', () => {
+    const creature = horseOf(horse.speeds)
+    expect(withSummonFormSpeeds(creature, undefined)).toBe(creature)
   })
 })
 

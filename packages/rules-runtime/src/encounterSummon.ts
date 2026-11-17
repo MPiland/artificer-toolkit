@@ -2,6 +2,7 @@ import type { SpellSummonStatBlockValues } from '@artificer-toolkit/shared/autho
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { LiveSessionSummonedToken } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
+import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
@@ -12,6 +13,30 @@ import type { EncounterActorFormCreature } from './encounterActorForm.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import type { FormSummonStats } from './spellSummonStatBlock.js'
 import { groupHitPointPool, summonHitPoints } from './summonHitPoints.js'
+
+/**
+ * The System Creature a form summon becomes, with the form's authored speeds in place of its own of
+ * the same kind (the rest stay). Applied where the Creature is read, so the Run actor's snapshot and
+ * the values a Sheet lists (`formSummonStats`) both start from the same speeds.
+ */
+export function withSummonFormSpeeds<T extends { snapshot: unknown }>(
+  creature: T,
+  speeds: readonly SpeedDto[] | undefined
+): T {
+  if (!speeds?.length) return creature
+  const snapshot = creature.snapshot as { payload: Record<string, unknown> }
+  const own = Array.isArray(snapshot.payload.speeds)
+    ? snapshot.payload.speeds.map((entry) => speedDtoSchema.parse(entry))
+    : []
+  const replaced = own.map(
+    (entry) => speeds.find(({ speedId }) => speedId === entry.speedId) ?? entry
+  )
+  const added = speeds.filter(({ speedId }) => !own.some((entry) => entry.speedId === speedId))
+  return {
+    ...creature,
+    snapshot: { ...snapshot, payload: { ...snapshot.payload, speeds: [...replaced, ...added] } }
+  }
+}
 
 /**
  * The stat values a form summon lists, read from the System Creature the caster chose. It lives on

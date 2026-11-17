@@ -48,6 +48,8 @@ import { conjureAnimals } from '@artificer-toolkit/source-data/srd/spells/conjur
 import { conjureFey } from '@artificer-toolkit/source-data/srd/spells/conjure-fey.js'
 import { createUndead } from '@artificer-toolkit/source-data/srd/spells/create-undead.js'
 import { findSteed } from '@artificer-toolkit/source-data/srd/spells/find-steed.js'
+import { phantomSteed } from '@artificer-toolkit/source-data/srd/spells/phantom-steed.js'
+import { ridingHorse } from '@artificer-toolkit/source-data/srd/creatures/riding-horse.js'
 import { floatingDisk } from '@artificer-toolkit/source-data/srd/spells/floating-disk.js'
 import { unseenServant } from '@artificer-toolkit/source-data/srd/spells/unseen-servant.js'
 import { ghoul } from '@artificer-toolkit/source-data/srd/creatures/ghoul.js'
@@ -2194,6 +2196,41 @@ describe('room Find Steed (QUALITY-15.T3aa)', () => {
     expect(await conjured(room)).toHaveLength(1)
     await setSummonHitPoints(room, steed.actor.id, 0)
     await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3aa2: Phantom Steed conjures the Riding Horse with the spell's authored walk speed,
+ * both on the Run actor's snapshot and in the values its owner's Sheet lists, which the Worker
+ * commit stores with the summon.
+ */
+describe('room Phantom Steed (QUALITY-15.T3aa2)', () => {
+  it('conjures the Riding Horse with a 100 foot walk speed in its snapshot and its stored summon values', async () => {
+    const [form] = summonForms(phantomSteed)
+    if (!form) throw new Error('Phantom Steed must offer the Riding Horse form.')
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [phantomSteed], prepared: [phantomSteed.id] },
+      characterAction: (action) => action.label.startsWith(phantomSteed.label),
+      formCreatures: [applyCreatureAttackRolls(ridingHorse)],
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
+    })
+    const steed = await castSummon(room, { x: 150, y: 450 }, { formId: form.id })
+    const snapshotRow = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .documents('encounterActorSnapshots')
+        .find(({ checksum }) => checksum === steed.actor.snapshotChecksum)
+    )
+    if (!snapshotRow) throw new Error('The steed’s snapshot is not stored.')
+    const walk = { amount: 100, unit: form.speeds?.[0]?.unit }
+    const stored = readStoredActorSnapshot(snapshotRow)
+    expect(stored).toMatchObject({
+      payload: { speeds: [expect.objectContaining(walk)] },
+      summon: { speeds: [expect.objectContaining(walk)] }
+    })
   }, 120000)
 })
 

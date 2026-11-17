@@ -66,6 +66,7 @@ import {
   type SummonFormPick
 } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { summonFormActorCreature } from '@artificer-toolkit/rules-runtime/spellSummonFormCreature'
+import { withSummonFormSpeeds } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import {
   creatureSnapshotSize,
   encounterActiveEffectPlans
@@ -496,7 +497,7 @@ async function readSummonBody(
   const creature = await readFormActorCreature(input, form)
   return {
     kind: 'CREATURE',
-    creature,
+    creature: withSummonFormSpeeds(creature, form.speeds),
     creatureTypeId: pick.creatureTypeId,
     count: pick.count,
     label: form.label
