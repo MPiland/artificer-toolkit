@@ -10,6 +10,7 @@ import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js
 import { conditionDurationTurns } from './effectActionFollowUp.js'
 import { durationPublishedGraph, maintenancePlan } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
+import { selectScalingRow } from '../../scalingRowSelection.js'
 
 type SummonPlacementForm = Extract<
   CharacterRuleActionSummonPlacementPlan,
@@ -20,7 +21,9 @@ type SummonPlacementForm = Extract<
  * The creature an action summons: its first ON_USE entry is a SUMMON manifest, whose stat block (or
  * the System Creature forms the caster picks one of) rides the plan and whose carrier effect ends
  * the summon with its duration or the Concentration the cast opens. A summon of no duration lasts
- * until it falls or is dismissed; only a timed one may hold offers. A second ON_USE entry may be an
+ * until it falls or is dismissed; only a timed one may hold offers. A form's count is the one its
+ * `maxTargetsScaling` row for the cast's slot level gives, else its own (the lowest slot's); each
+ * slot level is its own cast action, so the plan is compiled at the level the caster chose. A second ON_USE entry may be an
  * empty APPLY_GRANT of the same duration whose effect offers the carrier holds. Null for any other
  * action. A summon that authors anything the plan does not carry (behaviors, neither or both of a
  * stat block and forms, a form of more creatures than a group token holds, a third entry) is refused rather than
@@ -51,10 +54,30 @@ export function compileDnd5eSummonPlacement(
   const { outcome } = entry
   if (outcome.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'SUMMON')
     unsupported('A summon is the only outcome of its action’s use.')
-  const forms = outcome.forms ?? []
+  const authoredForms = outcome.forms ?? []
   const creatureTypeIds = outcome.creatureTypeIds ?? []
-  if (outcome.statBlock ? forms.length > 0 || creatureTypeIds.length > 0 : forms.length === 0)
+  if (
+    outcome.statBlock
+      ? authoredForms.length > 0 || creatureTypeIds.length > 0
+      : authoredForms.length === 0
+  )
     unsupported('A summon authors the stat block of its creature or the forms it may take.')
+  if (
+    authoredForms.some(({ maxTargetsScaling }) =>
+      maxTargetsScaling
+        ? maxTargetsScaling.scalingSource !== 'SPELL_CAST_LEVEL' ||
+          maxTargetsScaling.breakpoints.some(({ value }) => value.amount > MAX_GROUP_COUNT)
+        : false
+    )
+  )
+    unsupported('A summon form’s count scales only with the spell’s cast level, within a group.')
+  const forms = authoredForms.map(({ maxTargetsScaling, ...form }) => {
+    const row =
+      maxTargetsScaling && action.spellCastLevel !== undefined
+        ? selectScalingRow(maxTargetsScaling.breakpoints, action.spellCastLevel)
+        : null
+    return row ? { ...form, maxTargets: row.value.amount } : form
+  })
   if (
     forms.some(
       ({ id, creatureId, statBlock, maxTargets }) =>

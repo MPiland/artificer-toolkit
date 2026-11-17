@@ -84,7 +84,10 @@ export const conjureWoodlandBeings: SpellAuthored = {
                 manifestKind: MANIFEST_KIND.SUMMON,
                 // The group acts on one shared turn of its own (D200).
                 turnTiming: 'OWN_INITIATIVE',
-                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_WOODLAND_BEINGS, woodlandForms)
+                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_WOODLAND_BEINGS, woodlandForms, [
+                  { level: 6, multiplier: 2 },
+                  { level: 8, multiplier: 3 }
+                ])
               }
             ]
           }

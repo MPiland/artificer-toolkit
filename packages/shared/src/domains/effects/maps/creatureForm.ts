@@ -5,6 +5,7 @@ import type {
 } from '#authored'
 import { buildNodeMap, type NodeMap } from '#utils'
 import { createBreakpointScalingNodeMap, SPEED_NODE_MAP } from '../../shared/maps/index.js'
+import { TARGET_COUNT_SCALING_NODE_MAP } from './targeting.js'
 
 const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
 const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthored>()
@@ -41,6 +42,17 @@ export function createManifestCreatureFormNodeMap(
           constraints: { minimum: 1 },
           requiredIf: true
         })
+      )
+      .set(
+        'maxTargetsScaling',
+        groupObject(
+          ['maxTargetsScaling'],
+          'Maximum Creatures by Cast Level',
+          () => TARGET_COUNT_SCALING_NODE_MAP,
+          {
+            presentation: 'inline'
+          }
+        )
       )
       .set(
         'speeds',

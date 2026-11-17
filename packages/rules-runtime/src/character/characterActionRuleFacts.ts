@@ -966,6 +966,13 @@ function outcomeReadsSpellCastLevel(outcome: CompiledOutcome): boolean {
     case 'FOLLOW_UP_CHECK':
       return [outcome.onSuccess, outcome.onFailure].some(branchReadsSpellCastLevel)
     case 'MANIFEST':
+      if (
+        'forms' in outcome &&
+        (outcome.forms ?? []).some(
+          ({ maxTargetsScaling }) => maxTargetsScaling?.scalingSource === 'SPELL_CAST_LEVEL'
+        )
+      )
+        return true
       return [
         ...('behaviors' in outcome ? (outcome.behaviors ?? []) : []),
         ...('components' in outcome ? (outcome.components ?? []) : []).flatMap(

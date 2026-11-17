@@ -85,7 +85,10 @@ export const conjureMinorElementals: SpellAuthored = {
                 manifestKind: MANIFEST_KIND.SUMMON,
                 // The group acts on one shared turn of its own (D200).
                 turnTiming: 'OWN_INITIATIVE',
-                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_MINOR_ELEMENTALS, elementalForms)
+                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_MINOR_ELEMENTALS, elementalForms, [
+                  { level: 6, multiplier: 2 },
+                  { level: 8, multiplier: 3 }
+                ])
               }
             ]
           }
