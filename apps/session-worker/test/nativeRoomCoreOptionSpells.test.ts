@@ -19,6 +19,7 @@ import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-han
 import { barkskin } from '@artificer-toolkit/source-data/srd/spells/barkskin.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
+import { clairvoyance } from '@artificer-toolkit/source-data/srd/spells/clairvoyance.js'
 import { arcaneSword } from '@artificer-toolkit/source-data/srd/spells/arcane-sword.js'
 import { callLightning } from '@artificer-toolkit/source-data/srd/spells/call-lightning.js'
 import { faithfulHound } from '@artificer-toolkit/source-data/srd/spells/faithful-hound.js'
@@ -1931,6 +1932,26 @@ describe('room Arcane Eye (QUALITY-15.T3n)', () => {
     })
     const eye = await castSummon(room, { x: 350, y: 150 })
     expect(eye.actor).toMatchObject({ label: 'Arcane Eye', kind: 'CUSTOM' })
+
+    const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await conjured(room)).toEqual([])
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3y2: Clairvoyance places an owned, invisible, invulnerable sensor held by the cast's
+ * Concentration, as Arcane Eye does.
+ */
+describe('room Clairvoyance (QUALITY-15.T3y2)', () => {
+  it('places the sensor and takes it away when the caster’s Concentration ends', async () => {
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [clairvoyance], prepared: [clairvoyance.id] },
+      characterAction: (action) => action.label.startsWith(clairvoyance.label)
+    })
+    const sensor = await castSummon(room, { x: 350, y: 150 })
+    expect(sensor.actor).toMatchObject({ label: 'Sensor', kind: 'CUSTOM' })
 
     const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')

@@ -17,6 +17,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const clairvoyance: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -74,7 +75,16 @@ export const clairvoyance: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CLAIRVOYANCE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.SENSOR
+                // The sensor is an unmoving token held by Concentration; the seeing or hearing choice and
+                // perceiving through it are the GM's from the description.
+                manifestKind: MANIFEST_KIND.SUMMON,
+                label: 'Sensor',
+                statBlock: {
+                  size: SIZE_CODE.TINY,
+                  damageabilityKind: 'INVULNERABLE',
+                  visibilityKind: 'INVISIBLE',
+                  occupiesSpace: false
+                }
               }
             ]
           }
