@@ -567,7 +567,7 @@ async function sendWorkloadCommand(
     // The rejection keeps its type; the step is added beside the command the client attached.
     if (error instanceof Error)
       error.cause =
-        `V15 ${operation} ${aggregate.aggregate} actor ${'actorId' in command ? place(command.actorId) : '-'}` +
+        `V15 ${operation} ${aggregate.aggregate} actor ${'actorId' in command && command.actorId ? place(command.actorId) : '-'}` +
         ` target ${target ? place(target) : '-'} current ${place(aggregate.run.currentActorId ?? '')}` +
         ` version ${aggregate.run.version}; ${String(error.cause)}`
     throw error
