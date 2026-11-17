@@ -564,12 +564,13 @@ async function sendWorkloadCommand(
     const place = (id: string) => aggregate.actorIds.indexOf(id) + 1
     const target =
       'target' in command && 'actorId' in command.target ? command.target.actorId : null
-    throw new Error(
-      `V15 ${operation} ${aggregate.aggregate} actor ${'actorId' in command ? place(command.actorId) : '-'}` +
+    // The rejection keeps its type; the step is added beside the command the client attached.
+    if (error instanceof Error)
+      error.cause =
+        `V15 ${operation} ${aggregate.aggregate} actor ${'actorId' in command ? place(command.actorId) : '-'}` +
         ` target ${target ? place(target) : '-'} current ${place(aggregate.run.currentActorId ?? '')}` +
-        ` version ${aggregate.run.version}`,
-      { cause: error }
-    )
+        ` version ${aggregate.run.version}; ${String(error.cause)}`
+    throw error
   })
   aggregate.commits.push({
     commandId: command.commandId,
