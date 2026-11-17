@@ -177,7 +177,9 @@ export async function verifyEncounterZoneMoveBrowser(
         const step = await submit<MoveZoneInputDto>('MOVE_ZONE', () =>
           item.getByRole('button', { name: 'Move', exact: true }).click()
         )
-        await expect(zoneChoices.getByText('Zone moved.', { exact: true })).toBeVisible()
+        // The move spends the Bonus Action, so the choices reload and the row now warns of it.
+        await expect(item).toContainText('No bonus action left this turn.')
+        await expect(item.getByRole('button', { name: 'Move', exact: true })).toHaveCount(0)
         await page.screenshot({
           caret: 'initial',
           path: input.evidenceDirectory + '/zone-move-moved.png',
