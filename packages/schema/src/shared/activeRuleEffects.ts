@@ -716,8 +716,9 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               escape.kind === 'CONDITION_ESCAPE' &&
               !definition.stateContributions.some(
                 (held) =>
-                  held.kind === 'CONDITION_OWNERSHIP' &&
-                  (escape.escapeOutcome !== undefined || held.heldBySpatialEffectId)
+                  (held.kind === 'CONDITION_OWNERSHIP' &&
+                    (escape.escapeOutcome !== undefined || held.heldBySpatialEffectId)) ||
+                  (held.kind === 'OBJECT_MANIFESTATION' && escape.escapeOutcome !== undefined)
               )
           )
         )
@@ -725,7 +726,7 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['stateContributions'],
             message:
-              'A condition escape needs the condition it escapes: a zone-held one, or one the effect holds for its escape outcome.'
+              'A condition escape needs what it escapes: a zone-held condition, or a condition or an attached object the effect holds for its escape outcome.'
           })
         for (const [index, contribution] of definition.perceptionContributions.entries()) {
           if (

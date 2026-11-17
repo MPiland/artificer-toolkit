@@ -34,9 +34,12 @@ export function getProficiencyTargetKind(
   if (proficiency.kind === 'LANGUAGE') return 'LANGUAGE'
 
   if (proficiency.kind === 'EQUIPMENT') {
-    const category = resolution.catalog.equipment.find(
-      (equipment) => equipment.id === proficiency.subjectId
-    )?.category
+    // An all-items grant ("*") names no item: its category is the grant's own.
+    const category =
+      proficiency.subjectId === '*'
+        ? proficiency.category
+        : resolution.catalog.equipment.find((equipment) => equipment.id === proficiency.subjectId)
+            ?.category
     switch (category) {
       case EQUIPMENT_CATEGORY_CODE.ARMOR:
       case EQUIPMENT_CATEGORY_CODE.SHIELD:

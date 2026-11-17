@@ -3995,6 +3995,22 @@ kind, and a lit one attached to the source, primary target or touched object she
 capture each read the actor's effects in their own transaction, so the light starts with the effect and ends with its
 duration, dispel or undo; the vision-revision triggers on effect writes already refresh the Scene cache. The compiler names no spell; any `MANIFEST` / `OBJECT` with these fields compiles the same way.
 
+**Attached objects that deal damage (QUALITY-15.T3t2).** A test whose result path authors one `MANIFEST` / `OBJECT`
+attached to the `PRIMARY_TARGET` (no duration, lifecycle, shape or light) with one component naming one holder turn
+boundary and one behavior that rolls one dice damage on use compiles to `attachedObjectDamagePlan`
+(`effectActionObjectManifestation.ts`), the lifetime aspect's `ATTACHED_OBJECT` kind, checked right after
+`SEQUENTIAL`; its plan needs no cast level, so the source compile detects it too. `START_OF_ATTACHED_TARGET_TURN` recurs at the start of each of the
+holder's turns until it ends (`initialRemaining` null); `END_OF_ATTACHED_TARGET_NEXT_TURN` fires once at the end of
+the holder's next turn. The damage row the descriptor's cast level reaches is frozen into the plan's own dice graph
+(`attachedObjectDamageGraph`, `castLevelDiceDamage`, `effectActionCastLevelDamage.ts`, shared with a repeated save's failure damage), node
+`attached-object-damage`, and the turn kernel rolls it through `interpretDirect`; only a held object's
+`object-manifestation` node (`HELD_OBJECT_NODE_ID`) stays hold-only. A repeatable `FOLLOW_UP_CHECK` on the same
+result path that ends on success is the plan's `conditionEscapeContribution` (`followUpCheckEscape`), so the
+holder escapes the object through the one escape path, which removes no condition. The test keeps the action's other
+entries, which must be damage (Acid Arrow's 4d4 on a hit, half on a miss); the manifest and its check are the plan's
+(`isActiveEffectPlanOutcome`), and a test left with no outcome of its own (Alchemist's Fire) selects no OUTCOME graph.
+The entry-point compiler admits an object plan beside a TEST/OUTCOME execution. Acid Arrow and Alchemist's Fire compile this way; no item or spell is named.
+
 **Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
 `dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form
 `maxTargets`, the duration, `excessDamageCarriesOver`). The chosen target is `{ kind: 'ACTORS', actorIds, formId }`;
@@ -4125,8 +4141,8 @@ block also authors one `FOLLOW_UP_CHECK` that is repeatable, ends on success (`E
 (`CONTINUE`), has a fixed DC and names an ability or skill (no tool) compiles that check into the plan's
 `conditionEscapeContribution` (`followUpCheckEscape`); any other follow-up check beside conditions still refuses.
 The effect persists it as a `CONDITION_ESCAPE` carrying `escapeOutcome { outcomeId, actorKinds }`, which the
-schema allows only beside a `CONDITION_OWNERSHIP` (a zone's escape keeps `heldBySpatialEffectId` and no
-`escapeOutcome`). The escape bounds conditions with no duration, like Concentration does. `findEncounterHolderEscape`
+schema allows only beside a `CONDITION_OWNERSHIP` or, with `escapeOutcome`, an attached `OBJECT_MANIFESTATION`
+(QUALITY-15.T3t2; a zone's escape keeps `heldBySpatialEffectId` and no `escapeOutcome`). The escape bounds conditions with no duration, like Concentration does. `findEncounterHolderEscape`
 offers it to the held creature (`escapeSourceId` = the check outcome id, `zoneLabel` null), and
 `findEncounterRescues` offers it to another creature when `actorKinds` allows `CREATURE_WITHIN_REACH`, within the
 rescuer's own reach, taken as Touch (5 ft) because no actor reach model exists. Settlement is the one escape path.

@@ -33,6 +33,7 @@ import {
   lightArmorModifiers as sharedLightArmorModifiers,
   magicArmorModifiers as sharedMagicArmorModifiers,
   mediumArmorModifiers as sharedMediumArmorModifiers,
+  improvisedRangedAttackAbilityModifiers as sharedImprovisedRangedAttackAbilityModifiers,
   meleeMagicWeaponModifiers as sharedMeleeMagicWeaponModifiers,
   meleeReachWeaponEffects as sharedMeleeReachWeaponEffects,
   meleeVersatileWeaponEffects as sharedMeleeVersatileWeaponEffects,
@@ -363,6 +364,11 @@ export function rangedWeaponAbilityModifiers(
   ability: SrdAbilityCode = 'DEXTERITY'
 ): WeaponAbilityModifier[] {
   return sharedRangedWeaponAbilityModifiers(srdChildId(equipmentId), ability)
+}
+export function improvisedRangedAttackAbilityModifiers(
+  equipmentId: string
+): WeaponAbilityModifier[] {
+  return sharedImprovisedRangedAttackAbilityModifiers(srdChildId(equipmentId))
 }
 export function thrownWeaponAbilityModifiers(equipmentId: string): WeaponAbilityModifier[] {
   return sharedThrownWeaponAbilityModifiers(srdChildId(equipmentId))
