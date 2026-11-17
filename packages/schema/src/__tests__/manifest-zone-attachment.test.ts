@@ -17,7 +17,7 @@ describe('manifest attachment', () => {
     ).toBe(true)
   })
 
-  it.each(['SENSOR', 'WEAPON', 'OBJECT', 'ILLUSION', 'CREATURE', 'SUMMON'])(
+  it.each(['WEAPON', 'OBJECT', 'ILLUSION', 'CREATURE', 'SUMMON'])(
     'keeps attachment optional on %s manifests',
     (manifestKind) => {
       expect(manifestDtoSchema.safeParse(manifest(manifestKind)).success).toBe(true)

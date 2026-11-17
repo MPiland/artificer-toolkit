@@ -20,6 +20,7 @@ import { barkskin } from '@artificer-toolkit/source-data/srd/spells/barkskin.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { clairvoyance } from '@artificer-toolkit/source-data/srd/spells/clairvoyance.js'
+import { scrying } from '@artificer-toolkit/source-data/srd/spells/scrying.js'
 import { arcaneSword } from '@artificer-toolkit/source-data/srd/spells/arcane-sword.js'
 import { callLightning } from '@artificer-toolkit/source-data/srd/spells/call-lightning.js'
 import { faithfulHound } from '@artificer-toolkit/source-data/srd/spells/faithful-hound.js'
@@ -1957,6 +1958,25 @@ describe('room Clairvoyance (QUALITY-15.T3y2)', () => {
       actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
       characterSpellcasting: { spells: [clairvoyance], prepared: [clairvoyance.id] },
       characterAction: (action) => action.label.startsWith(clairvoyance.label)
+    })
+    const sensor = await castSummon(room, { x: 350, y: 150 })
+    expect(sensor.actor).toMatchObject({ label: 'Sensor', kind: 'CUSTOM' })
+
+    const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await conjured(room)).toEqual([])
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3y2b: Scrying places the same sensor, near the target creature the caster chooses.
+ */
+describe('room Scrying (QUALITY-15.T3y2b)', () => {
+  it('places the sensor and takes it away when the caster’s Concentration ends', async () => {
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [scrying], prepared: [scrying.id] },
+      characterAction: (action) => action.label.startsWith(scrying.label)
     })
     const sensor = await castSummon(room, { x: 350, y: 150 })
     expect(sensor.actor).toMatchObject({ label: 'Sensor', kind: 'CUSTOM' })
