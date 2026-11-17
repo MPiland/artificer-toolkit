@@ -30,11 +30,13 @@ import {
   encounterMovementPassageFacts
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import { actorTokenLights } from '@artificer-toolkit/rules-runtime/actorLight'
+import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneTokenMovementFailure,
   selectTeleportAllowance,
+  spatialPathBlockingEffect,
   withSceneTokenLights,
   type CampaignSceneState,
   type ScenePoint
@@ -404,6 +406,18 @@ export async function readNativeLiveMovementInputs(input: {
   // authorized capture; the room runtime has no definition source of its own.
   const capturedRuntime = capturedNativeRuntime(runtime, definitions)
   const spatialEffects = await readNativeLiveSpatialEffects(capture, scene, state.id)
+  // A zone that blocks creature movement refuses a new walk across its boundary (D227).
+  if (
+    !save.movementResolution &&
+    command.movementKind !== 'TELEPORT' &&
+    spatialPathBlockingEffect({
+      effects: toSpatialInstances(spatialEffects, actors),
+      tokens: scene.tokens,
+      moverTokenId: token.id,
+      path: command.path
+    })
+  )
+    rejectDomain('MOVEMENT_BLOCKED', 'A barrier blocks the way.')
   // A grappler's voluntary move drags the creatures its own holds bind (D105). A new move checks
   // each dragged creature's whole translated path; every segment re-reads who is held.
   const planned =

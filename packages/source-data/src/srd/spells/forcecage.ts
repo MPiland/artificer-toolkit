@@ -90,7 +90,16 @@ export const forcecage: SpellAuthored = {
                     amount: 20,
                     unit: MEASUREMENT_UNIT_CODE.FEET
                   }
-                }
+                },
+                // "A creature inside the cage can't leave it by nonmagical means."
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.FORCECAGE, 0x2f1, 1),
+                    order: 1,
+                    label: 'Forcecage',
+                    blockingRules: ['CREATURE_MOVEMENT']
+                  }
+                ]
               }
             ]
           }

@@ -114,6 +114,25 @@ describe('the zones the SRD sizes in prose (QUALITY-15.T3o)', () => {
   })
 })
 
+describe('a zone that blocks creature movement (QUALITY-15.T3y6b, D227)', () => {
+  it.each([
+    ['Wall of Force', 'PLACED_SPACE'],
+    ['Forcecage', 'PLACED_SPACE'],
+    ['Resilient Sphere', 'PRIMARY_TARGET']
+  ])(
+    'places the real SRD %s as a %s barrier no creature walks across, triggering nobody',
+    (label, attachment) => {
+      expect(zoneOf(label)).toMatchObject({
+        label,
+        attachment,
+        triggerModes: [],
+        blockingRules: ['CREATURE_MOVEMENT'],
+        maintenance: label === 'Forcecage' ? null : expect.anything()
+      })
+    }
+  )
+})
+
 describe('a summon held by its Concentration (QUALITY-15.T3n)', () => {
   it('summons the real SRD Arcane Eye as an invisible, untouchable flier that ends with Concentration', () => {
     const placement = placementOf('Arcane Eye')

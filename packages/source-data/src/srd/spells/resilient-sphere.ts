@@ -91,7 +91,17 @@ export const resilientSphere: SpellAuthored = {
                   id: spellChildId(SPELL_IDS.RESILIENT_SPHERE, 0x212, 1),
                   shapeKind: SHAPE_KIND.SPHERE,
                   radius: { amount: 2.5, unit: MEASUREMENT_UNIT_CODE.FEET }
-                }
+                },
+                // "Nothing ... can pass through the barrier, in or out"; it moves with the creature
+                // it encloses.
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.RESILIENT_SPHERE, 0x216, 1),
+                    order: 1,
+                    label: 'Resilient Sphere',
+                    blockingRules: ['CREATURE_MOVEMENT']
+                  }
+                ]
               }
             ]
           }

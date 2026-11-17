@@ -1,5 +1,9 @@
 import type { LengthUnitCode } from '../core/measurement.js'
-import { measureScenePathDistance, sceneDistanceAsCoordinateLength } from './geometry.js'
+import {
+  measureScenePathDistance,
+  sceneDistanceAsCoordinateLength,
+  scenePointInPolygon
+} from './geometry.js'
 import { lengthMeasurementInSceneUnits } from './sceneReducer.js'
 import { segmentsIntersect } from './segments.js'
 import {
@@ -9,10 +13,9 @@ import {
   type ScenePoint,
   type SceneToken
 } from './scene.js'
+import { candidateTimes, EPSILON, interpolate } from './spatialSegmentTimes.js'
 
 export { VTT_SPATIAL_LIMITS } from './scene.js'
-
-const EPSILON = 1e-8
 
 export type SpatialAnchorKind = 'FIXED' | 'TOKEN'
 type SpatialGeometryFrame = 'SCENE_ABSOLUTE' | 'TOKEN_LOCAL'
@@ -116,6 +119,8 @@ export interface SpatialEffectInstance {
   readonly knownByActorIds?: readonly string[]
   /** What moving through the effect costs a creature it catches, as a multiplier (D154); absent for 1. */
   readonly movementCostMultiplier?: number
+  /** No creature's walk crosses its boundary, in or out (D227); absent for none. */
+  readonly blocksMovement?: boolean
   /** Creatures the effect never catches (designated by the caster at cast). */
   readonly unaffectedActorIds?: readonly string[]
   /** How many times the effect may catch one creature in one turn; absent for no limit. */
@@ -994,189 +999,6 @@ export function spatialTokensWithinSpaceRadius(input: {
     .sort()
 }
 
-function interpolate(from: ScenePoint, to: ScenePoint, progress: number): ScenePoint {
-  return {
-    x: from.x + (to.x - from.x) * progress,
-    y: from.y + (to.y - from.y) * progress
-  }
-}
-
-function segmentIntersectionProgress(
-  from: ScenePoint,
-  to: ScenePoint,
-  edgeFrom: ScenePoint,
-  edgeTo: ScenePoint
-): number | null {
-  const dx = to.x - from.x
-  const dy = to.y - from.y
-  const ex = edgeTo.x - edgeFrom.x
-  const ey = edgeTo.y - edgeFrom.y
-  const denominator = dx * ey - dy * ex
-  if (Math.abs(denominator) < EPSILON) return null
-  const rx = edgeFrom.x - from.x
-  const ry = edgeFrom.y - from.y
-  const progress = (rx * ey - ry * ex) / denominator
-  const edgeProgress = (rx * dy - ry * dx) / denominator
-  return progress >= -EPSILON &&
-    progress <= 1 + EPSILON &&
-    edgeProgress >= -EPSILON &&
-    edgeProgress <= 1 + EPSILON
-    ? Math.max(0, Math.min(1, progress))
-    : null
-}
-
-function circleIntersectionTimes(
-  from: ScenePoint,
-  to: ScenePoint,
-  center: ScenePoint,
-  radius: number
-): number[] {
-  const dx = to.x - from.x
-  const dy = to.y - from.y
-  const ox = from.x - center.x
-  const oy = from.y - center.y
-  const a = dx * dx + dy * dy
-  if (a <= EPSILON) return []
-  const b = 2 * (ox * dx + oy * dy)
-  const c = ox * ox + oy * oy - radius * radius
-  const discriminant = b * b - 4 * a * c
-  if (discriminant < -EPSILON) return []
-  const root = Math.sqrt(Math.max(0, discriminant))
-  return [(-b - root) / (2 * a), (-b + root) / (2 * a)]
-    .filter((value) => value >= -EPSILON && value <= 1 + EPSILON)
-    .map((value) => Math.max(0, Math.min(1, value)))
-}
-
-function candidateTimesForCircle(
-  from: ScenePoint,
-  to: ScenePoint,
-  shape: { readonly center: ScenePoint; readonly radius: number },
-  moving: Pick<Footprint, 'halfHeight' | 'halfWidth'>
-): number[] {
-  const times = [0, 1]
-  const dx = to.x - from.x
-  const dy = to.y - from.y
-  const minX = shape.center.x - moving.halfWidth
-  const maxX = shape.center.x + moving.halfWidth
-  const minY = shape.center.y - moving.halfHeight
-  const maxY = shape.center.y + moving.halfHeight
-  for (const x of [minX - shape.radius, maxX + shape.radius]) {
-    if (Math.abs(dx) <= EPSILON) continue
-    const progress = (x - from.x) / dx
-    const y = from.y + dy * progress
-    if (progress >= -EPSILON && progress <= 1 + EPSILON && y >= minY && y <= maxY)
-      times.push(Math.max(0, Math.min(1, progress)))
-  }
-  for (const y of [minY - shape.radius, maxY + shape.radius]) {
-    if (Math.abs(dy) <= EPSILON) continue
-    const progress = (y - from.y) / dy
-    const x = from.x + dx * progress
-    if (progress >= -EPSILON && progress <= 1 + EPSILON && x >= minX && x <= maxX)
-      times.push(Math.max(0, Math.min(1, progress)))
-  }
-  for (const x of [minX, maxX])
-    for (const y of [minY, maxY])
-      times.push(...circleIntersectionTimes(from, to, { x, y }, shape.radius))
-  return times
-}
-
-function candidateTimesForPolygon(
-  from: ScenePoint,
-  to: ScenePoint,
-  shape: Extract<SpatialGeometry, { kind: 'POLYGON' }>,
-  moving: Pick<Footprint, 'halfHeight' | 'halfWidth'>
-): number[] {
-  const times = [0, 1]
-  const offsets = [
-    { x: -moving.halfWidth, y: -moving.halfHeight },
-    { x: moving.halfWidth, y: -moving.halfHeight },
-    { x: moving.halfWidth, y: moving.halfHeight },
-    { x: -moving.halfWidth, y: moving.halfHeight }
-  ]
-  for (const offset of offsets) {
-    const cornerFrom = { x: from.x + offset.x, y: from.y + offset.y }
-    const cornerTo = { x: to.x + offset.x, y: to.y + offset.y }
-    for (let edge = 0; edge < shape.points.length; edge += 1) {
-      const progress = segmentIntersectionProgress(
-        cornerFrom,
-        cornerTo,
-        shape.points[edge]!,
-        shape.points[(edge + 1) % shape.points.length]!
-      )
-      if (progress !== null) times.push(progress)
-    }
-  }
-  const dx = to.x - from.x
-  const dy = to.y - from.y
-  for (const vertex of shape.points) {
-    for (const x of [vertex.x - moving.halfWidth, vertex.x + moving.halfWidth]) {
-      if (Math.abs(dx) <= EPSILON) continue
-      const progress = (x - from.x) / dx
-      const y = from.y + dy * progress
-      if (
-        progress >= -EPSILON &&
-        progress <= 1 + EPSILON &&
-        Math.abs(y - vertex.y) <= moving.halfHeight + EPSILON
-      )
-        times.push(Math.max(0, Math.min(1, progress)))
-    }
-    for (const y of [vertex.y - moving.halfHeight, vertex.y + moving.halfHeight]) {
-      if (Math.abs(dy) <= EPSILON) continue
-      const progress = (y - from.y) / dy
-      const x = from.x + dx * progress
-      if (
-        progress >= -EPSILON &&
-        progress <= 1 + EPSILON &&
-        Math.abs(x - vertex.x) <= moving.halfWidth + EPSILON
-      )
-        times.push(Math.max(0, Math.min(1, progress)))
-    }
-  }
-  return times
-}
-
-function candidateTimes(
-  from: ScenePoint,
-  to: ScenePoint,
-  geometry: SpatialGeometry,
-  moving: Pick<Footprint, 'halfHeight' | 'halfWidth'>
-): number[] {
-  const values =
-    geometry.kind === 'CIRCLE'
-      ? candidateTimesForCircle(from, to, geometry, moving)
-      : geometry.kind === 'RING'
-        ? [
-            ...candidateTimesForCircle(
-              from,
-              to,
-              { center: geometry.center, radius: geometry.outerRadius },
-              moving
-            ),
-            ...candidateTimesForCircle(
-              from,
-              to,
-              { center: geometry.center, radius: geometry.innerRadius },
-              moving
-            ),
-            // The footprint leaves the inner circle wholly when a corner crosses it.
-            ...[-1, 1].flatMap((sx) =>
-              [-1, 1].flatMap((sy) => {
-                const offset = { x: sx * moving.halfWidth, y: sy * moving.halfHeight }
-                return circleIntersectionTimes(
-                  { x: from.x + offset.x, y: from.y + offset.y },
-                  { x: to.x + offset.x, y: to.y + offset.y },
-                  geometry.center,
-                  geometry.innerRadius
-                )
-              })
-            )
-          ]
-        : candidateTimesForPolygon(from, to, geometry, moving)
-  return values
-    .sort((left, right) => left - right)
-    .filter((value, index, all) => index === 0 || Math.abs(value - all[index - 1]!) > EPSILON)
-}
-
 /**
  * The fraction (0 to 1) of the straight segment during which the token's footprint overlaps any of
  * the geometries, by the same overlap rule that raises an ENTER contact.
@@ -1251,6 +1073,67 @@ export function zoneMovementSegmentMultiplier(input: {
   return input.dragDoublesCost
     ? (from, to, floor) => (zoned?.(from, to, floor) ?? floor) * 2
     : zoned
+}
+
+/**
+ * Whether the point lies inside the geometry, off its boundary: the zero-size footprint of the
+ * overlap rule for a circle or ring, and the polygon's interior off its edges.
+ */
+function pointWithinSpatialGeometryInterior(point: ScenePoint, geometry: SpatialGeometry): boolean {
+  if (geometry.kind !== 'POLYGON')
+    return footprintOverlapsSpatialGeometry(
+      { center: point, halfWidth: 0, halfHeight: 0 },
+      geometry
+    )
+  const { points } = geometry
+  return (
+    !points.some((from, index) =>
+      segmentsIntersect(point, point, from, points[(index + 1) % points.length]!)
+    ) && scenePointInPolygon(point, { points: [...points] })
+  )
+}
+
+/**
+ * The first zone whose boundary the mover's walked path crosses, in or out, among those that block
+ * creature movement (D227), or null. A crossing is the token's center passing from the zone's
+ * interior to outside it or back, as a Scene wall is met by the center path; a center on the
+ * boundary is outside, so a creature beside the zone or sliding along it crosses nothing. The
+ * barrier stops every creature whoever placed it, but never the token it is anchored to, which
+ * carries it along (Resilient Sphere). A teleport crosses nothing, so the caller does not ask.
+ */
+export function spatialPathBlockingEffect(input: {
+  readonly effects: readonly SpatialEffectInstance[]
+  readonly tokens: readonly SpatialSceneToken[]
+  readonly moverTokenId: string
+  readonly path: readonly ScenePoint[]
+}): SpatialEffectInstance | null {
+  const { path } = input
+  return (
+    input.effects.find((effect) => {
+      if (
+        !effect.blocksMovement ||
+        effect.suppressed ||
+        (effect.anchorKind === 'TOKEN' && effect.sourceTokenId === input.moverTokenId)
+      )
+        return false
+      const geometry = effectiveSpatialGeometry(effect, input.tokens)
+      if (!geometry || !path.length) return false
+      const startsInside = pointWithinSpatialGeometryInterior(path[0]!, geometry)
+      return path.slice(1).some((to, index) => {
+        const from = path[index]!
+        const times = candidateTimes(from, to, geometry, { halfWidth: 0, halfHeight: 0 })
+        return times
+          .slice(1)
+          .some(
+            (end, step) =>
+              pointWithinSpatialGeometryInterior(
+                interpolate(from, to, (times[step]! + end) / 2),
+                geometry
+              ) !== startsInside
+          )
+      })
+    }) ?? null
+  )
 }
 
 /**
