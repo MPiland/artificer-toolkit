@@ -4569,7 +4569,7 @@ Nothing stores it on the Scene. `placedZoneLights` (`rules-runtime/src/actorLigh
 zone's light at runtime as a `SceneZoneLight` (its current area, radii in Scene coordinates), and
 `resolveEncounterActorPairPerception` adds them to the Scene it perceives, so attack, point-sight, turn-effect
 and movement-reaction perception all see it. `resolveSceneIlluminationAt` lights a point from the zone's
-nearest point (`nearestSpatialGeometryPoint`), so the whole area is its own source, with the same radii rule
+nearest point (`nearestZoneLightSource`), so the whole area is its own source, with the same radii rule
 and barrier check as point lights. Transitional: the web renderer, the room's vision display and the holder
 light read by Sunlight Sensitivity (`apps/session-worker/src/nativeHolderLight.ts`) do not read zone light yet,
 and a zone that needs lighting sheds its light before it is lit.

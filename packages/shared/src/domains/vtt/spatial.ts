@@ -1,9 +1,5 @@
 import type { LengthUnitCode } from '../core/measurement.js'
-import {
-  measureScenePathDistance,
-  sceneDistanceAsCoordinateLength,
-  scenePointInPolygon
-} from './geometry.js'
+import { measureScenePathDistance, sceneDistanceAsCoordinateLength } from './geometry.js'
 import { lengthMeasurementInSceneUnits } from './sceneReducer.js'
 import { segmentsIntersect } from './segments.js'
 import {
@@ -921,54 +917,6 @@ export function nearestFootprintEdgePoint(
     { gap: point.y - top, edge: { x: point.x, y: top } },
     { gap: bottom - point.y, edge: { x: point.x, y: bottom } }
   ].reduce((nearest, side) => (side.gap < nearest.gap ? side : nearest)).edge
-}
-
-/**
- * The point of an area nearest `point`: the point itself inside the area, otherwise the nearest
- * point on its edge (a ring's inner edge from its hollow). This is where light an area sheds
- * reaches `point` from.
- */
-export function nearestSpatialGeometryPoint(
-  geometry: SpatialGeometry,
-  point: ScenePoint
-): ScenePoint {
-  if (geometry.kind === 'POLYGON') {
-    const { points } = geometry
-    if (scenePointInPolygon(point, { points: [...points] })) return point
-    return points
-      .map((from, index) => nearestSegmentPoint(from, points[(index + 1) % points.length]!, point))
-      .reduce((nearest, candidate) =>
-        Math.hypot(candidate.x - point.x, candidate.y - point.y) <
-        Math.hypot(nearest.x - point.x, nearest.y - point.y)
-          ? candidate
-          : nearest
-      )
-  }
-  const [inner, outer] =
-    geometry.kind === 'CIRCLE' ? [0, geometry.radius] : [geometry.innerRadius, geometry.outerRadius]
-  const { center } = geometry
-  const distance = Math.hypot(point.x - center.x, point.y - center.y)
-  if (distance >= inner && distance <= outer) return point
-  if (distance < EPSILON) return { x: center.x + inner, y: center.y }
-  const reach = distance < inner ? inner : outer
-  return {
-    x: center.x + ((point.x - center.x) * reach) / distance,
-    y: center.y + ((point.y - center.y) * reach) / distance
-  }
-}
-
-function nearestSegmentPoint(from: ScenePoint, to: ScenePoint, point: ScenePoint): ScenePoint {
-  const dx = to.x - from.x
-  const dy = to.y - from.y
-  const lengthSquared = dx * dx + dy * dy
-  const progress =
-    lengthSquared < EPSILON
-      ? 0
-      : Math.min(
-          1,
-          Math.max(0, ((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared)
-        )
-  return interpolate(from, to, progress)
 }
 
 /**

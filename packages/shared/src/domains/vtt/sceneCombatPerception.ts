@@ -15,7 +15,7 @@ import {
 import type { CampaignSceneState, SceneGrid, SceneLight, ScenePoint, SceneToken } from './scene.js'
 import { SYSTEM_BASE_SQUARE_FEET } from './scene.js'
 import { feetInSceneUnit } from './sceneReducer.js'
-import { nearestSpatialGeometryPoint, type SpatialGeometry } from './spatial.js'
+import type { SpatialGeometry } from './spatial.js'
 
 /** How the canvas draws an illumination level: as lit ground, as dim light, or as darkness. */
 export type SceneIlluminationRenderClass = 'LIT' | 'DIM' | 'DARK'
@@ -206,6 +206,51 @@ function withinLightCone(light: SceneLight, point: ScenePoint): boolean {
   return Math.abs(offset) <= (light.angleDegrees * Math.PI) / 360
 }
 
+function nearestSegmentPoint(from: ScenePoint, to: ScenePoint, point: ScenePoint): ScenePoint {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const lengthSquared = dx * dx + dy * dy
+  const progress =
+    lengthSquared < 1e-8
+      ? 0
+      : Math.min(
+          1,
+          Math.max(0, ((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared)
+        )
+  return { x: from.x + dx * progress, y: from.y + dy * progress }
+}
+
+/**
+ * The point of a zone's area nearest `point`, where the light the zone sheds reaches it from: the
+ * point itself inside the area, otherwise the nearest point on its edge (a ring's inner edge from
+ * its hollow).
+ */
+function nearestZoneLightSource(geometry: SpatialGeometry, point: ScenePoint): ScenePoint {
+  if (geometry.kind === 'POLYGON') {
+    const { points } = geometry
+    if (scenePointInPolygon(point, { points: [...points] })) return point
+    return points
+      .map((from, index) => nearestSegmentPoint(from, points[(index + 1) % points.length]!, point))
+      .reduce((nearest, candidate) =>
+        Math.hypot(candidate.x - point.x, candidate.y - point.y) <
+        Math.hypot(nearest.x - point.x, nearest.y - point.y)
+          ? candidate
+          : nearest
+      )
+  }
+  const [inner, outer] =
+    geometry.kind === 'CIRCLE' ? [0, geometry.radius] : [geometry.innerRadius, geometry.outerRadius]
+  const { center } = geometry
+  const distance = Math.hypot(point.x - center.x, point.y - center.y)
+  if (distance >= inner && distance <= outer) return point
+  if (distance < 1e-8) return { x: center.x + inner, y: center.y }
+  const reach = distance < inner ? inner : outer
+  return {
+    x: center.x + ((point.x - center.x) * reach) / distance,
+    y: center.y + ((point.y - center.y) * reach) / distance
+  }
+}
+
 /** A light's bright and dim radii shed the System's two brightest levels at `from` its source. */
 function illuminationAtDistance(
   levels: readonly SceneIlluminationLevel[],
@@ -316,7 +361,7 @@ export function resolveSceneIlluminationAt(
       .map((light) => ({ light, from: light.position })),
     ...(scene.zoneLights ?? []).map((light) => ({
       light,
-      from: nearestSpatialGeometryPoint(light.geometry, point)
+      from: nearestZoneLightSource(light.geometry, point)
     }))
   ]
   for (const { light, from } of sources) {
