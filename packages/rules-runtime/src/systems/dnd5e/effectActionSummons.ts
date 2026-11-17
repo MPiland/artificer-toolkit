@@ -66,6 +66,12 @@ export function compileDnd5eSummonPlacement(
     unsupported('A summoned creature’s own behaviors are not yet modelled.')
   if (outcome.attachmentKind || outcome.shape)
     unsupported('A summon is placed by its creature, not by an attachment or a shape.')
+  // A released creature leaves its owner, so it must keep a turn of its own and stand alone.
+  if (
+    outcome.turnsHostileOnRelease &&
+    (outcome.turnTiming !== 'OWN_INITIATIVE' || forms.some(({ maxTargets }) => maxTargets !== 1))
+  )
+    unsupported('A summon that turns hostile when released is one creature on its own initiative.')
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
   // The result block's lifecycle is shared by its outcomes: the summon may carry only the offers
   // its carrier grant holds.
@@ -87,7 +93,8 @@ export function compileDnd5eSummonPlacement(
     ...(outcome.cannotAttack ? { cannotAttack: true as const } : {}),
     ...(outcome.turnTiming && outcome.turnTiming !== 'OWNER_TURN'
       ? { turnTiming: outcome.turnTiming }
-      : {})
+      : {}),
+    ...(outcome.turnsHostileOnRelease ? { turnsHostileOnRelease: true as const } : {})
   }
   const summon = outcome.statBlock
     ? { ...identity, statBlock: outcome.statBlock }
