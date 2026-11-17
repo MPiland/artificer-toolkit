@@ -9,6 +9,8 @@ import {
   MEASUREMENT_UNIT_CODE,
   NUMERIC_EXPR_CODE,
   RANGE_KIND,
+  SCALABLE_SCALING_KIND,
+  SCALING_SOURCE,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -35,16 +37,28 @@ if (!walkSpeedId)
 
 const fixed = (value: number) => ({ kind: NUMERIC_EXPR_CODE.FIXED, value })
 
+/** The objects a 5th-level cast animates, and the two more each slot level above 5th adds. */
+const BASE_OBJECT_BUDGET = 10
+const BASE_SLOT_LEVEL = 5
+const OBJECTS_PER_HIGHER_SLOT = 2
+
 /**
- * The Animated Object table: each size's animated count and stat block. Armor class is the one the
- * table prints; the rest of the creature (Constitution 10, Intelligence 3, Wisdom 3, Charisma 1, a
- * 30-foot speed) is common to every size.
+ * How many objects of a size one cast animates with a slot of `level`: the cast's budget of objects,
+ * each of the size counting as `weight` of them (a Medium counts as two).
+ */
+const animatedCount = (weight: number, level: number) =>
+  Math.floor((BASE_OBJECT_BUDGET + OBJECTS_PER_HIGHER_SLOT * (level - BASE_SLOT_LEVEL)) / weight)
+
+/**
+ * The Animated Object table: each size's weight against the cast's object budget and its stat block.
+ * Armor class is the one the table prints; the rest of the creature (Constitution 10, Intelligence 3,
+ * Wisdom 3, Charisma 1, a 30-foot speed) is common to every size.
  */
 const ANIMATED_OBJECT_SIZES = [
   {
     label: 'Tiny',
     size: SIZE_CODE.TINY,
-    count: 10,
+    weight: 1,
     hitPoints: 20,
     armorClass: 18,
     strength: 4,
@@ -55,7 +69,7 @@ const ANIMATED_OBJECT_SIZES = [
   {
     label: 'Small',
     size: SIZE_CODE.SMALL,
-    count: 10,
+    weight: 1,
     hitPoints: 25,
     armorClass: 16,
     strength: 6,
@@ -66,7 +80,7 @@ const ANIMATED_OBJECT_SIZES = [
   {
     label: 'Medium',
     size: SIZE_CODE.MEDIUM,
-    count: 5,
+    weight: 2,
     hitPoints: 40,
     armorClass: 13,
     strength: 10,
@@ -77,7 +91,7 @@ const ANIMATED_OBJECT_SIZES = [
   {
     label: 'Large',
     size: SIZE_CODE.LARGE,
-    count: 2,
+    weight: 4,
     hitPoints: 50,
     armorClass: 10,
     strength: 14,
@@ -88,7 +102,7 @@ const ANIMATED_OBJECT_SIZES = [
   {
     label: 'Huge',
     size: SIZE_CODE.HUGE,
-    count: 1,
+    weight: 8,
     hitPoints: 80,
     armorClass: 10,
     strength: 18,
@@ -156,12 +170,26 @@ export const animateObjects: SpellAuthored = {
                 // The objects take their own turn in the initiative order, like a conjured group.
                 turnTiming: 'OWN_INITIATIVE',
                 // The caster picks one size and how many of its objects to animate (at most as many
-                // as the spell's table allows), each standing in the object's own stat block.
+                // as the cast's slot allows), each standing in the object's own stat block.
                 forms: ANIMATED_OBJECT_SIZES.map((entry, index) => ({
                   id: spellChildId(SPELL_IDS.ANIMATE_OBJECTS, 0x214, index + 1),
                   order: index + 1,
                   label: `${entry.label} objects`,
-                  maxTargets: entry.count,
+                  maxTargets: animatedCount(entry.weight, BASE_SLOT_LEVEL),
+                  maxTargetsScaling: {
+                    scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+                    scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+                    breakpoints: Array.from({ length: 4 }, (_, row) => ({
+                      id: spellChildId(
+                        SPELL_IDS.ANIMATE_OBJECTS,
+                        0x216,
+                        (index + 1) * 16 + row + 1
+                      ),
+                      level: BASE_SLOT_LEVEL + row + 1,
+                      order: row + 1,
+                      value: { amount: animatedCount(entry.weight, BASE_SLOT_LEVEL + row + 1) }
+                    }))
+                  },
                   statBlock: {
                     creatureTypeId: creatureTypeId('CONSTRUCT'),
                     size: entry.size,

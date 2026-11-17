@@ -27,7 +27,7 @@ const TARGET_COUNT_NODE_MAP = targetCount.define('targetCount', ({ map, nodes })
   )
 })
 
-const TARGET_COUNT_SCALING_NODE_MAP = createBreakpointScalingNodeMap(
+export const TARGET_COUNT_SCALING_NODE_MAP = createBreakpointScalingNodeMap(
   'targetCountScaling',
   'Target Count',
   TARGET_COUNT_NODE_MAP
