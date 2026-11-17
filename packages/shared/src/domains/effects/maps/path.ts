@@ -20,7 +20,6 @@ import type {
   ResultBlockAuthored,
   DegradeEquipmentDestroyWhenAuthored,
   ScalarReductionAuthored,
-  SummonStatBlockAuthored,
   TelepathicLinkAbilityFloorAuthored
 } from '#authored'
 import {
@@ -28,9 +27,7 @@ import {
   MANIFEST_PROPERTY_OPTIONS,
   MANIFEST_REQUIRED_SIGHT_OPTIONS,
   MANIFEST_SPELL_CAPABILITY_OPTIONS,
-  MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS,
-  SUMMON_DAMAGEABILITY_KIND,
-  SUMMON_VISIBILITY_KIND
+  MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS
 } from '#authored'
 import {
   PATH_ORIGIN_KIND_OPTIONS,
@@ -64,7 +61,6 @@ import {
   type CoreMeta
 } from '#core'
 import {
-  AUTHORED_LIMITS,
   AUTHORING_ACTION_PRESENTATIONS,
   buildNodeMap,
   type BuildNodeMap,
@@ -75,11 +71,9 @@ import type { AllUnionFields } from 'type-fest'
 import {
   DURATION_NODE_MAP,
   FACET_NODE_MAP,
-  NUMERIC_EXPR_NODE_MAP,
   RANGE_NODE_MAP,
   SAVING_THROW_NODE_MAP,
   SHAPE_NODE_MAP,
-  SPEED_NODE_MAP,
   MEASUREMENT_NODE_MAP
 } from '../../shared/maps/index.js'
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
@@ -108,6 +102,7 @@ import {
   PATH_LIFECYCLE_TURN_END_GATE_NODE_MAP
 } from './pathLifecycleEnds.js'
 import { registerCreatureFormOutcomeFields } from './creatureFormOutcomeFields.js'
+import { SUMMON_STAT_BLOCK_NODE_MAP } from './summonStatBlock.js'
 import { registerOutcomeKindFields } from './outcomeKindFields.js'
 import { PATH_LIFECYCLE_END_TRIGGER_NODE_MAP } from './lifecycleEndTrigger.js'
 import { PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP } from './pathLifecycleEffectOffer.js'
@@ -128,7 +123,6 @@ type NonManifestOutcomeNode = AllUnionFields<NonManifestOutcomeAuthored>
 type OutcomeBreakpointNode = NonNullable<OutcomeNode['breakpoints']>[number]
 type OutcomeBreakpointValueNode = AllUnionFields<OutcomeBreakpointNode['value']>
 type ApplyGrantsNode = ApplyGrantAuthored['grants']
-type SummonAbilityScoresNode = NonNullable<SummonStatBlockAuthored['abilityScores']>
 type RollTableRerollValueNode = { id: string; order: number; value: number }
 type FollowUpSaveBranchNode = AllUnionFields<FollowUpSaveBranchAuthored>
 type FollowUpSaveAttemptsNode = AllUnionFields<FollowUpSaveAuthored['attempts']>
@@ -174,27 +168,13 @@ const TELEPORT_DESTINATION_KIND_OPTIONS = [
   { code: 'SPECIAL', label: 'Special' }
 ] as const
 
-const SUMMON_DAMAGEABILITY_OPTIONS = [
-  { code: SUMMON_DAMAGEABILITY_KIND.NORMAL, label: 'Normal' },
-  { code: SUMMON_DAMAGEABILITY_KIND.INVULNERABLE, label: 'Invulnerable' },
-  { code: SUMMON_DAMAGEABILITY_KIND.SPECIAL, label: 'Special' }
-] as const
-
-const SUMMON_VISIBILITY_OPTIONS = [
-  { code: SUMMON_VISIBILITY_KIND.VISIBLE, label: 'Visible' },
-  { code: SUMMON_VISIBILITY_KIND.INVISIBLE, label: 'Invisible' },
-  { code: SUMMON_VISIBILITY_KIND.SPECIAL, label: 'Special' }
-] as const
-
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleGrantedAction =
   buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
-const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
 const telepathicLinkAbilityFloor = buildNodeMap<TelepathicLinkAbilityFloorAuthored>()
-const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
 const outcome = buildNodeMap<OutcomeNode>()
 const nonManifestOutcome = buildNodeMap<NonManifestOutcomeNode>()
 const outcomeBreakpoint = buildNodeMap<OutcomeBreakpointNode>()
@@ -451,128 +431,6 @@ const APPLY_GRANTS_NODE_MAP: NodeMap<ApplyGrantsNode> = applyGrants.define(
         groupArray(['senses'], 'Sense Grants', () => SENSE_GRANT_NODE_MAP, {
           presentation: 'inline'
         })
-      )
-  }
-)
-
-const SUMMON_ABILITY_SCORES_NODE_MAP: NodeMap<SummonAbilityScoresNode> =
-  summonAbilityScores.defineKeyed('summonAbilityScores', {
-    rows: summonAbilityScores.data.table('abilities', {
-      selectColumns: ['id', 'label', 'description']
-    }),
-    entry: {
-      kind: 'GROUP',
-      groupKind: 'OBJECT',
-      presentation: 'inline',
-      nodes: () => NUMERIC_EXPR_NODE_MAP
-    }
-  })
-
-const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatBlock.define(
-  'summonStatBlock',
-  ({ map, nodes, data }) => {
-    const { selectSingle, text, toggle, groupObject, groupArray, selectMulti } = nodes
-    const { table } = data
-
-    map
-      .set(
-        'size',
-        selectSingle(['size'], 'Size', {
-          kind: 'DATA',
-          relationship: table('sizes', { selectColumns: CODE_COLUMNS })
-        })
-      )
-      .set('occupiesSpace', toggle(['occupiesSpace'], 'Occupies Space'))
-      .set(
-        'armorClass',
-        groupObject(['armorClass'], 'Armor Class', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'armorClassNote',
-        text(['armorClassNote'], 'Armor Class Note', {
-          constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters }
-        })
-      )
-      .set(
-        'hitPoints',
-        groupObject(['hitPoints'], 'Hit Points', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'speeds',
-        groupArray(['speeds'], 'Movement', () => SPEED_NODE_MAP, { presentation: 'inline' })
-      )
-      .set(
-        'abilityScores',
-        groupObject(['abilityScores'], 'Ability Scores', () => SUMMON_ABILITY_SCORES_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'senses',
-        selectMulti(['senses'], 'Senses', {
-          kind: 'DATA',
-          relationship: table('senses', {
-            selectColumns: ['id', 'label', 'description']
-          })
-        })
-      )
-      .set(
-        'passivePerception',
-        groupObject(['passivePerception'], 'Passive Perception', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'damageVulnerabilities',
-        selectMulti(['damageVulnerabilities'], 'Damage Vulnerabilities', {
-          kind: 'DATA',
-          relationship: table('damage_types', {
-            selectColumns: ['id', 'label', 'description']
-          })
-        })
-      )
-      .set(
-        'damageResistances',
-        selectMulti(['damageResistances'], 'Damage Resistances', {
-          kind: 'DATA',
-          relationship: table('damage_types', {
-            selectColumns: ['id', 'label', 'description']
-          })
-        })
-      )
-      .set(
-        'damageImmunities',
-        selectMulti(['damageImmunities'], 'Damage Immunities', {
-          kind: 'DATA',
-          relationship: table('damage_types', {
-            selectColumns: ['id', 'label', 'description']
-          })
-        })
-      )
-      .set(
-        'conditionImmunities',
-        selectMulti(['conditionImmunities'], 'Condition Immunities', {
-          kind: 'DATA',
-          relationship: table('condition_types', {
-            selectColumns: ['id', 'label', 'description']
-          })
-        })
-      )
-      .set(
-        'damageabilityKind',
-        selectSingle(
-          ['damageabilityKind'],
-          'Damageability',
-          inlineOptions(SUMMON_DAMAGEABILITY_OPTIONS)
-        )
-      )
-      .set(
-        'visibilityKind',
-        selectSingle(['visibilityKind'], 'Visibility', inlineOptions(SUMMON_VISIBILITY_OPTIONS))
       )
   }
 )
@@ -1591,7 +1449,7 @@ function registerOutcomeFields(
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
       )
     )
-  registerCreatureFormOutcomeFields(map, nodes, cond, logic, data)
+  registerCreatureFormOutcomeFields(map, nodes, cond, logic, data, () => SUMMON_STAT_BLOCK_NODE_MAP)
   // FieldHandle is contravariant in the node type, so the outcome `cond` cannot pass as the forced-movement one.
   registerForcedMovementOutcomeFields(map, nodes, cond as unknown as ForcedMovementCond, logic)
   map

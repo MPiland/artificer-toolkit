@@ -32,7 +32,8 @@ const manifestCreatureFormDtoSchema = lazySchema(() =>
     id: authoredIdentifierSchema,
     order: z.number().check(z.int()),
     label: authoredShortTextSchema,
-    creatureId: authoredIdentifierSchema,
+    creatureId: z.optional(authoredIdentifierSchema),
+    statBlock: z.optional(summonStatBlockDtoSchema),
     maxTargets: z.number().check(z.int()).check(z.positive()),
     speeds: z.optional(authoredNestedCollectionSchema(speedDtoSchema))
   })
@@ -174,9 +175,23 @@ export const summonBodyDtoSchema = lazySchema(() =>
   })
 )
 
+const summonAttackDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    order: z.number().check(z.int()),
+    label: authoredShortTextSchema,
+    attackBonus: z.number().check(z.int()),
+    reachFeet: z.number().check(z.int()).check(z.positive()),
+    damageTypeId: authoredIdentifierSchema,
+    diceConfig: authoredShortTextSchema
+  })
+)
+
 export const summonStatBlockDtoSchema = lazySchema(() =>
   z.object({
+    creatureTypeId: z.optional(authoredIdentifierSchema),
     size: z.optional(systemCoreCodeSchema),
+    attacks: z.optional(authoredNestedCollectionSchema(summonAttackDtoSchema)),
     armorClass: z.optional(numericExprSchema),
     armorClassNote: z.optional(authoredPlainTextSchema),
     hitPoints: z.optional(numericExprSchema),

@@ -3249,6 +3249,20 @@ chosen type replacing `payload.creatureTypeId`. `formSummonStats` (Encounter sid
 `resolveSpellSummonStatBlock` takes those values as `formStats`, so the Sheet-reachable resolver imports no Encounter
 module. They are the values the owner's Sheet lists, and the Run actor stays the only record of its hit points.
 
+**Inline stat block forms (current, QUALITY-15.T3x2).** A summon form is exactly one of a System Creature
+(`creatureId`) or an authored `statBlock`, which, beside the stat block summon's fields, may author a
+`creatureTypeId` and `attacks` (melee: attack bonus, reach, damage type, dice). The compiled form carries whichever it
+authors. `summonFormCreature` (`spellSummonFormCreature.ts`) is the one builder of the Creature such a form is: its
+ability scores, hit points and speeds, a natural armor bonus that makes the System's armor class formula reach the
+printed armor class (a printed class below what the scores give is refused), and one Creature action per attack, in the
+shape a corpus melee attack has, so the summon attacks through the same creature attack offers. `summonFormActorCreature`
+wraps it in the CREATURE snapshot a System Creature would pin (the form's id is the actor's `sourceId`, revision 1, rule
+facts from `compileInstalledCreatureRuleFacts`); the Worker plan (`readSummonBody`) calls it, and the Convex Sheet
+command (`sheetCommands`) calls `summonFormCreature` for the stats it stores. Values of a form's stat block are fixed:
+an expression that reads the caster is refused when the form is built. Defenses and senses of the stat block are not yet
+carried onto the Creature (they are text there, not System ids). The Sheet's persisted summon `form` names the picked
+form by `formId`. Animate Objects is five such forms (sizes of ten, ten, five, two and one objects).
+
 **Sheet summons (current, SPELLS-34.T1, D190).** A summon cast from the Sheet outside an Encounter reads the same plan.
 `compileCharacterSpellCasts` (`character/characterSpellCastActions.ts`) is the one compile of a Character's casts: build,
 capability discovery and entry-point compile. The Encounter's movement targets and the Convex Sheet command both call

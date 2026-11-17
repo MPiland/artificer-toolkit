@@ -3364,6 +3364,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
 
   describe('a summon of System Creature forms (SPELLS-34.T3a)', () => {
     const FIND_FAMILIAR = spell('Find Familiar')
+    const ANIMATE_OBJECTS = spell('Animate Objects')
     /** The spell's first summon outcome, as authored. */
     const summonOutcome = (authored: SpellAuthored) => {
       const path = authored.effects?.[0]?.paths[0]
@@ -3441,9 +3442,39 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
           outcome.forms = outcome.forms?.map((form, index) =>
             index === 0 ? { ...form, maxTargets: MAX_GROUP_COUNT + 1 } : form
           )
+        }),
+        // A form is one System Creature or one stat block, never both, and never neither.
+        familiar((outcome) => {
+          outcome.forms = outcome.forms?.map((form, index) =>
+            index === 0 ? { ...form, statBlock: { creatureTypeId: creatureTypeId('FEY') } } : form
+          )
+        }),
+        familiar((outcome) => {
+          outcome.forms = outcome.forms?.map((form, index) =>
+            index === 0
+              ? { id: form.id, order: form.order, label: form.label, maxTargets: 1 }
+              : form
+          )
         })
       ]
       for (const authored of refused) expect(compiledCastEntry(authored)).toBeNull()
+    })
+
+    it('compiles Animate Objects as one inline stat block form for each size (QUALITY-15.T3x2)', () => {
+      const placement = compiledCast(ANIMATE_OBJECTS)?.summonPlacement
+      if (!placement || !('forms' in placement))
+        throw new Error('Animate Objects must compile a forms summon plan.')
+      expect(placement.forms.map(({ label, maxTargets }) => [label, maxTargets])).toEqual([
+        ['Tiny objects', 10],
+        ['Small objects', 10],
+        ['Medium objects', 5],
+        ['Large objects', 2],
+        ['Huge objects', 1]
+      ])
+      for (const form of placement.forms) {
+        expect(form).not.toHaveProperty('creatureId')
+        expect(form).toHaveProperty('statBlock.attacks')
+      }
     })
 
     it('releases hostile only one creature on its own initiative (QUALITY-15.T3x)', () => {

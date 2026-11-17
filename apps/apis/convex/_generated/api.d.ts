@@ -11257,8 +11257,8 @@ export declare const api: {
               customName?: string;
               form?: {
                 count?: number;
-                creatureId: string;
                 creatureTypeId?: string;
+                formId: string;
               };
               id: string;
               label: string;
@@ -11660,8 +11660,8 @@ export declare const api: {
                 customName?: string;
                 form?: {
                   count?: number;
-                  creatureId: string;
                   creatureTypeId?: string;
+                  formId: string;
                 };
                 id: string;
                 label: string;
@@ -12062,8 +12062,8 @@ export declare const api: {
                 customName?: string;
                 form?: {
                   count?: number;
-                  creatureId: string;
                   creatureTypeId?: string;
+                  formId: string;
                 };
                 id: string;
                 label: string;
@@ -12663,8 +12663,8 @@ export declare const api: {
                   customName?: string;
                   form?: {
                     count?: number;
-                    creatureId: string;
                     creatureTypeId?: string;
+                    formId: string;
                   };
                   id: string;
                   label: string;
@@ -13264,8 +13264,8 @@ export declare const api: {
                   customName?: string;
                   form?: {
                     count?: number;
-                    creatureId: string;
                     creatureTypeId?: string;
+                    formId: string;
                   };
                   id: string;
                   label: string;
@@ -13868,8 +13868,8 @@ export declare const api: {
                 customName?: string;
                 form?: {
                   count?: number;
-                  creatureId: string;
                   creatureTypeId?: string;
+                  formId: string;
                 };
                 id: string;
                 label: string;
@@ -14455,8 +14455,8 @@ export declare const api: {
                   customName?: string;
                   form?: {
                     count?: number;
-                    creatureId: string;
                     creatureTypeId?: string;
+                    formId: string;
                   };
                   id: string;
                   label: string;

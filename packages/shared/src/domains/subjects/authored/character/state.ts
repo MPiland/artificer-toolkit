@@ -160,8 +160,8 @@ export interface CharacterSpellSummonState extends SpellSummonStatBlockValues {
   tempHitPoints?: number
   customName?: string
   notes?: string
-  /** For a summon of a chosen form: the System Creature it is, and the Creature Type picked for it. */
-  form?: { creatureId: string; creatureTypeId?: string }
+  /** For a summon of a chosen form: the form's id, the Creature Type picked for it and how many were placed. */
+  form?: { formId: string; creatureTypeId?: string; count?: number }
   /** The summon has no duration: it stays until it is dismissed or falls, through a long rest. */
   untimed?: true
   castAt: string
