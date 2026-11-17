@@ -115,7 +115,7 @@ describe('setting the Hunting Trap', () => {
     expect(zones[0]?.placement).toMatchObject({
       label: 'Hunting trap',
       triggerModes: ['ENTER', 'CROSS'],
-      heldCondition: { conditionId: RESTRAINED_ID, escape: { dc: { kind: 'FIXED', value: 13 } } }
+      heldCondition: { conditionId: RESTRAINED_ID, escape: { dc: 13 } }
     })
   })
 
@@ -192,16 +192,19 @@ describe('stepping on the Hunting Trap', () => {
     expect(await heldEffectsOf(room)).toHaveLength(1)
   })
 
-  it('holds the creature again when the GM undoes its escape', async () => {
+  it('refuses to undo an escape, leaving the creature free for the GM to adjust', async () => {
     const room = await trapSetRoom(SAVE_FAILS_THEN_ESCAPES)
     await walkerMoves(room, WALK_INTO)
-    const [held] = await heldEffectsOf(room)
     await escape(room)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+
+    expect(undone).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'REVERT_UNAVAILABLE' })
     expect(await heldEffectsOf(room)).toEqual([])
-
-    await revertLastAction(room)
-
-    expect(await conditionsOf(room)).toEqual([{ conditionTypeId: RESTRAINED_ID }])
-    expect((await heldEffectsOf(room)).map(({ id }) => id)).toEqual([held?.id])
   })
 })
