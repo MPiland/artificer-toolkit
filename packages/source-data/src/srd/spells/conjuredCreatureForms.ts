@@ -2,8 +2,8 @@ import type { ManifestCreatureFormAuthored } from '@artificer-toolkit/shared/aut
 import { spellChildId } from './shared.js'
 
 /**
- * The System Creatures a multi-creature Conjure spell offers: one form each, in the order given, with
- * how many of it one cast conjures at the lowest slot (the spell's challenge rating budget).
+ * The System Creatures a summon spell offers: one form each, in the order given, with how many of it
+ * one cast conjures at the lowest slot (a Conjure spell's challenge rating budget).
  */
 export function conjuredCreatureForms(
   spellId: string,

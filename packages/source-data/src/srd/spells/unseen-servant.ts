@@ -7,6 +7,7 @@ import {
   EFFECT_KIND,
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
+  NUMERIC_EXPR_CODE,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
@@ -17,7 +18,13 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_SPEEDS } from '../vocabulary.js'
+const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
+if (!walkSpeedId)
+  throw new Error('SRD WALK speed vocabulary entry is required for Unseen Servant source data.')
+
 export const unseenServant: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.UNSEEN_SERVANT,
@@ -72,8 +79,21 @@ export const unseenServant: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.UNSEEN_SERVANT, 0x212, 1),
+                // Commanding it as a Bonus Action, the tasks it does and the spell ending when a
+                // task would take it more than 60 feet away are GM rulings; moving it is an
+                // ordinary token move on its owner's turn.
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.OBJECT
+                manifestKind: MANIFEST_KIND.SUMMON,
+                cannotAttack: true,
+                statBlock: {
+                  // The SRD names no size; the shapeless force is drawn in one 5-foot square.
+                  size: SIZE_CODE.MEDIUM,
+                  armorClass: { kind: NUMERIC_EXPR_CODE.FIXED, value: 10 },
+                  hitPoints: { kind: NUMERIC_EXPR_CODE.FIXED, value: 1 },
+                  speeds: [{ speedId: walkSpeedId, amount: 15, unit: MEASUREMENT_UNIT_CODE.FEET }],
+                  abilityScores: { STRENGTH: { kind: NUMERIC_EXPR_CODE.FIXED, value: 2 } },
+                  visibilityKind: 'INVISIBLE'
+                }
               }
             ]
           }
