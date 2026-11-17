@@ -259,8 +259,6 @@ type ManifestAuthoredBase = {
   label?: string
   shape?: ShapeAuthored
   attachmentKind?: 'SOURCE' | 'PRIMARY_TARGET' | 'PLACED_SPACE' | 'TOUCHED_OBJECT'
-  maxApplicationsPerTurn?: number
-  placementSurfaceKind?: 'LEVEL'
   applicationTargetKind?: 'WEAPON' | 'AMMUNITION'
   applicationCount?: number
   qualifyingDamageTypeIds?: string[]

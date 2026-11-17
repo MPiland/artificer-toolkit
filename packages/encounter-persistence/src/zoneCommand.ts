@@ -38,7 +38,12 @@ export async function executeZoneCommand<
   ctx: EncounterWriteTransaction,
   command: Command,
   userId: string,
-  commandType: 'SET_ZONE_DCS' | 'DISMISS_ZONE_SIGHTING' | 'REVEAL_ZONE' | 'DISARM_ZONE',
+  commandType:
+    | 'SET_ZONE_DCS'
+    | 'DISMISS_ZONE_SIGHTING'
+    | 'REVEAL_ZONE'
+    | 'DISARM_ZONE'
+    | 'IGNITE_ZONE',
   apply: (
     input: Command,
     store: ZoneStore,

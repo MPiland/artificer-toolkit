@@ -770,7 +770,9 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           shape: spatialGeometryDtoSchema,
           spotDc: z.nullable(zoneDcDtoSchema),
           disarmDc: z.nullable(zoneDcDtoSchema),
-          unawareActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+          unawareActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          /** The zone waits for the GM to light it (QUALITY-15.T3w); absent when it acts. */
+          unlit: z.optional(z.literal(true))
         })
       )
       .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),

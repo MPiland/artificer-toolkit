@@ -615,6 +615,11 @@ const zoneComponentShape = lazySchemaParts(() => ({
   maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
   /** Whether a turn boundary catches only a creature wholly inside the zone (not mere overlap). */
   requiresFullyWithin: z.optional(z.boolean()),
+  /**
+   * The zone is placed unlit and catches no one until the GM lights it (QUALITY-15.T3w); absent
+   * when it acts once placed. Only a zone with no region component authors it.
+   */
+  requiresIgnition: z.optional(z.literal(true)),
   /** The sight an occupant needs between itself and the source to be put through the zone. */
   requiredSight: z.optional(zoneRequiredSightSchema),
   movementCostMultiplier: z.optional(zoneMovementCostMultiplierSchema),
@@ -732,7 +737,8 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
      */
     duration: z.optional(
       z.strictObject({
-        startsAt: z.literal('PLACEMENT'),
+        /** IGNITION: a zone that needs lighting counts nothing while it waits (QUALITY-15.T3w). */
+        startsAt: z.enum(['PLACEMENT', 'IGNITION']),
         expiration: z.discriminatedUnion('kind', [
           z.strictObject({
             kind: z.literal('TICKS'),
