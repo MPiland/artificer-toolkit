@@ -18,14 +18,13 @@ export const shapeMeasurementDtoSchema = lazySchema(() =>
   })
 )
 
-/**
- * A round area authored as centered on its user, whatever its range ("any trap within range"): it
- * takes no aimed point. A Self range centers a round area on its user without it.
- */
-const centeredOnUserSchema = z.optional(z.boolean())
-
-export const shapeDtoSchema = lazySchema(() =>
-  z.discriminatedUnion('shapeKind', [
+export const shapeDtoSchema = lazySchema(() => {
+  /**
+   * A round area authored as centered on its user, whatever its range ("any trap within range"): it
+   * takes no aimed point. A Self range centers a round area on its user without it.
+   */
+  const centeredOnUserSchema = z.optional(z.boolean())
+  return z.discriminatedUnion('shapeKind', [
     z.object({
       id: authoredIdentifierSchema,
       shapeKind: z.literal(shapeKindSchema._zod.def.entries.LINE),
@@ -74,7 +73,7 @@ export const shapeDtoSchema = lazySchema(() =>
       radius: shapeMeasurementDtoSchema
     })
   ])
-)
+})
 
 export type ShapeDto = z.infer<typeof shapeDtoSchema>
 
