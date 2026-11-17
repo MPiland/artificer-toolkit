@@ -100,7 +100,7 @@ export const treeStride: SpellAuthored = {
       invocation: {
         kind: 'ACTION',
         triggerCode: TRIGGER.ACTIVATED,
-        activation: { code: ACTIVATION_CODE.FREE, amount: 1 },
+        activation: { code: ACTIVATION_CODE.FREE },
         range: {
           id: spellChildId(SPELL_IDS.TREE_STRIDE, STRIDE_EFFECT_KEY + 1, 1),
           rangeKind: RANGE_KIND.DISTANCE,
