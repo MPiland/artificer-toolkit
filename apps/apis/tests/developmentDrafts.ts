@@ -1544,6 +1544,8 @@ try {
       name: 'Storybook backend stories',
       command: 'test:storybook:backend',
       environment: {
+        // Playwright's browser logger records Chromium's stderr and exit reason in playwright.log.
+        DEBUG: 'pw:browser',
         VITE_CONVEX_URL: deploymentUrl.origin,
         VITE_LIVE_SESSION_WEBSOCKET_URL: liveSessionWorkerUrl(deploymentUrl.origin).origin
       }
