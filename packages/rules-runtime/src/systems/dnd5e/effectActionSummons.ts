@@ -11,6 +11,11 @@ import { conditionDurationTurns } from './effectActionFollowUp.js'
 import { durationPublishedGraph, maintenancePlan } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 
+type SummonPlacementForm = Extract<
+  CharacterRuleActionSummonPlacementPlan,
+  { forms: unknown }
+>['forms'][number]
+
 /**
  * The creature an action summons: its first ON_USE entry is a SUMMON manifest, whose stat block (or
  * the System Creature forms the caster picks one of) rides the plan and whose carrier effect ends
@@ -52,16 +57,24 @@ export function compileDnd5eSummonPlacement(
     unsupported('A summon authors the stat block of its creature or the forms it may take.')
   if (
     forms.some(
-      ({ id, creatureId, maxTargets }) =>
+      ({ id, creatureId, statBlock, maxTargets }) =>
         !Number.isInteger(maxTargets) ||
         maxTargets < 1 ||
         maxTargets > MAX_GROUP_COUNT ||
         !UUID.test(id) ||
-        !UUID.test(creatureId)
+        (creatureId === undefined) === (statBlock === undefined) ||
+        (creatureId !== undefined && !UUID.test(creatureId)) ||
+        // A form's creature is a full Creature, so its stat block names what one needs.
+        (statBlock !== undefined &&
+          (!statBlock.creatureTypeId ||
+            !statBlock.size ||
+            !statBlock.hitPoints ||
+            !statBlock.abilityScores)) ||
+        statBlock?.attacks?.some(({ id: attackId }) => !UUID.test(attackId))
     ) ||
     creatureTypeIds.some((id) => !UUID.test(id))
   )
-    unsupported('A summon form is one System Creature.')
+    unsupported('A summon form is one System Creature or one authored stat block.')
   if (outcome.behaviors?.length)
     unsupported('A summoned creature’s own behaviors are not yet modelled.')
   if (outcome.attachmentKind || outcome.shape)
@@ -102,13 +115,14 @@ export function compileDnd5eSummonPlacement(
         ...identity,
         forms: [...forms]
           .sort((left, right) => left.order - right.order)
-          .map(({ id, label, creatureId, maxTargets, speeds }) => ({
-            id,
-            label,
-            creatureId,
-            maxTargets,
-            ...(speeds?.length ? { speeds } : {})
-          })),
+          .flatMap(
+            ({ id, label, creatureId, statBlock, maxTargets, speeds }): SummonPlacementForm[] => {
+              const form = { id, label, maxTargets, ...(speeds?.length ? { speeds } : {}) }
+              // The guard above leaves each form exactly one of the two.
+              if (creatureId !== undefined) return [{ ...form, creatureId }]
+              return statBlock ? [{ ...form, statBlock }] : []
+            }
+          ),
         creatureTypeIds: [...new Set(creatureTypeIds)].sort()
       }
   if (carrierEntry) {

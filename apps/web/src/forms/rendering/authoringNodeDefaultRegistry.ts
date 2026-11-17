@@ -174,6 +174,7 @@ type AuthoringDefaultKind =
   | 'startingEquipmentOption'
   | 'startingEquipmentSet'
   | 'string'
+  | 'summonAttack'
   | 'summonStatBlock'
   | 'targetCount'
   | 'targetRequirement'
@@ -382,6 +383,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   startingEquipmentOption: ['startingEquipmentOption'],
   startingEquipmentSet: ['startingEquipmentSet'],
   string: ['effectId', 'vehicleString', 'string', 'logisticsNote', 'regionalEffect', 'tag'],
+  summonAttack: ['summonAttack'],
   summonStatBlock: ['summonStatBlock'],
   targetCount: ['targetCount'],
   targetRequirement: ['targetRequirement'],

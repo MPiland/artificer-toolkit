@@ -16,7 +16,7 @@ import {
 import { groupHitPointPool, summonHitPoints } from '../summonHitPoints.js'
 import type { CharacterSpellCastActions } from './characterSpellCastActions.js'
 
-/** A System Creature a Sheet summon of a chosen form may become, read before the reducer runs. */
+/** The Creature a Sheet summon of a chosen form becomes, read before the reducer runs. */
 export interface SheetSummonFormCreature {
   stats: FormSummonStats
   maxHitPoints: number
@@ -94,7 +94,7 @@ export function buildSheetSpellSummon(input: {
     ...(form
       ? {
           form: {
-            creatureId: form.pick.form.creatureId,
+            formId: form.pick.form.id,
             ...(form.pick.creatureTypeId === null
               ? {}
               : { creatureTypeId: form.pick.creatureTypeId }),
