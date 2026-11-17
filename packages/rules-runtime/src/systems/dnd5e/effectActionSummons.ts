@@ -11,6 +11,11 @@ import { conditionDurationTurns } from './effectActionFollowUp.js'
 import { durationPublishedGraph, maintenancePlan } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 
+type SummonPlacementForm = Extract<
+  CharacterRuleActionSummonPlacementPlan,
+  { forms: unknown }
+>['forms'][number]
+
 /**
  * The creature an action summons: its first ON_USE entry is a SUMMON manifest, whose stat block (or
  * the System Creature forms the caster picks one of) rides the plan and whose carrier effect ends
@@ -110,7 +115,7 @@ export function compileDnd5eSummonPlacement(
         ...identity,
         forms: [...forms]
           .sort((left, right) => left.order - right.order)
-          .flatMap(({ id, label, creatureId, statBlock, maxTargets }) => {
+          .flatMap(({ id, label, creatureId, statBlock, maxTargets }): SummonPlacementForm[] => {
             const form = { id, label, maxTargets }
             // The guard above leaves each form exactly one of the two.
             if (creatureId !== undefined) return [{ ...form, creatureId }]
