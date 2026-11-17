@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, Group, MultiSelect, Stack, Text } from '@mantine/core'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type {
+  DestroyZoneLayerInputDto,
   DisarmZoneInputDto,
   IgniteZoneInputDto,
   RevealZoneInputDto
@@ -9,13 +10,15 @@ import type {
 
 /**
  * The GM's hand on each placed zone (MOVE-3.7): show a concealed zone to chosen Characters, light
- * one that waits to be lit (QUALITY-15.T3w), or disarm it. The disarm DC is the GM's own note;
- * players never receive it.
+ * one that waits to be lit (QUALITY-15.T3w), or disarm it. A layer of a layered zone is never
+ * disarmed; it is destroyed by what its component authors, the next one first when its layers fall
+ * in order (D223). The disarm DC and the criteria are the GM's own notes; players never receive them.
  */
 export function CampaignTabletopZoneControls({
   actors,
   disabled,
   zones,
+  onDestroyLayer,
   onDisarm,
   onIgnite,
   onReveal
@@ -23,6 +26,7 @@ export function CampaignTabletopZoneControls({
   actors: readonly { id: string; label: string }[]
   disabled: boolean
   zones: EncounterSessionStateDto['placedZones']
+  onDestroyLayer: (destroy: Pick<DestroyZoneLayerInputDto, 'spatialEffectId'>) => void
   onDisarm: (disarm: Pick<DisarmZoneInputDto, 'spatialEffectId'>) => void
   onIgnite: (ignite: Pick<IgniteZoneInputDto, 'spatialEffectId'>) => void
   onReveal: (reveal: Pick<RevealZoneInputDto, 'spatialEffectId' | 'actorIds'>) => void
@@ -53,17 +57,38 @@ export function CampaignTabletopZoneControls({
                     Ignite
                   </Button>
                 ) : null}
-                <Button
-                  aria-label={`Disarm ${name}`}
-                  disabled={disabled}
-                  size='compact-xs'
-                  variant='default'
-                  onClick={() => onDisarm({ spatialEffectId: zone.id })}
-                >
-                  Disarm
-                </Button>
+                {zone.destruction ? (
+                  <Button
+                    aria-label={`Destroy ${name}`}
+                    disabled={disabled || !zone.destruction.next}
+                    size='compact-xs'
+                    title={
+                      zone.destruction.next ? undefined : 'Destroy the layers before it first.'
+                    }
+                    variant='default'
+                    onClick={() => onDestroyLayer({ spatialEffectId: zone.id })}
+                  >
+                    Destroy layer
+                  </Button>
+                ) : null}
+                {zone.layer ? null : (
+                  <Button
+                    aria-label={`Disarm ${name}`}
+                    disabled={disabled}
+                    size='compact-xs'
+                    variant='default'
+                    onClick={() => onDisarm({ spatialEffectId: zone.id })}
+                  >
+                    Disarm
+                  </Button>
+                )}
               </Group>
             </Group>
+            {zone.destruction ? (
+              <Text c='dimmed' size='xs'>
+                Destroyed by: {zone.destruction.criteria.join('; ')}
+              </Text>
+            ) : null}
             {zone.unawareActorIds.length > 0 ? (
               <Group align='end' gap='xs' wrap='nowrap'>
                 <MultiSelect

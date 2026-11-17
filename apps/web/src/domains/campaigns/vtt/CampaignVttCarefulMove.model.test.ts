@@ -28,6 +28,7 @@ const placedZone = (
   shape,
   spotDc: null,
   disarmDc: null,
+  destruction: null,
   unawareActorIds
 })
 

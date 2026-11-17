@@ -509,6 +509,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     placedZones: plan.placedZones,
     zoneSourceGrant: plan.zoneSourceGrant,
     forcedMovements: plan.forcedMovements,
+    turnUses: plan.turnUses,
     summonedTokens: plan.summonedTokens,
     rules: plan.rules,
     resourceConsumption: plan.resourceConsumption,

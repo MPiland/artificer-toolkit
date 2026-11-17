@@ -348,6 +348,16 @@ const PARITY: Record<CommandType, Entry> = {
       spatialEffectId: SOME_ID
     })
   },
+  DESTROY_ZONE_LAYER: {
+    access: 'TABLE',
+    rule: table('D223: the GM destroys the next layer of a layered zone, which removes it'),
+    actorScoped: false,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'DESTROY_ZONE_LAYER',
+      spatialEffectId: SOME_ID
+    })
+  },
   IGNITE_ZONE: {
     access: 'TABLE',
     rule: table('QUALITY-15.T3w: the GM lights a zone that waits to be lit'),

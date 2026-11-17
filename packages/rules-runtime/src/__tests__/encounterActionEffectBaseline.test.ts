@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { compileEffect, compileSpellEffect } from '@artificer-toolkit/shared/compilers'
 import { crocodile } from '@artificer-toolkit/source-data/srd/creatures/crocodile.js'
+import { callLightning } from '@artificer-toolkit/source-data/srd/spells/call-lightning.js'
 import { giantInsect } from '@artificer-toolkit/source-data/srd/spells/giant-insect.js'
 import { telepathicBond } from '@artificer-toolkit/source-data/srd/spells/telepathic-bond.js'
 import {
@@ -36,7 +37,10 @@ import {
   DND5E_SAVE_DC_FACT_KEY,
   DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionContracts.js'
-import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
+import {
+  buildCompiledActionCompilerSource,
+  compileCastChoicePlans
+} from '../encounterActionEntryPointCompiler.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
@@ -813,5 +817,82 @@ describe('plan-owned outcomes on a test result path (RULES-2.T6d)', () => {
     })
     expect(stateKinds(madeOn(compiled, 'ON_SAVE_FAIL'))).toContain('ACTOR_RELATIONSHIP')
     expect(madeOn(compiled, 'ON_SAVE_SUCCESS')).toBeNull()
+  })
+})
+
+describe('a save repeat offered by a cast that forced no save (QUALITY-15.T3y3, D166)', () => {
+  /** Call Lightning's cast, compiled as the Encounter's cast entry compiles it. */
+  const cast = () => {
+    const effects = callLightning.effects ?? []
+    const action = {
+      ...characterActionDescriptor(
+        compileSpellEffect(
+          { attributes: callLightning.attributes, effects },
+          { ...effects[0]!, id: ACTION_EFFECT_ID }
+        ),
+        callLightning.level
+      ),
+      conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id)
+    }
+    const { executionPlan, activeEffectPlan } = compileCastChoicePlans(
+      dnd5eCharacterRuleActionSystemAdapter,
+      action
+    )
+    if (executionPlan.kind !== 'SINGLE_GRAPH' || !activeEffectPlan)
+      throw new Error('Call Lightning must compile to one graph that holds an effect.')
+    return { published: executionPlan.published, plan: activeEffectPlan }
+  }
+
+  const made = (spellSaveDc: number | undefined) => {
+    const { published, plan } = cast()
+    return prepareEncounterActionEffectPlans({
+      encounterId: ids.encounter,
+      occurrenceId: ids.occurrence,
+      commandId: ids.command,
+      sourceActorId: ids.source,
+      sourceLabel: callLightning.label,
+      sourceHidden: false,
+      currentActorId: ids.source,
+      target: {
+        actorId: ids.source,
+        conditionIds: [],
+        effectiveSize: 'MEDIUM',
+        lifetimeScope: 'ENCOUNTER',
+        activeEffects: []
+      },
+      activeEffectsByActorId: new Map(),
+      activeEffectPlan: plan,
+      spellCastLevel: 3,
+      ...(spellSaveDc !== undefined && { spellSaveDc }),
+      turnSequence: 1,
+      published,
+      execution: execution(),
+      d20: null,
+      applications: []
+    }).recurringEffect
+  }
+
+  it('freezes the caster’s spell save DC into the repeat', () => {
+    expect(made(15)?.definition.stateContributions).toEqual([
+      expect.objectContaining({
+        kind: 'MODIFIER_GRANT',
+        effectOffers: [
+          expect.objectContaining({
+            kind: 'REPEAT_SOURCE_PATH',
+            castLevel: 3,
+            castTurnSequence: 1,
+            effect: expect.objectContaining({
+              invocation: expect.objectContaining({
+                savingThrow: expect.objectContaining({ dcMethod: 'FIXED_DC', baseDc: 15 })
+              })
+            })
+          })
+        ]
+      })
+    ])
+  })
+
+  it('refuses the repeat when the caster has no spell save DC to freeze', () => {
+    expect(() => made(undefined)).toThrow('A repeat offer freezes the DC its cast settled.')
   })
 })

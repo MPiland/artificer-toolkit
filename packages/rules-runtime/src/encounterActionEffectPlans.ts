@@ -158,6 +158,11 @@ export function prepareEncounterActionEffectPlans(input: {
   spellCastLevel?: number
   /** The caster's attack bonus, which an attack repeat offer freezes; omitted for a cast that has none. */
   attackBonus?: number
+  /**
+   * The caster's spell save DC, which a save repeat offer freezes when its cast forced no save of its
+   * own; omitted for a cast that has none.
+   */
+  spellSaveDc?: number
   /** The cast's resolved damage by outcome id, which a repeat offer freezes (D166); omitted for any other action. */
   damageExpressions?: Readonly<Record<string, string>>
   /** The Run's turn, which a `FREE_ONCE` repeat offer freezes; omitted for every action that plans none. */
@@ -818,14 +823,21 @@ export function prepareRecurringActiveEffect(
 
 /**
  * A repeat offer as the cast that made it settles it (D166): its saving throw is the DC the cast
- * rolled against and its scaling is the level the cast used, so a later repeat never reads the
- * caster's current stats or slots. A `FREE_ONCE` offer freezes the turn the cast was made in (D190a).
+ * rolled against, or the caster's spell save DC when the cast forced no save of its own, and its
+ * scaling is the level the cast used, so a later repeat never reads the caster's current stats or
+ * slots. A `FREE_ONCE` offer freezes the turn the cast was made in (D190a).
  */
 function frozenRepeatOffer(
   offer: CompiledRepeatSourcePathOffer,
   input: Pick<
     Parameters<typeof prepareRecurringActiveEffect>[0],
-    'd20' | 'spellCastLevel' | 'attackBonus' | 'damageExpressions' | 'turnSequence' | 'published'
+    | 'd20'
+    | 'spellCastLevel'
+    | 'attackBonus'
+    | 'spellSaveDc'
+    | 'damageExpressions'
+    | 'turnSequence'
+    | 'published'
   >
 ): CompiledRepeatSourcePathOffer {
   const castTurnSequence = offer.castTurnUse ? input.turnSequence : undefined
@@ -833,7 +845,8 @@ function frozenRepeatOffer(
     throw new EncounterActionEffectPlanError('A FREE_ONCE repeat offer freezes its cast’s turn.')
   const { invocation } = offer.effect
   // Only a repeat that forces a save freezes the DC its cast settled; an attack repeat rolls anew.
-  if ('savingThrow' in invocation && !input.d20)
+  const saveDc = input.d20 ? input.d20.defenseOrDc : input.spellSaveDc
+  if ('savingThrow' in invocation && saveDc === undefined)
     throw new EncounterActionEffectPlanError('A repeat offer freezes the DC its cast settled.')
   const rollsAttack =
     invocation.kind === 'ACTION' &&
@@ -862,14 +875,14 @@ function frozenRepeatOffer(
     effect: {
       ...offer.effect,
       invocation:
-        'savingThrow' in invocation && input.d20
+        'savingThrow' in invocation && saveDc !== undefined
           ? {
               ...invocation,
               savingThrow: {
                 id: invocation.savingThrow.id,
                 abilityDefinitionId: invocation.savingThrow.abilityDefinitionId,
                 dcMethod: 'FIXED_DC',
-                baseDc: input.d20.defenseOrDc
+                baseDc: saveDc
               }
             }
           : invocation

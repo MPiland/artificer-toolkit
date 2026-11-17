@@ -223,7 +223,15 @@ describe('CampaignVttStage careful crossing (SPELLS-17.4)', () => {
 
 describe('CampaignVttStage over a concealed field Ember has not noticed (MOVE-3.6)', () => {
   beforeEach(() =>
-    renderStage([{ ...caltrops, spotDc: null, disarmDc: null, unawareActorIds: [emberActor.id] }])
+    renderStage([
+      {
+        ...caltrops,
+        spotDc: null,
+        disarmDc: null,
+        destruction: null,
+        unawareActorIds: [emberActor.id]
+      }
+    ])
   )
 
   it('offers no careful crossing and commits the drag at once, so entering triggers the field', async () => {

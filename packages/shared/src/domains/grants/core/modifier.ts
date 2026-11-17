@@ -27,6 +27,7 @@ export const MODIFIER_KIND = {
   PENALTY: 'PENALTY',
   SET_VALUE: 'SET_VALUE',
   CAP_VALUE: 'CAP_VALUE',
+  MINIMUM_VALUE: 'MINIMUM_VALUE',
   MULTIPLY: 'MULTIPLY',
   ABILITY_MODIFIER_BONUS: 'ABILITY_MODIFIER_BONUS',
 
@@ -130,6 +131,12 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     code: MODIFIER_KIND.CAP_VALUE,
     label: 'Cap Value',
     description: 'Limit the value to at most a specific amount.'
+  },
+
+  MINIMUM_VALUE: {
+    code: MODIFIER_KIND.MINIMUM_VALUE,
+    label: 'Minimum Value',
+    description: 'Keep the final value at least a specific amount.'
   },
 
   MULTIPLY: {
@@ -275,6 +282,7 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
     MODIFIER_KIND.SET_VALUE,
+    MODIFIER_KIND.MINIMUM_VALUE,
     MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
     MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
   ],
@@ -837,7 +845,7 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
           ? { ability: string; multiplier?: number; min?: number; max?: number }
           : K extends 'MODIFY_CHARGE_LIMIT'
             ? ChargeLimitPayload
-            : K extends 'MINIMUM_ROLL'
+            : K extends 'MINIMUM_ROLL' | 'MINIMUM_VALUE'
               ? { amount: number }
               : K extends 'ADD_BONUS_DIE'
                 ? V extends 'DAMAGE'

@@ -405,7 +405,7 @@ export const liveSessionSummonedTokenSchema: z.ZodMiniType<LiveSessionSummonedTo
  */
 export type LiveSessionEncounterAreaCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
-  'execution' | 'createdEffects' | 'cleaving' | 'reactionOffers' | 'turnUses' | 'spentUseGrants'
+  'execution' | 'createdEffects' | 'cleaving' | 'reactionOffers' | 'spentUseGrants'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   targets: {
@@ -487,6 +487,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
       forcedMovements: liveSessionForcedMovementsSchema,
+      turnUses: encounterTurnUseKeysSchema,
       ...liveSessionEncounterConcentrationFields()
     })
   )

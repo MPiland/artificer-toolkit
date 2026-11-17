@@ -7,6 +7,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TRIGGER,
   SPELL_COMPONENT,
@@ -45,6 +46,16 @@ export const findTraps: SpellAuthored = {
         targeting: {
           selectionKind: 'AREA_CONTENTS',
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        },
+        // "Any trap within range": the range is a sphere around the caster.
+        shape: {
+          id: spellChildId(SPELL_IDS.FIND_TRAPS, 0x213, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: {
+            amount: 120,
+            unit: MEASUREMENT_UNIT_CODE.FEET
+          },
+          centeredOnUser: true
         }
       },
       paths: [

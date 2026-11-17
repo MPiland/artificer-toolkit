@@ -93,7 +93,7 @@ import {
   nativeLiveRelationshipFacts,
   refuseUnmetActionRestrictions
 } from './nativeEncounterActionInputs.js'
-import { nativeLiveHolderStateReads } from './nativeTurnUses.js'
+import { nativeLiveHolderStateReads, readNativeActionSourceOffers } from './nativeTurnUses.js'
 import {
   readNativeLiveSpellPins,
   type prepareNativeLiveMovementTarget
@@ -230,12 +230,7 @@ export async function prepareCasterSource(
     choiceOptionId: castChoiceOptionId(command.target),
     castModifierId: command.castModifierId,
     sourceFacts: casterFacts,
-    loadSource: async (source) =>
-      resolveEncounterActionSource({
-        ...source,
-        system: input.system,
-        spells: await readNativeLiveSpellPins(input.capture)
-      })
+    loadSource: loadCasterActionSource(input, casterFacts)
   }).catch(refuseStaleCharacterAction)
   // An action that places a zone leaves it where it is aimed instead of putting anyone through it;
   // a cast-time pick places the zone the caster chose (D140).
@@ -633,6 +628,30 @@ export async function prepareAreaTarget(
 type ActionMechanicsInput = Parameters<typeof prepareEncounterActionMechanics>[0]
 
 /**
+ * Reads the caster's action as the Run holds it now, a repeat or granted action a held Effect offers
+ * included (D160, D166), so an offered action aims its area the way the caster's own does.
+ */
+function loadCasterActionSource(
+  input: Pick<AreaPlanBase, 'state' | 'system' | 'activeEffectsByActorId' | 'capture'>,
+  casterFacts: MovementTargets | undefined
+): ActionMechanicsInput['loadSource'] {
+  return async (source) =>
+    resolveEncounterActionSource({
+      ...source,
+      ...(await readNativeActionSourceOffers({
+        capture: input.capture,
+        actorId: source.actor.id,
+        actionId: source.actionId,
+        state: input.state,
+        activeEffectsByActorId: input.activeEffectsByActorId,
+        characterRules: casterFacts?.characterFacts?.ruleEvaluation
+      })),
+      system: input.system,
+      spells: await readNativeLiveSpellPins(input.capture)
+    })
+}
+
+/**
  * The caster's action mechanics against one creature, whatever shape the action's target takes: an
  * attack at one creature prepares them once, a point area seals them per caught creature and a list of
  * chosen creatures prepares them for each one named. What the command fixes of the action is read
@@ -744,14 +763,9 @@ export function prepareCasterActionOnTarget(
               capture: input.capture
             })
         : undefined,
-    loadSource: async (source) =>
-      capability
-        ? { kind: 'BASIC_ACTION', actor: action.caster, capability }
-        : resolveEncounterActionSource({
-            ...source,
-            system: input.system,
-            spells: await readNativeLiveSpellPins(input.capture)
-          }),
+    loadSource: capability
+      ? async () => ({ kind: 'BASIC_ACTION', actor: action.caster, capability })
+      : loadCasterActionSource(input, action.movementTargets.get(action.caster.id)),
     loadRelationshipFacts: nativeLiveRelationshipFacts({
       activeEffectsByActorId: input.activeEffectsByActorId
     }),

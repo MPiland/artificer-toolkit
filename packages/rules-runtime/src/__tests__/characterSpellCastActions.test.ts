@@ -1749,7 +1749,29 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
     expect(compiledCastEntry(banded)).toBeNull()
   })
 
-  it('keeps the SRD Prismatic Wall refused until its destruction, proximity, light and placement rules are built', () => {
+  it('keeps each layer’s authored destruction criteria and destroys them in order (QUALITY-15.T3v2)', () => {
+    for (const zone of layeredZones(layeredZoneSpell())) {
+      expect(zone.destructionInOrder).toBe(true)
+      expect(
+        [zone, ...(zone.layerComponents ?? [])].map(({ destructionCriteria }) =>
+          destructionCriteria?.map(({ kind }) => kind)
+        )
+      ).toEqual([['DAMAGE_THRESHOLD'], ['STRONG_WIND'], ['DAMAGE_THRESHOLD']])
+    }
+  })
+
+  it('refuses layer destruction on a zone whose destroyed layers do not stay destroyed', () => {
+    const regrowing = layeredZoneSpell()
+    const path = regrowing.effects?.[0]?.paths[0]
+    if (path?.selectionKind !== 'CHOICE') throw new Error('The wall must offer its forms.')
+    for (const { resultBlock } of path.options)
+      for (const outcome of resultBlock.outcomes)
+        if (outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'ZONE')
+          delete outcome.destroyedComponentsRemainDestroyed
+    expect(compiledCastEntry(regrowing)).toBeNull()
+  })
+
+  it('keeps the SRD Prismatic Wall refused until its proximity, light and placement rules are built', () => {
     expect(compiledCastEntry(spell('Prismatic Wall'))).toBeNull()
   })
 })
@@ -3606,6 +3628,78 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       entry: { initialRemaining: 10, maintenance: null }
     })
     expect(cast?.summonPlacement).not.toHaveProperty(['statBlock', 'hitPoints'])
+  })
+})
+
+/**
+ * QUALITY-15.T3y3: Call Lightning's cast holds, under its Concentration, an offer of its bolt as the
+ * caster's Action, free once on the cast turn; the bolt is a Dexterity save in a 5-foot radius for
+ * 3d10 lightning, halved on a success, and 1d10 more per slot level above 3rd.
+ */
+describe('a maintained effect that offers its caster a repeat bolt (QUALITY-15.T3y3)', () => {
+  const CALL_LIGHTNING = spell('Call Lightning')
+  const bolt = CALL_LIGHTNING.effects?.[1]
+
+  it('holds the bolt as an Action offer, free once on the cast turn, under Concentration', () => {
+    const plan = compiledCast(CALL_LIGHTNING)?.activeEffectPlan
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+    expect(plan?.modifierGrantContribution).toMatchObject({
+      modifiers: [],
+      effectOffers: [
+        {
+          kind: 'REPEAT_SOURCE_PATH',
+          activation: 'ACTION',
+          target: 'INVOCATION',
+          castTurnUse: 'FREE_ONCE',
+          effect: { id: bolt?.id, invocation: { activation: { code: 'ACTION' } } }
+        }
+      ]
+    })
+  })
+
+  it('resolves the bolt at each cast’s level, on a failed save and a successful one', () => {
+    const casts = [3, 5].map((level, sequence) => candidate(CALL_LIGHTNING, level, { sequence }))
+    const { spellActionFacts } = buildCharacterSpellActionRuleFacts({
+      spellIds: [CALL_LIGHTNING.id],
+      spells: [compileSpell(CALL_LIGHTNING)]
+    })
+    expect(spellActionFacts).toEqual([
+      expect.objectContaining({
+        repeatedEffects: [expect.objectContaining({ effectId: bolt?.id })]
+      })
+    ])
+    const evaluated = evaluateDnd5e2014CharacterActions({
+      candidates: [],
+      abilityDefinitions: [],
+      spellCandidates: casts,
+      spellSlots: [],
+      spellEffects: spellActionFacts,
+      spellMechanics: [{ source: casts[0]!.source, attackBonus: 5, saveDc: 13, damageBonus: 0 }],
+      spellcastingLocked: false,
+      proficiencies: [],
+      itemAdjustments: [],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups: [],
+      totalLevel: 5,
+      classLevels: [],
+      proficiencyBonus: 3,
+      abilities: [],
+      skills: [],
+      spellcasting: null
+    })
+
+    expect(
+      evaluated.spellCastMechanics.map(({ repeatMechanics }) =>
+        repeatMechanics?.flatMap(({ outcomes }) =>
+          outcomes.map((outcome) => outcome.kind === 'DAMAGE' && outcome.diceExpression)
+        )
+      )
+    ).toEqual([
+      ['3d10', '3d10'],
+      ['5d10', '5d10']
+    ])
   })
 })
 

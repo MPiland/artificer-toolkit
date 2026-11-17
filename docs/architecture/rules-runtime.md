@@ -238,10 +238,11 @@ their effect held by the cast's Concentration, through data alone: Silent Image 
 Eye a stat-block summon (Tiny, flying, invisible, invulnerable, taking no space), Conjure Celestial a form summon on its
 own initiative (Couatl or Pegasus; the 9th-level challenge rating 5 is not offered), and Calm Emotions a Charisma save
 over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. Of the other 11, Conjure Elemental
-and Conjure Fey now compile (below, QUALITY-15.T3x); nine stay refused (UNBUILT, cited in the golden's
-`REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary sensor, summoned lights,
-an Armor Class floor, tree travel, a repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to
-its target).
+and Conjure Fey now compile (below, QUALITY-15.T3x), and Barkskin (QUALITY-15.T3y) is a granted `ARMOR_CLASS`
+`MINIMUM_VALUE` modifier of 16 on its target, a floor over the final Armor Class, shield and bonuses included. Eight
+stay refused (UNBUILT, cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no plan type (animated
+objects, a stationary sensor, summoned lights, tree travel, a repeat bolt, a delayed detonation, a movable damaging
+sphere, a zone attached to its target).
 
 **A summon that turns hostile when released (current, QUALITY-15.T3x).** A form summon on its own initiative, of one
 creature a form, may author `turnsHostileOnRelease`; the compiler refuses it on any other summon. The plan carries it
@@ -1222,8 +1223,9 @@ only in contests); there is no roof or indoor daylight model (see future-enhance
 
 ### Caster-centered radius areas (current, SPELLS-22)
 
-An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth
-target, `{ kind: 'CASTER_CENTERED', sceneId, expectedSceneVersion }`: it names no origin or direction. The
+An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle, or whose sphere,
+cylinder or circle is authored `centeredOnUser` whatever its range (Find Traps' "any trap within range" over its
+120 ft range, QUALITY-15.T3ac3), takes the fourth target, `{ kind: 'CASTER_CENTERED', sceneId, expectedSceneVersion }`: it names no origin or direction. The
 origin is the caster's own token (`evaluateEncounterCasterCenteredAreaTarget` returns the `RADIUS` shape; the room
 reads the caster's token with the Scene and seals its position), and the sealed area is the same `RADIUS` shape a point area seals, so no persisted shape changes;
 the caster-centered meaning lives in the persisted command's target kind. "Within N feet of you" is measured
@@ -1683,9 +1685,20 @@ mover.
 the whole zone (`definition`, `lifecycle`, `placement`, `spatialState`) and the GM's undo recreates it under the same id
 (`revertZoneDisarm`). `IGNITE_ZONE` (GM-only, QUALITY-15.T3w) clears `unlit` from a zone placed waiting to be lit
 (`igniteZone`); a lit zone is `TARGET_UNAVAILABLE`. It shares the `before`/`after` receipt and `revertZoneState` undo, which
-puts the zone out again. The five zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
+puts the zone out again. The zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
 GM-only in `placedZones`, including for a player who was shown the zone. A botched disarm is the GM's call.
 
+**Destroying a layer (QUALITY-15.T3v2, D223, current).** A layered zone's component may author `destructionCriteria`;
+the compiler (`placedSpaceZone`) accepts them only on a layered zone whose manifest authors
+`destroyedComponentsRemainDestroyed`, and `destructionMustResolveInOrder` becomes the plan's `destructionInOrder`. Each layer
+record then carries `placement.destruction` (`zoneId`: the zone's own first-layer record, which groups its layers;
+`inOrder`; the authored `criteria`). `DESTROY_ZONE_LAYER` (GM-only) deletes one such record and refuses a layer while an
+earlier layer of an in-order zone remains (`zoneLayerOutOfOrder`, `encounterZoneLayerDestruction.ts`). A deleted layer stays
+destroyed. It shares `DISARM_ZONE`'s receipt, which now also keeps the record's `maintainedEffectStateId`, and its undo
+(`revertZoneDisarm`). `DISARM_ZONE` refuses a layer record, and `placedZones[].layer` marks one so the drawer offers no
+Disarm. The GM's `placedZones[].destruction` lists the criteria as text in
+the System's damage terms (`zoneLayerDestructionCriterionText`) and whether the layer is next; players read null. The GM
+drives it from the encounter drawer's zone controls. A player destroying a layer by the criterion is later work.
 **Unnoticed zones (MOVE-3.6, current).** An actor not in a concealed zone's `knownByActorIds` has not noticed it.
 `toSpatialInstances` carries `knownByActorIds` onto the spatial instance, and `crossesSpatialFieldCarefully`
 (`shared/vtt/spatial.ts`) lets a careful mover skip the entry save and pay double only in a field it knows of: both
@@ -2654,6 +2667,16 @@ accepts only a one-save step, `isSaveTallyStep`, reading the mode from `recurren
 duration keeps counting down. `consecutive` zeroes the opposite count on each result. The tally is
 system-neutral state and the thresholds are neutral definition data; only the adapter decides what reaching them means.
 
+**Held escalation and duration completion (QUALITY-15.T3ad).** A thresholds repeat on one timed held condition may
+author `onFailure` OUTCOMES with `endCurrent: false` and one condition: the effect owns that condition from the cast (a
+`CONDITION_OWNERSHIP` contribution beside the held one, so ending the effect early, such as its Concentration,
+releases it), and the failure that settles the tally applies it without ending the effect. Its `onDurationComplete`
+OUTCOMES with `endCurrent: true` and one condition is the condition left when the duration runs out without a save
+ending it: the last tick removes the held conditions and applies that one, which no effect then owns. The adapter
+carries both as facts (`dnd5e.active-effect-repeat-save-escalation-held`,
+`dnd5e.active-effect-duration-complete-condition-id`); `repeatSaveEscalations` (`effectActionNestedSave.ts`) decides
+which shape a repeat has, and `settleRepeatedSave` applies it. A condition the target is immune to is not left.
+
 A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and
 any other held condition is at level 1.
@@ -3233,7 +3256,7 @@ UPDATE/REMOVE_SHEET_EXTRA edit and dismiss it.
 The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one of the spell's paths on the effect's holder (Heat Metal's repeated damage) without recasting.
 
 - **Authoring:** `{ kind: 'REPEAT_SOURCE_PATH', activation, pathIds, effect }`. The compiler keeps only the offer's `pathIds` in a copy of the authored Effect and sets its invocation activation to the offer's; the stored copy reuses `effectDtoSchema` (no parallel shape). Heat Metal authors it on a **carrier** path (`repeatCarrierPath`): an item-bound `APPLY_GRANT` with no modifiers that ends on `ON_CHOSEN_ITEM_RELEASED`, lasts the Concentration and is a maintained dependent of it. The 1-round disadvantage grant is unchanged.
-- **Frozen at cast:** `frozenRepeatOffer` (`encounterActionEffectPlans.ts`) rewrites the stored offer's save to `FIXED_DC` with the DC the cast settled (`d20.defenseOrDc`) and records the cast level as a sibling `castLevel` (D166 words it as converted rows; a sibling lets the compiler's own scaling rows select, with no second scaling path). The repeat therefore never reads the caster's stats or slots as they stand later.
+- **Frozen at cast:** `frozenRepeatOffer` (`encounterActionEffectPlans.ts`) rewrites the stored offer's save to `FIXED_DC` with the DC the cast settled (`d20.defenseOrDc`), or the caster's spell save DC at the cast when the cast forced no save of its own (Call Lightning, QUALITY-15.T3y3; `preparedSpellcasting` in `encounterPreparedSpellCast.ts`), and records the cast level as a sibling `castLevel` (D166 words it as converted rows; a sibling lets the compiler's own scaling rows select, with no second scaling path). The repeat therefore never reads the caster's stats or slots as they stand later.
 - **Action source:** `REPEAT_PATH` (`encounterRepeatPathAction.ts`), id `<actorId>:REPEAT_PATH:<carrierEffectId>:<offerIndex>`. `resolveEncounterActionSource` resolves it from the holder's live effects and compiles the offer's frozen Effect (`compileEffect` then `bindEncounterEffect`); a missing carrier or offer is stale. `featureActionMechanic` supplies `spellCastLevel`, the activation and `save.dc`, so the repeat runs the normal capability pipeline: no slot, no new Concentration.
 - **No new pending arm:** the repeat is an ordinary `RESOLVE_ACTION`; its `ENCOUNTER_ACTION` pending replays the command and the repeat id re-resolves from live effects at each replay.
 - **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
@@ -3244,7 +3267,7 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 - **Sibling Effect and invocation target (current, SPELLS-4.T2v, ruling A):** an offer names either `pathIds` of its own Effect or an `effectId` of a sibling Effect of the same subject (whole, with its own invocation: Flame Blade's melee spell attack), never both. `target` is `HOLDER` (default; absent means HOLDER, so Vampiric Touch and Heat Metal are unchanged) or `INVOCATION`: the repeat then runs against the targets the re-run invocation picks, and `nativeEncounterRules` skips the holder-only refusal. The compiled capability carries `target`; the listing exposes it. A sibling a repeat offer re-runs is not a cast of its own, so `compileSpell` leaves it out of the compiled spell's castable Effects (it lives in the offer). An attack repeat (the re-run invocation's trigger is an attack kind) freezes the cast level and the caster's spell attack bonus (`attackBonus`, from the cast's `derivedStats.spellcasting`; no DC) on the offer, and the capability carries it as `attackMechanic`, so `featureActionMechanic` supplies the attack-modifier fact as it does for any action; advantage and disadvantage still come from the attacker's live state when the repeat is made. SPELLS-4.T2v2a3 reuses this for the summon's attack. The offer stays System-neutral (no spell, weapon or class names); Spiritual Weapon's summon token (SPELLS-4.T2v2) reuses it.
 
 - **Measured from a conjured creature (current, SPELLS-4.T2v2a3a, D190a):** an offer's `origin` is `ACTOR` (default; absent means ACTOR) or `CONJURED`. The offer's source still acts and pays; only the token range and flanking are measured from changes. `repeatOfferOriginActorId` names the creature: the actor itself, or for `CONJURED` the creature whose `owner` is (`actorId`, carrier effect id); `encounterActionOriginActorId` resolves it from an action id, and a non-repeat id is always its actor. The listing sets `originActorId` on a choice whose origin is another creature and leaves out a `CONJURED` offer with no such creature. The Scene read (`readEncounterActionOriginActorId` in `actionSceneInputs.ts`) is keyed by the command's `actionId` (`actionSceneRequestDtoSchema.actionId`), so the preview, the room plan, the commit, the pending replay and the contest re-read all bind the same source token: a `CONJURED` repeat must send the conjured creature's token and every other action its actor's, or the read is stale. The summon carries the offer on its carrier: a summon cast's second ON_USE outcome is an empty `APPLY_GRANT` that holds only the block lifecycle's `effectOffers`, with the summon's duration and an end-of-turn tick on the holder; `compileSummonPlacement` plans the summon entry from it (`modifierGrantEntryPlan`), and anything else on that grant is refused.
-- **Free cast-turn use (current, SPELLS-4.T2v2a3b, D190a):** a repeat offer may author `castTurnUse: 'FREE_ONCE'`. The cast freezes the Run's `turnSequence` onto the held offer as `castTurnSequence` (`frozenRepeatOffer`, fed by `prepareEncounterActionEffectPlans`' `turnSequence`), and the stored schema requires both or neither. `repeatOfferFreeUseKey` returns the once-per-turn key `repeat-free:<effectId>:<offerIndex>` only while the Run is in that turn (`turnSequence` equal and a current actor: between turns nothing is spent) and the key is unspent; the offer goes only to its source, so only the caster takes it. When it holds, `discoverEncounterRepeatPath` charges the repeat a `FREE` activation and the REPEAT_PATH source carries the key as `grantedUseKey`, which the worker spends through `spendTurnUses` exactly like a granted action's (D160), so `REVERT_LAST_ACTION` restores it. Any other use is charged the authored activation. The choice listing shows `activation: 'FREE'` while the free use is open.
+- **Free cast-turn use (current, SPELLS-4.T2v2a3b, D190a):** a repeat offer may author `castTurnUse: 'FREE_ONCE'`. The cast freezes the Run's `turnSequence` onto the held offer as `castTurnSequence` (`frozenRepeatOffer`, fed by `prepareEncounterActionEffectPlans`' `turnSequence`), and the stored schema requires both or neither. `repeatOfferFreeUseKey` returns the once-per-turn key `repeat-free:<effectId>:<offerIndex>` only while the Run is in that turn (`turnSequence` equal and a current actor: between turns nothing is spent) and the key is unspent; the offer goes only to its source, so only the caster takes it. When it holds, `discoverEncounterRepeatPath` charges the repeat a `FREE` activation and the REPEAT_PATH source carries the key as `grantedUseKey`, which the worker spends through `spendTurnUses` exactly like a granted action's (D160), so `REVERT_LAST_ACTION` restores it. An area repeat (Call Lightning's bolt, QUALITY-15.T3y3) resolves through the same offers (`loadCasterActionSource` in `nativeAreaPreparation.ts`), and its area commit carries the key as `turnUses` (`sourceGrantedUseKey`), which `persistEncounterAreaCommit` spends the same way. Any other use is charged the authored activation. The choice listing shows `activation: 'FREE'` while the free use is open.
 - **Counted uses (current, SPELLS-4.T2n3):** a carrier with a path `lifecycle.uses` (Goodberry's ten berries) holds `lifecycle.remainingUses`; each settled repeat spends one (`settledCountedUseSpend`, beside the decoy strike: `spentUseGrants`, the Mirror Image lifecycle CAS) and the last ends the carrier (`consumedGrants`). Undo restores either. A carrier with no count is never spent. `spentUseGrants` holds at most two (a decoy strike and a repeat).
 
 #### Damage-derived heal: `HEAL` `valueKind: 'DAMAGE_DEALT'` (current, SPELLS-4.T2n2, D181)
@@ -3836,7 +3859,9 @@ SPELLS-27.T4b wires every other damage root and adds the actions that end an eff
 SPELLS-27.T12 adds `{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds }` (Sleep, authored with the SRD Rouse basic action): `actionUsedOnHolderEndedEffects` ends, on the target of a basic action another creature uses, the effects whose trigger names that action's definition, and releases the conditions only they held in the target's own mechanics batch, beside the damage ends in the same receipt. Only the single-target action path (`nativeEncounterRules`) consumes it today; the area, legendary, movement-reaction and turn-resource paths do not.
 SPELLS-33.T4c adds `{ event: 'INCAPACITATED', of: 'SOURCE' }` (Knight Leadership): the effect ends on every holder when its Encounter source is incapacitated or defeated, which is the source's Concentration end reason, not the holder's `ON_INCAPACITATED` event. `grantsEndedBySourceState` selects the grants (`sourceBoundGrants` lists the candidates). `planNativeConcentration` plans them beside the holder-state ends in `endedGrants`, from each changed actor's reason, so they commit with the source's incapacitation under the same revert fence. `persistEncounterConcentrationChildren` re-derives the source's reason from committed state, refuses a sent grant it does not end, and refuses a commit that omits a grant of a damaged source whose committed reason is INCAPACITATED or DEFEATED. No index answers "which grants did this actor apply", so the scan of holders (one list each) runs only on the commit that drops a creature, never on ordinary damage. The trigger needs an Encounter origin with a source actor.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
-where movement targets and Cleaving facts are built. A fixed `SKILL_MODIFIER` grant (Pass without
+where movement targets and Cleaving facts are built: fixed bonuses add, then a `MINIMUM_VALUE` floor
+(Barkskin's 16) holds. A Character folds the same floor last in `combineDnd5eArmorClass`, after its
+shield and bonuses (QUALITY-15.T3y). A fixed `SKILL_MODIFIER` grant (Pass without
 Trace's +10 Stealth) raises that skill's stat block total through `withCreatureActiveGrantSkillTotal`,
 which `actorContestFacts` applies to every Creature skill check and passive it freezes (Hide, Search,
 contests, escapes). A
