@@ -270,13 +270,14 @@ import { triggeringRollDiceNodes, triggeringRollDieFacts } from './triggeringRol
 import { hitDamageDiceChanges, withDamageAddedDice } from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
-  escalationCondition,
   escalatingImmediateSave,
   immediateFollowUpSaveEntries,
   immediateFollowUpSaveDuration,
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition,
+  directRepeatSaveEntries,
   repeatCadenceSupported,
+  repeatSaveEscalations,
   repeatSaveFailureDamage,
   repeatSaveFailureDamageRows,
   repeatSaveHeldTurns,
@@ -1259,14 +1260,17 @@ function repeatingDirectFollowUpSavePlan(
   )
   if (new Set(leadConditions.map(({ conditionId }) => conditionId)).size !== leadConditions.length)
     return null
-  // A failed repeat that ends the effect by leaving a second condition in place of the held one
-  // ("restrained, then petrified") counts one turn, whatever the held condition's duration.
-  const escalation =
-    lead.effectKind === 'CONDITION' && leadEntries.length === 1 && !leadEntry.duration
-      ? escalationCondition(save)
-      : null
-  if (escalation && !(action.conditionDefinitionIds ?? []).includes(escalation.conditionId))
-    return null
+  const heldConditionIds = leadConditions.map(({ conditionId }) => conditionId)
+  const escalations = repeatSaveEscalations({
+    save,
+    heldConditionIds,
+    singleCondition: lead.effectKind === 'CONDITION' && leadEntries.length === 1,
+    timed: Boolean(leadEntry.duration),
+    knownConditionIds: action.conditionDefinitionIds ?? []
+  })
+  if (!escalations) return null
+  // A failure that ends the effect counts one turn, whatever the held condition's duration.
+  const { escalation, heldEscalation, completion } = escalations
   const sourceTurn =
     lead.effectKind === 'CONDITION' && !leadEntry.duration ? sourceTurnStartSave(save) : null
   const initialRemaining = repeatSaveHeldTurns({
@@ -1279,8 +1283,10 @@ function repeatingDirectFollowUpSavePlan(
     abilityDefinitionId: save.savingThrow.abilityDefinitionId,
     savingThrow: save.savingThrow,
     requestNodeId: 'repeat-save-d20',
-    heldConditionIds: leadConditions.map(({ conditionId }) => conditionId),
-    escalationConditionId: escalation?.conditionId,
+    heldConditionIds,
+    escalationConditionId: (escalation ?? heldEscalation)?.conditionId,
+    escalationHeld: heldEscalation !== null,
+    durationCompleteConditionId: completion?.conditionId,
     repeatRollInfluence: save.repeatRollInfluence,
     repeatAttemptGate: save.repeatAttemptGate,
     triggersOnly: save.timing === 'ON_TRIGGERS_ONLY'
@@ -1304,13 +1310,16 @@ function repeatingDirectFollowUpSavePlan(
         UUID.test(conditionId) && (action.conditionDefinitionIds ?? []).includes(conditionId)
     )
       ? {
-          conditionContributions: leadConditions.map(
-            ({ conditionId, recordsSource, fleesSource }) => ({
-              conditionId,
-              recordsSource,
-              fleesSource
-            })
-          )
+          // The effect owns a held escalation from the start, so whatever ends it early (its
+          // Concentration) releases the escalation too; until the tally settles it is not present.
+          conditionContributions: [
+            ...leadConditions,
+            ...(heldEscalation ? [heldEscalation] : [])
+          ].map(({ conditionId, recordsSource, fleesSource }) => ({
+            conditionId,
+            recordsSource,
+            fleesSource
+          }))
         }
       : grantPlan && grantContribution
         ? {
@@ -1326,10 +1335,10 @@ function repeatingDirectFollowUpSavePlan(
     !repeatSave ||
     save.onSuccess.kind !== 'END' ||
     (escalation === null &&
+      heldEscalation === null &&
       !sourceTurn &&
       !failsWithDamage &&
       save.onFailure.kind !== 'CONTINUE') ||
-    (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
     (save.repeatAttemptGate && save.repeatRollInfluence)
   ) {
     return null
@@ -1364,28 +1373,6 @@ function repeatingDirectFollowUpSavePlan(
     maintenance: maintenancePlan(action, leadEntry),
     marginRiders: []
   }
-}
-
-/**
- * A direct follow-up save and the entries of its own result block it repeats. A GM ruling in that
- * block (an Androsphinx roar's lasting effect) is proposed once, as the failed save's other results
- * are (Sunburst's damage in a block of its own): the repeat-save effect holds neither.
- */
-function directRepeatSaveEntries(entries: CompiledEffectGroup['entries']) {
-  const saves = entries.flatMap((entry) =>
-    'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE' ? [entry] : []
-  )
-  const saveEntry = saves.length === 1 ? saves[0] : undefined
-  const leadEntries = saveEntry
-    ? entries.filter(
-        (entry) =>
-          entry !== saveEntry &&
-          'outcome' in entry &&
-          entry.outcome.effectKind !== 'MANUAL_ADJUDICATION' &&
-          entry.resultBlockId === saveEntry.resultBlockId
-      )
-    : []
-  return { saveEntry, leadEntries }
 }
 
 /**

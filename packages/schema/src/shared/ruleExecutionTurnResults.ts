@@ -447,21 +447,29 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           const unchanged =
             JSON.stringify(execution.targetTransition.before) ===
             JSON.stringify(execution.targetTransition.after)
+          // A condition the repeat save applies, bound to the effect's save test on `path`.
+          const repeatSaveApplies = (
+            application: (typeof execution.applications)[number] | undefined,
+            path: string | null
+          ) =>
+            application?.kind === 'CONDITION_APPLY' &&
+            application.sourceNodeId === execution.definition.frozenGraphNodeId &&
+            application.sourceOperationKey === repeatSave?.testOperationKey &&
+            application.authoredPath === path &&
+            application.resolvedPath === path
           // A repeat save that ends its effect removes the conditions the effect owns, each once and
-          // bound to the effect and the save test on `path`. A failed save may then leave one
-          // escalated condition in their place. Damage its failure dealt first binds to its proposal.
+          // bound to the effect and the save test on `path`. A failed save, or the effect's last
+          // counted turn, may then leave one condition in their place. Damage its failure dealt first
+          // binds to its proposal.
           const repeatSaveEndsEffect = (path: string | null) => {
             const ending = execution.applications.filter(
               (application) => application.sourceNodeId === execution.definition.frozenGraphNodeId
             )
-            const escalation = ending.at(-1)
             const escalates =
-              path === 'ON_SAVE_FAIL' &&
-              escalation?.kind === 'CONDITION_APPLY' &&
-              escalation.sourceNodeId === execution.definition.frozenGraphNodeId &&
-              escalation.sourceOperationKey === repeatSave?.testOperationKey &&
-              escalation.authoredPath === path &&
-              escalation.resolvedPath === path
+              (path === 'ON_SAVE_FAIL' ||
+                (execution.lifecycle.kind === 'EXPIRE' &&
+                  execution.lifecycle.beforeRemainingTicks === 1)) &&
+              repeatSaveApplies(ending.at(-1), path)
             const removals = escalates ? ending.slice(0, -1) : ending
             const ownedConditionIds = removals.flatMap((removal) =>
               removal.kind === 'CONDITION_REMOVE' &&
@@ -540,6 +548,14 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             execution.d20?.resultPath === 'ON_SAVE_FAIL' &&
             execution.lifecycle.kind === 'UPDATE' &&
             unchanged
+          // A failure that settles the save's tally may add one condition, bound to the save test,
+          // while the effect goes on (a held escalation the effect owns from its cast).
+          const repeatedSaveHeldEscalation =
+            repeatedSaveTrace &&
+            execution.applications.length === 1 &&
+            execution.lifecycle.kind === 'UPDATE' &&
+            execution.d20?.resultPath === 'ON_SAVE_FAIL' &&
+            repeatSaveApplies(execution.applications[0], 'ON_SAVE_FAIL')
           // A grant that passes its repeating save ends itself: nothing is removed from the target.
           const repeatedSaveGrantEnd =
             repeatedSaveTrace &&
@@ -722,7 +738,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           let priorTraceIndex = -1
           for (const application of execution.applications) {
             if (
-              (repeatedSaveTerminal || refusedRepeatSaveTerminal) &&
+              (repeatedSaveTerminal || refusedRepeatSaveTerminal || repeatedSaveHeldEscalation) &&
               application.sourceNodeId === execution.definition.frozenGraphNodeId
             )
               continue

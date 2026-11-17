@@ -2655,6 +2655,16 @@ accepts only a one-save step, `isSaveTallyStep`, reading the mode from `recurren
 duration keeps counting down. `consecutive` zeroes the opposite count on each result. The tally is
 system-neutral state and the thresholds are neutral definition data; only the adapter decides what reaching them means.
 
+**Held escalation and duration completion (QUALITY-15.T3ad).** A thresholds repeat on one timed held condition may
+author `onFailure` OUTCOMES with `endCurrent: false` and one condition: the effect owns that condition from the cast (a
+`CONDITION_OWNERSHIP` contribution beside the held one, so ending the effect early, such as its Concentration,
+releases it), and the failure that settles the tally applies it without ending the effect. Its `onDurationComplete`
+OUTCOMES with `endCurrent: true` and one condition is the condition left when the duration runs out without a save
+ending it: the last tick removes the held conditions and applies that one, which no effect then owns. The adapter
+carries both as facts (`dnd5e.active-effect-repeat-save-escalation-held`,
+`dnd5e.active-effect-duration-complete-condition-id`); `repeatSaveEscalations` (`effectActionNestedSave.ts`) decides
+which shape a repeat has, and `settleRepeatedSave` applies it. A condition the target is immune to is not left.
+
 A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and
 any other held condition is at level 1.
