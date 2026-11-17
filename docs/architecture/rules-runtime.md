@@ -272,9 +272,20 @@ and `persistEncounterMoveZone` re-centers the geometry under a zone-version fenc
 turn triggers read the current geometry, and moving onto a creature is not an entry. A GM undo restores the prior
 geometry and returns the spent activation (`revertZoneMove`). SRD Flaming Sphere moves 30 feet for a Bonus Action and
 Moonbeam 60 feet for an Action, authored from core options. Target: an offer surface on the Sheet and tabletop (the
-move is a Run command today with no player UI). GM rulings, not authored: the ram (a creature the sphere is moved into saves and the move
-stops), steering over barriers and pits, igniting unattended flammable objects, the bright and dim light, and the
-unoccupied-space placement rule.
+move is a Run command today with no player UI). GM rulings, not authored: steering over barriers and pits, igniting
+unattended flammable objects, the bright and dim light, and the unoccupied-space placement rule.
+
+**Ramming a creature with a moved zone (QUALITY-15.T3y8c; authored and selected now, settlement target).** A zone
+move may author `rams` (`ManifestZoneMoveAuthored`, `zoneMoveDtoSchema`, the "Rams Creatures" toggle); the compiler
+carries it onto the placement's `move` with the rest of the move. `zoneMoveRam` (`encounterZoneMove.ts`) is the one
+rule for whom a move rams: the first creature (a Scene token bound to an actor) whose space the zone's center enters on
+its straight way to the destination, stopped where the center meets that space. A creature whose space the center
+starts in, or whose edge it only runs along, is not rammed; ties go by token id. SRD Flaming Sphere authors it.
+Target, not yet wired: `planNativeLiveMoveZone` re-centers the zone on the ram's stop instead of the destination and
+runs the zone's own effect once on the rammed creature through the spatial candidate execution, system-rolled as D153
+rolls melee retaliation, and `persistEncounterMoveZone` writes the rammed creature's mechanics batch under the same
+fence, with `revertZoneMove` restoring it. The move's activation is its per-turn budget, so stopping the move also
+spends it for the turn.
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up

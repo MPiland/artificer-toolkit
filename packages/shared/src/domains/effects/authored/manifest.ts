@@ -410,11 +410,13 @@ export type ManifestCamouflageAuthored = { spotDc: HeldEscapeDcAuthored }
 
 /**
  * How a placed zone's source moves it while maintaining it (QUALITY-15.T3y8): the activation each
- * move costs and the farthest its center travels in one move.
+ * move costs and the farthest its center travels in one move. A move that `rams` (QUALITY-15.T3y8c)
+ * stops at the first creature whose space the zone's center enters, and the zone acts on it once.
  */
 export type ManifestZoneMoveAuthored = {
   activation: 'ACTION' | 'BONUS_ACTION'
   maxDistance: { amount: number; unit: LengthUnitCode }
+  rams?: boolean
 }
 
 type ZoneManifestAuthored = NonCreatureManifestAuthored<typeof MANIFEST_KIND.ZONE> &

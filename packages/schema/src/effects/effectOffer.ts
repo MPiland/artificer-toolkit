@@ -17,12 +17,15 @@ export const effectOfferRangeDtoSchema = lazySchema(() =>
 
 /**
  * How the source of a placed zone moves it while it lasts (QUALITY-15.T3y8): charged to
- * `activation`, up to `maxDistance` between the zone's center before and after.
+ * `activation`, up to `maxDistance` between the zone's center before and after. A move that `rams`
+ * (QUALITY-15.T3y8c) stops at the first creature whose space the zone's center enters, and the zone
+ * acts once on that creature.
  */
 export const zoneMoveDtoSchema = lazySchema(() =>
   z.strictObject({
     activation: z.enum(['ACTION', 'BONUS_ACTION']),
-    maxDistance: effectOfferRangeDtoSchema
+    maxDistance: effectOfferRangeDtoSchema,
+    rams: z.optional(z.boolean())
   })
 )
 export type ZoneMoveDto = z.infer<typeof zoneMoveDtoSchema>
