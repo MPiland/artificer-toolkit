@@ -559,7 +559,18 @@ async function sendWorkloadCommand(
 ) {
   const result = await timeCutoverCommand(operation, samples, () =>
     member.client.mutation(executeEncounterCommand, { command })
-  )
+  ).catch((error: unknown) => {
+    // A rejection names neither the workload step nor the actors' places in the ring.
+    const place = (id: string) => aggregate.actorIds.indexOf(id) + 1
+    const target =
+      'target' in command && 'actorId' in command.target ? command.target.actorId : null
+    throw new Error(
+      `V15 ${operation} ${aggregate.aggregate} actor ${'actorId' in command ? place(command.actorId) : '-'}` +
+        ` target ${target ? place(target) : '-'} current ${place(aggregate.run.currentActorId ?? '')}` +
+        ` version ${aggregate.run.version}`,
+      { cause: error }
+    )
+  })
   aggregate.commits.push({
     commandId: command.commandId,
     initiator: member,
