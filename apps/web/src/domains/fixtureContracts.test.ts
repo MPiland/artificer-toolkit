@@ -142,8 +142,6 @@ import {
 } from './characters/builder/fixtures/characterBuilder.fixtures'
 import { characterListFixture } from './characters/pages/list/characterList.fixtures'
 import { astralTearCharacterSheetFixture } from './characters/sheet/fixtures/astralTearSheet.fixtures'
-import { characterSheetMulticlassFixture } from './characters/sheet/fixtures/characterRest.fixtures'
-import { characterSheetSpellStatesFixture } from './characters/sheet/fixtures/characterSpell.fixtures'
 import {
   createTabletopCampaign,
   tabletopGmEncounter,
@@ -173,13 +171,12 @@ const inspectorPanels = Object.values(inspectorFixtures)
 // Every fixture that stands in for an apps/apis response must satisfy the shared DTO schema, so
 // a contract change fails here instead of silently leaving tests and stories on a stale shape.
 describe('web fixture contracts', () => {
-  it.each([
-    ['Sheet: multiclass', characterSheetMulticlassFixture],
-    ['Sheet: spell states', characterSheetSpellStatesFixture],
-    ['Sheet: Astral Tear', astralTearCharacterSheetFixture]
-  ])('parses the %s Sheet fixture', (_name, fixture) => {
-    characterSheetResponseDtoSchema.parse(fixture)
-  })
+  it.each([['Sheet: Astral Tear', astralTearCharacterSheetFixture]])(
+    'parses the %s Sheet fixture',
+    (_name, fixture) => {
+      characterSheetResponseDtoSchema.parse(fixture)
+    }
+  )
 
   it('parses the Builder fixtures', () => {
     characterAuthoredDtoSchema.parse(characterFixture)

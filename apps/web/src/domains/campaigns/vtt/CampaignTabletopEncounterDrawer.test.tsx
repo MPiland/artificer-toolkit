@@ -1197,4 +1197,58 @@ describe('CampaignTabletopEncounterDrawer', () => {
       spatialEffectId: zoneId
     })
   })
+
+  it('lets the GM light a zone that waits to be lit, and offers no lighting once it burns', async () => {
+    const user = userEvent.setup()
+    const onCommand = vi.fn()
+    const zoneId = '00000000-0000-4000-8000-0000000000e2'
+    const oil = {
+      id: zoneId,
+      label: 'Poured oil',
+      shape: { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: 5 },
+      spotDc: null,
+      disarmDc: null,
+      unawareActorIds: []
+    }
+    const drawer = (unlit: boolean) => (
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine
+        encounter={tabletopGmEncounter}
+        holds={[]}
+        memberships={createTabletopCampaign('OWNER').memberships}
+        pending={false}
+        role='OWNER'
+        scene={tabletopLiveScene}
+        session={{
+          pendingZoneSightings: [],
+          placedZones: [unlit ? { ...oil, unlit: true as const } : oil]
+        }}
+        onCommand={onCommand}
+        onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
+      />
+    )
+    const { rerender } = renderWithAppProviders(drawer(true))
+
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    const zones = screen.getByRole('group', { name: 'Placed zones' })
+    expect(within(zones).getByText(/Poured oil · unlit/)).toBeVisible()
+    await user.click(within(zones).getByRole('button', { name: 'Ignite Poured oil' }))
+    expect(onCommand).toHaveBeenLastCalledWith({
+      type: 'IGNITE_ZONE',
+      commandId: expect.any(String),
+      encounterId: tabletopGmEncounter.id,
+      expectedVersion: tabletopGmEncounter.version,
+      spatialEffectId: zoneId
+    })
+
+    rerender(drawer(false))
+    expect(
+      within(screen.getByRole('group', { name: 'Placed zones' })).queryByRole('button', {
+        name: 'Ignite Poured oil'
+      })
+    ).toBeNull()
+  })
 })

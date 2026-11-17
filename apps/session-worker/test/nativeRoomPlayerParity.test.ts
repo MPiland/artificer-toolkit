@@ -348,6 +348,16 @@ const PARITY: Record<CommandType, Entry> = {
       spatialEffectId: SOME_ID
     })
   },
+  IGNITE_ZONE: {
+    access: 'TABLE',
+    rule: table('QUALITY-15.T3w: the GM lights a zone that waits to be lit'),
+    actorScoped: false,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'IGNITE_ZONE',
+      spatialEffectId: SOME_ID
+    })
+  },
   MORALE_SAVE: {
     access: 'TABLE',
     rule: table(

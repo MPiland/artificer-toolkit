@@ -227,7 +227,8 @@ export class RoomEncounterSessionFeed {
 
   /**
    * How the decision this player was shown ended, once it leaves `pending` (D39): the memory is the
-   * last pending decision pushed to this socket, and an answer ends it.
+   * last pending decision pushed to this socket. An answer is reported on every frame until a new
+   * decision is shown, so a client that batches frames cannot miss it.
    */
   async #settle(
     authorization: LiveSessionRoomAuthorization,
@@ -257,7 +258,6 @@ export class RoomEncounterSessionFeed {
       await this.#transaction(authorization, member, scope),
       shown
     )
-    if (outcome === 'ANSWER') this.#show(socket, subscription, null)
     return (
       outcome && {
         occurrenceId: shown.occurrenceId,

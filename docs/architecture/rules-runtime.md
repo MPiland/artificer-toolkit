@@ -222,9 +222,16 @@ modes, held for its duration by the cast's Concentration (`lastingZoneEntry`), s
 what it does (Darkness, Silence). A zone without a label or shape is refused as invalid input. (QUALITY-15.T3o) The
 corpus authors a shape for every inert SRD zone from its own text, with the existing shape kinds: Wall of Force, Ice and
 Stone as a straight `WALL` of ten 10-foot panels, Gate as a `CIRCLE`, Forbiddance and the Magnificent Mansion entrance as
-a `CYLINDER`, Mirage Arcane as a `CUBE` a mile on a side. Prismatic Wall and Oil (flask) stay refused as UNBUILT: they
-author zone fields the placement does not model (ordered layers and their destruction, proximity rule, light, placement
-surface and occupancy, ignition, application limits), and each needs room behavior, not data.
+a `CYLINDER`, Mirage Arcane as a `CUBE` a mile on a side. Prismatic Wall stays refused as UNBUILT: it authors zone fields
+the placement does not model (ordered layers and their destruction, proximity rule, light), and needs room behavior, not
+data. (QUALITY-15.T3w) Oil (flask) poured on the ground compiles: its one component burns on `ENTER_OR_PASS_THROUGH` and
+`END_TURN_IN_SPACE` with the component's `maxApplicationsPerTurn` 1 (the Run's per-turn count is keyed by zone and actor,
+so both triggers share it), and `requiresIgnition` places the zone `unlit` until the GM lights it (`IGNITE_ZONE`, below).
+Its timed duration (T3ag) has `startsAt: 'IGNITION'`: `planEncounterZoneTicks` counts nothing off an unlit zone, so the
+oil's 2 rounds run from its lighting. A zone that needs lighting and lasts Campaign minutes is refused.
+A zone that needs lighting has one component. The manifest-level `maxApplicationsPerTurn` and `placementSurfaceKind` keys
+are deleted: the per-turn limit is the component's, and a level surface is the GM's call, as for Wall of Fire. A zone
+outcome with no save deals one fixed damage row (`fixedZoneDamageGraph`) or rolls one damage dice row.
 
 **Concentration spells re-authored onto existing plans (current, QUALITY-15.T3n).** Four of the 15 now compile with
 their effect held by the cast's Concentration, through data alone: Silent Image is an inert 15-foot-cube zone, Arcane
@@ -1296,7 +1303,8 @@ turn preparation plans the same START records (`plannedSpatialEffectRecord`). Re
 rebinding its token, deletes them first. While the source is defeated its passive zones stay stored and drawn but are
 `suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
 candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
-placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
+placement. The same flag holds a zone whose `spatialState.unlit` is set (QUALITY-15.T3w): it catches no one until the GM
+lights it. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
 A Creature's passive damage trigger (SPELLS-33 T6e3a) is a PASSIVE feature Effect with `triggerCode: INCOMING_DAMAGE` and a non-empty
 `damageTypeIds`, whose single FIXED outcome is a timed self `APPLY_GRANT` (roll-mode or speed modifiers, `turnAnchor` the holder's end of
 turn). It is derived, not stored: `discoverEncounterFeatureActions` returns it as `passiveDamageGrants` (compiled by the System adapter's
@@ -1659,9 +1667,11 @@ mover.
 
 **Reveal and disarm (MOVE-3.7, current).** `REVEAL_ZONE` (GM-only, `actorIds`) adds the chosen Characters to
 `knownByActorIds` (`withZoneRevealedTo`), so they read the zone like its placer, and their sightings settle (removed). It shares `SET_ZONE_DCS`'s receipt (`before`/`after`) and its undo
-(`revertZoneDcs`, which also restores the settled sightings). `DISARM_ZONE` (GM-only) deletes a zone fixed to the Scene that no Concentration holds; its receipt keeps
+(`revertZoneState`, which also restores the settled sightings). `DISARM_ZONE` (GM-only) deletes a zone fixed to the Scene that no Concentration holds; its receipt keeps
 the whole zone (`definition`, `lifecycle`, `placement`, `spatialState`) and the GM's undo recreates it under the same id
-(`revertZoneDisarm`). The four zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
+(`revertZoneDisarm`). `IGNITE_ZONE` (GM-only, QUALITY-15.T3w) clears `unlit` from a zone placed waiting to be lit
+(`igniteZone`); a lit zone is `TARGET_UNAVAILABLE`. It shares the `before`/`after` receipt and `revertZoneState` undo, which
+puts the zone out again. The five zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
 GM-only in `placedZones`, including for a player who was shown the zone. A botched disarm is the GM's call.
 
 **Unnoticed zones (MOVE-3.6, current).** An actor not in a concealed zone's `knownByActorIds` has not noticed it.
