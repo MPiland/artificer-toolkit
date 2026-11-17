@@ -1887,7 +1887,7 @@ describe('room Animate Objects (QUALITY-15.T3x2)', () => {
       owner: { ownerActorId: CHARACTER_ACTOR_ID, count: 3 }
     })
 
-    // The objects act right after the caster, who commands them.
+    // The objects act on their own initiative.
     for (let turn = 0; turn < 8; turn += 1) {
       if ((await initiativeOrder(room)).state.currentActorId === group.actor.id) break
       await room.advanceTurn()
