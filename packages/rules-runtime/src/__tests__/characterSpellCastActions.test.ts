@@ -1771,7 +1771,25 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
     expect(compiledCastEntry(regrowing)).toBeNull()
   })
 
-  it('keeps the SRD Prismatic Wall refused until its proximity, light and placement rules are built', () => {
+  it('plans a proximity rule as a halo record that blinds a creature seeing the zone for 10 turns (QUALITY-15.T3v3, D223)', () => {
+    for (const zone of layeredZones(layeredZoneSpell(3, 10, ['START_TURN']))) {
+      expect(zone.proximityComponent).toMatchObject({
+        reach: { amount: 20, unit: 'FEET' },
+        triggerModes: [],
+        turnTriggers: ['START_OF_TURN'],
+        requiredSight: ['OCCUPANT_SEES_ZONE'],
+        // The condition the failed save applies is held for 10 of its holder's turns (one minute).
+        heldCondition: { holderTurns: 10 }
+      })
+      expect(zone.proximityComponent?.entry.compiledEntryId).not.toBe(zone.entry.compiledEntryId)
+    }
+  })
+
+  it('refuses a proximity rule met by moving within the zone until movement reads sight (QUALITY-15.T3v3b)', () => {
+    expect(compiledCastEntry(layeredZoneSpell(3, 10, ['MOVE_WITHIN', 'START_TURN']))).toBeNull()
+  })
+
+  it('keeps the SRD Prismatic Wall refused until its light and placement rules are built', () => {
     expect(compiledCastEntry(spell('Prismatic Wall'))).toBeNull()
   })
 })

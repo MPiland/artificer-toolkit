@@ -581,7 +581,7 @@ const AREA_SIZE_TOLERANCE = 1e-6
 export function evaluateEncounterZoneTarget(input: {
   zone: Pick<
     CompiledActionZonePlacement,
-    'shape' | 'ringThickness' | 'regionComponents' | 'perDistanceMoved'
+    'shape' | 'ringThickness' | 'regionComponents' | 'perDistanceMoved' | 'proximityComponent'
   >
   range: CompiledActionTargetPolicy['range']
   target: ZoneCommandTarget
@@ -600,6 +600,8 @@ export function evaluateEncounterZoneTarget(input: {
       regions: Array<{ side: SpatialWallSide; distance: number }>
       /** The zone's per-distance-moved step in Scene distance units; absent when it acts on entry. */
       distanceStep?: number
+      /** How far the zone's proximity halo reaches around it in Scene units; absent without one. */
+      proximityReach?: number
       warnings: EncounterRuleWarningDto[]
     }
   | {
@@ -627,10 +629,20 @@ export function evaluateEncounterZoneTarget(input: {
   const { perDistanceMoved } = input.zone
   const distanceStep = perDistanceMoved && lengthMeasurementInSceneUnits(perDistanceMoved, grid)
   if (distanceStep === 0) return unsupported
+  const { proximityComponent } = input.zone
+  const proximityReach =
+    proximityComponent && authoredLengthInSceneCoordinates(proximityComponent.reach, grid)
+  if (proximityReach === null) return unsupported
   const placed = (
     shape: SpatialPointAreaShape | SpatialWallAreaShape,
     warnings: EncounterRuleWarningDto[]
-  ) => ({ shape, regions, ...(distanceStep ? { distanceStep } : {}), warnings })
+  ) => ({
+    shape,
+    regions,
+    ...(distanceStep ? { distanceStep } : {}),
+    ...(proximityReach ? { proximityReach } : {}),
+    warnings
+  })
   const { sourceToken } = input
   if (aim?.kind === 'CASTER_CENTERED' && target.kind === 'CASTER_CENTERED') {
     if (!sourceToken) return unsupported

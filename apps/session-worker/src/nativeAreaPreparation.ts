@@ -448,6 +448,7 @@ export async function prepareAreaScene(
           shape: area.shape,
           regions: 'regions' in area ? area.regions : [],
           distanceStep: 'distanceStep' in area ? area.distanceStep : undefined,
+          proximityReach: 'proximityReach' in area ? area.proximityReach : undefined,
           sourceToken: scene.sourceToken ?? null,
           unaffectedActorIds
         }
