@@ -2270,3 +2270,9 @@ QUALITY-15.T3v's seam trace found that Prismatic Wall's ordered layers cannot be
 - **Ruling (user, 2026-11-16):** Planar Ally goes on the D198 description-only list. The GM picks the celestial, elemental or fiend, places it with the existing GM tools and runs the bargain; the creature is under no compulsion, so nothing is automated.
 - **Found by:** QUALITY-15.T3aa.
 - **Tracking:** `docs/roadmap/future-enhancements.md`, Deferred rules pieces.
+
+## D226 (2026-11-17): Delayed Blast Fireball's bead is a placed zone; detonation is a GM ruling
+
+- **Ruling (user, 2026-11-17):** The bead is an inert 20 ft sphere zone placed at the chosen point and held by Concentration. Detonation when the spell ends, the 1d6 growth at the end of each of the caster's turns, and early detonation when the bead is touched or thrown stay GM rulings ("Detonate the Bead").
+- **Found by:** QUALITY-15.T3y; built by QUALITY-15.T3y4 (m859).
+- **Tracking:** `docs/roadmap/future-enhancements.md`, armed or staged zones (an end-of-zone burst trigger, a per-zone turn counter and a touch interaction if ever automated).
