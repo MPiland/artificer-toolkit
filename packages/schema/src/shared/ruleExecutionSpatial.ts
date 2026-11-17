@@ -474,6 +474,8 @@ export const compareSpatialPendingCandidates = (
 ): number => {
   const keys = [
     left.candidate.pathDistance - right.candidate.pathDistance,
+    // A layered zone's layers met at one point settle in their order (D223).
+    (left.candidate.layerIndex ?? 0) - (right.candidate.layerIndex ?? 0),
     left.candidate.effectId.localeCompare(right.candidate.effectId),
     left.candidate.targetActorId.localeCompare(right.candidate.targetActorId),
     left.candidate.trigger.localeCompare(right.candidate.trigger),
