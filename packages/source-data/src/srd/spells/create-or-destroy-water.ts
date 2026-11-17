@@ -6,6 +6,9 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALABLE_SCALING_KIND,
+  SCALING_SOURCE,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -47,6 +50,26 @@ export const createOrDestroyWater: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        },
+        // A 30-foot cube within range, 5 feet larger for each slot level above 1st (SRD 5.1, Create
+        // or Destroy Water).
+        shape: {
+          id: spellChildId(SPELL_IDS.CREATE_OR_DESTROY_WATER, 0x214, 1),
+          shapeKind: SHAPE_KIND.CUBE,
+          edgeLength: {
+            amount: 30,
+            unit: MEASUREMENT_UNIT_CODE.FEET,
+            scaling: {
+              scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+              scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+              breakpoints: Array.from({ length: 8 }, (_, index) => ({
+                id: spellChildId(SPELL_IDS.CREATE_OR_DESTROY_WATER, 0x215, index + 1),
+                level: index + 2,
+                order: index + 1,
+                value: { amount: 35 + index * 5, unit: MEASUREMENT_UNIT_CODE.FEET }
+              }))
+            }
+          }
         }
       },
       paths: [

@@ -9,6 +9,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.FLASK],
   attributes: [S.EQUIPMENT_ATTRIBUTE.CONSUMED_ON_USE],
+  modifiers: S.improvisedRangedAttackAbilityModifiers(S.equipId(120)),
   effects: [
     {
       id: S.equipmentChildId(S.equipId(120), 0x210, 1),

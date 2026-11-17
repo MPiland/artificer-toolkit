@@ -372,6 +372,7 @@ export async function settleAreaCommit(args: {
                   }),
             cannotAttack: summon.placement.cannotAttack,
             turnTiming: summon.placement.turnTiming,
+            turnsHostileOnRelease: summon.placement.turnsHostileOnRelease,
             caster,
             casterHitPointMaximum: casterTarget.effectiveMaximumHitPoints,
             label: summonLabel,

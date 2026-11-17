@@ -49,6 +49,7 @@ const EACH_TURN_END = { lifecycle: { recurringKind: 'END_OF_TURN' } }
 /** No plan the compiler builds holds the action: the aspect's own plans decide. */
 const NO_COMPILER_PLAN: Dnd5eLifetimeCandidates = {
   sequential: () => null,
+  attachedObject: () => null,
   repeatSave: () => null,
   timed: () => null,
   relationship: () => null

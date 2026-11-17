@@ -16,8 +16,8 @@ const SUMMON_TURN_TIMING_OPTIONS = [
  * The fields only a MANIFEST / CREATURE outcome has (D130, D191): the forms it offers, which
  * Creatures qualify, and what the wearer keeps of its own (excess damage, ability scores,
  * proficiencies). A MANIFEST / SUMMON outcome may offer forms too, and the Creature Types the caster
- * picks one of for the summoned form (SPELLS-34.T3a), and may say its creature cannot attack and
- * when it takes its turn (D200).
+ * picks one of for the summoned form (SPELLS-34.T3a), and may say its creature cannot attack, when
+ * it takes its turn (D200) and whether it turns hostile when the effect holding it ends.
  */
 export function registerCreatureFormOutcomeFields(
   map: OutcomeNodeMapApi['map'],
@@ -67,6 +67,12 @@ export function registerCreatureFormOutcomeFields(
         { kind: 'INLINE_OPTIONS', options: SUMMON_TURN_TIMING_OPTIONS },
         { showIf: manifestsSummon }
       )
+    )
+    .set(
+      'turnsHostileOnRelease',
+      toggle(['turnsHostileOnRelease'], 'Turns Hostile When Released', {
+        showIf: manifestsSummon
+      })
     )
     .set(
       'formFilter',
