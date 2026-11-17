@@ -705,6 +705,7 @@ Found by SPELLS-4.T2h on 2026-10-22; post-launch.
 - **Zone moves (QUALITY-15.T3y8):** a zone move has no distance fence on a gridless Scene, and a zone's sceneId is not checked against the binding Scene. Fix if seen: a gridless distance measure and a sceneId check in the MOVE_ZONE plan.
 - **Summon forms (QUALITY-15.T3x2):** a summon form carries speeds but not its own defenses or senses. Fix if seen: form defenses and senses on the summon stat block.
 - **Zone light before ignition (QUALITY-15.T3v4):** a zone that requires ignition and authors light would shed it before it is lit; no SRD zone authors both today. Fix if seen: gate the zone light on its ignited state.
+- **Prismatic Wall whole-zone destruction (QUALITY-15.T3v7):** the manifest's own `destructionCriteria` (rod of cancellation) is accepted but not evaluated or shown to the GM; the GM removes each layer record with `DISARM_ZONE`. Fix if seen: a zone-wide criteria list on the layer records' `placement.destruction` and one command that removes every record of the zone.
 - **Resilient Sphere (QUALITY-15.T3y6a):** attacks and effects through the barrier, the enclosed creature rolling the sphere, others moving the globe, and Disintegrate ending it stay GM rulings; movement blocking is QUALITY-15.T3y6b.
 
 ## Deferred rules pieces (D187a, 2026-10-23)

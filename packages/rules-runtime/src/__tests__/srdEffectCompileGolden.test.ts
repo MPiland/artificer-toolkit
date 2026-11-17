@@ -372,7 +372,6 @@ const REFUSAL_CLASSES: Readonly<Record<string, 'GAME_RULE' | 'INVALID_INPUT' | '
   'D&D bonus healing requires one exact resolved amount.': 'INVALID_INPUT',
   'D&D subtract-from-triggering-roll action requires one exact resolved die.': 'INVALID_INPUT',
 
-  'A placed zone models only its label, shape and entering components.': 'UNBUILT',
   // Rows whose maintained effect has no plan type yet (QUALITY-15.T3n): Animate Objects (animated
   // objects with no stat block), Clairvoyance (a stationary sensor), Dancing Lights (lights with no
   // summon light or count) and Call Lightning (a repeat bolt each turn).
