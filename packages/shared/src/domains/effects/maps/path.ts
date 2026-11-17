@@ -20,6 +20,7 @@ import type {
   ResultBlockAuthored,
   DegradeEquipmentDestroyWhenAuthored,
   ScalarReductionAuthored,
+  SummonAttackAuthored,
   SummonStatBlockAuthored,
   TelepathicLinkAbilityFloorAuthored
 } from '#authored'
@@ -195,6 +196,7 @@ const applyGrants = buildNodeMap<ApplyGrantsNode>()
 const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
 const telepathicLinkAbilityFloor = buildNodeMap<TelepathicLinkAbilityFloorAuthored>()
 const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
+const summonAttack = buildNodeMap<SummonAttackAuthored>()
 const outcome = buildNodeMap<OutcomeNode>()
 const nonManifestOutcome = buildNodeMap<NonManifestOutcomeNode>()
 const outcomeBreakpoint = buildNodeMap<OutcomeBreakpointNode>()
@@ -468,6 +470,37 @@ const SUMMON_ABILITY_SCORES_NODE_MAP: NodeMap<SummonAbilityScoresNode> =
     }
   })
 
+const SUMMON_ATTACK_NODE_MAP: NodeMap<SummonAttackAuthored> = summonAttack.define(
+  'summonAttack',
+  ({ map, nodes, data }) => {
+    const { text, number, selectSingle } = nodes
+    const { table } = data
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order', { requiredIf: true }))
+      .set('label', text(['label'], 'Label', { requiredIf: true }))
+      .set('attackBonus', number(['attackBonus'], 'Attack Bonus', { requiredIf: true }))
+      .set(
+        'reachFeet',
+        number(['reachFeet'], 'Reach (feet)', { constraints: { minimum: 1 }, requiredIf: true })
+      )
+      .set(
+        'damageTypeId',
+        selectSingle(
+          ['damageTypeId'],
+          'Damage Type',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+          },
+          { requiredIf: true }
+        )
+      )
+      .set('diceConfig', text(['diceConfig'], 'Damage Dice', { requiredIf: true }))
+  }
+)
+
 const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatBlock.define(
   'summonStatBlock',
   ({ map, nodes, data }) => {
@@ -475,6 +508,19 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
     const { table } = data
 
     map
+      .set(
+        'creatureTypeId',
+        selectSingle(['creatureTypeId'], 'Creature Type', {
+          kind: 'DATA',
+          relationship: table('creature_types', { selectColumns: ['id', 'label', 'description'] })
+        })
+      )
+      .set(
+        'attacks',
+        groupArray(['attacks'], 'Attacks', () => SUMMON_ATTACK_NODE_MAP, {
+          presentation: 'summary'
+        })
+      )
       .set(
         'size',
         selectSingle(['size'], 'Size', {
@@ -1591,7 +1637,7 @@ function registerOutcomeFields(
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
       )
     )
-  registerCreatureFormOutcomeFields(map, nodes, cond, logic, data)
+  registerCreatureFormOutcomeFields(map, nodes, cond, logic, data, () => SUMMON_STAT_BLOCK_NODE_MAP)
   // FieldHandle is contravariant in the node type, so the outcome `cond` cannot pass as the forced-movement one.
   registerForcedMovementOutcomeFields(map, nodes, cond as unknown as ForcedMovementCond, logic)
   map

@@ -42,6 +42,7 @@ import { findFamiliar } from '@artificer-toolkit/source-data/srd/spells/find-fam
 import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { animateObjects } from '@artificer-toolkit/source-data/srd/spells/animate-objects.js'
 import { conjureAnimals } from '@artificer-toolkit/source-data/srd/spells/conjure-animals.js'
 import { conjureFey } from '@artificer-toolkit/source-data/srd/spells/conjure-fey.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
@@ -1826,6 +1827,89 @@ describe('room multi-creature Conjure (SPELLS-35.T7)', () => {
     const attack = await biteOnce(room, group.actor.id, turn.biteAction.id)
     expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
     expect(await turn.open()).toMatchObject({ made: 1, total: 32 })
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3x2: Animate Objects authors each size as a summon form with its own stat block and
+ * Slam, so a cast places the objects of the size the caster picked, as one group with its own pool,
+ * and each makes its slam through the same creature attack offer any creature does.
+ */
+describe('room Animate Objects (QUALITY-15.T3x2)', () => {
+  const forms = (() => {
+    const outcome = animateObjects.effects
+      ?.flatMap((effect) => effect.paths)
+      .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
+      .find(
+        (candidate) => candidate.effectKind === 'MANIFEST' && candidate.manifestKind === 'SUMMON'
+      )
+    return outcome?.effectKind === 'MANIFEST' ? (outcome.forms ?? []) : []
+  })()
+  const mediumForm = forms.find(({ label }) => label === 'Medium objects')
+  const hugeForm = forms.find(({ label }) => label === 'Huge objects')
+  if (!mediumForm?.statBlock?.hitPoints || !hugeForm)
+    throw new Error('Animate Objects must offer a Medium and a Huge form.')
+  const POINT = { x: 150, y: 250 }
+  const OGRE_ID = testUuid(0xa37)
+  const objectsRoom = () =>
+    actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [18, ...Array.from({ length: 30 }, (_, index) => (index % 2 === 0 ? 14 : 1))],
+      fallbackRoll: 0,
+      actors: [
+        casterActor(),
+        srdCreatureActor({ id: OGRE_ID, creature: seededSrdCreature('Ogre') })
+      ],
+      characterPlay: { classLevel: 9 },
+      characterSpellcasting: { spells: [animateObjects], prepared: [animateObjects.id] },
+      characterAction: (action) => action.label.startsWith(animateObjects.label),
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
+    })
+
+  it('places the chosen size as one group with its own pool, which attacks with its Slam once per object', async () => {
+    const room = await objectsRoom()
+    const group = await castSummon(room, POINT, { formId: mediumForm.id, count: 3 })
+    expect(await conjured(room)).toHaveLength(1)
+    expect(group.actor).toMatchObject({
+      kind: 'CREATURE',
+      sourceId: mediumForm.id,
+      maxHitPoints: 3 * 40,
+      currentHitPoints: 3 * 40,
+      owner: { ownerActorId: CHARACTER_ACTOR_ID, count: 3 }
+    })
+
+    for (let turn = 0; turn < 8; turn += 1) {
+      if ((await initiativeOrder(room)).state.currentActorId === group.actor.id) break
+      await room.advanceTurn()
+    }
+    const slam = (await room.actionChoices(group.actor.id)).actions.find(
+      ({ label }) => label === 'Slam'
+    )
+    if (!slam) throw new Error('The group offers no Slam.')
+    for (const made of [1, 2, 3]) {
+      const attack = await room.startAction(OGRE_ID, RANGE, null, null, slam.id, group.actor.id)
+      expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+      expect((await room.actionChoices(group.actor.id)).openAttackAction).toMatchObject({
+        made,
+        total: 3
+      })
+    }
+  }, 120000)
+
+  it('refuses more objects than the size allows, and a cast with no size', async () => {
+    const room = await objectsRoom()
+    const refusedWith = async (picks: { formId?: string; count?: number }) => {
+      const { answer } = await room.startAreaCommand({ kind: 'POINT', point: POINT, ...picks })
+      expect(answer.type).toBe('COMMAND_REJECTED')
+      return JSON.stringify(answer)
+    }
+    expect(await refusedWith({ formId: hugeForm.id, count: 2 })).toContain('conjured one at a time')
+    expect(await refusedWith({ formId: mediumForm.id, count: 6 })).toContain('conjured 5 at most')
+    expect(await refusedWith({})).toContain('needs one of its creature forms')
+    expect(await conjured(room)).toEqual([])
   }, 120000)
 })
 

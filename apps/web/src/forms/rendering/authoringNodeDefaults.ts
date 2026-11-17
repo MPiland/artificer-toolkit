@@ -136,6 +136,7 @@ import type {
   SpeedAuthored,
   SpellGrantAuthored,
   SpellSlotExchangeAuthored,
+  SummonAttackAuthored,
   SummonStatBlockAuthored,
   TargetingAuthored,
   TargetRequirementAuthored,
@@ -989,6 +990,16 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       } satisfies StartingEquipmentSetDto
     case 'string':
       return { value: '' }
+    case 'summonAttack':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        label: '',
+        attackBonus: 0,
+        reachFeet: 5,
+        damageTypeId: '',
+        diceConfig: ''
+      } satisfies SummonAttackAuthored
     case 'summonStatBlock':
       return {} satisfies SummonStatBlockAuthored
     case 'targetCount':

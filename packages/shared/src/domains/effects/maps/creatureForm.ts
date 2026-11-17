@@ -1,14 +1,26 @@
-import type { ManifestCreatureFormAuthored, ManifestCreatureFormFilterAuthored } from '#authored'
+import type {
+  ManifestCreatureFormAuthored,
+  ManifestCreatureFormFilterAuthored,
+  SummonStatBlockAuthored
+} from '#authored'
 import { buildNodeMap, type NodeMap } from '#utils'
 import { createBreakpointScalingNodeMap } from '../../shared/maps/index.js'
 
 const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
 const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthored>()
 
-export const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthored> =
-  manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, data }) => {
-    const { text, number, selectSingle } = nodes
+/**
+ * One form of a creature outcome: a System Creature, or for a summon its own authored stat block
+ * (`statBlockNodeMap`, which `path.ts` owns); exactly one of the two.
+ */
+export function createManifestCreatureFormNodeMap(
+  statBlockNodeMap: () => NodeMap<SummonStatBlockAuthored>
+): NodeMap<ManifestCreatureFormAuthored> {
+  return manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, cond, data }) => {
+    const { text, number, selectSingle, groupObject } = nodes
+    const local = cond.local()
     const { table } = data
+    const lacksStatBlock = local.field(['statBlock']).empty()
 
     map
       .set('id', text(['id'], 'ID'))
@@ -23,8 +35,12 @@ export const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthor
             kind: 'DATA',
             relationship: table('creatures', { selectColumns: ['id', 'label'] })
           },
-          { requiredIf: true }
+          { requiredIf: lacksStatBlock }
         )
+      )
+      .set(
+        'statBlock',
+        groupObject(['statBlock'], 'Stat Block', statBlockNodeMap, { presentation: 'inline' })
       )
       .set(
         'maxTargets',
@@ -34,6 +50,7 @@ export const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthor
         })
       )
   })
+}
 
 type CreatureFormFilterScaledCapAuthored = {
   maxChallengeRatingId: string

@@ -41,7 +41,13 @@ export function creatureFormPlan(
     retainedAbilityIds.some((abilityId) => !UUID.test(abilityId)) ||
     !UUID.test(entry.entryId) ||
     !UUID.test(outcome.id) ||
-    forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId)) ||
+    forms.some(
+      ({ id, creatureId, statBlock }) =>
+        !UUID.test(id) ||
+        statBlock !== undefined ||
+        creatureId === undefined ||
+        !UUID.test(creatureId)
+    ) ||
     filter === undefined
   )
     return null
@@ -61,7 +67,9 @@ export function creatureFormPlan(
       endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
       forms: [...forms]
         .sort((a, b) => a.order - b.order)
-        .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets })),
+        .flatMap(({ id, label, creatureId, maxTargets }) =>
+          creatureId === undefined ? [] : [{ id, label, creatureId, maxTargets }]
+        ),
       filter,
       initialRemainingScaling: duration.scaling
     },

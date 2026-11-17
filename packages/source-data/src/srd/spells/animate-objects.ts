@@ -7,6 +7,7 @@ import {
   EFFECT_KIND,
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
+  NUMERIC_EXPR_CODE,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
@@ -17,7 +18,86 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SIZE_CODE } from '../sizes.js'
+import { SRD_SPEEDS } from '../vocabulary.js'
+import {
+  creatureTypeId,
+  damageTypeId,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
+
+const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
+if (!walkSpeedId)
+  throw new Error('SRD WALK speed vocabulary entry is required for Animate Objects source data.')
+
+const fixed = (value: number) => ({ kind: NUMERIC_EXPR_CODE.FIXED, value })
+
+/**
+ * The Animated Object table: each size's animated count and stat block. Armor class is the one the
+ * table prints; the rest of the creature (Constitution 10, Intelligence 3, Wisdom 3, Charisma 1, a
+ * 30-foot speed) is common to every size.
+ */
+const ANIMATED_OBJECT_SIZES = [
+  {
+    label: 'Tiny',
+    size: SIZE_CODE.TINY,
+    count: 10,
+    hitPoints: 20,
+    armorClass: 18,
+    strength: 4,
+    dexterity: 18,
+    attackBonus: 8,
+    damage: '1d4+4'
+  },
+  {
+    label: 'Small',
+    size: SIZE_CODE.SMALL,
+    count: 10,
+    hitPoints: 25,
+    armorClass: 16,
+    strength: 6,
+    dexterity: 14,
+    attackBonus: 6,
+    damage: '1d8+2'
+  },
+  {
+    label: 'Medium',
+    size: SIZE_CODE.MEDIUM,
+    count: 5,
+    hitPoints: 40,
+    armorClass: 13,
+    strength: 10,
+    dexterity: 12,
+    attackBonus: 5,
+    damage: '2d6+1'
+  },
+  {
+    label: 'Large',
+    size: SIZE_CODE.LARGE,
+    count: 2,
+    hitPoints: 50,
+    armorClass: 10,
+    strength: 14,
+    dexterity: 10,
+    attackBonus: 6,
+    damage: '2d10+2'
+  },
+  {
+    label: 'Huge',
+    size: SIZE_CODE.HUGE,
+    count: 1,
+    hitPoints: 80,
+    armorClass: 10,
+    strength: 18,
+    dexterity: 6,
+    attackBonus: 8,
+    damage: '2d12+4'
+  }
+] as const
+
 export const animateObjects: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.ANIMATE_OBJECTS,
@@ -72,7 +152,43 @@ export const animateObjects: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.ANIMATE_OBJECTS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.SUMMON,
+                // The caster picks one size and how many of its objects to animate (at most as many
+                // as the spell's table allows), each standing in the object's own stat block.
+                forms: ANIMATED_OBJECT_SIZES.map((entry, index) => ({
+                  id: spellChildId(SPELL_IDS.ANIMATE_OBJECTS, 0x214, index + 1),
+                  order: index + 1,
+                  label: `${entry.label} objects`,
+                  maxTargets: entry.count,
+                  statBlock: {
+                    creatureTypeId: creatureTypeId('CONSTRUCT'),
+                    size: entry.size,
+                    armorClass: fixed(entry.armorClass),
+                    hitPoints: fixed(entry.hitPoints),
+                    speeds: [
+                      { speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
+                    ],
+                    abilityScores: {
+                      STRENGTH: fixed(entry.strength),
+                      DEXTERITY: fixed(entry.dexterity),
+                      CONSTITUTION: fixed(10),
+                      INTELLIGENCE: fixed(3),
+                      WISDOM: fixed(3),
+                      CHARISMA: fixed(1)
+                    },
+                    attacks: [
+                      {
+                        id: spellChildId(SPELL_IDS.ANIMATE_OBJECTS, 0x215, index + 1),
+                        order: 1,
+                        label: 'Slam',
+                        attackBonus: entry.attackBonus,
+                        reachFeet: 5,
+                        damageTypeId: damageTypeId('BLUDGEONING'),
+                        diceConfig: entry.damage
+                      }
+                    ]
+                  }
+                }))
               }
             ]
           }

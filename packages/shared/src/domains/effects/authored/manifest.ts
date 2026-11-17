@@ -235,8 +235,27 @@ export type ManifestProximityRuleAuthored = {
   behavior: ManifestBehaviorAuthored
 }
 
+/**
+ * A melee attack a summoned creature makes with its action: one target within `reachFeet`, rolled
+ * as `attackBonus` against armor class, dealing `diceConfig` damage of `damageTypeId` on a hit.
+ */
+export type SummonAttackAuthored = {
+  id: string
+  order: number
+  label: string
+  attackBonus: number
+  reachFeet: number
+  damageTypeId: string
+  /** The damage dice and flat bonus, such as `2d6+1`. */
+  diceConfig: string
+}
+
 export type SummonStatBlockAuthored = {
+  /** The Creature Type a form's creature has; a stat block form needs one. */
+  creatureTypeId?: string
   size?: string
+  /** What the creature may do: a form summon's creature attacks through its Creature actions. */
+  attacks?: SummonAttackAuthored[]
   armorClass?: NumericExpr
   armorClassNote?: string
   hitPoints?: NumericExpr
@@ -268,7 +287,10 @@ export type ManifestCreatureFormAuthored = {
   id: string
   order: number
   label: string
-  creatureId: string
+  /** The System Creature the form becomes; a summon form may author `statBlock` instead. */
+  creatureId?: string
+  /** The creature the form conjures from its own stat block, where no System Creature exists. */
+  statBlock?: SummonStatBlockAuthored
   maxTargets: number
 }
 
