@@ -17,7 +17,9 @@ import { catchEncounterAreaActorIds } from '../encounterAreaActionExecution.js'
 import {
   compileEncounterPointArea,
   encounterActionChoiceTarget,
-  encounterActionTargetKind
+  encounterActionTargetKind,
+  evaluateEncounterAreaTargetPolicy,
+  evaluateEncounterCasterCenteredAreaTarget
 } from '../encounterAreaAction.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
@@ -181,7 +183,7 @@ describe('directed area action compilation', () => {
 
   it.each<[string, NonNullable<Invocation['shape']>]>([
     [
-      'a scaled cone',
+      'a cone scaled by Character level',
       {
         id: 's',
         shapeKind: 'CONE',
@@ -189,7 +191,7 @@ describe('directed area action compilation', () => {
           ...feet(15),
           scaling: {
             scalingKind: 'BREAKPOINTS',
-            scalingSource: 'SPELL_CAST_LEVEL',
+            scalingSource: 'CHARACTER_LEVEL',
             breakpoints: [{ id: 'b', level: 4, order: 1, value: feet(30) }]
           }
         }
@@ -197,7 +199,7 @@ describe('directed area action compilation', () => {
     ],
     ['a line of no width', { id: 's', shapeKind: 'LINE', length: feet(100), width: feet(0) }],
     [
-      'a line with a scaled width',
+      'a line with a width scaled by Character level',
       {
         id: 's',
         shapeKind: 'LINE',
@@ -206,7 +208,7 @@ describe('directed area action compilation', () => {
           ...feet(5),
           scaling: {
             scalingKind: 'BREAKPOINTS',
-            scalingSource: 'SPELL_CAST_LEVEL',
+            scalingSource: 'CHARACTER_LEVEL',
             breakpoints: [{ id: 'b', level: 4, order: 1, value: feet(10) }]
           }
         }
@@ -215,9 +217,32 @@ describe('directed area action compilation', () => {
     ['a self wall', { id: 's', shapeKind: 'WALL', length: feet(60), height: feet(20) }],
     ['a self dome', { id: 's', shapeKind: 'DOME', radius: feet(10) }]
   ])('still refuses %s', (_name, shape) => {
+    // Only the spell's cast level resolves an area's size at the cast (QUALITY-15.T3ac).
     expect(() => compile({ range: SELF, shape })).toThrow(
       CharacterRuleActionUnsupportedCompilationError
     )
+  })
+
+  it('aims a cone scaled by the cast level at the length it is at the cast', () => {
+    const shape: NonNullable<Invocation['shape']> = {
+      id: 's',
+      shapeKind: 'CONE',
+      length: {
+        ...feet(15),
+        scaling: {
+          scalingKind: 'BREAKPOINTS',
+          scalingSource: 'SPELL_CAST_LEVEL',
+          breakpoints: [{ id: 'b', level: 4, order: 1, value: feet(30) }]
+        }
+      }
+    }
+    const at = (level: number) =>
+      buildCompiledActionTargetPolicy(compile({ range: SELF, shape }, FIREBALL, level).action)
+    expect(at(3).shape).toEqual({ id: 's', shapeKind: 'CONE', length: feet(15) })
+    expect(encounterActionChoiceTarget(at(4))).toMatchObject({
+      kind: 'DIRECTED',
+      area: { kind: 'CONE', length: feet(30) }
+    })
   })
 })
 
@@ -551,8 +576,9 @@ describe('area action compilation refusals', () => {
     ['a wall', { shape: { id: 's', shapeKind: 'WALL', length: feet(60), height: feet(20) } }],
     ['a dome', { shape: { id: 's', shapeKind: 'DOME', radius: feet(10) } }],
     ['a touch range', { range: { id: 'r', rangeKind: 'TOUCH' } }],
+    // Only the spell's cast level resolves an area's size at the cast (QUALITY-15.T3ac).
     [
-      'a scaled radius',
+      'a radius scaled by Character level',
       {
         shape: {
           id: 's',
@@ -561,7 +587,7 @@ describe('area action compilation refusals', () => {
             ...feet(20),
             scaling: {
               scalingKind: 'BREAKPOINTS',
-              scalingSource: 'SPELL_CAST_LEVEL',
+              scalingSource: 'CHARACTER_LEVEL',
               breakpoints: [{ id: 'b', level: 4, order: 1, value: feet(25) }]
             }
           }
@@ -831,7 +857,11 @@ describe('area ruling compilation from the SRD (QUALITY-15.T3m)', () => {
     ['Creation', 'POINT'],
     ['Detect Magic', 'CASTER_CENTERED'],
     ['Detect Poison and Disease', 'CASTER_CENTERED'],
-    ['Speak with Plants', 'CASTER_CENTERED']
+    ['Speak with Plants', 'CASTER_CENTERED'],
+    // QUALITY-15.T3ac: a Sight range, a Self radius and a size scaled by the slot level.
+    ['Storm of Vengeance', 'POINT'],
+    ['Control Weather', 'CASTER_CENTERED'],
+    ['Create or Destroy Water', 'POINT']
   ] as const)('compiles %s to a GM ruling over the %s area it catches', (label, targetKind) => {
     const effect = spellEffect(label)
     const { action, plan } = compile({}, effect)
@@ -842,12 +872,65 @@ describe('area ruling compilation from the SRD (QUALITY-15.T3m)', () => {
     expect(encounterActionTargetKind(policy)).toBe(targetKind)
   })
 
+  it('places the Storm of Vengeance cloud at any point its caster sees, however far', () => {
+    const policy = buildCompiledActionTargetPolicy(
+      compile({}, spellEffect('Storm of Vengeance')).action
+    )
+    const place = (pointSeen: boolean) =>
+      evaluateEncounterAreaTargetPolicy({
+        targetPolicy: policy,
+        point: { x: 100_000, y: 0 },
+        grid: FEET_GRID,
+        sourceToken: { position: { x: 0, y: 0 }, width: 100, height: 100, rotationDegrees: 0 },
+        pointSeen
+      })
+    // 360 feet is 72 cells of 100px.
+    expect(place(true)).toEqual({ shape: { kind: 'RADIUS', radius: 7200 }, warnings: [] })
+    expect(place(false)?.warnings.map(({ code }) => code)).toEqual(['TARGET_OUT_OF_SIGHT'])
+  })
+
+  it('centers Control Weather on its caster, 5 miles around', () => {
+    const policy = buildCompiledActionTargetPolicy(
+      compile({}, spellEffect('Control Weather')).action
+    )
+    const area = evaluateEncounterCasterCenteredAreaTarget({
+      targetPolicy: policy,
+      grid: FEET_GRID,
+      sourceToken: { position: { x: 0, y: 0 }, width: 100, height: 100 }
+    })
+    // 5 miles is 26,400 feet: 5,280 cells of 100px.
+    expect(area).toEqual({ shape: { kind: 'RADIUS', radius: 528_000 }, warnings: [] })
+  })
+
+  it.each([
+    [1, 30],
+    [2, 35],
+    [5, 50],
+    [9, 70]
+  ])('sizes the Create or Destroy Water cube at slot level %i: %i feet', (level, edge) => {
+    const effect = spellEffect('Create or Destroy Water')
+    const policy = buildCompiledActionTargetPolicy(compile({}, effect, level).action)
+    expect(policy.shape).toEqual({
+      id: effect.invocation.shape?.id,
+      shapeKind: 'CUBE',
+      edgeLength: feet(edge)
+    })
+    expect(compileEncounterPointArea(policy, FEET_GRID)).toEqual({
+      kind: 'CUBE',
+      edgeLength: (edge / 5) * FEET_GRID.cellSize
+    })
+  })
+
   // Each area row that stays refused, with why it stays refused.
   it.each([
-    // A Sight range bounds no distance an area may be placed within.
-    ['Storm of Vengeance', "D&D area outside its user's own space must name its shape."],
-    // A passage of a size the caster picks fits no shape kind.
-    ['Passwall', "D&D area outside its user's own space must name its shape."],
+    // A passage aimed into a surface from a point within range is a line placed away from its
+    // caster: the room aims a line only from its caster.
+    ['Passwall', 'D&D area shape is not one its range places.'],
+    // The warded area is "shaped as you desire": the SRD gives it no shape.
+    ['Guards and Wards', "D&D area outside its user's own space must name its shape."],
+    // The traps sensed "within range" are around the caster, but a distance range places a round
+    // area at a point: no authored shape is centered on its caster with a distance range.
+    ['Find Traps', "D&D area outside its user's own space must name its shape."],
     // A summoned or created creature is a summon, not a ruling on the creatures an area catches.
     ['Planar Ally', "D&D area outside its user's own space must name its shape."],
     ['Create Undead', "D&D area outside its user's own space must name its shape."]

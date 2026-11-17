@@ -9,6 +9,7 @@ export const acidVial: EquipmentAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.VIAL],
   attributes: [S.EQUIPMENT_ATTRIBUTE.CONSUMED_ON_USE],
+  modifiers: S.improvisedRangedAttackAbilityModifiers(S.equipId(119)),
   effects: [
     {
       id: S.equipmentChildId(S.equipId(119), 0x210, 1),

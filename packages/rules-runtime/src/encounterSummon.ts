@@ -68,6 +68,8 @@ export function buildEncounterSummon(input: {
   cannotAttack?: boolean
   /** When the creature acts, if apart from its owner's turn (D200). */
   turnTiming?: NonNullable<EncounterRunActorState['owner']>['turnTiming']
+  /** The creature turns hostile instead of leaving when its carrier ends. */
+  turnsHostileOnRelease?: boolean
   caster: EncounterRunActorState
   /** The caster's effective hit point maximum: a Character's from its Sheet, others' from the Run. */
   casterHitPointMaximum: number
@@ -85,6 +87,7 @@ export function buildEncounterSummon(input: {
     spellSummon,
     cannotAttack,
     turnTiming,
+    turnsHostileOnRelease,
     caster,
     casterHitPointMaximum,
     label,
@@ -137,6 +140,7 @@ export function buildEncounterSummon(input: {
       ownerActorId: caster.id,
       sourceEffectId,
       ...(turnTiming ? { turnTiming } : {}),
+      ...(turnsHostileOnRelease ? { turnsHostileOnRelease: true } : {}),
       ...(summon.kind === 'CREATURE' && summon.count ? { count: summon.count } : {})
     },
     snapshot: {

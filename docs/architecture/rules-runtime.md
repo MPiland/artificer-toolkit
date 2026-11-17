@@ -237,10 +237,22 @@ outcome with no save deals one fixed damage row (`fixedZoneDamageGraph`) or roll
 their effect held by the cast's Concentration, through data alone: Silent Image is an inert 15-foot-cube zone, Arcane
 Eye a stat-block summon (Tiny, flying, invisible, invulnerable, taking no space), Conjure Celestial a form summon on its
 own initiative (Couatl or Pegasus; the 9th-level challenge rating 5 is not offered), and Calm Emotions a Charisma save
-over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. The other 11 stay refused (UNBUILT,
-cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary
-sensor, summoned lights, a creature that stays hostile after Concentration breaks, an Armor Class floor, tree travel, a
-repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to its target).
+over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. Of the other 11, Conjure Elemental
+and Conjure Fey now compile (below, QUALITY-15.T3x); nine stay refused (UNBUILT, cited in the golden's
+`REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary sensor, summoned lights,
+an Armor Class floor, tree travel, a repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to
+its target).
+
+**A summon that turns hostile when released (current, QUALITY-15.T3x).** A form summon on its own initiative, of one
+creature a form, may author `turnsHostileOnRelease`; the compiler refuses it on any other summon. The plan carries it
+onto the summoned actor's `owner`. When the carrier ends (Concentration breaks or ends, dispel, expiry), the sweep in
+`endOrphanedConjuredActors` does not remove that creature: it drops the `owner` (so control falls back to the GM and
+the creature leaves its caster's Sheet Extras), flips its disposition (`HOSTILE` becomes `FRIENDLY`, anything else
+`HOSTILE`), keeps its token and initiative place, and records the `SUMMONS_ENDED` command as "Summon released" with
+`releasedActorIds`. Conjure Elemental (13 SRD elementals of challenge rating 5 or lower) and Conjure Fey (6 fey and 90
+beasts of challenge rating 6 or lower, all fey) use it. GM rulings: which elemental suits the chosen area, the released
+creature's 1-hour limit, and the higher slots' challenge rating. A carrier that lapses at its full hour also releases
+rather than removes the creature.
 
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
@@ -3976,6 +3988,22 @@ kind, and a lit one attached to the source, primary target or touched object she
 capture each read the actor's effects in their own transaction, so the light starts with the effect and ends with its
 duration, dispel or undo; the vision-revision triggers on effect writes already refresh the Scene cache. The compiler names no spell; any `MANIFEST` / `OBJECT` with these fields compiles the same way.
 
+**Attached objects that deal damage (QUALITY-15.T3t2).** A test whose result path authors one `MANIFEST` / `OBJECT`
+attached to the `PRIMARY_TARGET` (no duration, lifecycle, shape or light) with one component naming one holder turn
+boundary and one behavior that rolls one dice damage on use compiles to `attachedObjectDamagePlan`
+(`effectActionObjectManifestation.ts`), the lifetime aspect's `ATTACHED_OBJECT` kind, checked right after
+`SEQUENTIAL`; its plan needs no cast level, so the source compile detects it too. `START_OF_ATTACHED_TARGET_TURN` recurs at the start of each of the
+holder's turns until it ends (`initialRemaining` null); `END_OF_ATTACHED_TARGET_NEXT_TURN` fires once at the end of
+the holder's next turn. The damage row the descriptor's cast level reaches is frozen into the plan's own dice graph
+(`attachedObjectDamageGraph`, `castLevelDiceDamage`, `effectActionCastLevelDamage.ts`, shared with a repeated save's failure damage), node
+`attached-object-damage`, and the turn kernel rolls it through `interpretDirect`; only a held object's
+`object-manifestation` node (`HELD_OBJECT_NODE_ID`) stays hold-only. A repeatable `FOLLOW_UP_CHECK` on the same
+result path that ends on success is the plan's `conditionEscapeContribution` (`followUpCheckEscape`), so the
+holder escapes the object through the one escape path, which removes no condition. The test keeps the action's other
+entries, which must be damage (Acid Arrow's 4d4 on a hit, half on a miss); the manifest and its check are the plan's
+(`isActiveEffectPlanOutcome`), and a test left with no outcome of its own (Alchemist's Fire) selects no OUTCOME graph.
+The entry-point compiler admits an object plan beside a TEST/OUTCOME execution. Acid Arrow and Alchemist's Fire compile this way; no item or spell is named.
+
 **Creature forms (D130, SPELLS-28.T2).** A `MANIFEST` / `CREATURE` outcome with `forms` compiles to
 `dnd5e.creature-form-proposal` and a `creatureFormContribution` on the active-effect plan (forms with a per-form
 `maxTargets`, the duration, `excessDamageCarriesOver`). The chosen target is `{ kind: 'ACTORS', actorIds, formId }`;
@@ -4106,8 +4134,8 @@ block also authors one `FOLLOW_UP_CHECK` that is repeatable, ends on success (`E
 (`CONTINUE`), has a fixed DC and names an ability or skill (no tool) compiles that check into the plan's
 `conditionEscapeContribution` (`followUpCheckEscape`); any other follow-up check beside conditions still refuses.
 The effect persists it as a `CONDITION_ESCAPE` carrying `escapeOutcome { outcomeId, actorKinds }`, which the
-schema allows only beside a `CONDITION_OWNERSHIP` (a zone's escape keeps `heldBySpatialEffectId` and no
-`escapeOutcome`). The escape bounds conditions with no duration, like Concentration does. `findEncounterHolderEscape`
+schema allows only beside a `CONDITION_OWNERSHIP` or, with `escapeOutcome`, an attached `OBJECT_MANIFESTATION`
+(QUALITY-15.T3t2; a zone's escape keeps `heldBySpatialEffectId` and no `escapeOutcome`). The escape bounds conditions with no duration, like Concentration does. `findEncounterHolderEscape`
 offers it to the held creature (`escapeSourceId` = the check outcome id, `zoneLabel` null), and
 `findEncounterRescues` offers it to another creature when `actorKinds` allows `CREATURE_WITHIN_REACH`, within the
 rescuer's own reach, taken as Touch (5 ft) because no actor reach model exists. Settlement is the one escape path.

@@ -686,8 +686,9 @@ export function evaluateEncounterZoneTarget(input: {
 
 /**
  * The range a point area's origin is measured against; null for a kind the area evaluator refuses
- * (self, sight, special). A touch range reaches as far as a single-target touch does. A distance's
- * long range is never measured here.
+ * (self, special). A Sight range bounds no distance (the origin's sight is warned on its own), and a
+ * touch range reaches as far as a single-target touch does. A distance's long range is never
+ * measured here.
  */
 export function pointAreaOriginRange(
   range: CompiledActionTargetPolicy['range']
@@ -695,7 +696,8 @@ export function pointAreaOriginRange(
   | { rangeKind: 'UNLIMITED' }
   | Extract<CompiledActionTargetPolicy['range'], { rangeKind: 'DISTANCE' }>
   | null {
-  if (range.rangeKind === 'UNLIMITED') return { rangeKind: 'UNLIMITED' }
+  if (range.rangeKind === 'UNLIMITED' || range.rangeKind === 'SIGHT')
+    return { rangeKind: 'UNLIMITED' }
   if (range.rangeKind === 'TOUCH') return { ...range, rangeKind: 'DISTANCE', ...TOUCH_RANGE }
   return range.rangeKind === 'DISTANCE' ? range : null
 }

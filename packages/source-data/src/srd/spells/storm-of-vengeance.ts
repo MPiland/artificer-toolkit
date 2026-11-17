@@ -5,7 +5,9 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -46,6 +48,14 @@ export const stormOfVengeance: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        },
+        // A cloud centered on a point you can see, spreading to a radius of 360 feet, over each
+        // creature under it no more than 5,000 feet beneath (SRD 5.1, Storm of Vengeance).
+        shape: {
+          id: spellChildId(SPELL_IDS.STORM_OF_VENGEANCE, 0x214, 1),
+          shapeKind: SHAPE_KIND.CYLINDER,
+          radius: { amount: 360, unit: MEASUREMENT_UNIT_CODE.FEET },
+          height: { amount: 5000, unit: MEASUREMENT_UNIT_CODE.FEET }
         }
       },
       paths: [

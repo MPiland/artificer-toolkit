@@ -2,13 +2,16 @@ import {
   encounterSummonsEndedInputSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { takesInitiativeTurns } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { removeActorInitiative } from './actorRemovalInitiative.js'
-import { deleteRunActor, readRunActors, readRunState } from './documents.js'
+import { deleteRunActor, readRunActors, readRunState, replaceRunActor } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { storedInitiativeReceipt } from './initiativeReceipt.js'
 import type { EncounterWritePorts } from './ports.js'
@@ -94,6 +97,7 @@ export async function removeConjuredActors(
 }
 
 const SUMMON_ENDED_LABEL = 'Summon ended'
+const SUMMON_RELEASED_LABEL = 'Summon released'
 
 /** What a sweep did: whether it removed creatures, and whether the creature acting now is orphaned. */
 export type SummonSweep = { ended: boolean; currentActorOrphaned: boolean }
@@ -105,6 +109,8 @@ export type SummonSweep = { ended: boolean; currentActorOrphaned: boolean }
  * its caster, and records the removed ids as one system `SUMMONS_ENDED` Run command with the round's
  * initiative after the removal. The creature acting now stays standing and is reported instead
  * (`currentActorOrphaned`): its turn must end first, so the room advances the turn and sweeps again.
+ * A creature whose summon turns hostile when released is not removed: it leaves its owner and takes
+ * the disposition opposed to its own, on the same command (`releasedActorIds`), even mid-turn.
  * Writes nothing and reports `ended: false` when no other conjured creature lost its carrier.
  */
 export async function endOrphanedConjuredActors(
@@ -124,26 +130,42 @@ export async function endOrphanedConjuredActors(
   if (held.length === 0) return { ended: false, currentActorOrphaned: false }
   const effects = createActiveRuleEffectStore(ctx)
   const removedActorIds: string[] = []
+  const released: EncounterRunActorState[] = []
   let currentActorOrphaned = false
   for (const actor of held) {
-    const { ownerActorId, sourceEffectId } = actor.owner ?? {}
+    const { ownerActorId, sourceEffectId, turnsHostileOnRelease } = actor.owner ?? {}
     const caster = actors.find(({ id }) => id === ownerActorId)
     if (
       !sourceEffectId ||
       (caster && (await effects.findById(turnEffectOwner(caster, state.id), sourceEffectId)))
     )
       continue
-    if (actor.id === state.currentActorId) currentActorOrphaned = true
+    if (turnsHostileOnRelease) released.push(actor)
+    else if (actor.id === state.currentActorId) currentActorOrphaned = true
     else removedActorIds.push(actor.id)
   }
-  if (removedActorIds.length === 0) return { ended: false, currentActorOrphaned }
+  if (removedActorIds.length === 0 && released.length === 0)
+    return { ended: false, currentActorOrphaned }
   const commandId = crypto.randomUUID()
-  const removed = await removeConjuredActors(ctx, {
-    state,
-    commandId,
-    actorIds: removedActorIds,
-    occurredAt: input.occurredAt
-  })
+  // A released creature stays in play on its own initiative: it leaves the owner its control came
+  // through and turns against the side it was conjured on.
+  for (const actor of released) {
+    const { owner: _released, ...unowned } = actor
+    await replaceRunActor(ctx, actor, {
+      ...unowned,
+      disposition: actor.disposition === 'HOSTILE' ? 'FRIENDLY' : 'HOSTILE',
+      updatedAt: input.occurredAt
+    })
+  }
+  const removed =
+    removedActorIds.length > 0
+      ? await removeConjuredActors(ctx, {
+          state,
+          commandId,
+          actorIds: removedActorIds,
+          occurredAt: input.occurredAt
+        })
+      : { state, initiative: null }
   const version = run.version + 1
   const nextState = { ...removed.state, version, updatedAt: input.occurredAt }
   await ctx.db.patch(run._id, {
@@ -169,8 +191,8 @@ export async function endOrphanedConjuredActors(
       actorUserId: input.userId,
       version,
       commandJson: JSON.stringify(command),
-      label: SUMMON_ENDED_LABEL,
-      receipt: { removedActorIds },
+      label: removedActorIds.length > 0 ? SUMMON_ENDED_LABEL : SUMMON_RELEASED_LABEL,
+      receipt: { removedActorIds, releasedActorIds: released.map(({ id }) => id) },
       ...storedInitiativeReceipt(removed.initiative),
       ...encounterReplayReceipt({ roll: null, occurrence: null }),
       createdAt: input.occurredAt
