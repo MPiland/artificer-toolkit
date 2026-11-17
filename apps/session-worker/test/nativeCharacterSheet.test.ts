@@ -27,6 +27,8 @@ import {
   liveSessionBootstrapInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import { liveSessionCheckpointRequestSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import { liveSessionChatCheckpointInputSchema } from '@artificer-toolkit/schema/api/liveSessionChatCheckpoint'
+import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import {
   liveSessionRoomSceneCaptureInputSchema,
@@ -102,6 +104,7 @@ async function sheetRoom(
   let assignments = [{ characterId, userId: characterUserId }]
   let characterDeleted = false
   const checkpoints: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>[] = []
+  const chatCheckpoints: ReturnType<typeof liveSessionChatCheckpointInputSchema.parse>[] = []
   const inputs = await characterSheetInputsFixture({
     campaignId,
     characterId,
@@ -233,6 +236,25 @@ async function sheetRoom(
             epoch: body.epoch,
             persistedSequence: body.sequence,
             persistedStateChecksum: body.checksum,
+            phase: 'DO_ACTIVE',
+            updatedAt: now
+          },
+          adopted: { characters: [] },
+          io: NO_CHECKPOINT_IO
+        })
+      }
+      if (pathname === '/live-sessions/chat-checkpoint') {
+        chatCheckpoints.push(liveSessionChatCheckpointInputSchema.parse(await request.json()))
+        const now = new Date().toISOString()
+        return Response.json({
+          status: 'COMMITTED',
+          authority: {
+            activationFingerprint,
+            campaignId,
+            createdAt: now,
+            epoch: currentEpoch,
+            persistedSequence: 0,
+            persistedStateChecksum: sha256Hex('chat-checkpoint'),
             phase: 'DO_ACTIVE',
             updatedAt: now
           },
@@ -429,6 +451,7 @@ async function sheetRoom(
     characterId,
     stub,
     checkpoints,
+    chatCheckpoints,
     commitAccountDeletion,
     commitUnassignment,
     ...inputs
@@ -1676,16 +1699,17 @@ it('saves in the background once the unsaved chat entries reach the chat push wi
   expect(room.checkpoints).toHaveLength(0)
 
   await sendTableChats(room, 'Hello table', 1)
-  await vi.waitFor(() => expect(room.checkpoints).toHaveLength(1))
-  expect(room.checkpoints[0]?.reason).toBe('BACKLOG')
-  const entries = room.checkpoints[0]?.records.changes.filter(
-    (change) => change.table === 'campaignConversationEntries' && change.delta !== null
+  // The sheet room has an ACTIVE Run, so the backlog save publishes chat only and moves no fence.
+  await vi.waitFor(() => expect(room.chatCheckpoints).toHaveLength(1))
+  expect(room.checkpoints).toHaveLength(0)
+  const entries = room.chatCheckpoints[0]?.changes.filter(
+    (change) => change.table === 'campaignConversationEntries'
   )
   expect(entries).toHaveLength(LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT)
 
   // The save emptied the backlog, so the next entry starts a fresh count.
   await sendTableChats(room, 'Hello table', 1)
-  expect(room.checkpoints).toHaveLength(1)
+  expect(room.chatCheckpoints).toHaveLength(1)
 }, 30000)
 
 it('does not save in the background for journal size alone, only for unsaved chat entries (Amendment 25)', async () => {

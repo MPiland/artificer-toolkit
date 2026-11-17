@@ -66,6 +66,6 @@ describe('RoomOutbox backlog save', () => {
   })
 
   it('stays a full prefix save when no Run is active', async () => {
-    expect(await backlogFlush('COMPLETE')).toEqual(['flush'])
+    expect(await backlogFlush('COMPLETED')).toEqual(['flush'])
   })
 })
