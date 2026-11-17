@@ -310856,6 +310856,96 @@ export declare const internal: {
           status: "COMMITTED" | "REPLAYED";
         }
       >;
+      publishChat: FunctionReference<
+        "mutation",
+        "internal",
+        any,
+        {
+          adopted: {
+            characters: Array<{ characterId: string; revision: string | null }>;
+            play?: string;
+          };
+          authority: {
+            activationExpiresAt?: number;
+            activationFingerprint: string;
+            campaignId: string;
+            checkpointedAt?: string;
+            createdAt: string;
+            epoch: string;
+            finalSequence?: number;
+            finalStateChecksum?: string;
+            lastCheckpoint?: {
+              checkpointId: string;
+              checksum: string;
+              fromChecksum: string;
+              fromSequence: number;
+              payloadChecksum: string;
+              sequence: number;
+            };
+            persistedSequence: number;
+            persistedStateChecksum: string;
+            phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
+            updatedAt: string;
+          };
+          io: {
+            bytesRead: number;
+            bytesWritten: number;
+            documentsRead: number;
+            documentsWritten: number;
+            sections: {
+              fence: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              history: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              holds: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              privateRolls: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              records: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              remainder: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              scenes: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              scopes: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+            };
+          };
+          status: "COMMITTED" | "REPLAYED";
+        }
+      >;
     };
     control: {
       evictUser: FunctionReference<
