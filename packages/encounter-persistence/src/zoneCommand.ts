@@ -43,7 +43,8 @@ export async function executeZoneCommand<
     | 'DISMISS_ZONE_SIGHTING'
     | 'REVEAL_ZONE'
     | 'DISARM_ZONE'
-    | 'DESTROY_ZONE_LAYER',
+    | 'DESTROY_ZONE_LAYER'
+    | 'IGNITE_ZONE',
   apply: (
     input: Command,
     store: ZoneStore,

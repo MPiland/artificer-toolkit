@@ -21,6 +21,7 @@ import type {
   EncounterPlayerProjectionDto,
   DestroyZoneLayerInputDto,
   DisarmZoneInputDto,
+  IgniteZoneInputDto,
   ReleaseRelationshipInputDto,
   RevealZoneInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -121,6 +122,7 @@ export function CampaignTabletopEncounterDrawer({
       | (Pick<RevealZoneInputDto, 'spatialEffectId' | 'actorIds'> & { type: 'REVEAL_ZONE' })
       | (Pick<DisarmZoneInputDto, 'spatialEffectId'> & { type: 'DISARM_ZONE' })
       | (Pick<DestroyZoneLayerInputDto, 'spatialEffectId'> & { type: 'DESTROY_ZONE_LAYER' })
+      | (Pick<IgniteZoneInputDto, 'spatialEffectId'> & { type: 'IGNITE_ZONE' })
   ): void {
     onCommand({
       ...input,
@@ -438,6 +440,7 @@ export function CampaignTabletopEncounterDrawer({
                 zones={session?.placedZones ?? []}
                 onDestroyLayer={(destroy) => command({ ...destroy, type: 'DESTROY_ZONE_LAYER' })}
                 onDisarm={(disarm) => command({ ...disarm, type: 'DISARM_ZONE' })}
+                onIgnite={(ignite) => command({ ...ignite, type: 'IGNITE_ZONE' })}
                 onReveal={(reveal) => command({ ...reveal, type: 'REVEAL_ZONE' })}
               />
               <Select

@@ -737,6 +737,13 @@ export const disarmZoneInputDtoSchema = lazySchema(() =>
     spatialEffectId: postgresUuidSchema
   })
 )
+/** GM-only (QUALITY-15.T3w): lights a zone that waits to be lit, which then catches creatures. */
+export const igniteZoneInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('IGNITE_ZONE'),
+    spatialEffectId: postgresUuidSchema
+  })
+)
 /**
  * GM-only (D223): destroys one layer of a layered zone by its authored criteria, which removes it.
  * A zone whose layers fall in order refuses a layer while one before it remains.
@@ -813,6 +820,7 @@ export type DismissZoneSightingInputDto = z.infer<typeof dismissZoneSightingInpu
 export type RevealZoneInputDto = z.infer<typeof revealZoneInputDtoSchema>
 export type DisarmZoneInputDto = z.infer<typeof disarmZoneInputDtoSchema>
 export type DestroyZoneLayerInputDto = z.infer<typeof destroyZoneLayerInputDtoSchema>
+export type IgniteZoneInputDto = z.infer<typeof igniteZoneInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
 export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>

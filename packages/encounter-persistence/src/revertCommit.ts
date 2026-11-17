@@ -46,6 +46,7 @@ export type RevertScope = {
         | 'REVEAL_ZONE'
         | 'DISARM_ZONE'
         | 'DESTROY_ZONE_LAYER'
+        | 'IGNITE_ZONE'
         | 'CREATURE_REST'
         | 'MOVE_HELD_EFFECT'
         | 'CHANGE_FACING'

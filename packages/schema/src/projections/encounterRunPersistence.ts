@@ -600,10 +600,11 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       receipt: z.strictObject({ spatialEffectId: postgresUuidSchema })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.enum(['SET_ZONE_DCS', 'REVEAL_ZONE']),
+      commandType: z.enum(['SET_ZONE_DCS', 'REVEAL_ZONE', 'IGNITE_ZONE']),
       /**
-       * The zone's state before and after the GM set its DCs (MOVE-3.3) or revealed it (MOVE-3.7), so
-       * the GM's undo restores it while nothing but sightings has changed the zone since (MOVE-3.5).
+       * The zone's state before and after the GM set its DCs (MOVE-3.3), revealed it (MOVE-3.7) or lit
+       * it (QUALITY-15.T3w), so the GM's undo restores it while nothing but sightings has changed the
+       * zone since (MOVE-3.5).
        */
       receipt: z.strictObject({
         spatialEffectId: postgresUuidSchema,

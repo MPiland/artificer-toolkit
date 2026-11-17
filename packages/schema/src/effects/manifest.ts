@@ -217,8 +217,6 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       label: z.optional(authoredShortTextSchema),
       shape: z.optional(shapeDtoSchema),
       attachmentKind: z.optional(attachmentKindSchema),
-      maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
-      placementSurfaceKind: z.optional(z.literal('LEVEL')),
       applicationTargetKind: z.optional(z.enum(['WEAPON', 'AMMUNITION'])),
       applicationCount: z.optional(z.number().check(z.int()).check(z.positive())),
       qualifyingDamageTypeIds: z.optional(

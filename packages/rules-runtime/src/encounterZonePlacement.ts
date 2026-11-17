@@ -95,6 +95,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'occupantSaveBonus',
   'occupantConditionImmunity',
   'destructionCriteria',
+  'requiresIgnition',
   'behaviors'
 ])
 
@@ -172,6 +173,11 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
   if (destructible && (!layered || manifest.destroyedComponentsRemainDestroyed !== true))
     throw new CharacterRuleActionUnsupportedCompilationError(
       'Only a layered zone whose destroyed layers stay destroyed authors what destroys them.'
+    )
+  // Lighting is the zone's own state, so a zone waiting to be lit has nothing beside it.
+  if (components.length > 1 && components.some((component) => component.requiresIgnition))
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A zone that needs lighting has one component.'
     )
   const planned = components.map((component) => {
     if (hasUnmodeledField(component, MODELED_COMPONENT_KEYS))

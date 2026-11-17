@@ -1204,13 +1204,18 @@ describe('CampaignTabletopEncounterDrawer', () => {
     const user = userEvent.setup()
     const onCommand = vi.fn()
     const shape = { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: 15 }
-    const layer = (id: string, label: string, next: boolean, criteria: string[]) => ({
+    const layer = (
+      id: string,
+      label: string,
+      destruction: { next: boolean; criteria: string[] } | null
+    ) => ({
       id,
       label,
       shape,
       spotDc: null,
       disarmDc: null,
-      destruction: { next, criteria },
+      destruction,
+      layer: true as const,
       unawareActorIds: []
     })
     const redId = '00000000-0000-4000-8000-0000000000e2'
@@ -1228,8 +1233,13 @@ describe('CampaignTabletopEncounterDrawer', () => {
         session={{
           pendingZoneSightings: [],
           placedZones: [
-            layer(redId, 'Red', true, ['25 or more Cold damage']),
-            layer('00000000-0000-4000-8000-0000000000e3', 'Orange', false, ['A strong wind'])
+            layer(redId, 'Red', { next: true, criteria: ['25 or more Cold damage'] }),
+            layer('00000000-0000-4000-8000-0000000000e3', 'Orange', {
+              next: false,
+              criteria: ['A strong wind']
+            }),
+            // A layer whose component authors nothing that destroys it is neither destroyed nor disarmed.
+            layer('00000000-0000-4000-8000-0000000000e4', 'Yellow', null)
           ]
         }}
         onCommand={onCommand}
@@ -1243,6 +1253,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
     expect(within(zones).getByText('Destroyed by: 25 or more Cold damage')).toBeVisible()
     expect(within(zones).getByText('Destroyed by: A strong wind')).toBeVisible()
     expect(within(zones).queryByRole('button', { name: /^Disarm/ })).toBeNull()
+    expect(within(zones).queryByRole('button', { name: 'Destroy Yellow' })).toBeNull()
     expect(within(zones).getByRole('button', { name: 'Destroy Orange' })).toBeDisabled()
     await user.click(within(zones).getByRole('button', { name: 'Destroy Red' }))
     expect(onCommand).toHaveBeenLastCalledWith({
@@ -1252,5 +1263,60 @@ describe('CampaignTabletopEncounterDrawer', () => {
       expectedVersion: tabletopGmEncounter.version,
       spatialEffectId: redId
     })
+  })
+
+  it('lets the GM light a zone that waits to be lit, and offers no lighting once it burns', async () => {
+    const user = userEvent.setup()
+    const onCommand = vi.fn()
+    const zoneId = '00000000-0000-4000-8000-0000000000e2'
+    const oil = {
+      id: zoneId,
+      label: 'Poured oil',
+      shape: { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: 5 },
+      spotDc: null,
+      disarmDc: null,
+      destruction: null,
+      unawareActorIds: []
+    }
+    const drawer = (unlit: boolean) => (
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine
+        encounter={tabletopGmEncounter}
+        holds={[]}
+        memberships={createTabletopCampaign('OWNER').memberships}
+        pending={false}
+        role='OWNER'
+        scene={tabletopLiveScene}
+        session={{
+          pendingZoneSightings: [],
+          placedZones: [unlit ? { ...oil, unlit: true as const } : oil]
+        }}
+        onCommand={onCommand}
+        onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
+      />
+    )
+    const { rerender } = renderWithAppProviders(drawer(true))
+
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    const zones = screen.getByRole('group', { name: 'Placed zones' })
+    expect(within(zones).getByText(/Poured oil · unlit/)).toBeVisible()
+    await user.click(within(zones).getByRole('button', { name: 'Ignite Poured oil' }))
+    expect(onCommand).toHaveBeenLastCalledWith({
+      type: 'IGNITE_ZONE',
+      commandId: expect.any(String),
+      encounterId: tabletopGmEncounter.id,
+      expectedVersion: tabletopGmEncounter.version,
+      spatialEffectId: zoneId
+    })
+
+    rerender(drawer(false))
+    expect(
+      within(screen.getByRole('group', { name: 'Placed zones' })).queryByRole('button', {
+        name: 'Ignite Poured oil'
+      })
+    ).toBeNull()
   })
 })

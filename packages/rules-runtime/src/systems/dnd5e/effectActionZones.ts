@@ -32,6 +32,7 @@ import {
 } from './effectActionContracts.js'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 import { diceGraphDefinition } from './effectActionDiceGraph.js'
+import { fixedOutcomeGraphDefinition } from './effectActionFixedOutcomeGraph.js'
 import { durationPublishedGraph, maintenancePlan } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
@@ -285,7 +286,8 @@ function zonePlacementPlan(
 /**
  * A zone no Concentration holds lasts its authored duration from its placement: its source's turns,
  * or Campaign minutes past the turn bound (D222). A maintained zone ends with its Concentration, and
- * an untimed or scaled duration leaves it until the Encounter ends.
+ * an untimed or scaled duration leaves it until the Encounter ends. A zone that needs lighting counts
+ * its turns from its ignition (QUALITY-15.T3w).
  */
 function withZoneDuration(
   plan: CharacterRuleActionZonePlacementPlan,
@@ -301,7 +303,13 @@ function withZoneDuration(
       : minutes !== null
         ? { kind: 'CAMPAIGN_MINUTES' as const, minutes }
         : null
-  return expiration ? { ...plan, duration: { startsAt: 'PLACEMENT', expiration } } : plan
+  if (!expiration) return plan
+  if (plan.requiresIgnition && expiration.kind !== 'TICKS')
+    unsupported('A zone that needs lighting lasts a count of its source’s turns.')
+  return {
+    ...plan,
+    duration: { startsAt: plan.requiresIgnition ? 'IGNITION' : 'PLACEMENT', expiration }
+  }
 }
 
 /**
@@ -330,6 +338,7 @@ function occupantBonusZonePlacementPlan(
     zone.designatedCreatureImmunity ||
     component.maxApplicationsPerTurn !== undefined ||
     component.requiresFullyWithin ||
+    component.requiresIgnition ||
     component.requiredSight?.length ||
     component.movementCostMultiplier !== undefined ||
     component.perDistanceMoved ||
@@ -485,6 +494,7 @@ function zoneComponentPlan(
       ? { maxApplicationsPerTurn: component.maxApplicationsPerTurn }
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+    ...(component.requiresIgnition ? { requiresIgnition: true as const } : {}),
     ...(requiredSight?.length ? { requiredSight: [...new Set(requiredSight)].sort() } : {}),
     ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
     ...(perDistanceMoved
@@ -767,9 +777,9 @@ function sourceGrantPlan(
 }
 
 /**
- * A zone whose outcome needs no save (D144, D154): it rolls one unmodified damage dice row and deals
- * it in full, with no test node, at a turn boundary or when a mover enters it; its source rolls the
- * dice.
+ * A zone whose outcome needs no save (D144, D154): it deals one fixed damage row, or rolls one
+ * unmodified damage dice row, in full with no test node, at a turn boundary or when a mover enters
+ * it; its source rolls the dice.
  */
 function unsavedZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
@@ -791,8 +801,11 @@ function unsavedZonePlacementPlan(
     unsupported('A zone outcome with no save is direct damage on use.')
   const row = zoneDamageRow(entries, action.spellCastLevel)
   const outcome = zoneDamageOutcome(row, 'ON_USE')
-  if (outcome.kind !== 'ENTRY_DICE_DAMAGE' || !UUID.test(row.entryId))
-    unsupported('A zone outcome with no save rolls one damage dice row.')
+  if (
+    (outcome.kind !== 'ENTRY_DICE_DAMAGE' && outcome.kind !== 'DAMAGE') ||
+    !UUID.test(row.entryId)
+  )
+    unsupported('A zone outcome with no save deals one fixed or dice damage row.')
   const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
     compiledEntryId: row.entryId,
@@ -806,12 +819,15 @@ function unsavedZonePlacementPlan(
     maintenance: null,
     marginRiders: []
   }
-  const definition = diceGraphDefinition({
-    action,
-    entry: row,
-    diceConfig: outcome.diceConfig,
-    recurring: entryPlan
-  })
+  const definition =
+    outcome.kind === 'ENTRY_DICE_DAMAGE'
+      ? diceGraphDefinition({
+          action,
+          entry: row,
+          diceConfig: outcome.diceConfig,
+          recurring: entryPlan
+        })
+      : fixedOutcomeGraphDefinition({ action, entry: row, outcome })
   return {
     ...placement,
     entry: {

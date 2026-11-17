@@ -145,7 +145,9 @@ export async function readEncounterSessionState(
                 !spatialState.concealment.knownByActorIds.includes(id)
                   ? [id]
                   : []
-              )
+              ),
+              ...(placement.layerIndex === undefined ? {} : { layer: true as const }),
+              ...(spatialState.unlit ? { unlit: true as const } : {})
             }
           ]
         : []

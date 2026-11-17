@@ -4,14 +4,15 @@ import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/enc
 import type {
   DestroyZoneLayerInputDto,
   DisarmZoneInputDto,
+  IgniteZoneInputDto,
   RevealZoneInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 
 /**
- * The GM's hand on each placed zone (MOVE-3.7): show a concealed zone to chosen Characters, or
- * disarm it; a layer of a layered zone is instead destroyed by what its component authors, the next
- * one first when its layers fall in order (D223). The disarm DC and the criteria are the GM's own
- * notes; players never receive them.
+ * The GM's hand on each placed zone (MOVE-3.7): show a concealed zone to chosen Characters, light
+ * one that waits to be lit (QUALITY-15.T3w), or disarm it. A layer of a layered zone is never
+ * disarmed; it is destroyed by what its component authors, the next one first when its layers fall
+ * in order (D223). The disarm DC and the criteria are the GM's own notes; players never receive them.
  */
 export function CampaignTabletopZoneControls({
   actors,
@@ -19,6 +20,7 @@ export function CampaignTabletopZoneControls({
   zones,
   onDestroyLayer,
   onDisarm,
+  onIgnite,
   onReveal
 }: {
   actors: readonly { id: string; label: string }[]
@@ -26,6 +28,7 @@ export function CampaignTabletopZoneControls({
   zones: EncounterSessionStateDto['placedZones']
   onDestroyLayer: (destroy: Pick<DestroyZoneLayerInputDto, 'spatialEffectId'>) => void
   onDisarm: (disarm: Pick<DisarmZoneInputDto, 'spatialEffectId'>) => void
+  onIgnite: (ignite: Pick<IgniteZoneInputDto, 'spatialEffectId'>) => void
   onReveal: (reveal: Pick<RevealZoneInputDto, 'spatialEffectId' | 'actorIds'>) => void
 }) {
   const [chosen, setChosen] = useState<Readonly<Record<string, string[]>>>({})
@@ -41,29 +44,45 @@ export function CampaignTabletopZoneControls({
               <Text size='xs'>
                 {name}
                 {zone.disarmDc ? ` · disarm DC ${zone.disarmDc.value}` : ''}
+                {zone.unlit ? ' · unlit' : ''}
               </Text>
-              {zone.destruction ? (
-                <Button
-                  aria-label={`Destroy ${name}`}
-                  disabled={disabled || !zone.destruction.next}
-                  size='compact-xs'
-                  title={zone.destruction.next ? undefined : 'Destroy the layers before it first.'}
-                  variant='default'
-                  onClick={() => onDestroyLayer({ spatialEffectId: zone.id })}
-                >
-                  Destroy layer
-                </Button>
-              ) : (
-                <Button
-                  aria-label={`Disarm ${name}`}
-                  disabled={disabled}
-                  size='compact-xs'
-                  variant='default'
-                  onClick={() => onDisarm({ spatialEffectId: zone.id })}
-                >
-                  Disarm
-                </Button>
-              )}
+              <Group gap='xs' wrap='nowrap'>
+                {zone.unlit ? (
+                  <Button
+                    aria-label={`Ignite ${name}`}
+                    disabled={disabled}
+                    size='compact-xs'
+                    onClick={() => onIgnite({ spatialEffectId: zone.id })}
+                  >
+                    Ignite
+                  </Button>
+                ) : null}
+                {zone.destruction ? (
+                  <Button
+                    aria-label={`Destroy ${name}`}
+                    disabled={disabled || !zone.destruction.next}
+                    size='compact-xs'
+                    title={
+                      zone.destruction.next ? undefined : 'Destroy the layers before it first.'
+                    }
+                    variant='default'
+                    onClick={() => onDestroyLayer({ spatialEffectId: zone.id })}
+                  >
+                    Destroy layer
+                  </Button>
+                ) : null}
+                {zone.layer ? null : (
+                  <Button
+                    aria-label={`Disarm ${name}`}
+                    disabled={disabled}
+                    size='compact-xs'
+                    variant='default'
+                    onClick={() => onDisarm({ spatialEffectId: zone.id })}
+                  >
+                    Disarm
+                  </Button>
+                )}
+              </Group>
             </Group>
             {zone.destruction ? (
               <Text c='dimmed' size='xs'>

@@ -43,7 +43,7 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
   it.each([
     ['Caltrops', caltropsBagOf20, 'Enter the caltrop field'],
     ['Ball Bearings', ballBearingsBagOf1000, 'Move across the ball bearings'],
-    ['Oil Flask', oilFlask, 'Enter burning oil'],
+    ['Oil Flask', oilFlask, 'Burning oil'],
     ['Hunting Trap', huntingTrap, 'Pressure plate'],
     ['Blade Barrier', bladeBarrier, 'Whirling Blades'],
     ['Grease', grease, 'Enter the grease'],
@@ -56,10 +56,7 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
     expect(kinds).not.toContain('ENTER_SPACE')
   })
 
-  it('keeps the turn-based components of Oil Flask and Blade Barrier as they are', () => {
-    expect(interactionKindsByComponent(oilFlask)['End turn in burning oil']).toEqual([
-      'END_TURN_IN_SPACE'
-    ])
+  it('keeps the turn-based component of Blade Barrier as it is', () => {
     expect(interactionKindsByComponent(bladeBarrier)['Whirling Blades']).toContain(
       'START_TURN_IN_SPACE'
     )
@@ -70,7 +67,8 @@ describe('SRD zones that trigger on entering the area pass-through too', () => {
     ['Cloudkill', cloudkill, 'Enter the poisonous fog', 'START_TURN_IN_SPACE'],
     ['Insect Plague', insectPlague, 'Enter the locust swarm', 'END_TURN_IN_SPACE'],
     ['Moonbeam', moonbeam, 'Enter the moonlight', 'START_TURN_IN_SPACE'],
-    ['Incendiary Cloud', incendiaryCloud, 'Enter the burning cloud', 'END_TURN_IN_SPACE']
+    ['Incendiary Cloud', incendiaryCloud, 'Enter the burning cloud', 'END_TURN_IN_SPACE'],
+    ['Oil Flask', oilFlask, 'Burning oil', 'END_TURN_IN_SPACE']
   ])(
     'catches a creature of %s on entering or passing through the area and at its turn boundary (SPELLS-4.T1f)',
     (_name, spell, component, turnTrigger) => {

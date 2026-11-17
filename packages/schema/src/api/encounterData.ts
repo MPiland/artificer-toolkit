@@ -778,7 +778,11 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
                 .check(z.maxLength(16))
             })
           ),
-          unawareActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+          /** The record is one layer of a layered zone (D223), which is never disarmed; absent otherwise. */
+          layer: z.optional(z.literal(true)),
+          unawareActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          /** The zone waits for the GM to light it (QUALITY-15.T3w); absent when it acts. */
+          unlit: z.optional(z.literal(true))
         })
       )
       .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),

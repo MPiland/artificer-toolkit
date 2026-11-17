@@ -2,6 +2,7 @@ import type {
   DestroyZoneLayerInputDto,
   DisarmZoneInputDto,
   EncounterCommandResultDto,
+  IgniteZoneInputDto,
   RevealZoneInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { withZoneRevealedTo } from '@artificer-toolkit/rules-runtime/encounterZoneConcealment'
@@ -42,6 +43,28 @@ export function revealZone(
       return { spatialEffectId: zone.id, before, after }
     }
   )
+}
+
+/**
+ * The GM lights a zone that waits to be lit (QUALITY-15.T3w): from then on it catches creatures as
+ * authored. The receipt keeps the zone before and after so the GM's undo puts the flame out again.
+ */
+export function igniteZone(
+  ctx: EncounterWriteTransaction,
+  command: IgniteZoneInputDto,
+  userId: string
+): Promise<EncounterCommandResultDto> {
+  return executeZoneCommand(ctx, command, userId, 'IGNITE_ZONE', async (_input, store, zone) => {
+    const { unlit, ...after } = zone.spatialState
+    if (!unlit) rejectDomain('TARGET_UNAVAILABLE', 'That zone is not waiting to be lit.')
+    await store.updateCurrentStateCas({
+      id: zone.id,
+      expectedVersion: zone.version,
+      lifecycle: zone.lifecycle,
+      spatialState: after
+    })
+    return { spatialEffectId: zone.id, before: zone.spatialState, after }
+  })
 }
 
 /**
