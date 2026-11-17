@@ -664,10 +664,10 @@ export function spatialGeometryCenter(shape: SpatialGeometry): ScenePoint {
 }
 
 /** The geometry moved whole so it is centered on `center`: its size and orientation unchanged. */
-export function spatialGeometryCenteredAt(
-  shape: SpatialGeometry,
+export function spatialGeometryCenteredAt<Shape extends SpatialGeometry>(
+  shape: Shape,
   center: ScenePoint
-): SpatialGeometry {
+): Shape | { kind: 'POLYGON'; points: ScenePoint[] } {
   if (shape.kind !== 'POLYGON') return { ...shape, center }
   const from = spatialGeometryCenter(shape)
   return {
