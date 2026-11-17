@@ -204,6 +204,17 @@ export type LiveSessionCheckpointRetainedRoll = z.infer<
   typeof liveSessionCheckpointRetainedRollSchema
 >
 
+/**
+ * The chat-class tables. A mid-Run chat save may publish only these and the retained rolls; every
+ * other room row waits for the next full checkpoint (ADR 0035 Amendment 32).
+ */
+export const LIVE_SESSION_CHECKPOINT_CHAT_TABLES = [
+  'campaignConversations',
+  'campaignConversationMembers',
+  'campaignConversationEntries',
+  'campaignConversationEntryPayloads'
+] as const satisfies readonly LiveSessionCheckpointTable[]
+
 export const liveSessionCheckpointRecordsSchema = lazySchema(() =>
   z.strictObject({
     changes: z.array(liveSessionCheckpointRecordChangeSchema),

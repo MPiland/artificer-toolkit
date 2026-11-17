@@ -610,6 +610,37 @@ Risk accepted: Convex validates and applies a checkpoint in one mutation under i
 and that work grows with the payload. A save near 1 MiB is mostly appended chat and roll records, which
 insert without re-reads (Amendment 27). V15 measures it.
 
+**Amendment 32: a mid-Run backlog save publishes only chat and roll records (PERF-1.T8, D229 step 1).**
+The Run's child rows (replay index, rule occurrences, turn movements, initiative participants, rounds)
+are created per command and dropped at COMPLETE (Amendment 30). A BACKLOG save during an ACTIVE Run
+folded them into a prefix checkpoint, so a later save read each back and deleted it: about 0.84 MB at
+BACKLOG and 1.43 to 1.51 MB at COMPLETE per fight (V15 runs 44152282986 and 44165616524).
+
+- _Rule._ While any Run is ACTIVE, a BACKLOG save publishes through a private route
+  (`/live-sessions/chat-checkpoint`) only the chat tables and retained rolls of the unsaved journal. It
+  carries no history, scene or Run record and moves no fence: `persistedSequence`,
+  `persistedStateChecksum`, the journal's `publishedSequence` and the checkpoint base stay as the last
+  full save left them, so every recovery check of Amendments 25 to 31 holds unchanged. Out-of-combat
+  BACKLOG saves, and every lifecycle save, stay full prefix saves.
+- _Invariant._ During an ACTIVE Run, Convex chat may lead the Run head and is append-only. A
+  storage-loss rebuild yields the last full save plus that chat.
+- _D90 loss window._ The window is unchanged for the Run: a room lost with its storage returns to the
+  last full save. Chat saved by a chat-only save survives that loss, so the rebuilt room shows chat
+  that is newer than its Run head, and no command is lost that was not already inside the window.
+- _Idempotency._ The Room Durable Object records the chat watermark and the target of an in-flight
+  chat save (`room_chat_publication`) in the same SQLite transaction as its acknowledgement. Convex
+  applies a chat save with the checkpoint validation and skips a record only on an exact
+  `nextChecksum` match; any other mismatch with `previousChecksum` is rejected. A crash between the
+  Convex commit and the acknowledgement therefore retries the same, deterministically recomputed
+  input, and a full save resolves a pending chat save first.
+- _Folding._ A full fold starts from the watermark's chat, so it omits the sealed chat and clears the
+  retained-roll buffer at that point: COMPLETE carries no chat or roll twice and no Run child row that
+  was created and dropped inside the fight. `unsavedChatEntries` counts only chat after the watermark,
+  so the push window frees after each chat save.
+
+Risk accepted: the COMPLETE fold must still fit one 1 MiB checkpoint (Amendment 31); a fight whose
+Run rows alone exceed it splits into prefixes as before. Option C (a Run-only COMPLETE) is PERF-1.T10.
+
 ## Also decided with this ADR
 
 - **Development and tests use the local backend only (Q15 option c).** Development, automated tests, load checks and agents run against the local Docker backend. Cloud deployments are touched only for a deliberate, approved staging smoke check.

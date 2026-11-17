@@ -7,6 +7,10 @@ import {
   type LiveSessionCheckpointRequest,
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import {
+  liveSessionChatCheckpointInputSchema,
+  type LiveSessionChatCheckpointInput
+} from '@artificer-toolkit/schema/api/liveSessionChatCheckpoint'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   LIVE_SESSION_CHECKPOINT_MAX_BYTES,
@@ -15,6 +19,7 @@ import {
 import type { MutationCtx } from '../_generated/server'
 import { untrackedInternalMutation, withSceneVisionTracking } from '../lib/mutations'
 import { commitCampaignLiveCheckpoint, presentCampaignLiveAuthority } from './authority'
+import { requireCampaignLiveAuthority } from './authorityGuard'
 import { createCheckpointIoMeter, type CheckpointIoMeter } from './checkpointIo'
 import { applyCheckpointRecords } from './checkpointRecords'
 
@@ -68,8 +73,45 @@ export async function publishCheckpointFrame(
   })
 }
 
+/**
+ * A mid-Run chat save (ADR 0035 Amendment 32). It runs under the epoch fence but never moves the
+ * authority head, so the room may send the same input again until it is acknowledged: a change whose
+ * next state is already stored is skipped, and any other mismatch rejects.
+ */
+export async function publishChatCheckpoint(
+  ctx: MutationCtx,
+  rawInput: LiveSessionChatCheckpointInput
+): Promise<LiveSessionCheckpointResponse> {
+  const { campaignId, epoch, changes, retainedRolls } =
+    liveSessionChatCheckpointInputSchema.parse(rawInput)
+  const authority = await requireCampaignLiveAuthority(ctx, { campaignId, epoch })
+  if (authority.phase === 'ACTIVATING') throw new Error('Live Session authority is not active.')
+  const io = createCheckpointIoMeter(ctx)
+  await io.mark('fence')
+  await applyCheckpointRecords(
+    ctx,
+    { campaignId, epoch, checkpointId: crypto.randomUUID() },
+    { changes, history: [], scenes: [], retainedRolls },
+    null,
+    io,
+    { replay: true }
+  )
+  return liveSessionCheckpointResponseSchema.parse({
+    status: 'COMMITTED',
+    authority: presentCampaignLiveAuthority(authority),
+    adopted: { characters: [] },
+    io: await io.finish()
+  })
+}
+
 export const publish = untrackedInternalMutation({
   args: () => v.any(),
   returns: () => zodToConvex(liveSessionCheckpointResponseSchema),
   handler: publishCheckpoint
+})
+
+export const publishChat = untrackedInternalMutation({
+  args: () => v.any(),
+  returns: () => zodToConvex(liveSessionCheckpointResponseSchema),
+  handler: publishChatCheckpoint
 })

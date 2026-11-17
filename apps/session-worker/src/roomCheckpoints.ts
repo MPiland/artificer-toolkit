@@ -5,6 +5,7 @@ import {
   type LiveSessionCheckpointReason,
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import type { LiveSessionChatCheckpointInput } from '@artificer-toolkit/schema/api/liveSessionChatCheckpoint'
 import { LIVE_SESSION_CHECKPOINT_MAX_BYTES } from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
 import {
   LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES,
@@ -42,6 +43,9 @@ export class RoomCheckpoints {
     page: LiveSessionCheckpointInput,
     response: LiveSessionCheckpointResponse
   ) => void
+  readonly #publishChat?: (
+    input: LiveSessionChatCheckpointInput
+  ) => Promise<LiveSessionCheckpointResponse>
   #flushing: {
     campaignId: string
     epoch: string
@@ -63,8 +67,11 @@ export class RoomCheckpoints {
     onPublished?: (
       page: LiveSessionCheckpointInput,
       response: LiveSessionCheckpointResponse
-    ) => void
+    ) => void,
+    /** Sends a mid-Run chat save; only rooms that call `flushChat` need one. */
+    publishChat?: (input: LiveSessionChatCheckpointInput) => Promise<LiveSessionCheckpointResponse>
   ) {
+    this.#publishChat = publishChat
     this.#store = store
     this.#storage = storage
     this.#publish = publish
@@ -112,10 +119,73 @@ export class RoomCheckpoints {
     return promise
   }
 
+  /**
+   * A mid-Run backlog save (ADR 0035 Amendment 32): publishes only chat and rolls, through the
+   * journal's head, without moving the fence, the room base or the journal. A retained full
+   * checkpoint goes first as a normal flush, because its fold is measured from the same watermark.
+   */
+  flushChat(input: FlushInput): Promise<LiveSessionCheckpointResponse | null> {
+    if (this.#readPending()) return this.flush(input, 'BACKLOG')
+    const validated = liveSessionRoomAuthorizationInputSchema.parse({
+      campaignId: input.campaignId,
+      epoch: input.epoch,
+      known: input.knownAuthorization
+    })
+    if (this.#flushing) {
+      if (
+        validated.campaignId !== this.#flushing.campaignId ||
+        validated.epoch !== this.#flushing.epoch
+      )
+        return Promise.reject(new Error('Concurrent checkpoint scope does not match.'))
+      return this.#flushing.promise
+    }
+    const promise = this.#flushChat(input).finally(() => {
+      this.#flushing = null
+    })
+    this.#flushing = { campaignId: validated.campaignId, epoch: validated.epoch, promise }
+    return promise
+  }
+
+  /** Sends the pending chat save, or a new one through the head; resolves with null if nothing is unpublished. */
+  async #flushChat(
+    scope: Pick<FlushInput, 'campaignId' | 'epoch'>
+  ): Promise<LiveSessionCheckpointResponse | null> {
+    const store = this.#store
+    const publishChat = this.#publishChat
+    if (!publishChat) throw new Error('The room has no chat checkpoint publisher.')
+    const target = await store.whenClosed(() => {
+      const { throughSequence, pendingSequence } = store.chatPublication
+      if (pendingSequence !== null) return pendingSequence
+      if (store.sequence <= Math.max(throughSequence, store.sequence - store.logRows)) return null
+      store.beginChatPublication(store.sequence)
+      return store.sequence
+    })
+    if (target === null) return null
+    const base = store.checkpointSnapshot()
+    if (base.epoch !== scope.epoch)
+      throw new Error('Checkpoint epoch does not match the room snapshot.')
+    const { records } = this.#fold(base, target, {
+      chatOnly: true,
+      chatPublishedThrough: store.chatPublication.throughSequence
+    })
+    const response = liveSessionCheckpointResponseSchema.parse(
+      await publishChat({
+        campaignId: scope.campaignId,
+        epoch: scope.epoch,
+        changes: records.changes,
+        retainedRolls: records.retainedRolls ?? []
+      })
+    )
+    await store.whenClosed(() => store.completeChatPublication(target))
+    return response
+  }
+
   async #flush(
     scope: FlushInput,
     reason: LiveSessionCheckpointReason
   ): Promise<LiveSessionCheckpointResponse | null> {
+    // A chat save Convex may already hold is completed first: this checkpoint's fold is measured from it.
+    if (this.#store.chatPublication.pendingSequence !== null) await this.#flushChat(scope)
     const throughSequence = this.#store.sequence
     let last: LiveSessionCheckpointResponse | null = null
     // Each page bumps the revisions the next one is sent with, or Convex would adopt none after the first.
@@ -176,21 +246,26 @@ export class RoomCheckpoints {
         // One checkpoint folds the longest prefix whose records fit the atomic bound, so a save
         // normally publishes the whole unsaved journal at once and rows created and dropped within
         // it never reach Convex. The raw journal is read in bounded pages and streamed into one
-        // fold, so the page size never cuts a checkpoint.
+        // fold, so the page size never cuts a checkpoint. A prefix never ends before the chat
+        // watermark: Convex already holds the chat through it.
+        const lowest = Math.max(base.sequence + 1, this.#store.chatPublication.throughSequence)
         for (let limit = throughSequence; limit > base.sequence;) {
           const { records, checksum } = this.#fold(base, limit)
           const recordsJson = canonicalizeJson(records)
           const bytes = new TextEncoder().encode(recordsJson).byteLength
           if (bytes > LIVE_SESSION_CHECKPOINT_MAX_BYTES) {
+            if (limit <= lowest) break
             // Records grow about linearly with the span, so a proportional step reaches a fitting
             // prefix in a few rebuilds rather than one rebuild per command.
             const span = limit - base.sequence
-            limit =
+            limit = Math.max(
+              lowest,
               base.sequence +
-              Math.max(
-                span === 1 ? 0 : 1,
-                Math.min(span - 1, Math.floor((span * LIVE_SESSION_CHECKPOINT_MAX_BYTES) / bytes))
-              )
+                Math.max(
+                  1,
+                  Math.min(span - 1, Math.floor((span * LIVE_SESSION_CHECKPOINT_MAX_BYTES) / bytes))
+                )
+            )
             continue
           }
           pending = liveSessionCheckpointInputSchema.parse({
@@ -216,7 +291,13 @@ export class RoomCheckpoints {
    * Folds `base.sequence..toSequence` from journal pages read lazily, one bounded page at a time.
    * `checksum` is the chain of the last entry folded; the fold validates the chain per entry.
    */
-  #fold(base: ReturnType<RoomEncounterStore['checkpointSnapshot']>, toSequence: number) {
+  #fold(
+    base: ReturnType<RoomEncounterStore['checkpointSnapshot']>,
+    toSequence: number,
+    chat: { chatOnly?: boolean; chatPublishedThrough?: number } = {
+      chatPublishedThrough: this.#store.chatPublication.throughSequence
+    }
+  ) {
     const store = this.#store
     let checksum = base.checksum
     function* journal() {
@@ -241,7 +322,8 @@ export class RoomCheckpoints {
       records: base.records,
       fromSequence: base.sequence,
       fromChecksum: base.checksum,
-      entries: journal()
+      entries: journal(),
+      ...chat
     })
     return { records, checksum }
   }

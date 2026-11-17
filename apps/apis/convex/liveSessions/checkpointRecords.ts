@@ -124,21 +124,30 @@ export async function applyCheckpointRecords(
   frame: { campaignId: string; epoch: string; checkpointId: string },
   records: LiveSessionCheckpointRecords,
   known: LiveSessionRoomAuthorizationRevisions | null,
-  io: CheckpointIoMeter
+  io: CheckpointIoMeter,
+  /**
+   * An unacknowledged chat save is sent again as the same input (ADR 0035 Amendment 32). A change
+   * whose next state Convex already holds is skipped; any other mismatch still rejects.
+   */
+  { replay = false }: { replay?: boolean } = {}
 ): Promise<LiveSessionCheckpointAdoption> {
   const heldRuns = new Set<string>()
   const changes = new Map<string, LiveSessionCheckpointRecordChange>()
+  const seen = new Set<string>()
   const currentRows = new Map<string, Doc<LiveSessionCheckpointTable> | null>()
   const nextRows = new Map<string, Record<string, JsonValue> | null>()
   for (const change of records.changes) {
     const identity = `${change.table}:${canonicalizeJson(change.key)}`
-    if (changes.has(identity)) throw new Error('Checkpoint record identity is duplicated.')
-    changes.set(identity, change)
+    if (seen.has(identity)) throw new Error('Checkpoint record identity is duplicated.')
+    seen.add(identity)
     const row = await readCheckpointRecord(ctx, change.table, change.key)
-    currentRows.set(identity, row)
     const fields = row ? (({ _id, _creationTime, ...value }) => value)(row) : null
     const current = fields ? decodeCheckpointRecord(change.table, fields) : null
-    if ((current ? checksumCanonicalJson(current) : null) !== change.previousChecksum)
+    const currentChecksum = current ? checksumCanonicalJson(current) : null
+    if (replay && change.nextChecksum !== null && currentChecksum === change.nextChecksum) continue
+    changes.set(identity, change)
+    currentRows.set(identity, row)
+    if (currentChecksum !== change.previousChecksum)
       throw new Error('Checkpoint record changed before publication.')
     const next = change.delta
       ? canonicalJsonRecordSchema.parse(applyJsonDelta(current, change.delta))

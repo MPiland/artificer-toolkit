@@ -107,10 +107,18 @@ export class RoomOutbox {
     if (!scope) return
     const { current, campaignId } = scope
     const sent = this.port.authorization.current(current.authorityEpoch)?.revisions ?? null
-    const response = await this.port.checkpoints.flush(
-      { campaignId, epoch: current.authorityEpoch, knownAuthorization: sent },
-      reason
-    )
+    const flushScope = { campaignId, epoch: current.authorityEpoch, knownAuthorization: sent }
+    // While a Run is active a backlog save publishes only chat and rolls; the Run's own rows wait for
+    // the lifecycle save that completes it (ADR 0035 Amendment 32). It moves no fence, so nothing is acknowledged.
+    if (
+      reason === 'BACKLOG' &&
+      this.port.store.documents('encounterRuns').some((run) => run.status === 'ACTIVE')
+    ) {
+      await this.port.checkpoints.flushChat(flushScope)
+      await this.port.scheduleAlarm()
+      return
+    }
+    const response = await this.port.checkpoints.flush(flushScope, reason)
     if (response) {
       const head = this.port.journal.readCurrent()
       if (head && head.sequence === head.publishedSequence)
