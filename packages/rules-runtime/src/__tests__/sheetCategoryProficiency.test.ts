@@ -13,7 +13,7 @@ import {
  */
 
 if (fighter.category !== 'BASE') throw new Error('Expected the canonical parent Fighter class.')
-const shieldGrants = fighter.proficiencies.filter(
+const shieldGrants = (fighter.proficiencies ?? []).filter(
   (grant) => grant.proficiencyKind === 'EQUIPMENT' && grant.category === 'SHIELD'
 )
 
