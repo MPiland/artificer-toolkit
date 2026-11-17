@@ -7,6 +7,7 @@ import { DND5E_SAVE_DC_FACT_KEY } from '@artificer-toolkit/rules-runtime/systems
 import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
 import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-lightning.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
+import { flamingSphere } from '@artificer-toolkit/source-data/srd/spells/flaming-sphere.js'
 import { blackTentacles } from '@artificer-toolkit/source-data/srd/spells/black-tentacles.js'
 import { grease } from '@artificer-toolkit/source-data/srd/spells/grease.js'
 import { guardianOfFaith } from '@artificer-toolkit/source-data/srd/spells/guardian-of-faith.js'
@@ -784,5 +785,87 @@ describe('a timed zone no Concentration holds (QUALITY-15.T3ag)', () => {
     await advanceTurns(room, 22)
 
     expect(await zoneTicks(room)).toEqual([[zone.id, null]])
+  })
+})
+
+/**
+ * QUALITY-15.T3y5: the SRD Flaming Sphere, authored from core options, places its sphere at the
+ * chosen point. A creature that ends its turn within 5 feet of it (the 15-foot cube centered on the
+ * sphere's square) makes a Dexterity save and takes the rolled fire damage on a failure; entering
+ * the area does nothing. Concentration holds the sphere.
+ */
+describe('the SRD Flaming Sphere zone (QUALITY-15.T3y5)', () => {
+  /** Beside the sphere: the Brown Bear's 10-foot token overlaps the cube's 150-unit half edge. */
+  const BESIDE_THE_SPHERE = { x: ZONE_CENTER.x + 100, y: ZONE_CENTER.y }
+  const castLabel = 'Flaming Sphere (2nd level)'
+
+  it('is placed at the chosen point and acts only as a creature ends its turn beside it', async () => {
+    const room = await zoneRoom({ spell: flamingSphere }, castLabel, OUTSIDE_THE_ZONE)
+    const zone = await castAtTheCenter(room)
+
+    expect(zone.placement).toMatchObject({
+      anchorKind: 'FIXED',
+      label: flamingSphere.label,
+      triggerModes: [],
+      turnTriggers: ['END_OF_TURN']
+    })
+    expect(JSON.parse(zone.definitionJson)).toMatchObject({
+      adapterFacts: {
+        [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]:
+          SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+        [DND5E_SAVE_DC_FACT_KEY]: WIZARD_SAVE_DC
+      }
+    })
+  })
+
+  it('does nothing to a creature that moves beside the sphere', async () => {
+    const room = await zoneRoom({ spell: flamingSphere }, castLabel, OUTSIDE_THE_ZONE)
+    await castAtTheCenter(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    const walk = await walkerMoves(room, [OUTSIDE_THE_ZONE, BESIDE_THE_SPHERE])
+
+    expect(walk.executions).toEqual([])
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
+  })
+
+  it.each([
+    { label: 'Flaming Sphere (2nd level)', dice: 2 },
+    { label: 'Flaming Sphere (3rd level)', dice: 3 }
+  ])(
+    'deals the rolled damage of $label to a creature that ends its turn beside it and fails its save',
+    async ({ label, dice }) => {
+      const room = await zoneRoom({ spell: flamingSphere }, label, BESIDE_THE_SPHERE, [], brownBear)
+      const zone = await castAtTheCenter(room)
+      const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+      // The caster's turn ends away from the sphere; the Bear's turn starts beside it.
+      const bearStarts = await advanceTurn(room)
+      // The Bear's turn ends beside the sphere.
+      const bearEnds = await advanceTurn(room)
+
+      expect(bearStarts).toEqual({ outgoing: undefined, incoming: undefined })
+      expect(bearEnds.outgoing).toMatchObject({
+        kind: 'EXECUTED',
+        executions: [
+          {
+            candidate: { candidate: { effectId: zone.id, targetActorId: WOLF_ID } },
+            applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: dice })]
+          }
+        ]
+      })
+      expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - dice)
+    }
+  )
+
+  it('ends with its caster’s Concentration', async () => {
+    const room = await zoneRoom({ spell: flamingSphere }, castLabel, OUTSIDE_THE_ZONE)
+    await castAtTheCenter(room)
+
+    const answer = await endConcentrationAtSheet(room, CASTER_ID)
+
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(room)).toEqual([])
   })
 })

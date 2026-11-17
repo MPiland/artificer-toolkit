@@ -134,6 +134,65 @@ describe('a summon held by its Concentration (QUALITY-15.T3n)', () => {
   })
 })
 
+describe('the SRD spells that create a creature or object (QUALITY-15.T3aa)', () => {
+  it('summons the real SRD Find Steed as one picked steed on its owner’s turn, until it falls', () => {
+    const placement = placementOf('Find Steed')
+    const summon = placement?.kind === 'SUMMON' ? placement.summonPlacement : null
+    expect(summon).toMatchObject({
+      forms: [
+        { label: 'Warhorse', maxTargets: 1 },
+        { label: 'Pony', maxTargets: 1 },
+        { label: 'Camel', maxTargets: 1 },
+        { label: 'Elk', maxTargets: 1 },
+        { label: 'Mastiff', maxTargets: 1 }
+      ],
+      creatureTypeIds: expect.arrayContaining([expect.any(String)]),
+      entry: { initialRemaining: null }
+    })
+    expect(summon).not.toHaveProperty('turnTiming')
+  })
+
+  it('summons up to three ghouls for the real SRD Create Undead, on their own initiative', () => {
+    const placement = placementOf('Create Undead')
+    expect(placement?.kind === 'SUMMON' && placement.summonPlacement).toMatchObject({
+      turnTiming: 'OWN_INITIATIVE',
+      forms: [{ label: 'Ghoul', maxTargets: 3 }],
+      entry: { initialRemaining: null }
+    })
+  })
+
+  it('summons the real SRD Unseen Servant as a 1-hit-point invisible servant that makes no attack, for its hour', () => {
+    const placement = placementOf('Unseen Servant')
+    expect(placement?.kind === 'SUMMON' && placement.summonPlacement).toMatchObject({
+      cannotAttack: true,
+      statBlock: {
+        armorClass: { value: 10 },
+        hitPoints: { value: 1 },
+        speeds: [{ amount: 15 }],
+        visibilityKind: 'INVISIBLE'
+      },
+      entry: { initialRemaining: 600 }
+    })
+  })
+
+  it('summons the real SRD Floating Disk as an untouchable disk that takes no space, for its hour', () => {
+    const placement = placementOf('Floating Disk')
+    expect(placement?.kind === 'SUMMON' && placement.summonPlacement).toMatchObject({
+      statBlock: { damageabilityKind: 'INVULNERABLE', occupiesSpace: false },
+      entry: { initialRemaining: 600 }
+    })
+  })
+
+  it('places the real SRD Create Food and Water as a labeled 5-foot square that triggers nobody', () => {
+    expect(zoneOf('Create Food and Water')).toMatchObject({
+      label: 'Food and water',
+      shape: { shapeKind: 'CUBE', edgeLength: { amount: 5 } },
+      triggerModes: [],
+      entry: { initialRemaining: null }
+    })
+  })
+})
+
 describe('a summon that turns hostile when its Concentration breaks (QUALITY-15.T3x)', () => {
   it.each([
     ['Conjure Elemental', 13, 'Air Elemental'],

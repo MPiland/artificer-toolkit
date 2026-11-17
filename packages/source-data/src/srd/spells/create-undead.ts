@@ -3,7 +3,6 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
-  DURATION_KIND,
   EFFECT_KIND,
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -15,7 +14,8 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, CREATURE_IDS, SPELL_IDS } from '../ids.js'
+import { conjuredCreatureForms } from './conjuredCreatureForms.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const createUndead: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -63,16 +63,18 @@ export const createUndead: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.CREATE_UNDEAD, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.CREATE_UNDEAD, 0x213, 1),
-              durationKind: DURATION_KIND.DAY,
-              amount: 1
-            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CREATE_UNDEAD, 0x212, 1),
+                // The ghouls share one turn of their own and stay until they fall (D200). Casting
+                // only at night on corpses, commanding them as a Bonus Action, the 24 hours they
+                // obey, reasserting control and the higher slots' creatures are GM rulings.
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.SUMMON,
+                turnTiming: 'OWN_INITIATIVE',
+                forms: conjuredCreatureForms(SPELL_IDS.CREATE_UNDEAD, [
+                  [CREATURE_IDS.GHOUL, 'Ghoul', 3]
+                ])
               }
             ]
           }
