@@ -23,6 +23,7 @@ import {
 } from '../shared/enums.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
+  MAX_ZONE_LAYERS,
   SPATIAL_TURN_TRIGGERS,
   spatialTriggerDtoSchema,
   spatialTurnTriggerDtoSchema
@@ -710,6 +711,17 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
         )
         .check(z.minLength(1))
         .check(z.maxLength(4))
+    ),
+    /**
+     * The later layers of a layered zone (D223): each covers the zone's own shape and is placed as a
+     * record of its own after the zone's, which is its first layer; a creature meeting the zone is
+     * put through every layer in this order. Absent for a zone of one layer.
+     */
+    layerComponents: z.optional(
+      z
+        .array(z.strictObject(zoneComponentShape()))
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_ZONE_LAYERS - 1))
     ),
     /** The Concentration the placing cast opens; every record it places depends on it (D135). */
     maintenance: compiledActionMaintenanceSchema,
