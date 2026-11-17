@@ -161,7 +161,11 @@ export const conjureAnimals: SpellAuthored = {
                 manifestKind: MANIFEST_KIND.SUMMON,
                 // The group acts on one shared turn of its own (D200).
                 turnTiming: 'OWN_INITIATIVE',
-                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_ANIMALS, animalForms),
+                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_ANIMALS, animalForms, [
+                  { level: 5, multiplier: 2 },
+                  { level: 7, multiplier: 3 },
+                  { level: 9, multiplier: 4 }
+                ]),
                 // Each beast is also considered fey.
                 creatureTypeIds: [creatureTypeId('FEY')]
               }
