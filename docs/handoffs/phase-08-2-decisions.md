@@ -2317,3 +2317,9 @@ QUALITY-15.T3v's seam trace found that Prismatic Wall's ordered layers cannot be
     4. **One chat card per action (user chose the orchestrator's recommendation):** an action posts one card holding its attack, damage and save rolls, as Foundry does with midi-qol. Projected total: 3.6 to 4.2 MB.
     5. The model stops scaling fixed COMPLETE costs per command and includes the post-START save; the final V15 run is re-measured.
   - **Tracking:** T8 (1), T9 (2), T10 (3), T11 (4), T7 (5; waits on T8 to T11).
+  - **Step 4 resize (2026-11-17, orchestrator, from the T11 seam trace):** a chat entry holds one roll today (`campaignStoredEntryPayloadSchema.roll`). Step 4 changes that persisted contract and the same stored header and payload as step 2, so it runs after T9, split into T11 and T12. These rulings follow from the approved step 4 and existing visibility rules, so they change no other product behaviour:
+    - A ROLL entry carries a non-empty `rolls` list. A standalone or free roll is a one-item list.
+    - An action posts one card per author, holding its TABLE-audience rolls. This is one card in the common case. A rare mixed-author action posts one card per author, so authorship and visibility stay as they are today. Private rolls stay out of chat (D62 and private roll history unchanged).
+    - An area cast is one action: one card per author per cast, holding every target's rolls, as Foundry does with midi-qol.
+    - GM reveal and rest consumption stay per roll inside a card, keeping today's behaviour.
+    - The card is written once, at the end of the commit, not appended to.
