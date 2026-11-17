@@ -61,7 +61,6 @@ import {
   type CoreMeta
 } from '#core'
 import {
-  AUTHORED_LIMITS,
   AUTHORING_ACTION_PRESENTATIONS,
   buildNodeMap,
   type BuildNodeMap,
@@ -72,11 +71,9 @@ import type { AllUnionFields } from 'type-fest'
 import {
   DURATION_NODE_MAP,
   FACET_NODE_MAP,
-  NUMERIC_EXPR_NODE_MAP,
   RANGE_NODE_MAP,
   SAVING_THROW_NODE_MAP,
   SHAPE_NODE_MAP,
-  SPEED_NODE_MAP,
   MEASUREMENT_NODE_MAP
 } from '../../shared/maps/index.js'
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'

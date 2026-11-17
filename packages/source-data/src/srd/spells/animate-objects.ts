@@ -153,6 +153,8 @@ export const animateObjects: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.ANIMATE_OBJECTS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.SUMMON,
+                // The caster commands the objects on each of their turns, so they act right after it.
+                turnTiming: 'AFTER_OWNER',
                 // The caster picks one size and how many of its objects to animate (at most as many
                 // as the spell's table allows), each standing in the object's own stat block.
                 forms: ANIMATED_OBJECT_SIZES.map((entry, index) => ({
