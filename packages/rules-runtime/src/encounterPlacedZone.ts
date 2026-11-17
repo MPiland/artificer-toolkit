@@ -6,8 +6,8 @@ import {
 } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { spatialRuleEffectPlacementDtoSchema } from '@artificer-toolkit/schema/shared/spatial'
+import { expandedAreaGeometry } from '@artificer-toolkit/shared/vtt/areaHalo'
 import {
-  expandedAreaGeometry,
   isDirectedAreaShape,
   undirectedAreaGeometry,
   type SpatialAreaShape,

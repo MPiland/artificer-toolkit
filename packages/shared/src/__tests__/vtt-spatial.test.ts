@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   pointAreaInSceneCoordinates,
   collectSpatialMovementCandidates,
-  expandedAreaGeometry,
   collectSpatialTurnCandidates,
   collectSpatialMeleeRetaliationCandidates,
   recordZoneApplications,
@@ -22,6 +21,7 @@ import {
   wallOutline,
   wallSideBandGeometry
 } from '../domains/vtt/spatial.js'
+import { expandedAreaGeometry } from '../domains/vtt/areaHalo.js'
 import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
 import { VTT_SCENE_LIMITS, type SceneGrid } from '../domains/vtt/scene.js'
 
