@@ -705,6 +705,10 @@ Found by SPELLS-4.T2h on 2026-10-22; post-launch.
 - **Zone moves (QUALITY-15.T3y8):** a zone move has no distance fence on a gridless Scene, and a zone's sceneId is not checked against the binding Scene. Fix if seen: a gridless distance measure and a sceneId check in the MOVE_ZONE plan.
 - **Summon forms (QUALITY-15.T3x2):** a summon form carries speeds but not its own defenses or senses. Fix if seen: form defenses and senses on the summon stat block.
 - **Zone light before ignition (QUALITY-15.T3v4):** a zone that requires ignition and authors light would shed it before it is lit; no SRD zone authors both today. Fix if seen: gate the zone light on its ignited state.
+- **Zone ram settlement (QUALITY-15.T3y8c):** a move that `rams` (Flaming Sphere) is authored, compiled and selected by `zoneMoveRam`, but MOVE_ZONE does not call it yet. The sphere still goes all the way, and the ram's save and damage stay a GM ruling. Fix if seen:
+  - `planNativeLiveMoveZone` (`apps/session-worker/src/nativeMoveZoneAction.ts`) re-centers on the ram's stop and runs the zone effect once on the rammed creature, system-rolled per D153, reusing the melee-retaliation planner (`encounterMeleeRetaliation.ts`).
+  - `persistEncounterMoveZone` writes that creature's mechanics batch, including Concentration damage.
+  - `revertZoneMove` restores it.
 - **Resilient Sphere (QUALITY-15.T3y6a):** attacks and effects through the barrier, the enclosed creature rolling the sphere, others moving the globe, and Disintegrate ending it stay GM rulings; movement blocking is QUALITY-15.T3y6b.
 
 ## Deferred rules pieces (D187a, 2026-10-23)
