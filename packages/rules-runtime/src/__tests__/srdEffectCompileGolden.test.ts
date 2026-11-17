@@ -395,6 +395,11 @@ describe('SRD effect compile golden', () => {
     expect(new Set(baseIds).size).toBe(baseIds.length)
   })
 
+  it('compiles the Dryad Tree Stride to a free self teleport (QUALITY-15.T3y7b)', () => {
+    const stride = lines.find(({ text }) => text.includes(' CREATURE Tree Stride | '))
+    expect(stride?.text).toContain(' | SINGLE_GRAPH ')
+  })
+
   it('compiles every authored SRD effect, at its scaling variants, to the committed outcome', async () => {
     const text = [...lines]
       .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : a.rank - b.rank))

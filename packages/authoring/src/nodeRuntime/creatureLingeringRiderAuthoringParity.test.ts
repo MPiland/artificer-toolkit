@@ -17,8 +17,8 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
  * SPELLS-33 T6m2 (D187a): the Androsphinx roars, Couatl poison, Dryad Tree Stride, Horned Devil
  * infernal wound and Vrock screech are written from the options a Builder author has on a creature
  * feature: saves, conditions, a turn-anchored duration and GM rulings (MANUAL_ADJUDICATION) for the
- * ordinal roar, the hearing and demon exemptions, the wake action, the stacking wound and the tree
- * size. Each creature must pass the creature node map exactly as authored, and the five closed rule
+ * ordinal roar, the hearing and demon exemptions, the wake action and the stacking wound; the
+ * Dryad's step is a free self teleport (QUALITY-15.T3y7b). Each creature must pass the creature node map exactly as authored, and the five closed rule
  * kinds are gone.
  */
 
@@ -66,7 +66,7 @@ describe('lingering creature riders from core options (D187a)', () => {
       creature: dryad,
       label: 'Tree Stride',
       pathCode: 'ON_USE',
-      kinds: [['TELEPORT', 'MANUAL_ADJUDICATION']]
+      kinds: [['TELEPORT']]
     },
     {
       creature: hornedDevil,
