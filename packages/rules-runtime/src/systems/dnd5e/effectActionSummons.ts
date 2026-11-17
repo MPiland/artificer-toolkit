@@ -102,7 +102,13 @@ export function compileDnd5eSummonPlacement(
         ...identity,
         forms: [...forms]
           .sort((left, right) => left.order - right.order)
-          .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets })),
+          .map(({ id, label, creatureId, maxTargets, speeds }) => ({
+            id,
+            label,
+            creatureId,
+            maxTargets,
+            ...(speeds?.length ? { speeds } : {})
+          })),
         creatureTypeIds: [...new Set(creatureTypeIds)].sort()
       }
   if (carrierEntry) {

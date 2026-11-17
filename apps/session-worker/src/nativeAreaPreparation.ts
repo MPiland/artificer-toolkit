@@ -62,6 +62,7 @@ import type { EncounterForcedMovementLanding } from '@artificer-toolkit/encounte
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
+import { withSummonFormSpeeds } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import {
   creatureSnapshotSize,
   encounterActiveEffectPlans
@@ -491,7 +492,10 @@ async function readSummonBody(
   if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
   return {
     kind: 'CREATURE',
-    creature: await input.readFormCreature(input.state.gameSystemId, pick.form.creatureId),
+    creature: withSummonFormSpeeds(
+      await input.readFormCreature(input.state.gameSystemId, pick.form.creatureId),
+      pick.form.speeds
+    ),
     creatureTypeId: pick.creatureTypeId,
     count: pick.count,
     label: pick.form.label
