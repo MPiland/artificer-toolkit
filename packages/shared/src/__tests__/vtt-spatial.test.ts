@@ -21,6 +21,10 @@ import {
   wallOutline,
   wallSideBandGeometry
 } from '../domains/vtt/spatial.js'
+import {
+  spatialGeometryCenter,
+  spatialGeometryCenteredAt
+} from '../domains/vtt/spatialGeometryCenter.js'
 import { expandedAreaGeometry } from '../domains/vtt/areaHalo.js'
 import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
 import { VTT_SCENE_LIMITS, type SceneGrid } from '../domains/vtt/scene.js'
@@ -1647,6 +1651,39 @@ describe('spatial candidates per distance moved (SPELLS-4.T1h, D156)', () => {
       expect.closeTo(14),
       expect.closeTo(19)
     ])
+  })
+})
+
+describe('a zone geometry moved to a new center (QUALITY-15.T3y8)', () => {
+  it('moves a circle or ring by its center, keeping its size', () => {
+    const ring = { kind: 'RING' as const, center: { x: 10, y: 10 }, innerRadius: 2, outerRadius: 4 }
+    expect(spatialGeometryCenter(ring)).toEqual({ x: 10, y: 10 })
+    expect(spatialGeometryCenteredAt(ring, { x: 30, y: 5 })).toEqual({
+      ...ring,
+      center: { x: 30, y: 5 }
+    })
+  })
+
+  it('translates a polygon whole so its vertex center lands on the new center', () => {
+    const square = {
+      kind: 'POLYGON' as const,
+      points: [
+        { x: 0, y: 0 },
+        { x: 4, y: 0 },
+        { x: 4, y: 4 },
+        { x: 0, y: 4 }
+      ]
+    }
+    expect(spatialGeometryCenter(square)).toEqual({ x: 2, y: 2 })
+    expect(spatialGeometryCenteredAt(square, { x: 12, y: 7 })).toEqual({
+      kind: 'POLYGON',
+      points: [
+        { x: 10, y: 5 },
+        { x: 14, y: 5 },
+        { x: 14, y: 9 },
+        { x: 10, y: 9 }
+      ]
+    })
   })
 })
 

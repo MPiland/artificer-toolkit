@@ -210,6 +210,8 @@ function zonePlacementPlan(
           ? 'A source zone is centered on the caster.'
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
+  if (zone.move && !first?.behavior)
+    unsupported('Only a zone whose component acts on creatures is moved by its source.')
   // A zone that authors no component and no appear save only marks its area for the table (Darkness,
   // Silence): placed with no triggers, held for its duration like terrain placed with no save.
   if (!first && !appearSave) return withZoneSettings(inertZonePlacementPlan(action, zone), zone)
@@ -248,6 +250,8 @@ function zonePlacementPlan(
           },
           { triggerModes: [] }
         )
+  if (primary.move && !primary.maintenance)
+    unsupported('Only a zone its source maintains is moved by its source.')
   // Each band or later layer is a record of its own, sparing whom the zone spares.
   const laterRecord = (planned: PlacedSpaceZone['components'][number]) => {
     const { label } = planned.component
@@ -498,6 +502,7 @@ function zoneComponentPlan(
     shape: zone.shape,
     ...(zone.ringThickness ? { ringThickness: zone.ringThickness } : {}),
     ...(zone.camouflage ? { camouflage: zone.camouflage } : {}),
+    ...(zone.move ? { move: zone.move } : {}),
     ...triggers,
     bypassAtHalfSpeed: component.bypassAtHalfSpeed === true,
     ...(component.choosesUnaffected || zone.designatedCreatureImmunity

@@ -336,7 +336,9 @@ function placedZoneRecord(
         : {}),
       ...(input.unaffectedActorIds?.length
         ? { unaffectedActorIds: [...input.unaffectedActorIds] }
-        : {})
+        : {}),
+      // Compiled only for a placed zone of one record (QUALITY-15.T3y8), so it never lands on a band.
+      ...(input.zone.move ? { move: input.zone.move } : {})
     }),
     spatialState: withZoneDcs(
       { schemaVersion: 1, revealed: true, ...(zone.requiresIgnition ? { unlit: true } : {}) },

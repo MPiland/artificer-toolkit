@@ -107,6 +107,10 @@ export const flamingSphere: SpellAuthored = {
                 attachmentKind: 'PLACED_SPACE',
                 label: 'Flaming Sphere',
                 shape: reach(0x220),
+                move: {
+                  activation: ACTIVATION_CODE.BONUS_ACTION,
+                  maxDistance: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
                 components: [
                   {
                     id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x221, 1),

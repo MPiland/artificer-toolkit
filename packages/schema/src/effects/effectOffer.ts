@@ -15,6 +15,18 @@ export const effectOfferRangeDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * How the source of a placed zone moves it while it lasts (QUALITY-15.T3y8): charged to
+ * `activation`, up to `maxDistance` between the zone's center before and after.
+ */
+export const zoneMoveDtoSchema = lazySchema(() =>
+  z.strictObject({
+    activation: z.enum(['ACTION', 'BONUS_ACTION']),
+    maxDistance: effectOfferRangeDtoSchema
+  })
+)
+export type ZoneMoveDto = z.infer<typeof zoneMoveDtoSchema>
+
 export interface MoveHeldEffectOffer {
   kind: 'MOVE_HELD_EFFECT'
   offeredTo: 'SOURCE' | 'HOLDER'

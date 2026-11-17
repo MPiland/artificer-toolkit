@@ -107,6 +107,7 @@ import type {
   ManifestOccupantConditionImmunityAuthored,
   ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
+  ManifestZoneMoveAuthored,
   ManualAdjudicationAuthored,
   RangeMeasurementAuthored,
   ModifierGrantAuthoredFor,
@@ -614,6 +615,11 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       } satisfies ManifestLightAuthored
     case 'manifestCamouflage':
       return { spotDc: { kind: 'SOURCE_SAVE_DC' } } satisfies ManifestCamouflageAuthored
+    case 'manifestZoneMove':
+      return {
+        activation: 'ACTION',
+        maxDistance: createMeasurement('FEET')
+      } satisfies ManifestZoneMoveAuthored
     case 'manifestOccupantConditionImmunity':
       return {
         id: crypto.randomUUID(),

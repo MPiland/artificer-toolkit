@@ -97,6 +97,7 @@ type AuthoringDefaultKind =
   | 'manifestOccupantConditionImmunity'
   | 'manifestOccupantSaveBonus'
   | 'manifestProximityRule'
+  | 'manifestZoneMove'
   | 'measurement'
   | 'measurementScalingBreakpoint'
   | 'damageInterceptionExcludes'
@@ -298,6 +299,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestOccupantConditionImmunity: ['manifestOccupantConditionImmunity'],
   manifestOccupantSaveBonus: ['manifestOccupantSaveBonus'],
   manifestProximityRule: ['manifestProximityRule'],
+  manifestZoneMove: ['manifestZoneMove'],
   measurement: ['measurement', 'shapeMeasurement'],
   measurementScalingBreakpoint: ['rangeScalingBreakpoint', 'shapeMeasurementScalingBreakpoint'],
   damageInterceptionExcludes: ['damageInterceptionExcludes'],
