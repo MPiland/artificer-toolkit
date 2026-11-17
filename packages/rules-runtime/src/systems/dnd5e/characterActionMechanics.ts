@@ -471,13 +471,13 @@ export function resolveDnd5eActionMechanic(
           : input.proficiencies
               .filter(
                 (proficiency) =>
-                  (proficiency.kind === 'EQUIPMENT' &&
+                  (proficiency.category === null || proficiency.category === item.category) &&
+                  ((proficiency.kind === 'EQUIPMENT' &&
                     (proficiency.subjectId === '*' ||
                       item.equipmentIds.includes(proficiency.subjectId))) ||
-                  (proficiency.kind === 'EQUIPMENT_PROPERTY' &&
-                    (proficiency.category === null || proficiency.category === item.category) &&
-                    (proficiency.subjectId === '*' ||
-                      item.properties.includes(proficiency.subjectId)))
+                    (proficiency.kind === 'EQUIPMENT_PROPERTY' &&
+                      (proficiency.subjectId === '*' ||
+                        item.properties.includes(proficiency.subjectId))))
               )
               .reduce(
                 (maximum, proficiencyEntry) =>

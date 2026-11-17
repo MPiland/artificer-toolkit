@@ -20,6 +20,8 @@ type LifetimePlan = Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
  * The plan that holds what an action leaves behind once it is used (ADR 0039 decision 1), one per
  * action, by precedence:
  * - SEQUENTIAL: a composed heal and grant cast (D156), with its own frozen graph;
+ * - ATTACHED_OBJECT: an object a test's result attaches to its target that deals damage at the
+ *   target's turn boundary, frozen as that damage at the cast level;
  * - REPEAT_SAVE: an effect a follow-up save repeats in, frozen as that save;
  * - TIMED: a condition, grant, link or form its own duration counts down;
  * - RELATIONSHIP: a hold on a target (Grapple), with its own frozen graph;
@@ -28,7 +30,10 @@ type LifetimePlan = Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
  */
 export type Dnd5eLifetime =
   | { kind: 'SEQUENTIAL'; plan: CharacterRuleActionActiveEffectPlan }
-  | { kind: 'REPEAT_SAVE' | 'TIMED' | 'RECURRING' | 'CONCEALMENT'; plan: LifetimePlan }
+  | {
+      kind: 'ATTACHED_OBJECT' | 'REPEAT_SAVE' | 'TIMED' | 'RECURRING' | 'CONCEALMENT'
+      plan: LifetimePlan
+    }
   | {
       kind: 'RELATIONSHIP'
       plan: LifetimePlan & { frozenGraph: ServerPublishedRuleDefinitionDto }
@@ -39,6 +44,7 @@ export type Dnd5eLifetimeCandidates = Readonly<{
   sequential: (
     action: Dnd5eCompiledEffectActionSource
   ) => CharacterRuleActionActiveEffectPlan | null
+  attachedObject: (action: Dnd5eCompiledEffectActionSource) => LifetimePlan | null
   repeatSave: (action: Dnd5eCompiledEffectActionSource) => LifetimePlan | null
   timed: (action: Dnd5eCompiledEffectActionSource) => LifetimePlan | null
   relationship: (
@@ -56,6 +62,8 @@ export function dnd5eLifetime(
 ): Dnd5eLifetime | null {
   const sequential = candidates.sequential(action)
   if (sequential) return { kind: 'SEQUENTIAL', plan: sequential }
+  const attachedObject = candidates.attachedObject(action)
+  if (attachedObject) return { kind: 'ATTACHED_OBJECT', plan: attachedObject }
   const repeatSave = candidates.repeatSave(action)
   const timed = repeatSave ? null : candidates.timed(action)
   const relationship = candidates.relationship(action)

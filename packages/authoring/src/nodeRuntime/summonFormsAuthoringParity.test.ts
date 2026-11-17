@@ -4,6 +4,8 @@ import type { EquipmentAuthored, SpellAuthored } from '@artificer-toolkit/shared
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
+import { conjureElemental } from '@artificer-toolkit/source-data/srd/spells/conjure-elemental.js'
+import { conjureFey } from '@artificer-toolkit/source-data/srd/spells/conjure-fey.js'
 import { findFamiliar } from '@artificer-toolkit/source-data/srd/spells/find-familiar.js'
 import { creatureTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -92,4 +94,17 @@ describe('a summon of System Creature forms through the effect node map (SPELLS-
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
+
+  it.each([
+    ['Conjure Elemental', conjureElemental],
+    ['Conjure Fey', conjureFey]
+  ])(
+    'keeps the SRD %s summon that turns hostile when released, so an author builds it (QUALITY-15.T3x)',
+    async (_label, spell) => {
+      const authored = equipmentWith(spell.effects)
+      const result = await normalize(authored)
+      expect(result.clearedPaths).toEqual([])
+      expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+    }
+  )
 })

@@ -738,11 +738,15 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('SUMMONS_ENDED'),
-      /** The timeline label: plain "Summon ended", which never names a creature a player cannot see. */
+      /** The timeline label: plain "Summon ended" or "Summon released", which never names a creature a player cannot see. */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-      /** The conjured creatures removed, so a replay removes the same ones. An undo does not restore them. */
+      /**
+       * The conjured creatures removed, so a replay removes the same ones, and those released to stand
+       * alone as hostile. An undo restores neither.
+       */
       receipt: z.strictObject({
-        removedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+        removedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        releasedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       }),
       /** The round's initiative after the removal; null when no removed creature held a place in it. */
       initiativeStateJson: z.nullable(z.string()),
