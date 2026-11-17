@@ -700,8 +700,7 @@ function localProofStage(proof, kind) {
       proof
     ]),
     proof,
-    proofName,
-    environment: proof === 'v15-workload' ? { V15_BROWSER_PROOF: '1' } : undefined
+    proofName
   }
 }
 export const stages = [
