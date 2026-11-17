@@ -15,6 +15,7 @@ import {
 import type { CampaignSceneState, SceneGrid, SceneLight, ScenePoint, SceneToken } from './scene.js'
 import { SYSTEM_BASE_SQUARE_FEET } from './scene.js'
 import { feetInSceneUnit } from './sceneReducer.js'
+import { nearestSpatialGeometryPoint, type SpatialGeometry } from './spatial.js'
 
 /** How the canvas draws an illumination level: as lit ground, as dim light, or as darkness. */
 export type SceneIlluminationRenderClass = 'LIT' | 'DIM' | 'DARK'
@@ -82,10 +83,22 @@ const obscurementRank: Readonly<Record<CombatPerceptionObscurement, number>> = {
   HEAVY: 2
 }
 
-type PerceptionSceneState = Pick<
+/**
+ * Light a placed zone sheds from its whole area: bright out to `brightRadius` from the area's edge,
+ * dim out to `dimRadius`, in Scene coordinates. Composed at runtime from the Encounter's zones, so
+ * the Scene's own lights stay the GM's (D108).
+ */
+export interface SceneZoneLight {
+  geometry: SpatialGeometry
+  brightRadius: number
+  dimRadius: number
+}
+
+/** What perception reads of a Scene, with the light its placed zones shed beside its own lights. */
+export type PerceptionSceneState = Pick<
   CampaignSceneState,
   'ambientIllumination' | 'barriers' | 'darknessZones' | 'doorStates' | 'grid' | 'lights' | 'tokens'
->
+> & { zoneLights?: readonly SceneZoneLight[] }
 
 type PerceptionSceneToken = Pick<SceneToken, 'height' | 'position' | 'width'>
 
@@ -193,14 +206,14 @@ function withinLightCone(light: SceneLight, point: ScenePoint): boolean {
   return Math.abs(offset) <= (light.angleDegrees * Math.PI) / 360
 }
 
-/** A light's bright and dim radii shed the System's two brightest levels. */
-function illuminationFromLight(
+/** A light's bright and dim radii shed the System's two brightest levels at `from` its source. */
+function illuminationAtDistance(
   levels: readonly SceneIlluminationLevel[],
-  light: SceneLight,
+  light: Pick<SceneLight, 'brightRadius' | 'dimRadius'>,
+  from: ScenePoint,
   point: ScenePoint
 ): CombatPerceptionIllumination | null {
-  if (!withinLightCone(light, point)) return null
-  const distance = Math.hypot(point.x - light.position.x, point.y - light.position.y)
+  const distance = Math.hypot(point.x - from.x, point.y - from.y)
   const { bright, dim } = sceneLightLevels(levels)
   if (distance <= light.brightRadius) return bright.code
   if (distance <= light.dimRadius) return dim.code
@@ -269,7 +282,8 @@ export function sceneTokenLights(
 /**
  * Illumination and obscurement at one Scene point (D108), ranked by the System's levels.
  * Illumination precedence: ambient light; then zones darken it (darker wins); then lights that
- * reach the point (cone, radii, barriers) brighten it (brighter wins); a light-suppressing level
+ * reach the point (cone, radii, barriers), the Scene's own, its tokens' and its placed zones', brighten
+ * it (brighter wins); a light-suppressing level
  * (ambient or zone) applies last and replaces the result, the darkest such level winning.
  * Obscurement is the strongest zone obscurement at the point.
  */
@@ -294,9 +308,20 @@ export function resolveSceneIlluminationAt(
     if (zone.mechanicalObscurement)
       obscurement = strongerObscurement(obscurement, zone.mechanicalObscurement)
   }
-  for (const light of [...scene.lights, ...sceneTokenLights(scene)]) {
-    if (!canLightPassBetween(scene, light.position, point, barrierIndex)) continue
-    const candidate = illuminationFromLight(illuminationLevels, light, point)
+  // A point light shines from its position within its cone; a zone's light from the zone's nearest
+  // point, so inside the zone the point is its own source.
+  const sources = [
+    ...[...scene.lights, ...sceneTokenLights(scene)]
+      .filter((light) => withinLightCone(light, point))
+      .map((light) => ({ light, from: light.position })),
+    ...(scene.zoneLights ?? []).map((light) => ({
+      light,
+      from: nearestSpatialGeometryPoint(light.geometry, point)
+    }))
+  ]
+  for (const { light, from } of sources) {
+    if (!canLightPassBetween(scene, from, point, barrierIndex)) continue
+    const candidate = illuminationAtDistance(illuminationLevels, light, from, point)
     if (candidate) illumination = brighterIllumination(illuminationLevels, illumination, candidate)
   }
   const suppressing = [

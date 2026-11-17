@@ -203,7 +203,11 @@ function placedZoneRecord(
   zone: Omit<ZoneRegionComponent, 'region'> &
     Pick<
       CompiledActionZonePlacement,
-      'retaliatesMeleeHits' | 'occupantSaveBonus' | 'occupantConditionImmunity' | 'camouflage'
+      | 'retaliatesMeleeHits'
+      | 'occupantSaveBonus'
+      | 'occupantConditionImmunity'
+      | 'camouflage'
+      | 'light'
     >,
   anchor: ReturnType<typeof zoneAnchor>,
   { distanceStep, layer }: { distanceStep?: number; layer?: { index: number; zoneId: string } } = {}
@@ -315,6 +319,7 @@ function placedZoneRecord(
       ...(zone.occupantConditionImmunity
         ? { occupantConditionImmunity: zone.occupantConditionImmunity }
         : {}),
+      ...(zone.light ? { light: zone.light } : {}),
       // A held condition's escape against its source's save DC pins the caster's DC (D146).
       ...(heldCondition
         ? {

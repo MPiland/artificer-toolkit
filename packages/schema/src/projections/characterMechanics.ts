@@ -663,6 +663,11 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
      * outer radius less this. Absent for a filled zone.
      */
     ringThickness: z.optional(z.pick(shapeMeasurementDtoSchema, { amount: true, unit: true })),
+    /**
+     * The light the zone sheds out from its area: bright out to `bright` from its edge, dim for
+     * `dimAdditional` beyond. Placed on the zone's own record only; absent for a zone that sheds none.
+     */
+    light: z.optional(manifestLightDtoSchema),
     ...zoneComponentShape(),
     /**
      * The zone catches a mover once for each whole such distance it travels inside, where that

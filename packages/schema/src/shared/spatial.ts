@@ -5,6 +5,7 @@ import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 import { activationDtoSchema } from '../effects/activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from '../effects/check.js'
 import { manifestDestructionCriterionDtoSchema } from '../effects/destructionCriterion.js'
+import { manifestLightDtoSchema } from '../effects/manifest.js'
 import { MAX_ACTIVE_EFFECT_TURNS } from './activeRuleEffectLifecycle.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { manifestBlockingRuleSchema, manifestRequiredSightSchema } from './enums.js'
@@ -311,7 +312,12 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
         })
       ),
       /** The conditions the zone keeps off its source and the source's allies inside it. */
-      occupantConditionImmunity: z.optional(spatialOccupantConditionImmunityDtoSchema)
+      occupantConditionImmunity: z.optional(spatialOccupantConditionImmunityDtoSchema),
+      /**
+       * The light the zone sheds out from its whole area, in its authored lengths; perception converts
+       * them on the Scene's grid. Only a zone's own record carries it.
+       */
+      light: z.optional(manifestLightDtoSchema)
     })
     .check(
       z.superRefine((placement, context) => {

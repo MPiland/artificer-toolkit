@@ -210,10 +210,13 @@ function zonePlacementPlan(
           ? 'A source zone is centered on the caster.'
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
+  // The zone's own record carries what holds for the whole zone: the light it sheds and how long it
+  // lasts. Its bands and layers are records of their own and carry neither.
+  const placed = (plan: CharacterRuleActionZonePlacementPlan) =>
+    withZoneDuration(zone.light ? { ...plan, light: zone.light } : plan, zone.entry)
   // A zone that authors no component and no appear save only marks its area for the table (Darkness,
   // Silence): placed with no triggers, held for its duration like terrain placed with no save.
-  if (!first && !appearSave)
-    return withZoneDuration(inertZonePlacementPlan(action, zone), zone.entry)
+  if (!first && !appearSave) return placed(inertZonePlacementPlan(action, zone))
   // A zone no creature interacts with is placed with no triggers; its appear save, if any, is its
   // provenance and names the condition it holds (Entangle's restraint), and its one component, if
   // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).
@@ -236,10 +239,7 @@ function zonePlacementPlan(
       'Only a zone no creature interacts with holds the condition its appear save applies.'
     )
   if (first && !first.behavior && !terrain)
-    return withZoneDuration(
-      occupantBonusZonePlacementPlan(action, zone, first.component),
-      zone.entry
-    )
+    return placed(occupantBonusZonePlacementPlan(action, zone, first.component))
   const primary =
     first && (!terrain || !appearSave)
       ? zoneComponentPlan(action, zone, first, terrain ? { triggerModes: [] } : undefined)
@@ -276,17 +276,14 @@ function zonePlacementPlan(
     ...laterRecord(zone.proximity.planned)
   }
   const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
-  return withZoneDuration(
-    {
-      ...primary,
-      ...(regionComponents.length ? { regionComponents } : {}),
-      ...(layerComponents.length ? { layerComponents } : {}),
-      ...(proximityComponent ? { proximityComponent } : {}),
-      ...(zone.destructionInOrder ? { destructionInOrder: true as const } : {}),
-      ...(sourceGrant ? { sourceGrant } : {})
-    },
-    zone.entry
-  )
+  return placed({
+    ...primary,
+    ...(regionComponents.length ? { regionComponents } : {}),
+    ...(layerComponents.length ? { layerComponents } : {}),
+    ...(proximityComponent ? { proximityComponent } : {}),
+    ...(zone.destructionInOrder ? { destructionInOrder: true as const } : {}),
+    ...(sourceGrant ? { sourceGrant } : {})
+  })
 }
 
 /**

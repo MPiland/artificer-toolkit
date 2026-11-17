@@ -18,6 +18,7 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 
+import { placedZoneLights } from './actorLight.js'
 import { createActorSensePinner } from './actorSenses.js'
 import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 import { combatPerceptionCapabilityRegistry } from './platformPolicyModules.js'
@@ -103,7 +104,11 @@ export async function resolveEncounterActorPairPerception(input: {
     sceneGrid,
     ...(placement
       ? {
-          scene: placement.scene,
+          // The light the Scene's placed zones shed lights it beside its own lights.
+          scene: {
+            ...placement.scene,
+            zoneLights: placedZoneLights(placement.spatialEffects, placement.scene)
+          },
           observerToken: placement.observerToken,
           subjectToken: placement.subjectToken,
           sharedSurface: true,
