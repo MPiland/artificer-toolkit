@@ -77,7 +77,7 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   // The GM destroys a layer by its criteria (D223); a destroyed layer is removed, so it stays so.
   'destructionMustResolveInOrder',
   'destroyedComponentsRemainDestroyed',
-  // Its halo is a record of the zone's own (D223); a rule that acts as a creature moves is refused.
+  // Its halo is a record of the zone's own (D223).
   'proximityRule',
   'designatedCreatureImmunity',
   // No antimagic suppression exists, so a zone immune to it is honored as is (D223).
@@ -115,9 +115,18 @@ function hasUnmodeledField(value: object, modeled: ReadonlySet<string>): boolean
 }
 
 /**
+ * The zone interaction each proximity event is met by (D223): moving within reach is entering the
+ * halo, ending there or passing through it, and starting a turn there is starting it in the halo.
+ */
+const PROXIMITY_INTERACTION_KINDS = {
+  MOVE_WITHIN: 'ENTER_OR_PASS_THROUGH',
+  START_TURN: 'START_TURN_IN_SPACE'
+} as const
+
+/**
  * The component a zone's proximity rule puts a creature near the zone through (D223): the rule's one
- * behavior, caught at the start of the creature's turn, that needs sight of the zone when the rule
- * does. A rule that also acts as a creature moves is refused until movement reads that sight.
+ * behavior, caught as the creature moves within reach or starts its turn there, as the rule
+ * authors, that needs sight of the zone when the rule does.
  */
 function proximityPlan(
   rule: CompiledManifestProximityRule,
@@ -128,10 +137,6 @@ function proximityPlan(
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A proximity rule belongs to a zone left where its cast places it.'
     )
-  if (rule.events.length !== 1 || rule.events[0] !== 'START_TURN')
-    throw new CharacterRuleActionUnsupportedCompilationError(
-      'A proximity rule acts only at the start of a creature’s turn.'
-    )
   return {
     reach: rule.distance,
     planned: {
@@ -139,7 +144,7 @@ function proximityPlan(
         id: rule.id,
         order: 1,
         label,
-        interactionKinds: ['START_TURN_IN_SPACE'],
+        interactionKinds: rule.events.map((event) => PROXIMITY_INTERACTION_KINDS[event]),
         ...(rule.requiresSight ? { requiredSight: ['OCCUPANT_SEES_ZONE' as const] } : {})
       },
       behavior: rule.behavior

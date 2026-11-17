@@ -44,6 +44,7 @@ import {
   spatialExecutionOutcome,
   spatialExecutionStopsMovement,
   toSpatialInstances,
+  zoneSightContactFacts,
   type SpatialD20Roll,
   type SpatialMovementTarget,
   type SpatialTargetState
@@ -259,6 +260,15 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   /** The effects each actor holds until it moves (`ON_MOVE`). */
   moveEndHolds?: readonly { actorId: string; effectId: string }[]
   interruptAfterContactToActorIds?: ReadonlySet<string>
+  /**
+   * Whether an occupant standing at `from` sees a point of the Scene (a zone it contacts); read only
+   * for a zone that requires sight of itself. A move reads it from where the occupant began (D223).
+   */
+  loadPointSight?: (input: {
+    occupantActorId: string
+    from: ScenePoint
+    point: ScenePoint
+  }) => Promise<boolean>
 }): Promise<SpatialMovementRuleEvaluation> {
   const root = normalizeRoot(input.root)
   let interruptAfterPathDistance = normalizeInterruptDistance(
@@ -410,6 +420,16 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     )
   )
   const moverActorId = input.actorIdByTokenId.get(root.tokenId)
+  /** Where an occupant was before this move: a walker where its walk began, anyone else where it stands. */
+  const preMovePosition = (actorId: string): ScenePoint => {
+    const walk = walks.find(({ tokenId }) => input.actorIdByTokenId.get(tokenId) === actorId)
+    const position =
+      walk?.path[0] ??
+      input.sceneTokens.find(({ id }) => input.actorIdByTokenId.get(id) === actorId)?.position
+    if (!position) throw new EncounterConflictError('A spatial contact target has no token.')
+    return position
+  }
+  const { loadPointSight } = input
   /**
    * The zones the mover leaves by a move that ends at `stopDistance` (or at its end, when null):
    * its footprint there is outside the area. A creature stopped on entering only touches the edge,
@@ -669,7 +689,14 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       target,
       state,
       occurrenceId: input.occurrenceId,
-      runtime: input.runtime
+      runtime: input.runtime,
+      contactFacts: await zoneSightContactFacts({
+        effect,
+        occupantActorId: candidate.targetActorId,
+        loadPointSight:
+          loadPointSight &&
+          ((sight) => loadPointSight({ ...sight, from: preMovePosition(sight.occupantActorId) }))
+      })
     })
     const stored = completedPrefix[candidateIndex]
     if (stored) {
