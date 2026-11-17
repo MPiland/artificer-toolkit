@@ -45,9 +45,14 @@ export const huntingTrap: EquipmentAuthored = {
               {
                 id: S.equipmentChildId(S.equipId(143), 0x212, 1),
                 effectKind: S.EFFECT_KIND.MANIFEST,
-                manifestKind: 'OBJECT' as const,
+                manifestKind: 'ZONE' as const,
                 attachmentKind: 'PLACED_SPACE' as const,
-                label: 'Set hunting trap',
+                label: 'Hunting trap',
+                shape: {
+                  id: S.equipmentChildId(S.equipId(143), 0x213, 1),
+                  shapeKind: S.SHAPE_KIND.CUBE,
+                  edgeLength: { amount: 5, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+                },
                 components: [
                   {
                     id: S.equipmentChildId(S.equipId(143), 0x220, 1),
@@ -83,6 +88,19 @@ export const huntingTrap: EquipmentAuthored = {
                             resultBlock: {
                               id: `${S.equipmentChildId(S.equipId(143), 0x224, 1)}__result`,
                               resultKind: 'SEQUENCE' as const,
+                              lifecycle: {
+                                heldBySource: true,
+                                escape: {
+                                  activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                                  checks: {
+                                    skillIds: [],
+                                    abilityDefinitionIds: [
+                                      SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH
+                                    ]
+                                  },
+                                  dc: { kind: 'FIXED' as const, value: 13 }
+                                }
+                              },
                               outcomes: [
                                 {
                                   id: S.equipmentChildId(S.equipId(143), 0x225, 1),
@@ -99,41 +117,8 @@ export const huntingTrap: EquipmentAuthored = {
                                 },
                                 {
                                   id: S.equipmentChildId(S.equipId(143), 0x227, 1),
-                                  effectKind: S.EFFECT_KIND.MOVEMENT_RULE,
-                                  ruleKind: 'LIMIT_DISTANCE_FROM_ANCHOR' as const,
-                                  limitDistance: {
-                                    amount: 3,
-                                    unit: S.MEASUREMENT_UNIT_CODE.FEET
-                                  }
-                                },
-                                {
-                                  id: S.equipmentChildId(S.equipId(143), 0x228, 1),
-                                  effectKind: S.EFFECT_KIND.FOLLOW_UP_CHECK,
-                                  label: 'Break free of the hunting trap',
-                                  activation: {
-                                    code: S.ACTIVATION_CODE.ACTION,
-                                    amount: 1
-                                  },
-                                  ability: S.ABILITY_CODE.STRENGTH,
-                                  fixedDc: 13,
-                                  actorKinds: ['TARGET', 'CREATURE_WITHIN_REACH'],
-                                  repeatable: true,
-                                  onSuccess: { kind: 'END' as const },
-                                  onFailure: {
-                                    kind: 'OUTCOMES' as const,
-                                    endCurrent: false,
-                                    resultKind: 'SINGLE' as const,
-                                    outcomes: [
-                                      {
-                                        id: S.equipmentChildId(S.equipId(143), 0x229, 1),
-                                        effectKind: S.EFFECT_KIND.DAMAGE,
-                                        damageTypeId: S.damageTypeId('PIERCING'),
-                                        valueKind: S.DAMAGE_VALUE_KIND.FIXED,
-                                        scalingKind: S.SCALING.NONE,
-                                        amount: 1
-                                      }
-                                    ]
-                                  }
+                                  effectKind: S.EFFECT_KIND.CONDITION,
+                                  conditionId: S.conditionTypeId('RESTRAINED')
                                 }
                               ]
                             }

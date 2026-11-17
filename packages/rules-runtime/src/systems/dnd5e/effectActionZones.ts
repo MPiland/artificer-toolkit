@@ -660,9 +660,11 @@ function zoneComponentPlan(
   )
     unsupported('A placed zone grant must last until its end event.')
   const maintenance = maintenancePlan(action, primary)
-  // A held condition ends with its zone through the zone's maintenance, which nothing else ends.
-  if (heldCondition && !heldCondition.endsAtEndOfHolderTurn && !maintenance)
-    unsupported('A zone-held condition needs a zone that Concentration maintains.')
+  // A held condition ends with its zone through the zone's maintenance, which nothing else ends. A
+  // zone with no duration stands until the Encounter ends, so it holds until the escape or leaving.
+  const timedZone = 'duration' in zone.entry && zone.entry.duration !== undefined
+  if (heldCondition && !heldCondition.endsAtEndOfHolderTurn && !maintenance && timedZone)
+    unsupported('A zone-held condition needs a Concentration-maintained or untimed zone.')
   if (heldCondition?.escape && !zone.label)
     unsupported('A zone-held condition escape names its zone.')
   return {
