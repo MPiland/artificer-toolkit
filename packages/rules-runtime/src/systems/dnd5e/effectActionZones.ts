@@ -196,16 +196,29 @@ function zonePlacementPlan(
     )
   )
     unsupported('A zone size scales only as a passive zone’s radius by class level.')
-  const placementKind = encounterZoneChoiceTarget(
+  const placementTarget = encounterZoneChoiceTarget(
     {
       ...zone,
       regionComponents: layered ? [] : later.map(({ component }) => ({ region: component.region! }))
     },
     action.compiledEffect.invocation.range.rangeKind
-  )?.kind
+  )
+  const placementKind = placementTarget?.kind
   // A directed area is aimed, not placed; a zone is left where its action is centered or its wall
   // is drawn (D154), and a source zone is centered on the caster. Only a wall has a side to reach.
-  if (zone.attachment === 'SOURCE' ? placementKind !== 'CASTER_CENTERED' : !placementKind)
+  // A zone a failed save leaves around its target is a circle around the one creature the action
+  // names, anchored to that creature's token.
+  if (zone.attachment === 'PRIMARY_TARGET') {
+    const { targeting } = action.compiledEffect.invocation
+    if (
+      targeting?.selectionKind !== 'CHOSEN_CREATURES' ||
+      targeting.maxTargets !== 1 ||
+      targeting.maxTargetsScaling ||
+      placementTarget?.kind !== 'POINT' ||
+      placementTarget.area.kind !== 'RADIUS'
+    )
+      unsupported('A zone left around its target is a circle around the one creature it encloses.')
+  } else if (zone.attachment === 'SOURCE' ? placementKind !== 'CASTER_CENTERED' : !placementKind)
     unsupported(
       later.length && !layered
         ? 'A zone with a band beside it is a straight wall or a ring.'
@@ -215,9 +228,11 @@ function zonePlacementPlan(
     )
   if (zone.move && !first?.behavior)
     unsupported('Only a zone whose component acts on creatures is moved by its source.')
-  // A zone that authors no component and no appear save only marks its area for the table (Darkness,
-  // Silence): placed with no triggers, held for its duration like terrain placed with no save.
-  if (!first && !appearSave) return withZoneSettings(inertZonePlacementPlan(action, zone), zone)
+  // A zone that authors no component and no appear save outcome only marks its area for the table
+  // (Darkness, Silence, or the sphere a failed save leaves around its target): placed with no
+  // triggers, held for its duration like terrain placed with no save.
+  if (!first && !appearSave?.entries.length)
+    return withZoneSettings(inertZonePlacementPlan(action, zone), zone)
   // A zone no creature interacts with is placed with no triggers; its appear save, if any, is its
   // provenance and names the condition it holds (Entangle's restraint), and its one component, if
   // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).

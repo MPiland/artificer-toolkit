@@ -278,7 +278,6 @@ export async function completeAreaCommit(args: {
     removedActorIds,
     unaffectedActorIds,
     sealedRays,
-    placement,
     summon,
     occurrenceVersion,
     response,
@@ -295,6 +294,18 @@ export async function completeAreaCommit(args: {
     ({ occurrenceId }, index) => ({ actorId: caught[index]!.actorId, occurrenceId })
   )
   const caughtEntries = sealedEntries.filter((_, index) => !caught[index]!.lost)
+  // A zone a failed save leaves around its target is left only when the creature it encloses failed
+  // that save and spent no Legendary Resistance against it.
+  const placement =
+    args.placement?.zone.attachment === 'PRIMARY_TARGET' &&
+    !caughtKept.some(
+      ({ actor }, index) =>
+        caughtSettled.find(
+          ({ occurrenceId }) => occurrenceId === caughtEntries[index]!.occurrenceId
+        )?.complete.d20?.resultPath === 'ON_SAVE_FAIL' && audits.get(actor.id)?.selection !== 'USE'
+    )
+      ? null
+      : args.placement
   // A ray lost at its creature's gate did nothing: its receipt is the failed gate alone, under the
   // root that holds the cast's one spend.
   const lostRays = caught.flatMap(({ actorId, lost }, index) =>

@@ -187,12 +187,16 @@ function singlePlacedSpaceManifest(
 
 /**
  * The save each creature in the area makes when the zone an action places appears (D154
- * amendment): the action narrowed to its save outcome entries, run as its area occurrence. Null
- * when the action authors none beside its zone.
+ * amendment): the action narrowed to its save outcome entries, run as its area occurrence. A zone a
+ * failed save leaves on its target is that save's own outcome, so the save is kept with no other.
+ * Null when the action authors none beside its zone.
  */
 export function zoneAppearSave(compiledEffect: CompiledEffectGroup): CompiledEffectGroup | null {
-  const entries = compiledEffect.entries.filter((entry) => entry.pathCode !== 'ON_USE')
-  return entries.length ? { ...compiledEffect, entries } : null
+  const zone = placedSpaceEntries(compiledEffect)?.entry
+  const entries = compiledEffect.entries.filter(
+    (entry) => entry.pathCode !== 'ON_USE' && entry !== zone
+  )
+  return entries.length || zone?.pathCode === 'ON_SAVE_FAIL' ? { ...compiledEffect, entries } : null
 }
 
 /**
@@ -289,7 +293,10 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
       'Only a placed zone of one component is moved by its source.'
     )
   return {
-    attachment: manifest.attachmentKind === 'SOURCE' ? 'SOURCE' : 'PLACED_SPACE',
+    attachment:
+      manifest.attachmentKind === 'SOURCE' || manifest.attachmentKind === 'PRIMARY_TARGET'
+        ? manifest.attachmentKind
+        : 'PLACED_SPACE',
     label,
     shape,
     ...(manifest.proximityRule
