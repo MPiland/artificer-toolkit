@@ -6,7 +6,10 @@ import {
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import type { LiveSessionChatCheckpointInput } from '@artificer-toolkit/schema/api/liveSessionChatCheckpoint'
-import { LIVE_SESSION_CHECKPOINT_MAX_BYTES } from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
+import {
+  LIVE_SESSION_CHECKPOINT_MAX_BYTES,
+  LIVE_SESSION_CHECKPOINT_MAX_CHANGES
+} from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
 import {
   LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES,
   type LiveSessionCheckpointAcknowledgement
@@ -147,9 +150,7 @@ export class RoomCheckpoints {
   }
 
   /** Sends the pending chat save, or a new one through the head; resolves with null if nothing is unpublished. */
-  async #flushChat(
-    scope: Pick<FlushInput, 'campaignId' | 'epoch'>
-  ): Promise<LiveSessionCheckpointResponse | null> {
+  async #flushChat(scope: FlushInput): Promise<LiveSessionCheckpointResponse | null> {
     const store = this.#store
     const publishChat = this.#publishChat
     if (!publishChat) throw new Error('The room has no chat checkpoint publisher.')
@@ -173,7 +174,8 @@ export class RoomCheckpoints {
         campaignId: scope.campaignId,
         epoch: scope.epoch,
         changes: records.changes,
-        retainedRolls: records.retainedRolls ?? []
+        retainedRolls: records.retainedRolls ?? [],
+        knownAuthorization: scope.knownAuthorization
       })
     )
     await store.whenClosed(() => store.completeChatPublication(target))
@@ -246,26 +248,27 @@ export class RoomCheckpoints {
         // One checkpoint folds the longest prefix whose records fit the atomic bound, so a save
         // normally publishes the whole unsaved journal at once and rows created and dropped within
         // it never reach Convex. The raw journal is read in bounded pages and streamed into one
-        // fold, so the page size never cuts a checkpoint. A prefix never ends before the chat
-        // watermark: Convex already holds the chat through it.
-        const lowest = Math.max(base.sequence + 1, this.#store.chatPublication.throughSequence)
+        // fold, so the page size never cuts a checkpoint. The count bound keeps Convex's validation
+        // of one save well under its 1 s limit. A prefix may end before the chat watermark: the fold
+        // then leaves out chat and rolls, which Convex already holds.
         for (let limit = throughSequence; limit > base.sequence;) {
           const { records, checksum } = this.#fold(base, limit)
           const recordsJson = canonicalizeJson(records)
           const bytes = new TextEncoder().encode(recordsJson).byteLength
-          if (bytes > LIVE_SESSION_CHECKPOINT_MAX_BYTES) {
-            if (limit <= lowest) break
+          const changes = records.changes.length
+          if (
+            bytes > LIVE_SESSION_CHECKPOINT_MAX_BYTES ||
+            changes > LIVE_SESSION_CHECKPOINT_MAX_CHANGES
+          ) {
+            if (limit <= base.sequence + 1) break
             // Records grow about linearly with the span, so a proportional step reaches a fitting
             // prefix in a few rebuilds rather than one rebuild per command.
             const span = limit - base.sequence
-            limit = Math.max(
-              lowest,
-              base.sequence +
-                Math.max(
-                  1,
-                  Math.min(span - 1, Math.floor((span * LIVE_SESSION_CHECKPOINT_MAX_BYTES) / bytes))
-                )
+            const fit = Math.min(
+              LIVE_SESSION_CHECKPOINT_MAX_BYTES / bytes,
+              LIVE_SESSION_CHECKPOINT_MAX_CHANGES / Math.max(1, changes)
             )
+            limit = base.sequence + Math.max(1, Math.min(span - 1, Math.floor(span * fit)))
             continue
           }
           pending = liveSessionCheckpointInputSchema.parse({

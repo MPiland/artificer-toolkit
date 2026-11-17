@@ -10,7 +10,12 @@ import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import { RoomCheckpoints } from './roomCheckpoints.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { retainRoomPrivateRoll } from './roomPrivateRolls.js'
-import { aggregate, command, uuid } from './testing/roomAggregateFixture.js'
+import {
+  LIVE_SESSION_CHECKPOINT_MAX_BYTES,
+  LIVE_SESSION_CHECKPOINT_MAX_CHANGES
+} from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
+import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
+import { aggregate, command, encounterId, uuid } from './testing/roomAggregateFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { NO_CHECKPOINT_IO } from '../test/checkpointIoFixture.js'
 
@@ -199,6 +204,98 @@ describe('mid-Run chat save (ADR 0035 Amendment 32)', () => {
       fulls[0]!.records.changes.some(({ table }) => table === 'campaignConversationEntries')
     ).toBe(false)
     expect(store.logRows).toBe(0)
+  })
+
+  it('splits an oversize full save below the chat watermark, drops the chat already published, and publishes every prefix', async () => {
+    const { store, storage } = open()
+    const { checkpoints, fulls } = recorders(store, storage)
+    for (let ordinal = 1; ordinal <= 4; ordinal += 1) {
+      await store.transact(async () => {
+        for (let row = 0; row < 1000; row += 1)
+          await store.store.insert('encounterTurnMovements', {
+            encounterId,
+            round: ordinal * 1000 + row,
+            turnActorId: uuid(0x100),
+            actorId: uuid(0x100 + (row % 11)),
+            usedFeet: row,
+            speedBonuses: 0,
+            speedId: null,
+            usedOncePerTurn: [],
+            startedByCommandId: null,
+            lastMove: null,
+            teleportAllowances: []
+          })
+      })
+      await chat(store, ordinal)
+    }
+    const published = store.sequence
+    await checkpoints.flushChat(scope)
+    expect(store.chatPublication.throughSequence).toBe(published)
+
+    await checkpoints.flush(scope, 'DRAIN')
+
+    expect(fulls.length).toBeGreaterThan(1)
+    expect(fulls.at(-1)!.sequence).toBe(published)
+    for (const full of fulls) {
+      expect(full.records.changes.length).toBeLessThanOrEqual(LIVE_SESSION_CHECKPOINT_MAX_CHANGES)
+      expect(
+        new TextEncoder().encode(canonicalizeJson(full.records)).byteLength
+      ).toBeLessThanOrEqual(LIVE_SESSION_CHECKPOINT_MAX_BYTES)
+      expect(
+        full.records.changes.some(({ table }) => table === 'campaignConversationEntries')
+      ).toBe(false)
+    }
+    expect(
+      fulls.slice(1).every((full, index) => full.fromSequence === fulls[index]!.sequence)
+    ).toBe(true)
+    expect(store.logRows).toBe(0)
+  })
+
+  it('rebuilds after storage loss with chat ahead of the Run head: re-run commands publish and never touch the held chat rows', async () => {
+    const lost = open()
+    const first = recorders(lost.store, lost.storage)
+    await command(lost.store, 1)
+    await chat(lost.store, 1)
+    await first.checkpoints.flushChat(scope)
+    expect(first.chats[0]!.changes).toHaveLength(1)
+
+    // Convex now holds chat entry 1; the room's storage is lost and it hydrates from Convex alone.
+    const rebuilt = createNodeSqliteRoomStorage()
+    databases.push(rebuilt.database)
+    const store = new RoomEncounterStore(rebuilt.storage)
+    const held = aggregate(2)
+    store.hydrate({
+      epoch: EPOCH,
+      ...held,
+      documents: [
+        ...held.documents,
+        {
+          table: 'campaignConversationEntries',
+          id: 'convex:chat:1',
+          creationTime: 1_790_000_000_000,
+          fields: {
+            id: uuid(0x901),
+            campaignId: CAMPAIGN,
+            conversationId: uuid(0x800),
+            authorUserId: uuid(0x801),
+            createdAt: '2026-09-01T00:00:00.000Z',
+            clientNonce: uuid(0xa01),
+            kind: 'CHAT',
+            rollNonceFingerprint: null
+          }
+        }
+      ]
+    })
+    const second = recorders(store, rebuilt.storage)
+    await command(store, 1)
+    await chat(store, 2)
+    await second.checkpoints.flush(scope, 'DRAIN')
+
+    expect(second.fulls).toHaveLength(1)
+    const entries = second.fulls[0]!.records.changes.filter(
+      ({ table }) => table === 'campaignConversationEntries'
+    )
+    expect(entries.map(({ key }) => key)).toEqual([[uuid(0x902)]])
   })
 
   it('frees the push window: saved chat leaves unsavedChatEntries, across eviction, until a full checkpoint', async () => {

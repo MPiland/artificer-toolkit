@@ -82,24 +82,26 @@ export async function publishChatCheckpoint(
   ctx: MutationCtx,
   rawInput: LiveSessionChatCheckpointInput
 ): Promise<LiveSessionCheckpointResponse> {
-  const { campaignId, epoch, changes, retainedRolls } =
+  const { campaignId, epoch, changes, retainedRolls, knownAuthorization } =
     liveSessionChatCheckpointInputSchema.parse(rawInput)
   const authority = await requireCampaignLiveAuthority(ctx, { campaignId, epoch })
   if (authority.phase === 'ACTIVATING') throw new Error('Live Session authority is not active.')
+  // The same revision tracking and adoption as a full save, so the room's own writes never look foreign.
+  const tracked = withSceneVisionTracking(ctx)
   const io = createCheckpointIoMeter(ctx)
   await io.mark('fence')
-  await applyCheckpointRecords(
-    ctx,
+  const adopted = await applyCheckpointRecords(
+    tracked,
     { campaignId, epoch, checkpointId: crypto.randomUUID() },
     { changes, history: [], scenes: [], retainedRolls },
-    null,
+    knownAuthorization,
     io,
     { replay: true }
   )
   return liveSessionCheckpointResponseSchema.parse({
     status: 'COMMITTED',
     authority: presentCampaignLiveAuthority(authority),
-    adopted: { characters: [] },
+    adopted,
     io: await io.finish()
   })
 }

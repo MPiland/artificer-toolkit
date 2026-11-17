@@ -407,6 +407,7 @@ export function buildRoomCheckpointRecords({
     }
   }
 
+  if (sequence < chatPublishedThrough) retainedRolls.clear()
   const changes: LiveSessionCheckpointRecords['changes'] = []
   const identities = [...new Set([...before.keys(), ...after.keys()])].sort()
   for (const identity of identities) {
@@ -414,6 +415,8 @@ export function buildRoomCheckpointRecords({
     const next = after.get(identity)
     const record = next ?? previous!
     if (!isMutable(record.table) || (chatOnly && !isChat(record.table))) continue
+    // A prefix that ends before the watermark leaves out chat: Convex holds its later state.
+    if (sequence < chatPublishedThrough && isChat(record.table)) continue
     const previousChecksum = previous ? checksumCanonicalJson(previous.value) : null
     const nextChecksum = next ? checksumCanonicalJson(next.value) : null
     if (previousChecksum === nextChecksum) continue

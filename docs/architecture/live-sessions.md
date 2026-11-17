@@ -973,7 +973,9 @@ Campaign history and separately packed private Character history) and the Scene/
   `publishedSequence` or base, so recovery is unchanged; Convex chat may lead the Run head, and a
   storage-loss rebuild yields the last full save plus that chat. A full flush finishes a pending chat
   save first and folds from the watermark, so COMPLETE carries no chat twice and no Run child row
-  created and dropped inside the fight.
+  created and dropped inside the fight. A full prefix is bounded by bytes and by
+  `LIVE_SESSION_CHECKPOINT_MAX_CHANGES` and may end below the watermark, dropping the chat already
+  published. The chat route takes the same `knownAuthorization` as a full save.
   Backlog and admission flushes run beside the command chain, not on it, so commands never wait on a
   publish. A command holds its store transaction across Convex reads, so the flush prepares each send
   and compacts each acknowledgement through `RoomEncounterStore.whenClosed`, between transactions

@@ -613,8 +613,8 @@ insert without re-reads (Amendment 27). V15 measures it.
 **Amendment 32: a mid-Run backlog save publishes only chat and roll records (PERF-1.T8, D229 step 1).**
 The Run's child rows (replay index, rule occurrences, turn movements, initiative participants, rounds)
 are created per command and dropped at COMPLETE (Amendment 30). A BACKLOG save during an ACTIVE Run
-folded them into a prefix checkpoint, so a later save read each back and deleted it: about 0.84 MB at
-BACKLOG and 1.43 to 1.51 MB at COMPLETE per fight (V15 runs 44152282986 and 44165616524).
+folded them into a prefix checkpoint, so a later save read each back and deleted it: about 0.84 MB of
+documents (about 1.2 MB billed with index rows) at BACKLOG and 1.43 to 1.51 MB at COMPLETE per fight (V15 runs 44152282986 and 44165616524).
 
 - _Rule._ While any Run is ACTIVE, a BACKLOG save publishes through a private route
   (`/live-sessions/chat-checkpoint`) only the chat tables and retained rolls of the unsaved journal. It
@@ -638,8 +638,23 @@ BACKLOG and 1.43 to 1.51 MB at COMPLETE per fight (V15 runs 44152282986 and 4416
   was created and dropped inside the fight. `unsavedChatEntries` counts only chat after the watermark,
   so the push window frees after each chat save.
 
-Risk accepted: the COMPLETE fold must still fit one 1 MiB checkpoint (Amendment 31); a fight whose
-Run rows alone exceed it splits into prefixes as before. Option C (a Run-only COMPLETE) is PERF-1.T10.
+- _Splitting._ A full prefix is bounded by `LIVE_SESSION_CHECKPOINT_MAX_CHANGES` as well as bytes
+  (validation cost grows with the change count, and a COMPLETE save already uses 0.86 to 0.98 s of the
+  1 s mutation limit). A prefix may end below the chat watermark: Convex already holds all chat through
+  the watermark, so such a prefix drops the chat-table changes and retained rolls the chat save
+  published, and the fold that reaches the watermark applies the reset as above. An oversize fold
+  therefore splits and publishes whatever the watermark; no single command is forced past it.
+- _Authorization._ The chat route applies the same room authorization-revision tracking and adoption
+  as a full save (`knownAuthorization`).
+- _Storage loss with chat ahead._ A rebuilt room hydrates the chat headers Convex holds, so a re-run
+  command's fold never re-emits them. A command that derived its roll nonce from a stored roll id may
+  create a second card for a command lost with the storage; that duplicate is an accepted edge.
+
+Figures: the BACKLOG save costs about 1.2 MB billed (0.84 MB of documents plus about 380 KB of index
+rows). The modeled fight crosses the push window twice, so a fight saves twice at BACKLOG.
+
+Risk accepted: the COMPLETE fold must still fit its checkpoints (Amendment 31), split by bytes and
+change count. Option C (a Run-only COMPLETE) is PERF-1.T10.
 
 ## Also decided with this ADR
 

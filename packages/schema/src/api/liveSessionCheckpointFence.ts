@@ -9,6 +9,13 @@ import { projectionChecksumSchema } from '../projections/identity.js'
  */
 export const LIVE_SESSION_CHECKPOINT_MAX_BYTES = 1024 * 1024
 
+/**
+ * The most record changes one checkpoint carries. Validation cost grows with the change count, not
+ * only the bytes, and a successful COMPLETE save already uses 0.86 to 0.98 s of user time, so a
+ * longer prefix splits into several saves.
+ */
+export const LIVE_SESSION_CHECKPOINT_MAX_CHANGES = 1500
+
 const sequence = lazySchema(() =>
   z.number().check(z.int()).check(z.nonnegative()).check(z.lte(Number.MAX_SAFE_INTEGER))
 )

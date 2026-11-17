@@ -5,6 +5,7 @@ import {
   liveSessionCheckpointRecordChangeSchema,
   liveSessionCheckpointRetainedRollSchema
 } from './liveSessionCheckpointRecords.js'
+import { liveSessionRoomAuthorizationRevisionsSchema } from './liveSessionRoomAuthorization.js'
 
 /**
  * A mid-Run chat save (ADR 0035 Amendment 32): chat-class record changes and retained rolls, sent
@@ -22,7 +23,8 @@ export const liveSessionChatCheckpointInputSchema = lazySchema(() =>
         )
       )
     ),
-    retainedRolls: z.array(liveSessionCheckpointRetainedRollSchema)
+    retainedRolls: z.array(liveSessionCheckpointRetainedRollSchema),
+    knownAuthorization: z.nullable(liveSessionRoomAuthorizationRevisionsSchema)
   })
 )
 

@@ -1836,7 +1836,8 @@ it('saves chat mid-Run without a Run row, replays idempotently, refuses a stale 
     campaignId: base.campaign.id,
     epoch: authority.epoch,
     changes: first.changes,
-    retainedRolls: []
+    retainedRolls: [],
+    knownAuthorization: null
   }
   const backlog = createDatabaseIoTotals()
   const saved = await base.t.run((ctx) =>
