@@ -1748,6 +1748,20 @@ sheet resolves `actionMechanic.save.dc`, and the Worker pins it on the zone's `a
 `DND5E_SAVE_DC_FACT_KEY` when the zone is placed (`castSaveDcFactKey` on the zone entry). Zone limits are refused, never
 partly honored: half damage, bonuses, scaling, per-turn caps and turn-based interactions stay SPELLS-20 T4.
 
+**Zones left on a failed save (QUALITY-15.T3y6a, current).** An authored `MANIFEST` `ZONE` with
+`attachmentKind: 'PRIMARY_TARGET'` on an `ON_SAVE_FAIL` path (Resilient Sphere) is the action's zone
+(`placedSpaceEntries`), with `zonePlacement.attachment: 'PRIMARY_TARGET'`. Its save is the zone's appear save
+(`zoneAppearSave`), kept with no other outcome because the zone is that save's own outcome, so the compiled plan is
+`TEST_OUTCOME` and the inert zone plan holds it for its duration. The compiler requires `CHOSEN_CREATURES` targeting of
+exactly one creature and a radius shape; the action's choice is the `ACTORS` cap, not a zone target
+(`zonePlacementChoiceTarget` returns null), and the Worker refuses the cast unless it names a Scene with that creature's
+token. The cast runs the chosen-creatures path (`sealReachSaves`, then the area commit). `prepareChosenActorsReach`
+places the zone at the target's token, anchored to it (`sourceToken` is the target's token, so `zoneAnchor` gives a
+`TOKEN_LOCAL` circle of the authored radius plus half the token's width), and `completeAreaCommit` keeps it only when
+that creature's save resolved `ON_SAVE_FAIL` and it spent no Legendary Resistance; a made save places no zone and opens
+no Concentration. The pending area snapshot records `placesZone` with no area, and the area commit persistence accepts
+the zone only as a `TOKEN` anchor on a sealed target's token (`zoneTargetTokenIds`), or no zone at all.
+
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
 is 5 ft; a distance without a long range, including the 0 ft swarm space), `RANGED` (normal and long) or `UNLIMITED`. A

@@ -8,8 +8,10 @@ export type PlacedSpaceManifest = Exclude<
 /**
  * The zone manifest of an action whose ON_USE entries are one PLACED_SPACE or SOURCE zone and at
  * most one APPLY_GRANT beside it (D153), with that grant's entry, and whose other entries are the
- * outcomes of the save its invocation makes when the zone appears; null for any other action. Identification
- * only, with no Encounter dependency, so the Builder can tell a passive zone apart (ADR 0036 S6).
+ * outcomes of the save its invocation makes when the zone appears; null for any other action. The
+ * zone may instead be the one PRIMARY_TARGET zone a failed save leaves around the creature that
+ * failed it (QUALITY-15.T3y6a). Identification only, with no Encounter dependency, so the Builder can
+ * tell a passive zone apart (ADR 0036 S6).
  */
 export function placedSpaceEntries(compiledEffect: CompiledEffectGroup): {
   manifest: PlacedSpaceManifest
@@ -26,12 +28,15 @@ export function placedSpaceEntries(compiledEffect: CompiledEffectGroup): {
     )
   )
     return null
-  const zones = onUse.filter(
+  const zones = compiledEffect.entries.filter(
     (entry) =>
       'outcome' in entry &&
       entry.outcome.effectKind === 'MANIFEST' &&
       entry.outcome.manifestKind === 'ZONE' &&
-      (entry.outcome.attachmentKind === 'PLACED_SPACE' || entry.outcome.attachmentKind === 'SOURCE')
+      (entry.pathCode === 'ON_USE'
+        ? entry.outcome.attachmentKind === 'PLACED_SPACE' ||
+          entry.outcome.attachmentKind === 'SOURCE'
+        : entry.pathCode === 'ON_SAVE_FAIL' && entry.outcome.attachmentKind === 'PRIMARY_TARGET')
   )
   const [zone] = zones
   const others = onUse.filter((entry) => entry !== zone)

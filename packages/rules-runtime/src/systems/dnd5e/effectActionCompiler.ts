@@ -2896,9 +2896,11 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
   }
   // A TEST whose every outcome its active-effect plan carries (a creature form, a bond, or a timed
   // grant after a save or on an attack's result) selects no OUTCOME graph: the plan runs from the
-  // TEST's result path. An equipment degradation is likewise the resolver's, off the result path.
+  // TEST's result path. An equipment degradation is likewise the resolver's, off the result path, and
+  // so is a zone's appear save whose one outcome is the zone a failed save leaves on its target.
   if (
     outcomes.length === 0 &&
+    !action.zoneAppearSave &&
     creatureFormPlan(action) === null &&
     actorLinkPlan(action) === null &&
     modifierGrantPlan(action) === null &&

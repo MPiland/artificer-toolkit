@@ -648,15 +648,16 @@ const zoneComponentShape = lazySchemaParts(() => ({
 }))
 
 /**
- * A zone the action leaves on the Scene: at the point its user picks (PLACED_SPACE), or centered on
- * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
- * known; everything else is compiled from the authored manifest. Its first component covers its own
+ * A zone the action leaves on the Scene: at the point its user picks (PLACED_SPACE), centered on its
+ * user and moving with them (SOURCE), or around the chosen creature that failed the action's save
+ * (PRIMARY_TARGET). The geometry is fixed when the point or the token is known; everything else is
+ * compiled from the authored manifest. Its first component covers its own
  * shape; each region component covers an authored region beside it and is placed as a record of its
  * own, maintained by the same Concentration (D154).
  */
 export const compiledActionZonePlacementSchema = lazySchema(() =>
   z.strictObject({
-    attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
+    attachment: z.enum(['PLACED_SPACE', 'SOURCE', 'PRIMARY_TARGET']),
     shape: shapeDtoSchema,
     /**
      * A hollow round zone's wall thickness (D154): the zone is a ring whose inner radius is its

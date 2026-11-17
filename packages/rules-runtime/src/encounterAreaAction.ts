@@ -391,7 +391,8 @@ export function encounterActionChoiceTarget(
 /**
  * What placing the action's zone asks the client to aim: that zone's own target, or the options a
  * cast-time pick offers (D140, D154), each aimed as its zone asks. Whether the caster spares
- * creatures is shared by every option. Null when a zone cannot be placed; resolving it is refused.
+ * creatures is shared by every option. Null when a zone cannot be placed, and resolving it is
+ * refused, or when the zone is left around a chosen creature, which the creatures it names aim.
  */
 function zonePlacementChoiceTarget(
   policy: CompiledActionTargetPolicy,
@@ -402,6 +403,8 @@ function zonePlacementChoiceTarget(
     : {}
   const { rangeKind } = policy.range
   if (!('options' in zonePlacement)) {
+    // A zone a failed save leaves around its target is aimed by naming the creatures, not a place.
+    if (zonePlacement.attachment === 'PRIMARY_TARGET') return null
     const target = encounterZoneChoiceTarget(zonePlacement, rangeKind)
     return target && { ...target, ...spares }
   }

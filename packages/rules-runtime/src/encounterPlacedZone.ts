@@ -172,7 +172,10 @@ type PlacedZoneInput = {
   sourceActorId: string | null
   point: ScenePoint
   area: SpatialAreaShape
-  /** The user's token; a SOURCE zone follows it. */
+  /**
+   * The token a zone is anchored to: its user's, which a SOURCE zone follows, or the token of the
+   * creature a PRIMARY_TARGET zone encloses. Null for a zone fixed to the Scene.
+   */
   sourceToken: { tokenId: string; width: number } | null
   /** The user's spell save DC as the cast resolved it. */
   saveDc: number | null
@@ -405,7 +408,11 @@ function castSaveDc(saveDc: number | null): number {
   return saveDc
 }
 
-/** Where a zone sits: fixed at the picked point, or on its user's token and moving with it. */
+/**
+ * Where a zone sits: fixed at the picked point, or on its anchor token and moving with it (its
+ * user's for a SOURCE zone, the enclosed creature's for a PRIMARY_TARGET zone), reaching the
+ * authored radius past the edge of the token's space.
+ */
 function zoneAnchor(
   attachment: CompiledActionZonePlacement['attachment'],
   area: SpatialPointAreaShape | SpatialWallAreaShape,
@@ -422,7 +429,7 @@ function zoneAnchor(
     }
   }
   if (area.kind !== 'RADIUS' || !sourceToken)
-    throw new Error('A source zone is a circle around its user’s token.')
+    throw new Error('A zone on a token is a circle around that token.')
   return {
     anchorKind: 'TOKEN' as const,
     sourceTokenId: sourceToken.tokenId,
