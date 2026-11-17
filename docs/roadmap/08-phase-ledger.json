@@ -24958,10 +24958,12 @@
                 "reworded, user-approved 2026-09-27 (ADR 0035); the partial runs below measured the per-command Convex path and are historical",
                 "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (after D52: gameplay command p95 1,089-1,090 ms, budget 1,000, missed; warm durable convergence p95 251-252 ms, budget 250, missed; p99 met; ephemeral preview not measured)",
                 "partial: A35-S10b removes the forced flushes on binding, admission and round change and the Convex capture on warm re-admission, cutting synchronous Convex writes per session; not yet measured",
-                "reworded, user-approved 2026-11-02 (D210)"
+                "reworded, user-approved 2026-11-02 (D210)",
+                "docs/validation/release-candidate-2026-11-17.md: V15 44152282986 command p95 576 ms (max op p95 694 ms), preview p95 4.5 ms, durable convergence p95 21 ms / p99 27 ms (recorded, D210)"
               ],
               "origin": ["V15.2"],
-              "id": "PERF-1.2"
+              "id": "PERF-1.2",
+              "note": "Open: Q16 modelled I/O 16.6 MB > 4.3 MB on V15 44152282986 (PERF-1.T7)."
             },
             {
               "text": "The workload includes player-issued commands for the actors players control (ADR 0034).",
@@ -25023,7 +25025,7 @@
             },
             {
               "id": "PERF-1.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-1.1", "PERF-1.2", "PERF-1.3"],
               "wsjf": {
                 "bv": 2,
@@ -25048,8 +25050,7 @@
                 "finalSource": true
               },
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582. D202: set the budget for characters/sheetSectionDerivation:store here (the 700 ms goal is dropped); split it into two chained mutations only if the measured numbers require it. Agenda: the vtt-browser ephemeral p95 failed three times on the m591 batch (7 proofs in one shard, 388 and 301 ms against 150) and passed in an isolated dispatch on the same SHA, so separate shard load from read cost. The limit stays. Agenda: held-effect-browser failed on the m592 batch because the test clicks Open actions while the drawer reopens after a map pick; the test fix goes with SPELLS-12.T2b. D210 (2026-11-02): this run optimizes and records latency; it gates only on deterministic budgets (4.3 MB I/O, call counts, payload sizes). First agenda item: measure the vtt-browser ephemeral p95 locally at m612 and at the final tip; it failed on CI in m613, m617 and m618 after seven clean batches, so check for a lost-headroom regression and fix it if found.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "m869: final-source V15 green in CI (44152282986) after four proof-drift fixes; docs/validation/release-candidate-2026-11-17.md. Its Q16 budget check fails (16.6 MB modelled): PERF-1.T7."
             },
             {
               "id": "PERF-1.T2",
@@ -25132,6 +25133,20 @@
                 "scripts/watchCi.test.mjs"
               ],
               "note": "Merged 2026-11-04 (m637, merge-slice run 41850820588). Room 1006/fetch failed: the test fake clock fired undici keep-alive timers late, fixed in localRoomWorker. Invitation redemption: the fixture drew a username only the client policy accepted; product transaction already allows exactly one redeemer (now proved). watchCi.test timeout fixed in the test. IsolateNotClean attributed to the self-hosted isolate pool (rejected before execution). Sheet timeout belongs to PERF-1.T5."
+            },
+            {
+              "id": "PERF-1.T7",
+              "status": "IN_PROGRESS",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 3,
+                "after": []
+              },
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "text": "Bug (D187 exception): V15 run 44152282986 models 16.6 MB Convex I/O per session against the 4.3 MB gate (D209; a84 was 4.44 MB). The Run COMPLETE save costs 2.03 MB over 424 commands (about 9.6 MB modelled) and one checkpoint:publish failed in the save window. Find the regression, fix it with a failing-first test, and rerun V15 plus scripts/v15Budgets.mjs green."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
@@ -25181,9 +25196,9 @@
         {
           "id": "PERF-3",
           "title": "Room design stays within I/O budgets",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/encounters/cutoverConcurrency.test.ts"],
+          "journeyStatus": "internal",
           "origin": [],
           "acs": [
             {
@@ -25332,9 +25347,10 @@
             },
             {
               "text": "Budgets in gates, faster suites, one full test-and-fix run, then the V15 load run",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "docs/validation/release-candidate-2026-11-17.md (full Tests 44128880788, Live 44128900702, Browser journeys 44128891317 on RC a48a45c28; V15 load run 44152282986)"
+              ],
               "origin": ["VS-8"],
               "id": "PERF-3.14"
             }
@@ -25363,7 +25379,7 @@
             },
             {
               "id": "PERF-3.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-3.14"],
               "wsjf": {
                 "bv": 2,
@@ -25374,10 +25390,10 @@
                 "finalSource": true
               },
               "text": "Close 3.14 at phase end: one full tests.yml run (full=true) green with fixes, then the V15 load run is PERF-1.T1's output; link both runs. 'Faster suites' is owned by PLATFORM-13 (timing docs exist) and should be dropped from the AC wording rather than re-done here. Also record, from that full run on the final source, the full-suite timing (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (moved from PLATFORM-13.T4b, 2026-10-29).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "m869: docs/validation/release-candidate-2026-11-17.md"
             }
-          ]
+          ],
+          "internalReason": "Test-suite speed, budget gates and the final full run have no user-visible flow; the full CI run and V15 load run are the proof."
         },
         {
           "id": "PERF-4",
@@ -29266,21 +29282,21 @@
         {
           "id": "RELEASE-1",
           "title": "Docs, ADRs and runbooks match the final system",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "internal",
           "origin": ["R07"],
           "acs": [
             {
               "text": "Canonical ownership and package-direction guides and ADR status text match the native Convex, Worker, authoring, rules-runtime and source-data boundaries, with no approval-pending removal wording.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
                 ".codex/validation/phase82-gate-progress-20260917/r07-native-adrs-complete-20260920/completed-checks.json",
-                ".codex/validation/phase82-gate-progress-20260917/r07-native-persistence-docs-20260920/evidence-manifest.json"
+                ".codex/validation/phase82-gate-progress-20260917/r07-native-persistence-docs-20260920/evidence-manifest.json",
+                "m868 (6ecc333a3): docs/adr/0038-rules-authored-from-core-options.md and docs/architecture/rules-runtime.md restated; links checked by hand"
               ],
               "origin": ["R07.1"],
-              "id": "RELEASE-1.1",
-              "note": "Reopened 2026-11-10 (D217): ADR 0038 still claims a closed-rule count; SPELLS-4.T4e sets its final status."
+              "id": "RELEASE-1.1"
             },
             {
               "text": "Deployment guides and the release runbook match the final system.",
@@ -29329,7 +29345,7 @@
             },
             {
               "id": "RELEASE-1.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELEASE-1.1"],
               "wsjf": {
                 "bv": 2,
@@ -29340,7 +29356,7 @@
                 "finalSource": true
               },
               "text": "After SPELLS-4.T4e, confirm ADR 0038 reads accepted and the guides describing closed rules match the source; rerun the link audit on the touched docs.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "m868 (6ecc333a3): ADR 0038 consequences and rules-runtime.md labels restated."
             }
           ],
           "internalReason": "Documentation, ADRs and runbooks; no user flow."
