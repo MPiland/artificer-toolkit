@@ -19,7 +19,6 @@ export const EFFECT_KIND = {
   KILL: 'KILL',
   HIT_POINTS_TO_ZERO: 'HIT_POINTS_TO_ZERO',
   REVIVE: 'REVIVE',
-  ARMOR_CLASS_FLOOR: 'ARMOR_CLASS_FLOOR',
   RESTORE_RESOURCE: 'RESTORE_RESOURCE',
   SPELL_SLOT_EXCHANGE: 'SPELL_SLOT_EXCHANGE',
   TELEPATHIC_LINK: 'TELEPATHIC_LINK',
@@ -131,11 +130,6 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     code: EFFECT_KIND.REVIVE,
     label: 'Revive',
     description: 'A dead creature returns to life with 1 hit point or all of them.'
-  },
-  [EFFECT_KIND.ARMOR_CLASS_FLOOR]: {
-    code: EFFECT_KIND.ARMOR_CLASS_FLOOR,
-    label: 'Armor Class Floor',
-    description: 'Prevents Armor Class from falling below a fixed minimum.'
   },
   [EFFECT_KIND.RESTORE_RESOURCE]: {
     code: EFFECT_KIND.RESTORE_RESOURCE,

@@ -238,10 +238,11 @@ their effect held by the cast's Concentration, through data alone: Silent Image 
 Eye a stat-block summon (Tiny, flying, invisible, invulnerable, taking no space), Conjure Celestial a form summon on its
 own initiative (Couatl or Pegasus; the 9th-level challenge rating 5 is not offered), and Calm Emotions a Charisma save
 over a 20-foot sphere of humanoids whose failure holds a 1-minute timed ruling. Of the other 11, Conjure Elemental
-and Conjure Fey now compile (below, QUALITY-15.T3x); nine stay refused (UNBUILT, cited in the golden's
-`REFUSAL_CLASSES`): their maintained effect has no plan type (animated objects, a stationary sensor, summoned lights,
-an Armor Class floor, tree travel, a repeat bolt, a delayed detonation, a movable damaging sphere, a zone attached to
-its target).
+and Conjure Fey now compile (below, QUALITY-15.T3x), and Barkskin (QUALITY-15.T3y) is a granted `ARMOR_CLASS`
+`MINIMUM_VALUE` modifier of 16 on its target, a floor over the final Armor Class, shield and bonuses included. Eight
+stay refused (UNBUILT, cited in the golden's `REFUSAL_CLASSES`): their maintained effect has no plan type (animated
+objects, a stationary sensor, summoned lights, tree travel, a repeat bolt, a delayed detonation, a movable damaging
+sphere, a zone attached to its target).
 
 **A summon that turns hostile when released (current, QUALITY-15.T3x).** A form summon on its own initiative, of one
 creature a form, may author `turnsHostileOnRelease`; the compiler refuses it on any other summon. The plan carries it
@@ -3836,7 +3837,9 @@ SPELLS-27.T4b wires every other damage root and adds the actions that end an eff
 SPELLS-27.T12 adds `{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds }` (Sleep, authored with the SRD Rouse basic action): `actionUsedOnHolderEndedEffects` ends, on the target of a basic action another creature uses, the effects whose trigger names that action's definition, and releases the conditions only they held in the target's own mechanics batch, beside the damage ends in the same receipt. Only the single-target action path (`nativeEncounterRules`) consumes it today; the area, legendary, movement-reaction and turn-resource paths do not.
 SPELLS-33.T4c adds `{ event: 'INCAPACITATED', of: 'SOURCE' }` (Knight Leadership): the effect ends on every holder when its Encounter source is incapacitated or defeated, which is the source's Concentration end reason, not the holder's `ON_INCAPACITATED` event. `grantsEndedBySourceState` selects the grants (`sourceBoundGrants` lists the candidates). `planNativeConcentration` plans them beside the holder-state ends in `endedGrants`, from each changed actor's reason, so they commit with the source's incapacitation under the same revert fence. `persistEncounterConcentrationChildren` re-derives the source's reason from committed state, refuses a sent grant it does not end, and refuses a commit that omits a grant of a damaged source whose committed reason is INCAPACITATED or DEFEATED. No index answers "which grants did this actor apply", so the scan of holders (one list each) runs only on the commit that drops a creature, never on ordinary damage. The trigger needs an Encounter origin with a source actor.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
-where movement targets and Cleaving facts are built. A fixed `SKILL_MODIFIER` grant (Pass without
+where movement targets and Cleaving facts are built: fixed bonuses add, then a `MINIMUM_VALUE` floor
+(Barkskin's 16) holds. A Character folds the same floor last in `combineDnd5eArmorClass`, after its
+shield and bonuses (QUALITY-15.T3y). A fixed `SKILL_MODIFIER` grant (Pass without
 Trace's +10 Stealth) raises that skill's stat block total through `withCreatureActiveGrantSkillTotal`,
 which `actorContestFacts` applies to every Creature skill check and passive it freezes (Hide, Search,
 contests, escapes). A

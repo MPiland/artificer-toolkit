@@ -120,6 +120,7 @@ function modifierPolarity(
         : 'BENEFICIAL'
     case 'OPTIONAL_ABILITY_MODIFIER_BONUS':
     case 'MINIMUM_ROLL':
+    case 'MINIMUM_VALUE':
       return 'BENEFICIAL'
     case 'ENABLE':
       return ENABLE_DOMAIN_POLARITY[domain] ?? 'NEUTRAL'
@@ -164,6 +165,7 @@ function modifierPolarity(
  * - Setting a value is read by domain and value (D110): speed above zero helps (Fly); speed or
  *   reactions set to zero harms (Shocking Grasp); the Action count set above zero helps (Action
  *   Surge); every other set value is neutral.
+ * - A minimum roll or value helps (Barkskin's armor class floor).
  * - Multiplying speed harms below one (Slow, a lethargy's zero) and helps above one (Haste).
  * - Adding an option follows `OPTION_DOMAIN_POLARITY`; removing one inverts it.
  * - Senses help.

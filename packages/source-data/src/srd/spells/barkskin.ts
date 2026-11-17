@@ -1,8 +1,12 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   RANGE_KIND,
@@ -12,6 +16,7 @@ import {
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
@@ -63,8 +68,22 @@ export const barkskin: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BARKSKIN, 0x214, 1),
-                effectKind: EFFECT_KIND.ARMOR_CLASS_FLOOR,
-                minimum: 16
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.BARKSKIN, 0x215, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.MINIMUM_VALUE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { amount: 16 },
+                      order: 1
+                    }
+                  ]
+                }
               }
             ]
           }
