@@ -1754,7 +1754,8 @@ partly honored: half damage, bonuses, scaling, per-turn caps and turn-based inte
 (`zoneAppearSave`), kept with no other outcome because the zone is that save's own outcome, so the compiled plan is
 `TEST_OUTCOME` and the inert zone plan holds it for its duration. The compiler requires `CHOSEN_CREATURES` targeting of
 exactly one creature and a radius shape; the action's choice is the `ACTORS` cap, not a zone target
-(`zonePlacementChoiceTarget` returns null), and the Worker refuses the cast unless it names a Scene with that creature's
+(`zonePlacementChoiceTarget` returns null), its target policy carries no shape, so the cast takes no point
+(`buildCompiledActionTargetPolicy`), the appear save may hold no outcome entry (`rolledTest`), and the Worker refuses the cast unless it names a Scene with that creature's
 token. The cast runs the chosen-creatures path (`sealReachSaves`, then the area commit). `prepareChosenActorsReach`
 places the zone at the target's token, anchored to it (`sourceToken` is the target's token, so `zoneAnchor` gives a
 `TOKEN_LOCAL` circle of the authored radius plus half the token's width), and `completeAreaCommit` keeps it only when

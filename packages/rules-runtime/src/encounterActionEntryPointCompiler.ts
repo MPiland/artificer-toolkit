@@ -42,10 +42,12 @@ export function buildCompiledActionTargetPolicy(
   descriptor: EffectActionCapabilityDescriptor
 ): CompiledActionTargetPolicy {
   const targeting = descriptor.compiledEffect.invocation.targeting
-  // A zone an action places is the area it takes a point for, when the invocation names none.
+  // A zone an action places is the area it takes a point for, when the invocation names none; a
+  // zone a failed save leaves on its target sits on that creature's token and takes none.
+  const zone = placedSpaceManifest(descriptor.compiledEffect)
   const shape =
     descriptor.compiledEffect.invocation.shape ??
-    placedSpaceManifest(descriptor.compiledEffect)?.shape ??
+    (zone?.attachmentKind === 'PRIMARY_TARGET' ? null : zone?.shape) ??
     null
   return {
     range: descriptor.compiledEffect.invocation.range,
@@ -449,7 +451,8 @@ export function compileCharacterActionEntryPoints(
                 }),
                 invocation: {
                   ...appearSave.invocation,
-                  shape: appearSave.invocation.shape ?? exactTargetPolicy.shape ?? undefined
+                  ...(!appearSave.invocation.shape &&
+                    exactTargetPolicy.shape && { shape: exactTargetPolicy.shape })
                 }
               }
             })

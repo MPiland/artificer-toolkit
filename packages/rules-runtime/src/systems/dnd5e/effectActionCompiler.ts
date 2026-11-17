@@ -32,7 +32,8 @@ import { v5 as uuidv5 } from 'uuid'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   CharacterRuleActionSystemAdapter,
-  CharacterRuleActionActiveEffectPlan
+  CharacterRuleActionActiveEffectPlan,
+  CharacterRuleActionExecutionPlan
 } from '../../characterRuleActionSystemAdapter.js'
 import { CharacterRuleActionTargetDefenseUnavailableError } from '../../characterRuleActionSystemAdapter.js'
 import {
@@ -1594,13 +1595,14 @@ function activatedAction(action: Dnd5eCompiledEffectActionSource): {
 
 /**
  * The attack or save an action rolls, composed with its activation and targeting, for an action
- * with at least one authored result. Null for an action that rolls no attack or save.
+ * with at least one authored result, or a zone's appear save whose one result is the zone a failed
+ * save leaves on its target. Null for an action that rolls no attack or save.
  */
 function rolledTest(action: Dnd5eCompiledEffectActionSource): TestKind | null {
   const kind = dnd5eTestKind(action.compiledEffect.invocation)
   if (!isDnd5eRolledTest(kind)) return null
   activatedAction(action)
-  if (action.compiledEffect.entries.length < 1)
+  if (action.compiledEffect.entries.length < 1 && !action.zoneAppearSave)
     unsupported('D&D test action has no authored result.')
   return kind
 }
@@ -2862,15 +2864,10 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
   // ON_CRIT entry of its own.
   if (dnd5eTestKind(action.compiledEffect.invocation) === 'ATTACK' && paths.has('ON_HIT'))
     paths.add('ON_CRIT')
-  const outcomes = [] as {
-    pathCode: string
-    template: {
-      definitionId: string
-      gameSystemId: string
-      definitionFamilyKey: string
-      checksum: string
-    }
-  }[]
+  const outcomes: Extract<
+    CharacterRuleActionExecutionPlan,
+    { kind: 'TEST_OUTCOME' }
+  >['outcomes'][number][] = []
   for (const pathCode of [...paths].sort((left, right) => left.localeCompare(right))) {
     const tableChecksum = rollTableTemplateChecksum(action, pathCode)
     const groups = tableChecksum ? [] : selectedOutcomeGroups(action, pathCode)
