@@ -7,6 +7,7 @@ import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
+  MoveZoneInputDto,
   ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -19,6 +20,7 @@ import {
   type GetEncounterActionItemChoicesInputDto,
   type GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import { encounterSessionStateDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import type { VttAreaAim } from './vttSceneRenderer.model'
@@ -182,6 +184,7 @@ const escapeSent = fn()
 const endHeldGrantSent = fn()
 const releaseSent = fn()
 const moveHeldEffectSent = fn()
+const moveZoneSent = fn()
 const escapes = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   {
     heldActorId: null,
@@ -224,6 +227,11 @@ async function sendMoveHeldEffectCommand(command: MoveHeldEffectInputDto) {
   return resolvedCommand()
 }
 
+async function sendMoveZoneCommand(command: MoveZoneInputDto) {
+  moveZoneSent(command)
+  return resolvedCommand()
+}
+
 async function sendReleaseCommand(command: ReleaseRelationshipInputDto) {
   releaseSent(command)
   return resolvedCommand()
@@ -238,6 +246,8 @@ const meta = {
     basicActionChoices: [],
     escapes: [],
     heldGrantEnds: [],
+    zoneMoves: [],
+    placedZones: [],
     effectOffers: [],
     releases: [],
     openAttackAction: null,
@@ -253,6 +263,7 @@ const meta = {
     onEscape: sendEscapeCommand,
     onEndHeldGrant: sendEndHeldGrantCommand,
     onMoveHeldEffect: sendMoveHeldEffectCommand,
+    onMoveZone: sendMoveZoneCommand,
     onRelease: sendReleaseCommand,
     onOpen: fn(),
     onClose: fn()
@@ -801,6 +812,43 @@ export const EffectOfferPickingNewHolder: Story = {
         target: { kind: 'ACTOR', actorId: sourceActor.id }
       })
     )
+  }
+}
+
+const zoneMoves = validated(encounterActionChoicesDtoSchema.shape.zoneMoves)([
+  {
+    spatialEffectId: '00000000-0000-4000-8000-000000000e41',
+    label: 'Moonbeam',
+    activation: 'ACTION',
+    maxDistance: { amount: 60, unit: 'FEET' },
+    warnings: []
+  }
+])
+
+const zonePlacements = validated(encounterSessionStateDtoSchema.shape.placedZones)([
+  {
+    id: zoneMoves[0].spatialEffectId,
+    label: 'Moonbeam',
+    shape: { kind: 'CIRCLE', center: { x: 300, y: 300 }, radius: 100 },
+    spotDc: null,
+    disarmDc: null,
+    destruction: null,
+    unawareActorIds: []
+  }
+])
+
+/** A zone the caster placed offers a move, with its cost and reach; choosing it waits for a center picked on the map (QUALITY-15.T3y8b). */
+export const ZoneMoveListed: Story = {
+  args: { ...ResolveTargetedAction.args, zoneMoves, placedZones: zonePlacements },
+  play: async ({ canvasElement }) => {
+    const { drawer } = await openActions(canvasElement)
+    const section = within(drawer.getByRole('region', { name: 'Zone choices' }))
+
+    await expect(section.getByText(/Move Moonbeam/)).toBeVisible()
+    await expect(section.getByText(/Action · up to 60 feet/i)).toBeVisible()
+    await userEvent.click(section.getByRole('button', { name: 'Move Moonbeam' }))
+    await expect(section.getByRole('button', { name: 'Pick on map' })).toBeEnabled()
+    await expect(section.getByRole('button', { name: 'Move' })).toBeDisabled()
   }
 }
 

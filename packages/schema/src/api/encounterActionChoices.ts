@@ -18,7 +18,11 @@ import {
 } from '../shared/shape.js'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '../shared/basicActions.js'
 import { targetingSelfDtoSchema } from '../effects/targeting.js'
-import { effectOfferRangeDtoSchema, repeatOfferTargetSchema } from '../effects/effectOffer.js'
+import {
+  effectOfferRangeDtoSchema,
+  repeatOfferTargetSchema,
+  zoneMoveDtoSchema
+} from '../effects/effectOffer.js'
 
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 const labelSchema = lazySchema(() => z.string().check(z.trim()).check(z.minLength(1)))
@@ -417,6 +421,20 @@ export const encounterHeldGrantEndChoiceDtoSchema = lazySchema(() =>
 )
 
 /**
+ * A placed zone the actor maintains and may move (QUALITY-15.T3y8): the zone-move offer. The client
+ * submits `spatialEffectId` with a destination; the zone's own `move` names the cost and the distance.
+ */
+export const encounterZoneMoveChoiceDtoSchema = lazySchema(() =>
+  z.extend(zoneMoveDtoSchema, {
+    spatialEffectId: postgresUuidSchema,
+    /** The zone's authored label, or "Zone" when it has none. */
+    label: labelSchema,
+    /** Soft-rule warnings that already apply, as for `actions`. */
+    warnings: encounterRuleWarningsDtoSchema
+  })
+)
+
+/**
  * A choice a held effect offers the actor beside its holder's turns (D160): the effect-offer pick. The
  * client submits `effectId` and `offerIndex` with its chosen target; the effect names the cost and the
  * range. The actor need not hold the effect: `holderActorId` does.
@@ -534,6 +552,10 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
     effectOffers: z
       .array(encounterEffectOfferChoiceDtoSchema)
       .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+    /** One entry per placed zone the actor maintains that its spell lets the actor move. */
+    zoneMoves: z
+      .array(encounterZoneMoveChoiceDtoSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
     /** One entry per creature the actor holds through a relationship it applied. */
     releases: z.array(encounterReleaseChoiceDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
     optionalRules: z.array(z.strictObject({ definitionId: postgresUuidSchema, label: labelSchema }))
@@ -616,6 +638,7 @@ export type GetEncounterActionChoicesInputDto = z.infer<
 export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
 export type EncounterEscapeChoiceDto = z.infer<typeof encounterEscapeChoiceDtoSchema>
 export type EncounterHeldGrantEndChoiceDto = z.infer<typeof encounterHeldGrantEndChoiceDtoSchema>
+export type EncounterZoneMoveChoiceDto = z.infer<typeof encounterZoneMoveChoiceDtoSchema>
 export type EncounterEffectOfferChoiceDto = z.infer<typeof encounterEffectOfferChoiceDtoSchema>
 export type EncounterReleaseChoiceDto = z.infer<typeof encounterReleaseChoiceDtoSchema>
 export type EncounterHeldRelationshipDto = z.infer<typeof encounterHeldRelationshipDtoSchema>

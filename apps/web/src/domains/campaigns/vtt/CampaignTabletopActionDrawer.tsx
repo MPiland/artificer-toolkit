@@ -23,6 +23,7 @@ import type {
   EncounterHeldGrantEndChoiceDto,
   EncounterOptionalActionChoicesDto,
   EncounterReleaseChoiceDto,
+  EncounterZoneMoveChoiceDto,
   GetEncounterActionItemChoicesInputDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
@@ -33,6 +34,7 @@ import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
+  MoveZoneInputDto,
   ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -65,6 +67,7 @@ import { CampaignTabletopFormCreaturePicker } from './CampaignTabletopFormCreatu
 import { CampaignTabletopEffectOffers } from './CampaignTabletopEffectOffers'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
+import { CampaignTabletopZoneMoves } from './CampaignTabletopZoneMoves'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import { AREA_AIM_COPY, BAND_SIDES } from './campaignTabletopAimCopy'
@@ -73,6 +76,7 @@ import { useCastModifierChoice } from './useCastModifierChoice'
 import type { VttActionPreview, VttAreaAim, VttAreaSize } from './vttSceneRenderer.model'
 import { useAimedArea } from './useAimedArea'
 import { effectOfferKey, isMoveEffectOffer } from './effectOffers.model'
+import { zoneFootprintAreaSize } from './zoneMoves.model'
 import { targetableEncounterActors, type VttTargetingRequest } from './vttTargeting.model'
 
 const NO_TOKENS: CampaignSceneStateDto['tokens'] = []
@@ -87,6 +91,8 @@ export function CampaignTabletopActionDrawer({
   escapes,
   heldGrantEnds,
   effectOffers,
+  zoneMoves,
+  placedZones,
   releases,
   openAttackAction,
   defaultActionId,
@@ -116,6 +122,7 @@ export function CampaignTabletopActionDrawer({
   onEscape,
   onEndHeldGrant,
   onMoveHeldEffect,
+  onMoveZone,
   onRelease,
   onLoadOptionalChoices,
   onLoadItemChoices
@@ -126,6 +133,9 @@ export function CampaignTabletopActionDrawer({
   escapes: EncounterEscapeChoiceDto[]
   heldGrantEnds: EncounterHeldGrantEndChoiceDto[]
   effectOffers: EncounterEffectOfferChoiceDto[]
+  zoneMoves: EncounterZoneMoveChoiceDto[]
+  /** The zones fixed to the Scene; a zone move's footprint is drawn from its zone's shape. */
+  placedZones: EncounterSessionStateDto['placedZones']
   releases: EncounterReleaseChoiceDto[]
   /** The Attack action opened this turn; its last target is preselected for the next attack. */
   openAttackAction: EncounterActionChoicesDto['openAttackAction']
@@ -174,6 +184,7 @@ export function CampaignTabletopActionDrawer({
   onEscape: (command: EscapeRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onEndHeldGrant: (command: EndHeldGrantInputDto) => Promise<EncounterCommandResultDto>
   onMoveHeldEffect: (command: MoveHeldEffectInputDto) => Promise<EncounterCommandResultDto>
+  onMoveZone: (command: MoveZoneInputDto) => Promise<EncounterCommandResultDto>
   onRelease: (command: ReleaseRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onLoadOptionalChoices: (
     request: GetEncounterOptionalActionChoicesInputDto
@@ -189,6 +200,7 @@ export function CampaignTabletopActionDrawer({
   const [endedAttackActionAfter, setEndedAttackActionAfter] = useState<number | null>(null)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
   const [chosenOfferKey, setChosenOfferKey] = useState<string | null>(null)
+  const [chosenZoneMoveId, setChosenZoneMoveId] = useState<string | null>(null)
   const [unaffectedActorIds, setUnaffectedActorIds] = useState<string[]>([])
   const [pickedChoiceOptionId, setPickedChoiceOptionId] = useState<string | null>(null)
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
@@ -685,14 +697,23 @@ export function CampaignTabletopActionDrawer({
 
   // An origin belongs to the action, and the zone, it was picked for.
   const chosenZoneOptionId = chosenZoneOption?.id ?? null
+  // A zone move's destination is a point on the map, aimed like an area centered on the zone's footprint.
+  const chosenZoneMove = zoneMoves.find((zone) => zone.spatialEffectId === chosenZoneMoveId) ?? null
+  const chosenZoneMoveShape = placedZones.find((zone) => zone.id === chosenZoneMoveId)?.shape
+  const zoneMoveAreaSize = useMemo(
+    () => (chosenZoneMoveShape ? zoneFootprintAreaSize(chosenZoneMoveShape) : null),
+    [chosenZoneMoveShape]
+  )
+  const stageAreaSize = zoneMoveAreaSize ?? areaSize
   useEffect(() => {
     onAreaAimChange(null)
-  }, [onAreaAimChange, selectedActionId, chosenZoneOptionId])
+  }, [onAreaAimChange, selectedActionId, chosenZoneOptionId, chosenZoneMoveId])
 
   // So do the creatures chosen.
   const [trackedActionId, setTrackedActionId] = useState(selectedActionId)
   if (trackedActionId !== selectedActionId) {
     setTrackedActionId(selectedActionId)
+    setChosenZoneMoveId(null)
     setPickedActorIds([])
     setUnaffectedActorIds([])
     setPickedChoiceOptionId(null)
@@ -705,30 +726,33 @@ export function CampaignTabletopActionDrawer({
   }
 
   useEffect(() => {
-    onAreaSizeChange(areaSize)
+    onAreaSizeChange(stageAreaSize)
     return () => onAreaSizeChange(null)
-  }, [areaSize, onAreaSizeChange])
+  }, [stageAreaSize, onAreaSizeChange])
 
   // An area's target is its origin, which the stage draws as the area, so only a creature target is ringed.
   const actionPreview = useMemo<VttActionPreview | null>(
     () =>
-      chosenOffer
-        ? offerSourceTokenId
-          ? {
-              range: { kind: 'WITHIN', distance: chosenOffer.range },
-              sourceTokenId: offerSourceTokenId,
-              targetTokenId: offerTargetTokenId
-            }
-          : null
-        : selectedAction && sourceTokenId
-          ? {
-              range: selectedAction.range,
-              sourceTokenId,
-              targetTokenId: selectedAction.target.kind === 'ACTOR' ? targetTokenId : null
-            }
-          : null,
+      chosenZoneMove
+        ? null
+        : chosenOffer
+          ? offerSourceTokenId
+            ? {
+                range: { kind: 'WITHIN', distance: chosenOffer.range },
+                sourceTokenId: offerSourceTokenId,
+                targetTokenId: offerTargetTokenId
+              }
+            : null
+          : selectedAction && sourceTokenId
+            ? {
+                range: selectedAction.range,
+                sourceTokenId,
+                targetTokenId: selectedAction.target.kind === 'ACTOR' ? targetTokenId : null
+              }
+            : null,
     [
       chosenOffer,
+      chosenZoneMove,
       offerSourceTokenId,
       offerTargetTokenId,
       selectedAction,
@@ -1462,6 +1486,20 @@ export function CampaignTabletopActionDrawer({
                 })
               }
               onTargetPick={onTargetPick}
+            />
+          ) : null}
+          {currentActor && !actionsLoading && !actionChoicesError && zoneMoves.length ? (
+            <CampaignTabletopZoneMoves
+              actorId={currentActor.id}
+              chosenZoneId={chosenZoneMove ? chosenZoneMoveId : null}
+              destination={chosenZoneMove ? (areaAim?.origin ?? null) : null}
+              disabled={selectionControlsDisabled}
+              encounterId={encounter.id}
+              encounterVersion={encounter.version}
+              zoneMoves={zoneMoves}
+              onChooseZone={setChosenZoneMoveId}
+              onMove={onMoveZone}
+              onPickOnMap={onPickAreaOrigin}
             />
           ) : null}
           {currentActor && !actionsLoading && !actionChoicesError && releases.length ? (

@@ -2878,6 +2878,7 @@ try {
     process.argv.includes('--encounter-delegated-attack-browser') ||
     process.argv.includes('--encounter-giant-killer-browser') ||
     process.argv.includes('--encounter-summon-turn-browser') ||
+    process.argv.includes('--encounter-zone-move-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
     process.argv.includes('--encounter-v15-preflight') ||
     process.argv.includes('--encounter-reaction-contention')
@@ -2918,6 +2919,7 @@ try {
     const delegatedAttackBrowser = process.argv.includes('--encounter-delegated-attack-browser')
     const giantKillerBrowser = process.argv.includes('--encounter-giant-killer-browser')
     const summonTurnBrowser = process.argv.includes('--encounter-summon-turn-browser')
+    const zoneMoveBrowser = process.argv.includes('--encounter-zone-move-browser')
     const lifecycle =
       lifecycleSuite ||
       movementBrowser ||
@@ -2934,6 +2936,7 @@ try {
       delegatedAttackBrowser ||
       giantKillerBrowser ||
       summonTurnBrowser ||
+      zoneMoveBrowser ||
       workload
     if (lifecycle) sceneOwners.add(owner.identity.userId)
     if (workload) workloadCampaignOwners.add(owner.identity.userId)
@@ -2960,7 +2963,8 @@ try {
       concentrationSheetBrowser ||
       delegatedAttackBrowser ||
       giantKillerBrowser ||
-      summonTurnBrowser
+      summonTurnBrowser ||
+      zoneMoveBrowser
         ? (['SPELL'] as const)
         : [])
     ] as const) {
@@ -2977,6 +2981,8 @@ try {
     const { shield } = await import('@artificer-toolkit/source-data/srd/spells/shield.js')
     const { thunderwave } = await import('@artificer-toolkit/source-data/srd/spells/thunderwave.js')
     const { heatMetal } = await import('@artificer-toolkit/source-data/srd/spells/heat-metal.js')
+    const { flamingSphere } =
+      await import('@artificer-toolkit/source-data/srd/spells/flaming-sphere.js')
     const { findFamiliar } =
       await import('@artificer-toolkit/source-data/srd/spells/find-familiar.js')
     const { huntersMark } =
@@ -3039,7 +3045,14 @@ try {
                       [{ spellLevel: 1, slotCount: 1 }],
                       (await import('./fixtures/encounterGiantKiller')).createGiantKillerFeatures
                     )
-                  : null
+                  : zoneMoveBrowser
+                    ? await createDevelopmentSpellCharacter(
+                        player.client,
+                        characterId,
+                        [flamingSphere],
+                        [{ spellLevel: 2, slotCount: 1 }]
+                      )
+                    : null
     const characterFixture =
       spellCharacter ?? (await createDevelopmentCharacter(player.client, characterId))
     const { SRD_RULES_CATALOGUE } = await import('@artificer-toolkit/source-data/srd/catalogue.js')
@@ -3569,6 +3582,50 @@ try {
                 evidenceDirectory: fileURLToPath(
                   new URL(
                     '../../../local-validation/local-convex-proofs/heat-metal-browser/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
+        })
+      }
+      if (zoneMoveBrowser) {
+        if (!spellCharacter) throw new Error('The zone move journey needs its spell Character.')
+        const ogre = await publishJourneyOgre()
+        const { verifyEncounterZoneMove } = await import('./developmentEncounterZoneMove')
+        await verifyEncounterZoneMove({
+          owner: owner.client,
+          player: player.client,
+          campaignId: campaign.id,
+          characterId,
+          playerUserId: player.identity.userId,
+          creatureSourceId: ogre.id,
+          spellSubjectIds: [...spellCharacter.spellSubjectIds.values()],
+          classId: spellCharacter.classId,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          browser: async (fixture, verify) => {
+            const { verifyEncounterZoneMoveBrowser } =
+              await import('../../web/tests/live-backend/encounterZoneMove')
+            owner.client.setAuth(await owner.fetchToken())
+            player.client.setAuth(await player.fetchToken())
+            await verifyEncounterZoneMoveBrowser(
+              {
+                ...fixture,
+                owner,
+                player,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/zone-move-browser/browser/attempt-' +
                       Date.now() +
                       '/',
                     import.meta.url

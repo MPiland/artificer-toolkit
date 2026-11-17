@@ -108,6 +108,7 @@ import {
 import { readActiveEffectsByActorId } from './effectStore.js'
 import { listActiveRuleEffects } from './effectReads.js'
 import { readTurnUses } from './turnMovement.js'
+import { readActorMovableZones } from './zoneMoveReads.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import type { CampaignAuthority, EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
@@ -824,6 +825,20 @@ export async function readEncounterActionChoices(
         invocation.savingThrow.dcMethod === 'FIXED_DC' && { dc: invocation.savingThrow.baseDc })
     })
   }
+  // The zones the actor placed and may move, at the cost each spell's own `move` names (QUALITY-15.T3y8).
+  const zoneMoves: EncounterActionChoicesDto['zoneMoves'] = []
+  for (const { spatialEffectId, label, move } of await readActorMovableZones(
+    tx,
+    state.id,
+    actor.id
+  )) {
+    zoneMoves.push({
+      ...move,
+      spatialEffectId,
+      label,
+      warnings: (await readEconomy({ code: move.activation, amount: 1 })).warnings
+    })
+  }
   const attackActionThisTurn =
     openAttackAction && openAttackAction.turnSequence === state.turnSequence
       ? openAttackAction
@@ -869,6 +884,7 @@ export async function readEncounterActionChoices(
     escapes,
     heldGrantEnds,
     effectOffers,
+    zoneMoves,
     releases,
     optionalRules: activeOptionalRules
       .filter((definition) => definition.document.kind === 'DISARM')

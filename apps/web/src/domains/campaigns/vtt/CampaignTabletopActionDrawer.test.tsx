@@ -7,10 +7,15 @@ import type {
   EncounterGmProjectionDto,
   EndHeldGrantInputDto,
   MoveHeldEffectInputDto,
+  MoveZoneInputDto,
   EscapeRelationshipInputDto,
   ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import {
+  encounterSessionStateDtoSchema,
+  type EncounterSessionStateDto
+} from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterActionChoiceDtoSchema,
   encounterActionChoicesDtoSchema,
@@ -117,6 +122,8 @@ function drawerElement(
     escapes = [],
     heldGrantEnds = [],
     effectOffers = [],
+    zoneMoves = [],
+    placedZones = [],
     releases = [],
     openAttackAction = null,
     defaultActionId = null,
@@ -124,6 +131,7 @@ function drawerElement(
     onEscape = vi.fn(),
     onEndHeldGrant = vi.fn(),
     onMoveHeldEffect = vi.fn(),
+    onMoveZone = vi.fn(),
     onRelease = vi.fn(),
     escapeResult = resolved,
     isGm = false,
@@ -146,6 +154,8 @@ function drawerElement(
     escapes?: EncounterEscapeChoiceDto[]
     heldGrantEnds?: EncounterActionChoicesDto['heldGrantEnds']
     effectOffers?: EncounterActionChoicesDto['effectOffers']
+    zoneMoves?: EncounterActionChoicesDto['zoneMoves']
+    placedZones?: EncounterSessionStateDto['placedZones']
     releases?: EncounterActionChoicesDto['releases']
     openAttackAction?: EncounterActionChoicesDto['openAttackAction']
     defaultActionId?: EncounterActionChoicesDto['defaultActionId']
@@ -153,6 +163,7 @@ function drawerElement(
     onEscape?: (command: EscapeRelationshipInputDto) => Promise<unknown>
     onEndHeldGrant?: (command: EndHeldGrantInputDto) => Promise<unknown>
     onMoveHeldEffect?: (command: MoveHeldEffectInputDto) => Promise<unknown>
+    onMoveZone?: (command: MoveZoneInputDto) => Promise<unknown>
     onRelease?: (command: ReleaseRelationshipInputDto) => Promise<unknown>
     /** What the room answers an escape with. */
     escapeResult?: EncounterCommandResultDto
@@ -181,6 +192,8 @@ function drawerElement(
       escapes={escapes}
       heldGrantEnds={heldGrantEnds}
       effectOffers={effectOffers}
+      zoneMoves={zoneMoves}
+      placedZones={placedZones}
       releases={releases}
       openAttackAction={openAttackAction}
       defaultActionId={defaultActionId}
@@ -219,6 +232,10 @@ function drawerElement(
       }}
       onMoveHeldEffect={async (command) => {
         await onMoveHeldEffect(command)
+        return resolved
+      }}
+      onMoveZone={async (command) => {
+        await onMoveZone(command)
         return resolved
       }}
       onRelease={async (command) => {
@@ -973,6 +990,84 @@ const releaseChoices = validated(encounterActionChoicesDtoSchema.shape.releases)
     label: 'Release Wolf'
   }
 ])
+
+const zoneMoveChoices = validated(encounterActionChoicesDtoSchema.shape.zoneMoves)([
+  {
+    spatialEffectId: '00000000-0000-4000-8000-000000000f31',
+    label: 'Moonbeam',
+    activation: 'ACTION',
+    maxDistance: { amount: 60, unit: 'FEET' },
+    warnings: []
+  }
+])
+
+const zonePlacements = validated(encounterSessionStateDtoSchema.shape.placedZones)([
+  {
+    id: zoneMoveChoices[0].spatialEffectId,
+    label: 'Moonbeam',
+    shape: { kind: 'CIRCLE', center: { x: 300, y: 300 }, radius: 100 },
+    spotDc: null,
+    disarmDc: null,
+    destruction: null,
+    unawareActorIds: []
+  }
+])
+
+describe('CampaignTabletopActionDrawer zone moves (QUALITY-15.T3y8b)', () => {
+  it('lists a zone with its cost and reach, aims its footprint on the map, then sends the move to the picked center', async () => {
+    const user = userEvent.setup()
+    const onMoveZone = vi.fn().mockResolvedValue(resolved)
+    const onPickAreaOrigin = vi.fn()
+    const onAreaSizeChange = vi.fn()
+    renderDrawer(vi.fn(), {
+      zoneMoves: zoneMoveChoices,
+      placedZones: zonePlacements,
+      areaAim: { origin: { x: 350, y: 300 }, toward: null },
+      onMoveZone,
+      onPickAreaOrigin,
+      onAreaSizeChange
+    })
+
+    const section = await screen.findByRole('region', { name: 'Zone choices' })
+    expect(within(section).getByText(/Move Moonbeam/)).toBeVisible()
+    expect(within(section).getByText(/Action · up to 60 (ft|feet)/i)).toBeVisible()
+
+    await user.click(within(section).getByRole('button', { name: 'Move Moonbeam' }))
+    expect(onAreaSizeChange).toHaveBeenLastCalledWith({ kind: 'RADIUS', radius: 100 })
+    await user.click(within(section).getByRole('button', { name: 'Pick on map' }))
+    expect(onPickAreaOrigin).toHaveBeenCalledOnce()
+
+    await user.click(within(section).getByRole('button', { name: 'Move' }))
+    expect(onMoveZone).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'MOVE_ZONE',
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        actorId: tabletopGmEncounter.currentActorId,
+        spatialEffectId: zoneMoveChoices[0].spatialEffectId,
+        destination: { x: 350, y: 300 },
+        acknowledgedWarnings: []
+      })
+    )
+    expect(await screen.findByText('Zone moved.')).toBeVisible()
+  })
+
+  it('cannot move until a center is picked on the map', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), { zoneMoves: zoneMoveChoices, placedZones: zonePlacements })
+
+    const section = await screen.findByRole('region', { name: 'Zone choices' })
+    await user.click(within(section).getByRole('button', { name: 'Move Moonbeam' }))
+    expect(within(section).getByRole('button', { name: 'Move' })).toBeDisabled()
+  })
+
+  it('shows no section when the actor maintains no movable zone', async () => {
+    renderDrawer(vi.fn())
+
+    await screen.findByRole('button', { name: 'Resolve action' })
+    expect(screen.queryByRole('region', { name: 'Zone choices' })).not.toBeInTheDocument()
+  })
+})
 
 describe('CampaignTabletopActionDrawer releases (D152)', () => {
   it('offers each creature the actor holds for no action, and sends the release command', async () => {
