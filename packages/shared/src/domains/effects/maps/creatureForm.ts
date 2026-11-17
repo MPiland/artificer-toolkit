@@ -16,11 +16,9 @@ const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthor
 export function createManifestCreatureFormNodeMap(
   statBlockNodeMap: () => NodeMap<SummonStatBlockAuthored>
 ): NodeMap<ManifestCreatureFormAuthored> {
-  return manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, cond, data }) => {
+  return manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, data }) => {
     const { text, number, selectSingle, groupObject } = nodes
-    const local = cond.local()
     const { table } = data
-    const lacksStatBlock = local.field(['statBlock']).empty()
 
     map
       .set('id', text(['id'], 'ID'))
@@ -28,15 +26,10 @@ export function createManifestCreatureFormNodeMap(
       .set('label', text(['label'], 'Label', { requiredIf: true }))
       .set(
         'creatureId',
-        selectSingle(
-          ['creatureId'],
-          'Creature',
-          {
-            kind: 'DATA',
-            relationship: table('creatures', { selectColumns: ['id', 'label'] })
-          },
-          { requiredIf: lacksStatBlock }
-        )
+        selectSingle(['creatureId'], 'Creature', {
+          kind: 'DATA',
+          relationship: table('creatures', { selectColumns: ['id', 'label'] })
+        })
       )
       .set(
         'statBlock',
