@@ -514,7 +514,6 @@ describe('effect node maps', () => {
     for (const manifestKind of [
       MANIFEST_KIND.CREATURE,
       MANIFEST_KIND.SUMMON,
-      MANIFEST_KIND.SENSOR,
       MANIFEST_KIND.WEAPON,
       MANIFEST_KIND.OBJECT,
       MANIFEST_KIND.ILLUSION
