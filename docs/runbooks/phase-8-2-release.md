@@ -38,7 +38,10 @@ with every workflow green:
 See [CI validation](../architecture/ci-validation.md). Step 4's local lifecycle is no longer a gate.
 It stays a tool for the user's local review data and for reproducing a CI failure on this machine.
 Performance (`vtt-load`, `v15-workload`) only records numbers here, as D210 says, and gates on staging
-(PERF-2).
+(PERF-2). `v15-workload` is not in the CI proof list, so run it with
+`gh workflow run browser-journeys.yml --ref ci/<rc> -f proof=v15-workload`; the proof runner
+(`scripts/runLocalConvexProof.ps1`) sets `V15_BROWSER_PROOF=1`. The RC's CI evidence record is
+[release-candidate-2026-11-17](../validation/release-candidate-2026-11-17.md).
 
 1. Apply only the reviewed, explicitly approved local removal packets. Retain their before archives,
    manifests, hashes, native exit codes, and complete logs. Local deletion does not authorize deleting
