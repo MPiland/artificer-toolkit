@@ -600,7 +600,12 @@ export function openCommandRoom(options: {
         // The room wrote nothing, and its journal covers an exact resend of the same command.
         retried.set(message.commandId, retries)
         entry.sent = false
-      } else take(message.commandId)?.reject(roomRejection(message))
+      } else {
+        // A bare refusal does not say which command drew it; the cause carries the command for the proof log.
+        const rejection = roomRejection(message)
+        if (entry) rejection.cause = `${entry.scope} ${JSON.stringify(entry.command).slice(0, 800)}`
+        take(message.commandId)?.reject(rejection)
+      }
       flush()
     } else if (message.type === 'ENCOUNTER_SESSION') {
       for (const read of sessionReads) {

@@ -559,7 +559,19 @@ async function sendWorkloadCommand(
 ) {
   const result = await timeCutoverCommand(operation, samples, () =>
     member.client.mutation(executeEncounterCommand, { command })
-  )
+  ).catch((error: unknown) => {
+    // A rejection names neither the workload step nor the actors' places in the ring.
+    const place = (id: string) => aggregate.actorIds.indexOf(id) + 1
+    const target =
+      'target' in command && 'actorId' in command.target ? command.target.actorId : null
+    // The rejection keeps its type; the step is added beside the command the client attached.
+    if (error instanceof Error)
+      error.cause =
+        `V15 ${operation} ${aggregate.aggregate} actor ${'actorId' in command && command.actorId ? place(command.actorId) : '-'}` +
+        ` target ${target ? place(target) : '-'} current ${place(aggregate.run.currentActorId ?? '')}` +
+        ` version ${aggregate.run.version}; ${String(error.cause)}`
+    throw error
+  })
   aggregate.commits.push({
     commandId: command.commandId,
     initiator: member,
@@ -604,7 +616,8 @@ async function prepareCutoverWorkloadAggregate({
     owner,
     campaignId,
     name: `V15 ${aggregate.toLowerCase()} workload scene`,
-    options: { map: workloadMap, grid: workloadGrid, tokens }
+    // Players name only creatures their map draws (ATTACK-17.3); the workload has no exploration, so no fog.
+    options: { map: workloadMap, grid: workloadGrid, tokens, fogMode: 'OFF' }
   })
   // The workload measures server-rolled turns and reactions: Assisted with the GM's auto-roll on.
   await owner.mutation(api.account.setAutoRollDice, { autoRollDice: true })
@@ -866,6 +879,14 @@ async function executeCutoverWorkloadReaction(
   const mover = participantWatch(aggregate, item.participant)
   const reactor = participantWatch(aggregate, cutoverWorkloadParticipant(reactorIndex + 1))
   const gm = aggregate.watches.gm
+  // The cell beside the reactor on the mover's side: in the reactor's reach, and the mover's swept
+  // body (100 wide) only touches the hostile footprint, which voluntary movement may not cross.
+  const offsetX = origin.x - reactorPosition.x
+  const offsetY = origin.y - reactorPosition.y
+  const reactorReachCell =
+    Math.abs(offsetX) >= Math.abs(offsetY)
+      ? { x: reactorPosition.x + Math.sign(offsetX) * 100, y: reactorPosition.y }
+      : { x: reactorPosition.x, y: reactorPosition.y + Math.sign(offsetY) * 100 }
   const startedAt = performance.now()
   const priorSceneVersion = gm.scene.version
   const priorRunVersion = aggregate.run.version
@@ -880,7 +901,7 @@ async function executeCutoverWorkloadReaction(
       correlationId: null,
       movementKind: 'VOLUNTARY',
       tokenId,
-      path: [origin, { x: reactorPosition.x + 100, y: reactorPosition.y }, origin]
+      path: [origin, reactorReachCell, origin]
     })
   )
   // A mover who cannot see the change gets only the version bump; otherwise its result names the
@@ -970,8 +991,13 @@ async function executeCutoverWorkloadReaction(
       resolution
     })
   }
-  assert.equal(resolved.occurrence?.occurrenceId, pending.occurrenceId)
+  // A chosen reaction is a child action (D219): its answer returns the child's own occurrence, and
+  // the room settles the offered one when it resumes the move.
   assert.equal(resolved.occurrence?.status, 'COMPLETE')
+  await reactor.until(
+    () => (reactor.held?.state.pending?.occurrenceId === pending.occurrenceId ? null : true),
+    'the offered reaction decision to settle'
+  )
   const moverAfter = aggregate.run.actors.find((actor) => actor.id === actorId)
   if (!moverAfter) throw new Error('V15 workload mover disappeared.')
   // The reaction costs the mover one hit point, or two on a critical hit.

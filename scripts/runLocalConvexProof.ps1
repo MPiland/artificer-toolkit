@@ -195,7 +195,13 @@ try {
     $driverEnvironment.NODE_OPTIONS = '--max-old-space-size=2048'
     $nodeLimit = 'NODE_OPTIONS=--max-old-space-size=2048; '
   }
-  $command = "${nodeLimit}YARN_INJECT_ENVIRONMENT_FILES=<local application env>; yarn tsx apps/apis/tests/developmentDrafts.ts $($driverArguments -join ' ')"
+  $v15Browsers = ''
+  if ($Proof -eq 'v15-workload') {
+    # The workload asserts this switch so a run that skips the six browser clients cannot pass.
+    $driverEnvironment.V15_BROWSER_PROOF = '1'
+    $v15Browsers = 'V15_BROWSER_PROOF=1; '
+  }
+  $command = "${nodeLimit}${v15Browsers}YARN_INJECT_ENVIRONMENT_FILES=<local application env>; yarn tsx apps/apis/tests/developmentDrafts.ts $($driverArguments -join ' ')"
   [System.IO.File]::WriteAllText("$stem.command.txt", $command)
 
   $previousEnvironment = @{}
