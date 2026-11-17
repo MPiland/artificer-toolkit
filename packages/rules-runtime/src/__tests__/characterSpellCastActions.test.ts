@@ -1785,8 +1785,15 @@ describe('a layered zone authored from core options (QUALITY-15.T3v1, D223)', ()
     }
   })
 
-  it('refuses a proximity rule met by moving within the zone until movement reads sight (QUALITY-15.T3v3b)', () => {
-    expect(compiledCastEntry(layeredZoneSpell(3, 10, ['MOVE_WITHIN', 'START_TURN']))).toBeNull()
+  it('plans a proximity rule met by moving within reach as a halo entered or passed through (QUALITY-15.T3v3b, D223)', () => {
+    for (const zone of layeredZones(layeredZoneSpell(3, 10, ['MOVE_WITHIN', 'START_TURN'])))
+      expect(zone.proximityComponent).toMatchObject({
+        reach: { amount: 20, unit: 'FEET' },
+        triggerModes: ['ENTER', 'CROSS'],
+        turnTriggers: ['START_OF_TURN'],
+        requiredSight: ['OCCUPANT_SEES_ZONE'],
+        heldCondition: { holderTurns: 10 }
+      })
   })
 
   it('keeps the SRD Prismatic Wall refused until its light and placement rules are built', () => {

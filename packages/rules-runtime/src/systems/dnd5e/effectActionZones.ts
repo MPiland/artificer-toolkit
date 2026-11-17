@@ -470,6 +470,12 @@ function zoneComponentPlan(
   // Only a zone left at a Scene point has a place to see; a source zone follows its token.
   if (requiredSight?.includes('OCCUPANT_SEES_ZONE') && zone.attachment !== 'PLACED_SPACE')
     unsupported('A zone is seen only when it is left where its cast places it.')
+  // A move reads only the mover's sight of the zone, from where it began (D223).
+  if (
+    requiredSight?.some((sight) => sight !== 'OCCUPANT_SEES_ZONE') &&
+    triggers.triggerModes.length
+  )
+    unsupported('A zone that needs sight between its source and occupant acts at turn boundaries.')
   if (
     movementCostMultiplier !== undefined &&
     !zoneMovementCostMultiplierSchema.safeParse(movementCostMultiplier).success
