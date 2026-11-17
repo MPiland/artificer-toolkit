@@ -296296,6 +296296,7 @@ export declare const api: {
             disarmDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
             id: string;
             label: string | null;
+            layer?: true;
             shape:
               | {
                   center: { x: number; y: number };
