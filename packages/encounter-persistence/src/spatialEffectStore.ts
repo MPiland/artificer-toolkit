@@ -199,6 +199,8 @@ export function createSpatialRuleEffectStore(ctx: EncounterWriteContext) {
           expectedVersion: number
           lifecycle: ActiveRuleEffectLifecycleDto
           spatialState: SpatialRuleEffectStateDto
+          /** A movable zone's placement its source's move re-centered (QUALITY-15.T3y8). */
+          placement?: SpatialRuleEffectPlacementDto
         }) {
           const id = serverUuidIdentityDtoSchema.parse(input.id)
           const expectedVersion = positiveIntegerSchema.parse(input.expectedVersion)
@@ -208,7 +210,7 @@ export function createSpatialRuleEffectStore(ctx: EncounterWriteContext) {
           const next = parseCurrentState({
             definition: current.definition,
             lifecycle: input.lifecycle,
-            placement: current.placement,
+            placement: input.placement ?? current.placement,
             spatialState: input.spatialState
           })
           const row = await ctx.db
@@ -220,6 +222,12 @@ export function createSpatialRuleEffectStore(ctx: EncounterWriteContext) {
           if (!row || row.version !== expectedVersion)
             throw new Error('Spatial rule effect changed before current-state update.')
           await ctx.db.patch(row._id, {
+            ...(input.placement
+              ? {
+                  placement: next.placement,
+                  placementChecksum: checksumCanonicalJson(next.placement)
+                }
+              : {}),
             lifecycle: next.lifecycle,
             lifecycleChecksum: checksumCanonicalJson(next.lifecycle),
             spatialState: next.spatialState,

@@ -258,8 +258,19 @@ rather than removes the creature.
 **Flaming Sphere (current, QUALITY-15.T3y5).** The sphere compiles through data alone as a Concentration-held placed
 zone: a 15-foot cube centered on the sphere's square (the space within 5 feet of it) whose one `END_TURN_IN_SPACE`
 component makes a Dexterity save against the caster's DC for the scaled fire damage, halved on a success. Entering the
-area does nothing. Moving the sphere (and Moonbeam's beam) needs a zone-move command that does not exist yet (target, a
-follow-up slice); until then the zone stays where it was placed. GM rulings, not authored: the ram (a creature the sphere is moved into saves and the move
+area does nothing.
+
+**Moving a zone (current, QUALITY-15.T3y8).** A fixed placed-space zone its source maintains may author a `move`
+(`activation`, `maxDistance`) on its ZONE manifest; the compiler carries it onto the placement
+(`encounterZonePlacement.ts`) and refuses it on a zone that is not maintained or whose components do not act on
+creatures. The Run command `MOVE_ZONE` (actor, zone, destination) is admitted like any holder command: the Worker
+(`nativeMoveZoneAction.ts`) checks the actor placed the zone (`sourceZoneMove`), measures the move from the zone's
+center on the Scene grid (`zoneMoveWithinDistance`), spends the authored activation through the shared rule economy,
+and `persistEncounterMoveZone` re-centers the geometry under a zone-version fence. Occupancy needs no separate path:
+turn triggers read the current geometry, and moving onto a creature is not an entry. A GM undo restores the prior
+geometry and returns the spent activation (`revertZoneMove`). SRD Flaming Sphere moves 30 feet for a Bonus Action and
+Moonbeam 60 feet for an Action, authored from core options. Target: an offer surface on the Sheet and tabletop (the
+move is a Run command today with no player UI). GM rulings, not authored: the ram (a creature the sphere is moved into saves and the move
 stops), steering over barriers and pits, igniting unattended flammable objects, the bright and dim light, and the
 unoccupied-space placement rule.
 

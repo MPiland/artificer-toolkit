@@ -105,6 +105,10 @@ export const moonbeam: SpellAuthored = {
                 attachmentKind: 'PLACED_SPACE',
                 label: 'Moonbeam',
                 shape: beam(0x220),
+                move: {
+                  activation: ACTIVATION_CODE.ACTION,
+                  maxDistance: { amount: 60, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
                 components: [
                   {
                     id: spellChildId(SPELL_IDS.MOONBEAM, 0x221, 1),

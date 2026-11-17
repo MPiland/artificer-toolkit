@@ -71,6 +71,7 @@ import {
   ruleGraphSourceIdentityDtoSchema
 } from '../shared/ruleExecutionCore.js'
 import { compiledEffectOffersSchema } from '../effects/storedEffectOffer.js'
+import { zoneMoveDtoSchema } from '../effects/effectOffer.js'
 import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import {
   activeEffectOnEndSchema,
@@ -736,6 +737,11 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
      * after every layer before it (D223). Absent when any may be destroyed first.
      */
     destructionInOrder: z.optional(z.literal(true)),
+    /**
+     * How the zone's source moves it while it maintains it (QUALITY-15.T3y8); absent for a zone
+     * that stays where it was placed. Only a maintained PLACED_SPACE zone of one record has it.
+     */
+    move: z.optional(zoneMoveDtoSchema),
     /** The Concentration the placing cast opens; every record it places depends on it (D135). */
     maintenance: compiledActionMaintenanceSchema,
     /**

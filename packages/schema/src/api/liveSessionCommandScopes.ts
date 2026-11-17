@@ -5,6 +5,7 @@ import {
   endHeldGrantInputDtoSchema,
   escapeRelationshipInputDtoSchema,
   moveHeldEffectInputDtoSchema,
+  moveZoneInputDtoSchema,
   releaseRelationshipInputDtoSchema,
   resolveCheckActionInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
@@ -13,8 +14,9 @@ import {
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 /**
- * A CHECK action, an Escape, the end of a held grant, the move of a held effect, a facing change
- * or a relationship's release, or the answer to the check either of the first two started.
+ * A CHECK action, an Escape, the end of a held grant, the move of a held effect or a maintained
+ * zone, a facing change or a relationship's release, or the answer to the check either of the first
+ * two started.
  */
 export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
   z.discriminatedUnion('type', [
@@ -22,6 +24,7 @@ export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
     escapeRelationshipInputDtoSchema,
     endHeldGrantInputDtoSchema,
     moveHeldEffectInputDtoSchema,
+    moveZoneInputDtoSchema,
     changeFacingInputDtoSchema,
     releaseRelationshipInputDtoSchema,
     resolveRuleOccurrenceInputDtoSchema

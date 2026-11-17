@@ -5,6 +5,7 @@ import {
   readEndHeldGrantAdmission,
   readEscapeAdmission,
   readMoveHeldEffectAdmission,
+  readMoveZoneAdmission,
   readChangeFacingAdmission,
   readReleaseRelationshipAdmission
 } from './basicActionAdmission.js'
@@ -18,7 +19,7 @@ import type { EncounterReadTransaction } from './ports.js'
 
 /**
  * Admits whichever command the BASIC_ACTION capture scope carries: a basic action, an Escape, the
- * end of a held grant, the move of a held effect, a facing change, a relationship's release, or the d20 answer to the check either one pended (told apart by the pending occurrence's context).
+ * end of a held grant, the move of a held effect or a maintained zone, a facing change, a relationship's release, or the d20 answer to the check either one pended (told apart by the pending occurrence's context).
  */
 export async function readBasicActionScopeAdmission(
   ctx: EncounterReadTransaction,
@@ -33,6 +34,7 @@ export async function readBasicActionScopeAdmission(
     return readEndHeldGrantAdmission(ctx, { ...input, command })
   if (command.type === 'MOVE_HELD_EFFECT')
     return readMoveHeldEffectAdmission(ctx, { ...input, command })
+  if (command.type === 'MOVE_ZONE') return readMoveZoneAdmission(ctx, { ...input, command })
   if (command.type === 'CHANGE_FACING') return readChangeFacingAdmission(ctx, { ...input, command })
   if (command.type === 'RELEASE_RELATIONSHIP')
     return readReleaseRelationshipAdmission(ctx, { ...input, command })

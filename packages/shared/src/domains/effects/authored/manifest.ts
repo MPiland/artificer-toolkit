@@ -365,6 +365,7 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
   hollow?: boolean
   wallThickness?: ShapeMeasurementValueAuthored
   camouflage?: ManifestCamouflageAuthored
+  move?: ManifestZoneMoveAuthored
   spreadsAroundCorners?: boolean
   obscurementKind?: 'LIGHT' | 'HEAVY'
   properties?: Array<keyof typeof MANIFEST_PROPERTY>
@@ -377,6 +378,15 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
  * Its spot DC is a fixed number or the placer's save DC, pinned when the zone is placed.
  */
 export type ManifestCamouflageAuthored = { spotDc: HeldEscapeDcAuthored }
+
+/**
+ * How a placed zone's source moves it while maintaining it (QUALITY-15.T3y8): the activation each
+ * move costs and the farthest its center travels in one move.
+ */
+export type ManifestZoneMoveAuthored = {
+  activation: 'ACTION' | 'BONUS_ACTION'
+  maxDistance: { amount: number; unit: LengthUnitCode }
+}
 
 type ZoneManifestAuthored = NonCreatureManifestAuthored<typeof MANIFEST_KIND.ZONE> &
   Required<Pick<ManifestAuthoredBase, 'attachmentKind'>>

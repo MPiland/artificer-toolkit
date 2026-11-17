@@ -470,6 +470,21 @@ export const moveHeldEffectInputDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The current actor moves a placed zone it maintains (QUALITY-15.T3y8) so it is centered on
+ * `destination`, spending the activation and keeping within the distance its authored move names.
+ */
+export const moveZoneInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('MOVE_ZONE'),
+    actorId: uuidSchema,
+    spatialEffectId: postgresUuidSchema,
+    destination: spatialPointDtoSchema,
+    /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
+    acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
+  })
+)
+
+/**
  * A creature turns to face `rotationDegrees` as a reaction, on any turn, under the Encounter's
  * Facing rule (ATTACK-12). Its bound token on the Encounter's Scene turns with it.
  */
@@ -808,6 +823,7 @@ export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActi
 export type EscapeRelationshipInputDto = z.infer<typeof escapeRelationshipInputDtoSchema>
 export type EndHeldGrantInputDto = z.infer<typeof endHeldGrantInputDtoSchema>
 export type MoveHeldEffectInputDto = z.infer<typeof moveHeldEffectInputDtoSchema>
+export type MoveZoneInputDto = z.infer<typeof moveZoneInputDtoSchema>
 export type ChangeFacingInputDto = z.infer<typeof changeFacingInputDtoSchema>
 export type ReleaseRelationshipInputDto = z.infer<typeof releaseRelationshipInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>

@@ -5,6 +5,7 @@ import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 import { activationDtoSchema } from '../effects/activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from '../effects/check.js'
 import { manifestDestructionCriterionDtoSchema } from '../effects/destructionCriterion.js'
+import { zoneMoveDtoSchema } from '../effects/effectOffer.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { manifestBlockingRuleSchema, manifestRequiredSightSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
@@ -227,8 +228,9 @@ export const compiledSpatialHeldConditionDtoSchema = lazySchema(() =>
 )
 
 /**
- * Immutable Encounter/Scene placement. Trigger and movement arrays are already
- * canonical when persisted; parsing never silently changes execution order.
+ * Encounter/Scene placement, immutable except for a movable zone's geometry, which its source's
+ * zone move translates (QUALITY-15.T3y8). Trigger and movement arrays are already canonical when
+ * persisted; parsing never silently changes execution order.
  */
 export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
   z
@@ -305,10 +307,21 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
         })
       ),
       /** The conditions the zone keeps off its source and the source's allies inside it. */
-      occupantConditionImmunity: z.optional(spatialOccupantConditionImmunityDtoSchema)
+      occupantConditionImmunity: z.optional(spatialOccupantConditionImmunityDtoSchema),
+      /**
+       * How the zone's source moves it while it maintains it (QUALITY-15.T3y8), as authored; absent
+       * for a zone that stays where it was placed.
+       */
+      move: z.optional(zoneMoveDtoSchema)
     })
     .check(
       z.superRefine((placement, context) => {
+        if (placement.move && placement.anchorKind !== 'FIXED')
+          context.addIssue({
+            code: 'custom',
+            path: ['move'],
+            message: 'Only a zone fixed to the Scene is moved by its source.'
+          })
         const triggered =
           placement.triggerModes.length > 0 ||
           placement.turnTriggers !== undefined ||

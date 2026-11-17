@@ -97,6 +97,7 @@ import {
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
 import { MANIFEST_CAMOUFLAGE_NODE_MAP } from './manifestCamouflage.js'
+import { MANIFEST_ZONE_MOVE_NODE_MAP } from './manifestZoneMove.js'
 import { MANIFEST_LIGHT_NODE_MAP } from './manifestLight.js'
 import {
   MANIFEST_OCCUPANT_CONDITION_IMMUNITY_NODE_MAP,
@@ -2106,6 +2107,18 @@ function registerOutcomeFields(
           local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
           local.field(['manifestKind']).eq(MANIFEST_KIND.ZONE)
         ])
+      })
+    )
+    .set(
+      'move',
+      groupObject(['move'], 'Source Moves the Zone', () => MANIFEST_ZONE_MOVE_NODE_MAP, {
+        presentation: 'inline',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.ZONE),
+          local.field(['attachmentKind']).eq('PLACED_SPACE')
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(
