@@ -27547,7 +27547,7 @@
         {
           "id": "QUALITY-15",
           "title": "The compiler composes",
-          "status": "TODO",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -27559,10 +27559,19 @@
           "acs": [
             {
               "id": "QUALITY-15.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R12.",
-              "text": "Activation, targeting, test, outcome and lifetime compile independently; the refused count falls with no change to passing rows, and each remaining refusal is a game rule or invalid input."
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R12. Closed 2026-11-17 under the D228 freeze: leftovers are in future-enhancements, QUALITY-15 zone and summon edges.",
+              "text": "Activation, targeting, test, outcome and lifetime compile independently; the refused count falls with no change to passing rows, and each remaining refusal is a game rule or invalid input.",
+              "journeys": ["zone-move-browser"],
+              "proof": [
+                "srdEffectCompileGolden.test.ts",
+                "nativeRoomCoreOptionSpells.test.ts",
+                "nativeRoomZoneMove.test.ts",
+                "nativeRoomWallZoneSpells.test.ts",
+                "nativeRoomPrismaticWall.test.ts",
+                "nativeRoomLightSensitivity.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -27950,7 +27959,7 @@
             },
             {
               "id": "QUALITY-15.T3v4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A zone's light is drawn by the web Scene renderer and the room vision display, and holder light (Sunlight Sensitivity) reads it.",
               "wsjf": {
@@ -27959,7 +27968,9 @@
                 "rr": 3,
                 "size": 3
               },
-              "note": "Registered 2026-11-17 from the QUALITY-15.T3v4 report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3v4 report under the standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-17",
+              "proof": "m867; slice tip db921afa6: Tests 44105176770, Live 44105176220, Browser journeys 44105176439 green. The web Scene draws zone light, token concealment reads it, and holder light (Sunlight Sensitivity) reads placed zone lights through the shared sceneZoneLight. Red proof: zoneConcealmentReads RED, nativeRoomLightSensitivity RED, vttSceneRenderer.model RED. Integrated via ci/quality-15-int2 (tip 929ef37b8: Tests 44119667790, Live 44123266321, Browser journeys 44119667827 green)."
             },
             {
               "id": "QUALITY-15.T3v5",
@@ -27995,18 +28006,19 @@
             },
             {
               "id": "QUALITY-15.T3v7",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Close-out: the Antimagic Field immunity key is treated as satisfied with a doc note, the golden row compiles, and a room journey runs on the real Prismatic Wall row.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 3,
                 "after": ["QUALITY-15.T3v6"]
               },
-              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace). Resized 2 -> 3 on 2026-11-17: the placed-zone caps in the schema and Worker contracts were unplanned.",
+              "mergedAt": "2026-11-17",
+              "proof": "m867; slice tip 3dc9d6fd4: Tests 44105028585, Live 44105028471, Browser journeys 44105028602 green (first tip d9a96a8d7: Tests 44097385275). Prismatic Wall destructionCriteria modeled as GM-applied (DISARM_ZONE); placed zone caps raised to MAX_ZONE_LAYERS + 1. Red proof: nativeRoomPrismaticWall RED, characterSpellCastActions RED, srdEffectCompileGolden RED. Integrated via ci/quality-15-int2 (tip 929ef37b8: Tests 44119667790, Live 44123266321, Browser journeys 44119667827 green)."
             },
             {
               "id": "QUALITY-15.T3w",
@@ -28056,7 +28068,7 @@
             },
             {
               "id": "QUALITY-15.T3x2c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "The summon command carries the cast slot level, and per-slot summon counts apply (Animate Objects; the lowest-slot gap in Conjure Animals and Conjure Minor Elementals).",
               "wsjf": {
@@ -28066,7 +28078,8 @@
                 "size": 3
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3x2 report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m865; slice tip bebc41f74: Tests 44098930322, Live 44098930262, Browser journeys 44098930273 green. Summon form maxTargetsScaling (SPELL_CAST_LEVEL breakpoints) resolved at compile; Conjure Animals, Minor Elementals, Woodland Beings and Animate Objects. Red proof (run 44085025939): nativeRoomCoreOptionSpells RED, golden RED."
             },
             {
               "id": "QUALITY-15.T3x2d",
@@ -28085,7 +28098,7 @@
             },
             {
               "id": "QUALITY-15.T3x2e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "The storybook-backend proof logs Vite HMR and dependency-optimizer events so the next dev-server socket drop names its trigger.",
               "wsjf": {
@@ -28095,13 +28108,14 @@
                 "size": 2
               },
               "note": "Registered 2026-11-17 from the QUALITY-15.T3x2d report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m862; slice tip 01d5283f8: Tests 44076142978, Live 44076143031, Browser journeys 44076142962 green; storybook-backend proof dispatches 44076151371, 44078285753, 44081101499 passed. DEBUG adds vite:hmr, vite:deps and vitest:browser* to playwright.log. CI-only change, no red proof."
             },
             {
               "id": "QUALITY-15.T3x3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
-              "text": "Dancing Lights places several light-shedding objects the caster moves together.",
+              "text": "Dancing Lights places its lights combined as one movable light-shedding form (several separate lights deferred to future-enhancements).",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
@@ -28109,7 +28123,8 @@
                 "size": 3
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m863; slice tip f5efc5080: Tests 44091145712, Live 44091145742, Browser journeys 44091145962 green. Concentration PLACED_SPACE zone (5 ft cube, dim light 10 ft, Bonus Action move 60 ft). Red proof (run 44087742319): encounterZoneMove RED, nativeRoomZoneMove RED, srdEffectCompileGolden RED."
             },
             {
               "id": "QUALITY-15.T3y",
@@ -28218,7 +28233,7 @@
             },
             {
               "id": "QUALITY-15.T3y6b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A zone's authored blocking rule stops creature movement across its boundary and moves by its anchored token (Wall of Force and Forcecage adopt it as data); the first movement-blocking zone is recorded as decision D227.",
               "wsjf": {
@@ -28228,7 +28243,8 @@
                 "size": 5
               },
               "note": "Registered 2026-11-17 from the QUALITY-15.T3y6a report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m867; slice tip af1372b54: Tests 44105176766, Live 44105176184, Browser journeys 44105176376 green (first tip 6cc890073: Tests 44097978241). CREATURE_MOVEMENT blocking rule; the Worker refuses non-teleport routes across a blocking zone (MOVEMENT_BLOCKED, D227); Resilient Sphere, Wall of Force and Forcecage as data. Red proof: nativeRoomResilientSphere RED, nativeRoomWallZoneSpells RED, encounterInertZonePlacement RED, vtt-spatial RED. Integrated via ci/quality-15-int2 (tip 929ef37b8: Tests 44119667790, Live 44123266321, Browser journeys 44119667827 green)."
             },
             {
               "id": "QUALITY-15.T3y7",
@@ -28247,7 +28263,7 @@
             },
             {
               "id": "QUALITY-15.T3y7b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "The Dryad's Tree Stride uses the free repeat-teleport pattern instead of its placeholder TELEPORT.",
               "wsjf": {
@@ -28256,7 +28272,9 @@
                 "rr": 3,
                 "size": 2
               },
-              "note": "Registered 2026-11-17 from the QUALITY-15.T3y7 report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3y7 report under the standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-17",
+              "proof": "m867; slice tip d3b08564a: Tests 44109637193, Live 44109637801, Browser journeys 44109637511 green; docs only. Deferred: Dryad Tree Stride stays a GM-handled step. A built free repeat teleport had no per-turn limit or movement cost, and a player can control a Dryad (Conjure Woodland Beings); the creature-action limit and charge are out of scope under the D228 freeze unless the user approves. Integrated via ci/quality-15-int2 (tip 929ef37b8: Tests 44119667790, Live 44123266321, Browser journeys 44119667827 green)."
             },
             {
               "id": "QUALITY-15.T3y8",
@@ -28275,7 +28293,7 @@
             },
             {
               "id": "QUALITY-15.T3y8b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "The Sheet and encounter surface offers a zone move: zoneMoves in the action choices, a drawer with a destination pick, and a browser journey.",
               "wsjf": {
@@ -28285,11 +28303,12 @@
                 "size": 5
               },
               "note": "Registered 2026-11-17 from the QUALITY-15.T3y8 report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m866; slice tip 8374929826da: Tests 44101342839, Live 44105874033, Browser journeys 44101343026 (incl. zone-move-browser) green. zoneMoves on action choices (readActorMovableZones); drawer Zone choices, map destination pick and warned MOVE_ZONE flow. Red proof: zoneMoveReads, CampaignTabletopActionDrawer, CampaignVttStage.areaAim and currentActionChoices.model all RED-IMPORT."
             },
             {
               "id": "QUALITY-15.T3y8c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Ramming a moved zone into a creature applies its save and damage and stops the move for the turn (Flaming Sphere).",
               "wsjf": {
@@ -28299,7 +28318,8 @@
                 "size": 3
               },
               "note": "Registered 2026-11-17 from the QUALITY-15.T3y8 report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m864; slice tip 82858b6bf: Tests 44099544006, Live 44099543856, Browser journeys 44099543882 green; docs only, no red proof. Deferred: Flaming Sphere moved into a creature applies no save or stop today. Design and seams are recorded in rules-runtime.md and future-enhancements (size 8+, a persisted-contract change); out of scope under the D228 freeze unless the user approves."
             },
             {
               "id": "QUALITY-15.T3z",
@@ -28688,7 +28708,15 @@
               "mergedAt": "2026-11-14",
               "proof": "m773 (d01fb6200); slice tip 1d88de5a1: Tests 43642562351, Live 43643452145, Browser journeys 43642562330 green. actionChoiceReads Creature branch evaluates charged for every limited-use action; the hide stays only for a spent slot filler. nativeRoomSrdSelfAction: SRD Duergar Enlarge after use is offered with the warning, refused without acknowledgement, committed with it; undo clears the warning. No restated assertions. No D196 change."
             }
-          ]
+          ],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomCoreOptionSpells.test.ts",
+            "apps/session-worker/test/nativeRoomZoneMove.test.ts",
+            "apps/session-worker/test/nativeRoomWallZoneSpells.test.ts",
+            "apps/session-worker/test/nativeRoomPrismaticWall.test.ts",
+            "apps/session-worker/test/nativeRoomLightSensitivity.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "QUALITY-16",

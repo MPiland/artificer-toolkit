@@ -2284,3 +2284,10 @@ QUALITY-15.T3v's seam trace found that Prismatic Wall's ordered layers cannot be
 - **Deferred riders (GM rulings):** Forcecage's Charisma save to teleport out, its block on ethereal travel and its push of partly enclosed creatures; attacks, spells and line of sight through any barrier; the enclosed creature rolling Resilient Sphere, others moving it, and Disintegrate ending it.
 - **Found by:** QUALITY-15.T3y6a; built by QUALITY-15.T3y6b.
 - **Tracking:** `docs/roadmap/future-enhancements.md`, QUALITY-15 zone and summon edges (movement-blocking zones).
+
+## D228 (2026-11-17): QUALITY-15 is frozen at its nine open tasks
+
+- **Ruling (user, 2026-11-17):** QUALITY-15 finishes only its nine open tasks (T3v4b, T3v7, T3x2c, T3x2e, T3x3, T3y6b, T3y7b, T3y8b, T3y8c). The 2026-11-13 standing approval for QUALITY growth is revoked.
+- **Leftovers:** a slice report's remaining riders go to `docs/roadmap/future-enhancements.md` (QUALITY-15 zone and summon edges), not to the ledger. A new task is registered only when a spell is wrong or unsafe today; any other growth goes back to the user, default no (D187).
+- **Deferred under this ruling:** T3y8c (Flaming Sphere moved into a creature: the moved-zone contact path, size 8+) and T3y7b (Dryad Tree Stride: a per-turn limit and movement-cost charge on a creature's own action) closed as documented deferrals.
+- **Result:** QUALITY-15 closed at m867.
