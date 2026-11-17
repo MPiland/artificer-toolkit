@@ -248,6 +248,8 @@ export async function readNativeLivePointSight(input: {
   system: SystemAuthoredDto
   observer: MovementTarget
   point: ScenePoint
+  /** Where the observer looks from when not where its token stands (a mover before its move). */
+  observerPosition?: ScenePoint
   sceneContext: { sceneId: string; sceneVersion: number; grid: SceneGrid }
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
 }) {
@@ -274,7 +276,9 @@ export async function readNativeLivePointSight(input: {
     placement: {
       scene: loaded.scene,
       sceneGrid: sceneContext.grid,
-      observerToken,
+      observerToken: input.observerPosition
+        ? { ...observerToken, position: input.observerPosition }
+        : observerToken,
       spatialEffects: await readNativeLiveSpatialEffects({
         encounterId: state.id,
         sceneId: loaded.id,

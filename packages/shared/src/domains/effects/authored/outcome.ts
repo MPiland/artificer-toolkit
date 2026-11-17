@@ -20,7 +20,6 @@ import type { RestoreResourceAuthored } from './restoreResource.js'
 import type { SpellSlotExchangeAuthored } from './spellSlotExchange.js'
 import type { TelepathicLinkAuthored } from './telepathicLink.js'
 import type { PlantPortalAuthored } from './plantPortal.js'
-import type { TreeStrideAuthored } from './treeStride.js'
 import type { ActorRelationshipAuthored } from './actorRelationship.js'
 import type { ConcealFromObserversAuthored } from './concealFromObservers.js'
 import type { RemoveFromPlayAuthored } from './removeFromPlay.js'
@@ -60,7 +59,6 @@ export type OutcomeAuthored =
   | SpellSlotExchangeAuthored
   | TelepathicLinkAuthored
   | PlantPortalAuthored
-  | TreeStrideAuthored
   | ActorRelationshipAuthored
   | ConcealFromObserversAuthored
   | RemoveFromPlayAuthored

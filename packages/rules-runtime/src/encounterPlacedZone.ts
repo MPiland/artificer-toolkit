@@ -172,7 +172,10 @@ type PlacedZoneInput = {
   sourceActorId: string | null
   point: ScenePoint
   area: SpatialAreaShape
-  /** The user's token; a SOURCE zone follows it. */
+  /**
+   * The token a zone is anchored to: its user's, which a SOURCE zone follows, or the token of the
+   * creature a PRIMARY_TARGET zone encloses. Null for a zone fixed to the Scene.
+   */
   sourceToken: { tokenId: string; width: number } | null
   /** The user's spell save DC as the cast resolved it. */
   saveDc: number | null
@@ -203,7 +206,11 @@ function placedZoneRecord(
   zone: Omit<ZoneRegionComponent, 'region'> &
     Pick<
       CompiledActionZonePlacement,
-      'retaliatesMeleeHits' | 'occupantSaveBonus' | 'occupantConditionImmunity' | 'camouflage'
+      | 'retaliatesMeleeHits'
+      | 'occupantSaveBonus'
+      | 'occupantConditionImmunity'
+      | 'camouflage'
+      | 'light'
     >,
   anchor: ReturnType<typeof zoneAnchor>,
   { distanceStep, layer }: { distanceStep?: number; layer?: { index: number; zoneId: string } } = {}
@@ -315,6 +322,7 @@ function placedZoneRecord(
       ...(zone.occupantConditionImmunity
         ? { occupantConditionImmunity: zone.occupantConditionImmunity }
         : {}),
+      ...(zone.light ? { light: zone.light } : {}),
       // A held condition's escape against its source's save DC pins the caster's DC (D146).
       ...(heldCondition
         ? {
@@ -330,13 +338,21 @@ function placedZoneRecord(
                           : castSaveDc(input.saveDc)
                     }
                   }
+                : {}),
+              // The save its holder repeats is made against the caster's DC, pinned like the escape's.
+              ...(heldCondition.repeatSave
+                ? {
+                    repeatSave: pinnedHeldRepeatSave(heldCondition.repeatSave, input.saveDc)
+                  }
                 : {})
             }
           }
         : {}),
       ...(input.unaffectedActorIds?.length
         ? { unaffectedActorIds: [...input.unaffectedActorIds] }
-        : {})
+        : {}),
+      // Compiled only for a placed zone of one record (QUALITY-15.T3y8), so it never lands on a band.
+      ...(input.zone.move ? { move: input.zone.move } : {})
     }),
     spatialState: withZoneDcs(
       { schemaVersion: 1, revealed: true, ...(zone.requiresIgnition ? { unlit: true } : {}) },
@@ -405,7 +421,32 @@ function castSaveDc(saveDc: number | null): number {
   return saveDc
 }
 
-/** Where a zone sits: fixed at the picked point, or on its user's token and moving with it. */
+/** A held condition's repeated save as placed: its graph compiled, the caster's DC pinned into its facts. */
+function pinnedHeldRepeatSave(
+  {
+    frozenGraph,
+    capabilityContractVersion,
+    castSaveDcFactKey,
+    adapterFacts,
+    ...repeatSave
+  }: NonNullable<NonNullable<CompiledActionZonePlacement['heldCondition']>['repeatSave']>,
+  saveDc: number | null
+) {
+  return {
+    ...repeatSave,
+    frozenGraph: compileEffectGraph(frozenGraph, capabilityContractVersion),
+    adapterFacts: {
+      ...adapterFacts,
+      ...(castSaveDcFactKey ? { [castSaveDcFactKey]: castSaveDc(saveDc) } : {})
+    }
+  }
+}
+
+/**
+ * Where a zone sits: fixed at the picked point, or on its anchor token and moving with it (its
+ * user's for a SOURCE zone, the enclosed creature's for a PRIMARY_TARGET zone), reaching the
+ * authored radius past the edge of the token's space.
+ */
 function zoneAnchor(
   attachment: CompiledActionZonePlacement['attachment'],
   area: SpatialPointAreaShape | SpatialWallAreaShape,
@@ -422,7 +463,7 @@ function zoneAnchor(
     }
   }
   if (area.kind !== 'RADIUS' || !sourceToken)
-    throw new Error('A source zone is a circle around its user’s token.')
+    throw new Error('A zone on a token is a circle around that token.')
   return {
     anchorKind: 'TOKEN' as const,
     sourceTokenId: sourceToken.tokenId,

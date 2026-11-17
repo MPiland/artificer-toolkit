@@ -29,14 +29,13 @@ import {
   spatialExecutionOutcome,
   toSpatialInstances,
   toSpatialMovementTarget,
+  zoneSightContactFacts,
   type SpatialD20Roll,
   type SpatialTargetState
 } from './encounterSpatialCandidateExecution.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
 import { kernelContinuation } from './encounterTurnEffects.js'
 import { zoneTurnContacts } from './encounterZoneContacts.js'
-import { zoneSightPoint } from './encounterZoneConcealment.js'
-import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from './encounterZonePlacement.js'
 import type { TurnEffectBoundary } from './encounterTurnEffectState.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
@@ -272,37 +271,6 @@ export async function prepareEncounterTurnZoneEffects<
       economyActor: caughtActor
     })
   }
-  const zoneSightFacts = async (effect: (typeof effects)[number], occupantActorId: string) => {
-    const required = effect.placement.requiredSight
-    if (!required) return undefined
-    const { origin } = effect.definition
-    const { anchorKind, geometry } = effect.placement
-    let sourceSight: ReturnType<NonNullable<typeof input.loadSourceSight>> | undefined
-    const readSourceSight = () => {
-      if (origin.kind !== 'ENCOUNTER' || !origin.sourceActorId || !input.loadSourceSight)
-        throw new Error('Turn zone sight is unavailable.')
-      return (sourceSight ??= input.loadSourceSight({
-        sourceActorId: origin.sourceActorId,
-        occupantActorId
-      }))
-    }
-    const readZoneSight = () => {
-      // Only a zone left at a Scene point has a place to see; a source zone's geometry is token-local.
-      if (!input.loadPointSight || anchorKind !== 'FIXED' || geometry.frame !== 'SCENE_ABSOLUTE')
-        throw new Error('Turn zone sight is unavailable.')
-      return input.loadPointSight({ occupantActorId, point: zoneSightPoint(geometry.shape) })
-    }
-    for (const sight of required) {
-      const seen =
-        sight === 'OCCUPANT_SEES_ZONE'
-          ? await readZoneSight()
-          : sight === 'OCCUPANT_SEES_SOURCE'
-            ? (await readSourceSight()).occupantSeesSource
-            : (await readSourceSight()).sourceSeesOccupant
-      if (!seen) return { [ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY]: false }
-    }
-    return { [ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY]: true }
-  }
   const caughtAt = (ordinal: number) => caught.get(contacts[ordinal]!.targetActorId)!
   const runtime = await input.createRuntime()
   const executions: TurnZoneExecution[] = []
@@ -343,7 +311,12 @@ export async function prepareEncounterTurnZoneEffects<
       state: entry.state,
       occurrenceId: input.occurrenceId,
       runtime,
-      contactFacts: await zoneSightFacts(effect, contact.targetActorId)
+      contactFacts: await zoneSightContactFacts({
+        effect,
+        occupantActorId: contact.targetActorId,
+        loadSourceSight: input.loadSourceSight,
+        loadPointSight: input.loadPointSight
+      })
     })
     let result:
       | TargetBoundActiveRuleEffectExecutionResult

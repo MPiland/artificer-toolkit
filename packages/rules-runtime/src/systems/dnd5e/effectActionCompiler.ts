@@ -32,7 +32,8 @@ import { v5 as uuidv5 } from 'uuid'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   CharacterRuleActionSystemAdapter,
-  CharacterRuleActionActiveEffectPlan
+  CharacterRuleActionActiveEffectPlan,
+  CharacterRuleActionExecutionPlan
 } from '../../characterRuleActionSystemAdapter.js'
 import { CharacterRuleActionTargetDefenseUnavailableError } from '../../characterRuleActionSystemAdapter.js'
 import {
@@ -101,7 +102,6 @@ import {
 } from './effectActionTestOutcomes.js'
 import {
   authoredAlike,
-  canonicalRepeatTriggers,
   isRepeatCarrierEntry,
   repeatCarrierPlan
 } from './effectActionRepeatCarrier.js'
@@ -276,13 +276,9 @@ import {
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition,
   directRepeatSaveEntries,
-  repeatCadenceSupported,
-  repeatSaveEscalations,
-  repeatSaveFailureDamage,
-  repeatSaveFailureDamageRows,
-  repeatSaveHeldTurns,
-  sourceTurnStartSave
+  repeatSaveFailureDamage
 } from './effectActionNestedSave.js'
+import { repeatSaveEffectPlan } from './effectActionRepeatSavePlan.js'
 import { hitPointTierActions } from './effectActionNarrowing.js'
 import { DND5E_TRIGGERING_EVENT_OUTCOMES, offList } from './effectActionTriggeringEventOutcomes.js'
 import {
@@ -1209,170 +1205,17 @@ function actorLinkPlan(
 
 /**
  * The direct-save form applies its condition, or its timed modifier grants, only in the originating
- * SAVE outcome. Its delayed FOLLOW_UP_SAVE becomes a separate active-effect graph. The turn-effect
- * kernel counts the grant form down with its repeat save, so the grant tick planner leaves it alone.
- * An ACTIVATED action (Power Word Stun) has no first save: its condition applies at cast on the
- * ON_USE path and only the condition form repeats, against the DC the cast settles.
+ * SAVE outcome; its delayed FOLLOW_UP_SAVE is planned by `repeatSaveEffectPlan`. An ACTIVATED action
+ * (Power Word Stun) has no first save of its own.
  */
 function repeatingDirectFollowUpSavePlan(
   action: Dnd5eCompiledEffectActionSource,
   triggerCode: 'SAVING_THROW' | 'ACTIVATED' = 'SAVING_THROW'
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { invocation } = action.compiledEffect
-  const entries = entriesBesideSourceImmunity(action)
-  const { saveEntry, leadEntries } = directRepeatSaveEntries(entries)
-  const leadEntry = leadEntries[0]
-  const pathCode = triggerCode === 'ACTIVATED' ? 'ON_USE' : 'ON_SAVE_FAIL'
-  if (
-    invocation.kind !== 'ACTION' ||
-    invocation.triggerCode !== triggerCode ||
-    // A cast with no save of its own applies only what its save repeats (Power Word Stun).
-    (triggerCode === 'ACTIVATED' && leadEntries.length + 1 !== entries.length) ||
-    !leadEntry ||
-    !saveEntry ||
-    !('outcome' in leadEntry) ||
-    !('outcome' in saveEntry) ||
-    saveEntry.resolutionKind !== 'DIRECT' ||
-    saveEntry.groupKind !== 'SEQUENTIAL' ||
-    saveEntry.pathCode !== pathCode ||
-    saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE' ||
-    // One held grant, or the conditions of one result: the same path, block and duration.
-    leadEntries.some(
-      (entry) =>
-        !('outcome' in entry) ||
-        entry.resolutionKind !== 'DIRECT' ||
-        entry.groupKind !== 'SEQUENTIAL' ||
-        entry.pathCode !== pathCode ||
-        entry.resultBlockId !== saveEntry.resultBlockId ||
-        JSON.stringify(entry.duration) !== JSON.stringify(leadEntry.duration) ||
-        (leadEntries.length > 1 && entry.outcome.effectKind !== 'CONDITION') ||
-        (triggerCode === 'ACTIVATED' && entry.outcome.effectKind !== 'CONDITION')
-    ) ||
-    leadEntries.length > MAX_CONDITIONS_PER_PATH ||
-    (triggerCode === 'ACTIVATED' && leadEntries.length !== 1)
-  ) {
-    return null
-  }
-  const lead = leadEntry.outcome
-  const save = saveEntry.outcome
-  const leadConditions = leadEntries.flatMap((entry) =>
-    'outcome' in entry && entry.outcome.effectKind === 'CONDITION' ? [entry.outcome] : []
-  )
-  if (new Set(leadConditions.map(({ conditionId }) => conditionId)).size !== leadConditions.length)
-    return null
-  const heldConditionIds = leadConditions.map(({ conditionId }) => conditionId)
-  const escalations = repeatSaveEscalations({
-    save,
-    heldConditionIds,
-    singleCondition: lead.effectKind === 'CONDITION' && leadEntries.length === 1,
-    timed: Boolean(leadEntry.duration),
-    knownConditionIds: action.conditionDefinitionIds ?? []
-  })
-  if (!escalations) return null
-  // A failure that ends the effect counts one turn, whatever the held condition's duration.
-  const { escalation, heldEscalation, completion } = escalations
-  const sourceTurn =
-    lead.effectKind === 'CONDITION' && !leadEntry.duration ? sourceTurnStartSave(save) : null
-  const initialRemaining = repeatSaveHeldTurns({
-    save,
-    escalated: escalation !== null,
-    sourceTurn: sourceTurn !== null,
-    duration: leadEntry.duration
-  })
-  const repeatSave = dnd5eRepeatSave({
-    abilityDefinitionId: save.savingThrow.abilityDefinitionId,
-    savingThrow: save.savingThrow,
-    requestNodeId: 'repeat-save-d20',
-    heldConditionIds,
-    escalationConditionId: (escalation ?? heldEscalation)?.conditionId,
-    escalationHeld: heldEscalation !== null,
-    durationCompleteConditionId: completion?.conditionId,
-    repeatRollInfluence: save.repeatRollInfluence,
-    repeatAttemptGate: save.repeatAttemptGate,
-    triggersOnly: save.timing === 'ON_TRIGGERS_ONLY'
-  })
-  const grantPlan =
-    lead.effectKind === 'APPLY_GRANT'
-      ? modifierGrantEntryPlan({
-          action,
-          entry: leadEntry,
-          resultGated: false,
-          untilEndEvent: false
-        })
-      : null
-  const grantContribution = grantPlan?.modifierGrantContribution
-  // The test template is compiled once for every cast level; the effect's plan picks the row.
-  const failsWithDamage = repeatSaveFailureDamageRows(save) !== null
-  const contribution =
-    leadConditions.length > 0 &&
-    leadConditions.every(
-      ({ conditionId }) =>
-        UUID.test(conditionId) && (action.conditionDefinitionIds ?? []).includes(conditionId)
-    )
-      ? {
-          // The effect owns a held escalation from the start, so whatever ends it early (its
-          // Concentration) releases the escalation too; until the tally settles it is not present.
-          conditionContributions: [
-            ...leadConditions,
-            ...(heldEscalation ? [heldEscalation] : [])
-          ].map(({ conditionId, recordsSource, fleesSource }) => ({
-            conditionId,
-            recordsSource,
-            fleesSource
-          }))
-        }
-      : grantPlan && grantContribution
-        ? {
-            tickAnchor: grantPlan.tickAnchor,
-            modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
-          }
-        : null
-  if (
-    !contribution ||
-    !UUID.test(leadEntry.resultBlockId) ||
-    initialRemaining === null ||
-    (!sourceTurn && !repeatCadenceSupported(save, escalation !== null)) ||
-    !repeatSave ||
-    save.onSuccess.kind !== 'END' ||
-    (escalation === null &&
-      heldEscalation === null &&
-      !sourceTurn &&
-      !failsWithDamage &&
-      save.onFailure.kind !== 'CONTINUE') ||
-    (save.repeatAttemptGate && save.repeatRollInfluence)
-  ) {
-    return null
-  }
-  return {
-    authoredEffectId: action.effectId,
-    compiledEntryId: leadEntry.resultBlockId,
-    frozenGraphNodeId: 'repeat-save-test',
-    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'END_OF_TURN',
-    initialRemaining,
-    ...sourceTurn,
-    ...contribution,
-    // A held grant is made only on the save result it is authored on; held conditions are the graph's.
-    ...(lead.effectKind !== 'CONDITION' &&
-      leadEntry.pathCode !== 'ON_USE' && { resultGate: dnd5eResultGate(leadEntry.pathCode) }),
-    ...(save.repeatTriggers?.length && {
-      lifecycle: { endTriggers: [], repeatTriggers: canonicalRepeatTriggers(save.repeatTriggers) }
-    }),
-    adapterFacts: repeatSave.adapterFacts,
-    ...(save.attempts.kind === 'THRESHOLDS' && {
-      saveThresholds: {
-        successesToEnd: save.attempts.successesToEnd,
-        failuresToResolve: save.attempts.failuresToResolve,
-        consecutive: save.attempts.consecutive
-      }
-    }),
-    // A cast with no save of its own rolls no d20 to carry the DC, so the cast's own graph settles it.
-    ...(triggerCode === 'ACTIVATED' ? { castFactKeys: [DND5E_SAVE_DC_FACT_KEY] } : {}),
-    castSaveDcFactKey: triggerCode === 'ACTIVATED' ? null : repeatSave.castSaveDcFactKey,
-    perceptionContributions: [],
-    maintenance: maintenancePlan(action, leadEntry),
-    marginRiders: []
-  }
+  return invocation.kind === 'ACTION' && invocation.triggerCode === triggerCode
+    ? repeatSaveEffectPlan(action, entriesBesideSourceImmunity(action), triggerCode)
+    : null
 }
 
 /**
@@ -1594,13 +1437,14 @@ function activatedAction(action: Dnd5eCompiledEffectActionSource): {
 
 /**
  * The attack or save an action rolls, composed with its activation and targeting, for an action
- * with at least one authored result. Null for an action that rolls no attack or save.
+ * with at least one authored result, or a zone's appear save whose one result is the zone a failed
+ * save leaves on its target. Null for an action that rolls no attack or save.
  */
 function rolledTest(action: Dnd5eCompiledEffectActionSource): TestKind | null {
   const kind = dnd5eTestKind(action.compiledEffect.invocation)
   if (!isDnd5eRolledTest(kind)) return null
   activatedAction(action)
-  if (action.compiledEffect.entries.length < 1)
+  if (action.compiledEffect.entries.length < 1 && !action.zoneAppearSave)
     unsupported('D&D test action has no authored result.')
   return kind
 }
@@ -2862,15 +2706,10 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
   // ON_CRIT entry of its own.
   if (dnd5eTestKind(action.compiledEffect.invocation) === 'ATTACK' && paths.has('ON_HIT'))
     paths.add('ON_CRIT')
-  const outcomes = [] as {
-    pathCode: string
-    template: {
-      definitionId: string
-      gameSystemId: string
-      definitionFamilyKey: string
-      checksum: string
-    }
-  }[]
+  const outcomes: Extract<
+    CharacterRuleActionExecutionPlan,
+    { kind: 'TEST_OUTCOME' }
+  >['outcomes'][number][] = []
   for (const pathCode of [...paths].sort((left, right) => left.localeCompare(right))) {
     const tableChecksum = rollTableTemplateChecksum(action, pathCode)
     const groups = tableChecksum ? [] : selectedOutcomeGroups(action, pathCode)
@@ -2896,9 +2735,11 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
   }
   // A TEST whose every outcome its active-effect plan carries (a creature form, a bond, or a timed
   // grant after a save or on an attack's result) selects no OUTCOME graph: the plan runs from the
-  // TEST's result path. An equipment degradation is likewise the resolver's, off the result path.
+  // TEST's result path. An equipment degradation is likewise the resolver's, off the result path, and
+  // so is a zone's appear save whose one outcome is the zone a failed save leaves on its target.
   if (
     outcomes.length === 0 &&
+    !action.zoneAppearSave &&
     creatureFormPlan(action) === null &&
     actorLinkPlan(action) === null &&
     modifierGrantPlan(action) === null &&

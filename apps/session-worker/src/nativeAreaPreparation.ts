@@ -11,6 +11,10 @@ import {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import {
+  pointAreaInSceneCoordinates,
+  pointAreaOfShape
+} from '@artificer-toolkit/shared/vtt/spatial'
 import type { LiveSessionEncounterActionResume } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import { type LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
@@ -258,9 +262,10 @@ export async function prepareCasterSource(
     source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
       ? (source.entry.compilation.summonPlacement ?? null)
       : null
+  // A zone a failed save leaves around its target is aimed by naming that creature.
   const takes = summonPlacement
     ? 'POINT'
-    : zone
+    : zone && zone.attachment !== 'PRIMARY_TARGET'
       ? (encounterZoneChoiceTarget(zone, targetPolicy.range.rangeKind)?.kind ?? null)
       : encounterActionTargetKind(targetPolicy)
   if (takes !== targetKind)
@@ -568,10 +573,15 @@ export async function prepareChosenActorsReach(
   sourced: Awaited<ReturnType<typeof prepareCasterSource>>
 ): Promise<AreaReach> {
   const { command, state, capture } = input
-  const { caster, casterFacts, movementTargets, targetPolicy } = sourced
+  const { caster, casterFacts, movementTargets, targetPolicy, zone } = sourced
   const request = command.target.scene
   const reach = { caster, casterFacts, movementTargets, scene: null, area: null, placement: null }
-  if (!request) return reach
+  // A zone a failed save leaves around its target is placed on that creature's token.
+  const enclosesTarget = zone?.attachment === 'PRIMARY_TARGET'
+  if (!request) {
+    if (enclosesTarget) throw zoneTargetRefusal()
+    return reach
+  }
   if (targetPolicy.shape !== null && request.point)
     return {
       ...(await prepareAreaScene(
@@ -600,17 +610,39 @@ export async function prepareChosenActorsReach(
     }
   })
   if (captured.kind !== 'ACTION_AREA_SCENE') throw new Error('Action Scene context is unavailable.')
+  const scene = {
+    ...captured.context,
+    grid: resolveEncounterSceneGrid({ encounter: state, sceneGrid: captured.context.sceneGrid })
+  }
+  if (!enclosesTarget) return { ...reach, scene }
+  const [targetActorId] = command.target.actorIds
+  const targetToken = scene.tokens.find((token) => token.actorId === targetActorId)
+  const area = pointAreaOfShape(zone.shape)
+  const shape = area && pointAreaInSceneCoordinates(area, scene.grid)
+  if (!targetToken || !shape) throw zoneTargetRefusal()
   return {
     ...reach,
-    scene: {
-      ...captured.context,
-      grid: resolveEncounterSceneGrid({
-        encounter: state,
-        sceneGrid: captured.context.sceneGrid
-      })
+    scene,
+    placement: {
+      zone,
+      appearSave: sourced.appearSave,
+      origin: targetToken.position,
+      shape,
+      regions: [],
+      distanceStep: undefined,
+      proximityReach: undefined,
+      sourceToken: targetToken,
+      unaffectedActorIds: []
     }
   }
 }
+
+const zoneTargetRefusal = () =>
+  new LiveSessionDomainRejectionError(422, {
+    code: 'DOMAIN_REJECTED',
+    reason: 'TARGET_UNAVAILABLE',
+    message: 'This action must name a creature on the map.'
+  })
 
 /** The reach of a pending multi-creature action, read again as the room stands now. */
 export async function prepareReach(input: ReachPlanInput): Promise<AreaReach> {

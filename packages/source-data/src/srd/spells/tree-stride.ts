@@ -17,6 +17,10 @@ import {
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
+const STRIDE_EFFECT_KEY = 0x220
+const STRIDE_EFFECT_ID = spellChildId(SPELL_IDS.TREE_STRIDE, STRIDE_EFFECT_KEY, 1)
+const STRIDE_PATH_KEY = 0x222
+
 export const treeStride: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.TREE_STRIDE,
@@ -52,24 +56,78 @@ export const treeStride: SpellAuthored = {
           selectionKind: 'FIXED',
           resultBlock: {
             id: `${spellChildId(SPELL_IDS.TREE_STRIDE, 0x212, 1)}__result`,
-            resultKind: 'SINGLE',
+            resultKind: 'SEQUENCE',
             duration: {
               id: spellChildId(SPELL_IDS.TREE_STRIDE, 0x213, 1),
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            // Once per round for the duration, the caster travels from tree to tree within 500 feet.
+            lifecycle: {
+              effectOffers: [
+                {
+                  kind: 'REPEAT_SOURCE_PATH',
+                  offeredTo: 'SOURCE',
+                  activation: ACTIVATION_CODE.FREE,
+                  usesPerTurn: 1,
+                  effectId: STRIDE_EFFECT_ID,
+                  target: 'INVOCATION'
+                }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TREE_STRIDE, 0x214, 1),
-                effectKind: EFFECT_KIND.TREE_STRIDE,
-                destinationDistance: { amount: 500, unit: MEASUREMENT_UNIT_CODE.FEET },
-                entryMovementCost: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET },
-                exitMovementCost: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET },
-                sameTreeKind: true,
-                livingTreesOnly: true,
-                minimumTreeSizeRelativeToTraveler: true,
-                usesPerRound: 1,
-                mustEndTurnOutside: true
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {}
+              },
+              {
+                id: spellChildId(SPELL_IDS.TREE_STRIDE, 0x215, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Resolve Tree Travel',
+                instructions:
+                  'Each stride starts and ends at a living tree of the same kind, at least as large as the traveler. Entering costs 5 feet of movement and stepping out within 5 feet of the destination tree costs 5 more; with no movement left, the traveler appears within 5 feet of the tree entered. The traveler must end each turn outside a tree.',
+                reasonCode: 'EXTERNAL_WORLD_STATE'
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: STRIDE_EFFECT_ID,
+      order: 2,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: { code: ACTIVATION_CODE.FREE },
+        range: {
+          id: spellChildId(SPELL_IDS.TREE_STRIDE, STRIDE_EFFECT_KEY + 1, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 500,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SELF
+        }
+      },
+      paths: [
+        {
+          id: spellChildId(SPELL_IDS.TREE_STRIDE, STRIDE_PATH_KEY, 1),
+          order: 1,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.TREE_STRIDE, STRIDE_PATH_KEY, 1)}__result`,
+            resultKind: 'SINGLE',
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.TREE_STRIDE, STRIDE_PATH_KEY + 1, 1),
+                effectKind: EFFECT_KIND.TELEPORT,
+                targetKind: 'SELF',
+                destinationKind: 'SPECIFIED_POINT'
               }
             ]
           }

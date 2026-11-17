@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   PATH_CODE,
@@ -39,7 +40,12 @@ export const resilientSphere: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.RESILIENT_SPHERE, 0x215, 1),
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -50,24 +56,17 @@ export const resilientSphere: SpellAuthored = {
           amount: 30,
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
-        shape: {
-          id: spellChildId(SPELL_IDS.RESILIENT_SPHERE, 0x212, 1),
-          shapeKind: SHAPE_KIND.SPHERE,
-          radius: {
-            amount: 10,
-            unit: MEASUREMENT_UNIT_CODE.FEET
-          }
-        },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          maxTargets: 1
         }
       },
       paths: [
         {
           id: spellChildId(SPELL_IDS.RESILIENT_SPHERE, 0x213, 1),
           order: 1,
-          pathCode: PATH_CODE.ON_USE,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
@@ -84,7 +83,15 @@ export const resilientSphere: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.RESILIENT_SPHERE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.ZONE,
-                attachmentKind: 'PRIMARY_TARGET'
+                attachmentKind: 'PRIMARY_TARGET',
+                label: 'Resilient Sphere',
+                // A Scene zone on a token reaches this far past the token's edge: enough to take in
+                // the corners of a Medium or Large creature's space.
+                shape: {
+                  id: spellChildId(SPELL_IDS.RESILIENT_SPHERE, 0x212, 1),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: { amount: 2.5, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
               }
             ]
           }

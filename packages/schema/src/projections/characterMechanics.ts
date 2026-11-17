@@ -72,6 +72,7 @@ import {
   ruleGraphSourceIdentityDtoSchema
 } from '../shared/ruleExecutionCore.js'
 import { compiledEffectOffersSchema } from '../effects/storedEffectOffer.js'
+import { zoneMoveDtoSchema } from '../effects/effectOffer.js'
 import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import {
   activeEffectOnEndSchema,
@@ -649,21 +650,27 @@ const zoneComponentShape = lazySchemaParts(() => ({
 }))
 
 /**
- * A zone the action leaves on the Scene: at the point its user picks (PLACED_SPACE), or centered on
- * its user and moving with them (SOURCE). The geometry is fixed when the point or the user's token is
- * known; everything else is compiled from the authored manifest. Its first component covers its own
+ * A zone the action leaves on the Scene: at the point its user picks (PLACED_SPACE), centered on its
+ * user and moving with them (SOURCE), or around the chosen creature that failed the action's save
+ * (PRIMARY_TARGET). The geometry is fixed when the point or the token is known; everything else is
+ * compiled from the authored manifest. Its first component covers its own
  * shape; each region component covers an authored region beside it and is placed as a record of its
  * own, maintained by the same Concentration (D154).
  */
 export const compiledActionZonePlacementSchema = lazySchema(() =>
   z.strictObject({
-    attachment: z.enum(['PLACED_SPACE', 'SOURCE']),
+    attachment: z.enum(['PLACED_SPACE', 'SOURCE', 'PRIMARY_TARGET']),
     shape: shapeDtoSchema,
     /**
      * A hollow round zone's wall thickness (D154): the zone is a ring whose inner radius is its
      * outer radius less this. Absent for a filled zone.
      */
     ringThickness: z.optional(z.pick(shapeMeasurementDtoSchema, { amount: true, unit: true })),
+    /**
+     * The light the zone sheds out from its area: bright out to `bright` from its edge, dim for
+     * `dimAdditional` beyond. Placed on the zone's own record only; absent for a zone that sheds none.
+     */
+    light: z.optional(manifestLightDtoSchema),
     ...zoneComponentShape(),
     /**
      * The zone catches a mover once for each whole such distance it travels inside, where that
@@ -754,6 +761,11 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
      * after every layer before it (D223). Absent when any may be destroyed first.
      */
     destructionInOrder: z.optional(z.literal(true)),
+    /**
+     * How the zone's source moves it while it maintains it (QUALITY-15.T3y8); absent for a zone
+     * that stays where it was placed. Only a maintained PLACED_SPACE zone of one record has it.
+     */
+    move: z.optional(zoneMoveDtoSchema),
     /** The Concentration the placing cast opens; every record it places depends on it (D135). */
     maintenance: compiledActionMaintenanceSchema,
     /**

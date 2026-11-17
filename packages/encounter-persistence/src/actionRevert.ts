@@ -65,7 +65,12 @@ import { settleCharacterConditionMaximum } from './conditionMaximumSettlement.js
 import { revertGroupRoots, type RevertGroupRoot } from './actionRevertGroups.js'
 import { voidQueuedReactionOffers } from './reactionOffer.js'
 import { commitRevert, type RevertScope, type StoredCommand } from './revertCommit.js'
-import { revertZoneState, revertZoneDisarm, revertZoneSightingDismissal } from './zoneRevert.js'
+import {
+  revertZoneState,
+  revertZoneDisarm,
+  revertZoneMove,
+  revertZoneSightingDismissal
+} from './zoneRevert.js'
 import { removeConjuredActors } from './summonRemoval.js'
 import {
   removeTurnSpeedBonus,
@@ -297,6 +302,10 @@ export async function revertLastEncounterAction(
   if (root?.commandType === 'MOVE_HELD_EFFECT') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertMoveHeldEffect(ctx, { ...scope, root })
+  }
+  if (root?.commandType === 'MOVE_ZONE') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertZoneMove(ctx, { ...scope, root })
   }
   if (root?.commandType === 'CHANGE_FACING') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')

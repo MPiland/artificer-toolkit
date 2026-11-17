@@ -35,7 +35,10 @@ import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import { fixedOutcomeGraphDefinition } from './effectActionFixedOutcomeGraph.js'
 import { durationPublishedGraph, maintenancePlan } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
+import { repeatSaveFailureDamageRows } from './effectActionNestedSave.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
+import { repeatSaveEffectPlan } from './effectActionRepeatSavePlan.js'
+import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
 import { boundedTestOutcome, specializedTestOutcome } from './effectActionTestOutcomes.js'
 import { compileTestDefinition, withMovementInterruption } from './effectActionTestPhase.js'
 import {
@@ -193,16 +196,29 @@ function zonePlacementPlan(
     )
   )
     unsupported('A zone size scales only as a passive zone’s radius by class level.')
-  const placementKind = encounterZoneChoiceTarget(
+  const placementTarget = encounterZoneChoiceTarget(
     {
       ...zone,
       regionComponents: layered ? [] : later.map(({ component }) => ({ region: component.region! }))
     },
     action.compiledEffect.invocation.range.rangeKind
-  )?.kind
+  )
+  const placementKind = placementTarget?.kind
   // A directed area is aimed, not placed; a zone is left where its action is centered or its wall
   // is drawn (D154), and a source zone is centered on the caster. Only a wall has a side to reach.
-  if (zone.attachment === 'SOURCE' ? placementKind !== 'CASTER_CENTERED' : !placementKind)
+  // A zone a failed save leaves around its target is a circle around the one creature the action
+  // names, anchored to that creature's token.
+  if (zone.attachment === 'PRIMARY_TARGET') {
+    const { targeting } = action.compiledEffect.invocation
+    if (
+      targeting?.selectionKind !== 'CHOSEN_CREATURES' ||
+      targeting.maxTargets !== 1 ||
+      targeting.maxTargetsScaling ||
+      placementTarget?.kind !== 'POINT' ||
+      placementTarget.area.kind !== 'RADIUS'
+    )
+      unsupported('A zone left around its target is a circle around the one creature it encloses.')
+  } else if (zone.attachment === 'SOURCE' ? placementKind !== 'CASTER_CENTERED' : !placementKind)
     unsupported(
       later.length && !layered
         ? 'A zone with a band beside it is a straight wall or a ring.'
@@ -210,9 +226,13 @@ function zonePlacementPlan(
           ? 'A source zone is centered on the caster.'
           : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
     )
-  // A zone that authors no component and no appear save only marks its area for the table (Darkness,
-  // Silence): placed with no triggers, held for its duration like terrain placed with no save.
-  if (!first && !appearSave) return withZoneSettings(inertZonePlacementPlan(action, zone), zone)
+  if (zone.move && !first?.behavior)
+    unsupported('Only a zone whose component acts on creatures is moved by its source.')
+  // A zone that authors no component and no appear save outcome only marks its area for the table
+  // (Darkness, Silence, or the sphere a failed save leaves around its target): placed with no
+  // triggers, held for its duration like terrain placed with no save.
+  if (!first && !appearSave?.entries.length)
+    return withZoneSettings(inertZonePlacementPlan(action, zone), zone)
   // A zone no creature interacts with is placed with no triggers; its appear save, if any, is its
   // provenance and names the condition it holds (Entangle's restraint), and its one component, if
   // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).
@@ -248,6 +268,8 @@ function zonePlacementPlan(
           },
           { triggerModes: [] }
         )
+  if (primary.move && !primary.maintenance)
+    unsupported('Only a zone its source maintains is moved by its source.')
   // Each band or later layer is a record of its own, sparing whom the zone spares.
   const laterRecord = (planned: PlacedSpaceZone['components'][number]) => {
     const { label } = planned.component
@@ -287,16 +309,21 @@ function zonePlacementPlan(
 
 /**
  * What every placed zone's plan carries from its manifest whatever its components: what an occupied
- * space does to its placement, and its lifetime. A zone no Concentration holds lasts its authored
- * duration from its placement: its source's turns, or Campaign minutes past the turn bound (D222). A
- * maintained zone ends with its Concentration, and an untimed or scaled duration leaves it until the
- * Encounter ends. A zone that needs lighting counts its turns from its ignition (QUALITY-15.T3w).
+ * space does to its placement, the light it sheds and its lifetime. Only the zone's own record
+ * carries these; its bands and layers are records of their own. A zone no Concentration holds lasts
+ * its authored duration from its placement: its source's turns, or Campaign minutes past the turn
+ * bound (D222). A maintained zone ends with its Concentration, and an untimed or scaled duration
+ * leaves it until the Encounter ends. A zone that needs lighting counts its turns from its ignition (QUALITY-15.T3w).
  */
 function withZoneSettings(
   planned: CharacterRuleActionZonePlacementPlan,
-  { entry, occupiedPlacement }: PlacedSpaceZone
+  { entry, occupiedPlacement, light }: PlacedSpaceZone
 ): CharacterRuleActionZonePlacementPlan {
-  const plan = occupiedPlacement ? { ...planned, occupiedPlacement } : planned
+  const plan = {
+    ...planned,
+    ...(occupiedPlacement ? { occupiedPlacement } : {}),
+    ...(light ? { light } : {})
+  }
   const duration = !plan.maintenance && 'duration' in entry ? entry.duration : undefined
   if (!duration) return plan
   const initialRemaining = conditionDurationTurns(duration)
@@ -468,6 +495,12 @@ function zoneComponentPlan(
   // Only a zone left at a Scene point has a place to see; a source zone follows its token.
   if (requiredSight?.includes('OCCUPANT_SEES_ZONE') && zone.attachment !== 'PLACED_SPACE')
     unsupported('A zone is seen only when it is left where its cast places it.')
+  // A move reads only the mover's sight of the zone, from where it began (D223).
+  if (
+    requiredSight?.some((sight) => sight !== 'OCCUPANT_SEES_ZONE') &&
+    triggers.triggerModes.length
+  )
+    unsupported('A zone that needs sight between its source and occupant acts at turn boundaries.')
   if (
     movementCostMultiplier !== undefined &&
     !zoneMovementCostMultiplierSchema.safeParse(movementCostMultiplier).success
@@ -492,6 +525,7 @@ function zoneComponentPlan(
     shape: zone.shape,
     ...(zone.ringThickness ? { ringThickness: zone.ringThickness } : {}),
     ...(zone.camouflage ? { camouflage: zone.camouflage } : {}),
+    ...(zone.move ? { move: zone.move } : {}),
     ...triggers,
     bypassAtHalfSpeed: component.bypassAtHalfSpeed === true,
     ...(component.choosesUnaffected || zone.designatedCreatureImmunity
@@ -563,16 +597,28 @@ function zoneComponentPlan(
   const [grant] = singles.grant
   const [condition] = singles.condition
   const [lostAction] = singles.lostAction
-  const composed = Object.values(singles).reduce((count, list) => count + list.length, 0)
+  const repeats = outcomeEntries('FOLLOW_UP_SAVE')
+  const composed =
+    Object.values(singles).reduce((count, list) => count + list.length, 0) + repeats.length
   if (
     failEntries.length === 0 ||
     Object.values(singles).some((list) => list.length > 1) ||
+    repeats.length > 1 ||
     damageRows.length + composed !== failEntries.length ||
     madeEntries.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'DAMAGE')
   )
     unsupported(
-      'A placed zone failure composes damage with at most one stop, grant, condition and lost action; a made save only deals damage.'
+      'A placed zone failure composes damage with at most one stop, grant, condition, lost action and repeated save; a made save only deals damage.'
     )
+  // The repeated save is the one its failure's condition runs on its holder (D146), alone.
+  if (
+    repeats.length > 0 &&
+    (!condition ||
+      damageRows.length + singles.stop.length + singles.grant.length + singles.lostAction.length >
+        0 ||
+      madeEntries.length > 0)
+  )
+    unsupported('A placed zone repeated save repeats the one condition its failure holds.')
   if (
     condition &&
     'outcome' in condition &&
@@ -593,7 +639,12 @@ function zoneComponentPlan(
   const proposed =
     damageRows.length > 0 ? zoneDamageRow(damageRows, action.spellCastLevel) : condition
   const besideDamage = damageRows.length > 0 ? condition : undefined
-  const heldCondition = condition ? zoneHeldCondition(condition) : null
+  const heldCondition = condition
+    ? zoneHeldCondition(
+        condition,
+        repeats.length > 0 ? zoneHeldRepeatSave(action, failEntries, condition.entryId) : null
+      )
+    : null
   const primary = proposed ?? lostAction ?? grant ?? stop
   const madeDamageRows =
     madeEntries.length > 0 ? [zoneDamageRow(madeEntries, action.spellCastLevel)] : []
@@ -667,9 +718,18 @@ function zoneComponentPlan(
   )
     unsupported('A placed zone grant must last until its end event.')
   const maintenance = maintenancePlan(action, primary)
-  // A held condition ends with its zone through the zone's maintenance, which nothing else ends.
-  if (heldCondition && !heldCondition.holderTurns && !maintenance)
-    unsupported('A zone-held condition needs a zone that Concentration maintains.')
+  // A held condition ends with its zone through the zone's maintenance, which nothing else ends,
+  // unless its holder's turns or its repeated save end it. A zone with no duration stands until the
+  // Encounter ends, so it holds until the escape or leaving.
+  const timedZone = 'duration' in zone.entry && zone.entry.duration !== undefined
+  if (
+    heldCondition &&
+    !heldCondition.holderTurns &&
+    !heldCondition.repeatSave &&
+    !maintenance &&
+    timedZone
+  )
+    unsupported('A zone-held condition needs a Concentration-maintained or untimed zone.')
   if (heldCondition?.escape && !zone.label)
     unsupported('A zone-held condition escape names its zone.')
   return {
@@ -700,14 +760,59 @@ function zoneComponentPlan(
   }
 }
 
+type ZoneHeldCondition = NonNullable<CharacterRuleActionZonePlacementPlan['heldCondition']>
+
+/**
+ * The save a zone-held condition repeats on its holder (Prismatic Wall's Indigo and Violet layers):
+ * the effect the repeated save plans for any failed save's condition, frozen with its graph. Its
+ * failure may only continue, end the effect on a condition, or leave GM rulings; failure damage or
+ * repeat triggers would need a graph the zone does not freeze.
+ */
+function zoneHeldRepeatSave(
+  action: Dnd5eCompiledEffectActionSource,
+  failEntries: CompiledEffectGroup['entries'],
+  conditionEntryId: string
+): NonNullable<ZoneHeldCondition['repeatSave']> {
+  // A zone's result blocks carry no compiled identity of their own; its condition entry does.
+  const plan = repeatSaveEffectPlan(action, failEntries, 'SAVING_THROW', conditionEntryId)
+  const save = failEntries.flatMap((entry) =>
+    'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE' ? [entry.outcome] : []
+  )[0]
+  if (
+    !plan ||
+    !save ||
+    plan.recurrenceStage === 'NONE' ||
+    plan.initialRemaining === null ||
+    plan.lifecycle ||
+    plan.conditionContributions?.length !== 1 ||
+    plan.conditionContributions[0]?.fleesSource ||
+    repeatSaveFailureDamageRows(save) !== null
+  )
+    unsupported('A placed zone repeated save holds one condition and deals no damage.')
+  return {
+    compiledEntryId: plan.compiledEntryId,
+    frozenGraphNodeId: plan.frozenGraphNodeId,
+    frozenGraph: repeatFollowUpSavePublishedGraph({ action, plan }),
+    capabilityContractVersion: plan.capabilityContractVersion,
+    adapterFacts: plan.adapterFacts,
+    castSaveDcFactKey: plan.castSaveDcFactKey ?? null,
+    recurrenceStage: plan.recurrenceStage,
+    anchor: plan.tickAnchor ?? 'HOLDER',
+    initialRemaining: plan.initialRemaining,
+    ...(plan.saveThresholds ? { saveThresholds: plan.saveThresholds } : {})
+  }
+}
+
 /**
  * The condition a zone holds on a creature failing its save (D146), or null when it is unheld. An
  * unheld condition carries none of the held terms (the result's other lifecycle is its grant's); a
- * held one ends with its zone, and when authored on leaving the area or through its escape.
+ * held one ends with its zone, and when authored on leaving the area or through its escape. One
+ * whose holder repeats a save ends through that save, and nothing else it authors.
  */
 function zoneHeldCondition(
-  entry: CompiledEffectGroup['entries'][number]
-): NonNullable<CharacterRuleActionZonePlacementPlan['heldCondition']> | null {
+  entry: CompiledEffectGroup['entries'][number],
+  repeatSave: ZoneHeldCondition['repeatSave'] | null
+): ZoneHeldCondition | null {
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'CONDITION')
     unsupported('A placed zone condition is a direct condition outcome.')
   const {
@@ -726,6 +831,17 @@ function zoneHeldCondition(
   const leavesArea = leavingArea.some(Boolean)
   const unread =
     turnAnchor !== undefined || Object.values(otherLifecycle).some((value) => value !== undefined)
+  if (repeatSave) {
+    if (heldBySource || unread || escape || endTriggers.length > 0 || entry.duration)
+      unsupported(
+        'A placed zone condition its holder repeats a save against has no other lifecycle.'
+      )
+    return {
+      conditionId: entry.outcome.conditionId,
+      repeatSave,
+      ...(entry.outcome.recordsSource ? { recordsSource: true as const } : {})
+    }
+  }
   if (!heldBySource) {
     if (leavesArea || escape)
       unsupported('A placed zone condition that its zone does not hold has no leave or escape.')

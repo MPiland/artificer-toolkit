@@ -27919,7 +27919,7 @@
             },
             {
               "id": "QUALITY-15.T3v3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A creature that moves within range of a proximity zone it can see triggers its effect, with the Worker computing sight from the mover's pre-move position.",
               "wsjf": {
@@ -27929,11 +27929,12 @@
                 "size": 3
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3v3 report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m861; slice tip 26eed0733: Tests 44040534756, Live 44040534779, Browser journeys 44040534716 green. MOVE_WITHIN -> ENTER_OR_PASS_THROUGH; shared zoneSightContactFacts read from the pre-move position; source-sight movement zones refused at compile. Red proof: characterSpellCastActions RED, encounterZoneMovementSightBlinding RED. Integrated via ci/quality-15-int1 (tip 037f8a943: Tests 44075372340, Live 44080254816, Browser journeys 44075372328 green)."
             },
             {
               "id": "QUALITY-15.T3v4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "The zone sheds light into scene perception.",
               "wsjf": {
@@ -27944,7 +27945,8 @@
                 "after": ["QUALITY-15.T3v3"]
               },
               "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace). Resized 2 -> 3 on 2026-11-17: the slice touched schema, compiler, placement, shared illumination and perception composition.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m861; slice tip 9441acd6a: Tests 44052983679, Live 44052983815, Browser journeys 44052983691 green. Zone manifest light compiled onto the placement and composed into actor-pair perception through the shared illumination curve. Red proof: encounterZoneLight RED, vtt-scene-combat-perception RED. Integrated via ci/quality-15-int1 (tip 037f8a943: Tests 44075372340, Live 44080254816, Browser journeys 44075372328 green)."
             },
             {
               "id": "QUALITY-15.T3v4b",
@@ -27977,7 +27979,7 @@
             },
             {
               "id": "QUALITY-15.T3v6",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Zone-held repeat saves for its Indigo and Violet layers.",
               "wsjf": {
@@ -27988,11 +27990,12 @@
                 "after": ["QUALITY-15.T3v5"]
               },
               "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m861; slice tip 3bd4dfc15: Tests 44061938039, Live 44065622049, Browser journeys 44061938040 green. A zone FOLLOW_UP_SAVE repeat is held on the condition (zoneHeldRepeatSave, shared repeatSaveEffectPlan); Indigo tally to PETRIFIED, Violet plane shift is a GM ruling. Red proof: characterSpellCastActions RED. Integrated via ci/quality-15-int1 (tip 037f8a943: Tests 44075372340, Live 44080254816, Browser journeys 44075372328 green)."
             },
             {
               "id": "QUALITY-15.T3v7",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Close-out: the Antimagic Field immunity key is treated as satisfied with a doc note, the golden row compiles, and a room journey runs on the real Prismatic Wall row.",
               "wsjf": {
@@ -28002,7 +28005,8 @@
                 "size": 2,
                 "after": ["QUALITY-15.T3v6"]
               },
-              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3w",
@@ -28066,7 +28070,7 @@
             },
             {
               "id": "QUALITY-15.T3x2d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "CI stability: storybook-backend Chromium launch hardening and crash capture, an explicit timeout on the in-test SRD parse, and the proof duration entry.",
               "wsjf": {
@@ -28076,11 +28080,26 @@
                 "size": 2
               },
               "note": "Registered 2026-11-17 from the QUALITY-15.T3x2 report under the standing approval for QUALITY growth (2026-11-13).",
+              "mergedAt": "2026-11-17",
+              "proof": "m860; slice tip a96a66bdd: Tests 44066228102, Live 44066227644, Browser journeys 44066227541 green. Chromium --disable-dev-shm-usage, pw:browser capture into playwright.log, a 30 s timeout on the in-test SRD parse, storybook-backend duration 415 s. CI-only change, no red proof."
+            },
+            {
+              "id": "QUALITY-15.T3x2e",
+              "status": "IN_PROGRESS",
+              "closes": ["QUALITY-15.1"],
+              "text": "The storybook-backend proof logs Vite HMR and dependency-optimizer events so the next dev-server socket drop names its trigger.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2
+              },
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3x2d report under the standing approval for QUALITY growth (2026-11-13).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3x3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Dancing Lights places several light-shedding objects the caster moves together.",
               "wsjf": {
@@ -28089,7 +28108,8 @@
                 "rr": 3,
                 "size": 3
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3y",
@@ -28183,7 +28203,7 @@
             },
             {
               "id": "QUALITY-15.T3y6a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Resilient Sphere's failed Dexterity save places a PRIMARY_TARGET zone anchored to the target's token, through the chosen-creatures area commit.",
               "wsjf": {
@@ -28193,11 +28213,12 @@
                 "size": 5
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13). Split from QUALITY-15.T3y6 on 2026-11-17 (8 -> 5 + 5 across contract crossings).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m861; slice tip bbfe5b36b: Tests 44058560726, Live 44058560617, Browser journeys 44058560618 green. ON_SAVE_FAIL PRIMARY_TARGET zone as a TOKEN_LOCAL circle on the target token, kept only on a failed save. Red proof: nativeRoomResilientSphere RED, golden RED. Integrated via ci/quality-15-int1 (tip 037f8a943: Tests 44075372340, Live 44080254816, Browser journeys 44075372328 green)."
             },
             {
               "id": "QUALITY-15.T3y6b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "A zone's authored blocking rule stops creature movement across its boundary and moves by its anchored token (Wall of Force and Forcecage adopt it as data); the first movement-blocking zone is recorded as decision D227.",
               "wsjf": {
@@ -28206,11 +28227,12 @@
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-17 from the QUALITY-15.T3y6a report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3y6a report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3y7",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Tree Stride lets its caster travel between trees of the same kind within 500 feet once per round.",
               "wsjf": {
@@ -28220,7 +28242,8 @@
                 "size": 8
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m861; slice tip db0fa9a40: Tests 44055329388, Live 44055329392, Browser journeys 44055329394 green. Repeat teleport offer FREE with usesPerTurn (1-10); the TREE_STRIDE kind is removed. Red proof: nativeRoomTeleportAction RED, encounterRepeatPathAction RED-IMPORT, golden RED, authored-length-amount-bounds ALREADY-PASSING. Integrated via ci/quality-15-int1 (tip 037f8a943: Tests 44075372340, Live 44080254816, Browser journeys 44075372328 green)."
             },
             {
               "id": "QUALITY-15.T3y7b",
@@ -28237,7 +28260,7 @@
             },
             {
               "id": "QUALITY-15.T3y8",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "The caster moves a maintained zone by an authored distance with an authored action (Flaming Sphere: bonus action, 30 feet; Moonbeam: action, 60 feet), and the GM can undo the move.",
               "wsjf": {
@@ -28247,11 +28270,12 @@
                 "size": 8
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m861; slice tip 24351db2d: Tests 44040013494, Live 44040013460, Browser journeys 44040013501 green. ZONE manifest move {activation, maxDistance}; caster-only MOVE_ZONE Worker command with CAS and GM undo. Red proof: encounterZoneMove RED, nativeRoomPlayerParity RED, nativeRoomZoneMove RED-IMPORT, vtt-spatial RED-IMPORT. Integrated via ci/quality-15-int1 (tip 037f8a943: Tests 44075372340, Live 44080254816, Browser journeys 44075372328 green)."
             },
             {
               "id": "QUALITY-15.T3y8b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "The Sheet and encounter surface offers a zone move: zoneMoves in the action choices, a drawer with a destination pick, and a browser journey.",
               "wsjf": {
@@ -28260,11 +28284,12 @@
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-17 from the QUALITY-15.T3y8 report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3y8 report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3y8c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Ramming a moved zone into a creature applies its save and damage and stops the move for the turn (Flaming Sphere).",
               "wsjf": {
@@ -28273,7 +28298,8 @@
                 "rr": 3,
                 "size": 3
               },
-              "note": "Registered 2026-11-17 from the QUALITY-15.T3y8 report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-17 from the QUALITY-15.T3y8 report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3z",
@@ -28322,7 +28348,7 @@
             },
             {
               "id": "QUALITY-15.T3aa3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Hunting Trap is a placed-space zone that holds a creature in place (a distance limit from the trap) until it escapes with a check.",
               "wsjf": {
@@ -28332,7 +28358,8 @@
                 "size": 3
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3aa report under the standing approval for QUALITY growth (2026-11-13).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-17",
+              "proof": "m861; slice tip 05f44903f: Tests 44040236529, Live 44040236427, Browser journeys 44040236397 green. Hunting Trap holds Grappled through an untimed zone. Integrated via ci/quality-15-int1 (tip 037f8a943: Tests 44075372340, Live 44080254816, Browser journeys 44075372328 green)."
             },
             {
               "id": "QUALITY-15.T3ab",

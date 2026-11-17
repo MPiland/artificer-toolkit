@@ -4,12 +4,14 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { mistyStep } from '@artificer-toolkit/source-data/srd/spells/misty-step.js'
+import { treeStride } from '@artificer-toolkit/source-data/srd/spells/tree-stride.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { reactionWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { endConcentrationAtSheet } from './placedZoneRoomReads.js'
 
 /**
  * SPELLS-28.T1b (AC SPELLS-28.2): casting Misty Step grants a bounded one-shot teleport allowance
@@ -185,4 +187,100 @@ describe('the Misty Step teleport (AC SPELLS-28.2)', () => {
       'TELEPORT_UNAVAILABLE'
     )
   })
+})
+
+/**
+ * QUALITY-15.T3y7: while Tree Stride holds, its caster may, once in each of their turns and for no
+ * action, take a 500-foot teleport the player then moves; the trees are the GM's to rule on. The
+ * step is gone once Concentration ends.
+ */
+describe('room Tree Stride (QUALITY-15.T3y7)', () => {
+  /** 8 cells of 50 ft: 400 ft, past Misty Step's reach yet within Tree Stride's 500. */
+  const FAR: ScenePoint = { x: 150, y: 950 }
+
+  function treeStrideRoom() {
+    return actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [],
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        srdCreatureActor({ id: WOLF_ID, creature: reactionWolf })
+      ],
+      positions: { [CHARACTER_ACTOR_ID]: START, [WOLF_ID]: WOLF_AT },
+      sceneGrid: {
+        kind: 'SQUARE',
+        origin: { x: 0, y: 0 },
+        cellSize: 100,
+        distancePerCell: 50,
+        diagonalPolicy: 'EQUAL',
+        unit: 'FEET'
+      },
+      characterPlay: { classLevel: 9 },
+      characterSpellcasting: { spells: [treeStride], prepared: [treeStride.id] },
+      characterAction: (action) => action.label.startsWith(treeStride.label)
+    })
+  }
+
+  /** The Tree Stride step the caster is offered now, if any. */
+  async function strideOffer(room: Room) {
+    const offers = (await room.actionChoices()).effectOffers
+    const [offer] = offers
+    expect(offers.length).toBeLessThanOrEqual(1)
+    return offer?.kind === 'REPEAT_SOURCE_PATH' ? offer : undefined
+  }
+
+  /** Takes the step against the Scene as it stands once `moves` player teleports have landed. */
+  const stride = (room: Room, actionId: string, moves = 0) =>
+    room.startAction(
+      CHARACTER_ACTOR_ID,
+      [],
+      { ...room.sceneContext(0), expectedSceneVersion: room.room.scene.version + moves },
+      null,
+      actionId
+    )
+
+  it('steps 400 ft once a turn for no action, again on a later turn, until Concentration ends', async () => {
+    const room = await treeStrideRoom()
+    committed((await room.startAction(CHARACTER_ACTOR_ID, [], room.sceneContext(0))).answer)
+    expect(await allowances(room)).toEqual([])
+
+    const offer = await strideOffer(room)
+    expect(offer).toMatchObject({
+      holderActorId: CHARACTER_ACTOR_ID,
+      activation: 'FREE',
+      target: 'INVOCATION',
+      warnings: []
+    })
+    if (!offer) throw new Error('Expected the Tree Stride step.')
+    committed((await stride(room, offer.actionId)).answer)
+    expect(await allowances(room)).toEqual([
+      expect.objectContaining({ maxFeet: 500, destinationKind: 'SPECIFIED_POINT' })
+    ])
+    committed(await playerTeleport(room, FAR))
+    expect(await allowances(room)).toEqual([])
+
+    // Its one use this turn is spent: the step is no longer offered, and taking it is refused.
+    expect(await strideOffer(room)).toBeUndefined()
+    expect((await stride(room, offer.actionId, 1)).answer).toMatchObject({
+      type: 'COMMAND_REJECTED'
+    })
+
+    // On the caster's next turn the step is offered, free, again.
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect(await strideOffer(room)).toMatchObject({ activation: 'FREE', warnings: [] })
+    committed((await stride(room, offer.actionId, 1)).answer)
+    committed(
+      await playerTeleport(room, START, {
+        from: FAR,
+        sceneVersion: room.room.scene.version + 1
+      })
+    )
+
+    const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect((await room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
 })

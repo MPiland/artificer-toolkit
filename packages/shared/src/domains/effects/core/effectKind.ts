@@ -23,7 +23,6 @@ export const EFFECT_KIND = {
   SPELL_SLOT_EXCHANGE: 'SPELL_SLOT_EXCHANGE',
   TELEPATHIC_LINK: 'TELEPATHIC_LINK',
   PLANT_PORTAL: 'PLANT_PORTAL',
-  TREE_STRIDE: 'TREE_STRIDE',
   ACTOR_RELATIONSHIP: 'ACTOR_RELATIONSHIP',
   CONCEAL_FROM_OBSERVERS: 'CONCEAL_FROM_OBSERVERS',
   REMOVE_FROM_PLAY: 'REMOVE_FROM_PLAY',
@@ -151,11 +150,6 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     code: EFFECT_KIND.PLANT_PORTAL,
     label: 'Plant Portal',
     description: 'Links two plants as a movement-powered portal.'
-  },
-  [EFFECT_KIND.TREE_STRIDE]: {
-    code: EFFECT_KIND.TREE_STRIDE,
-    label: 'Tree Stride',
-    description: 'Moves a creature between qualifying trees.'
   },
   [EFFECT_KIND.ACTOR_RELATIONSHIP]: {
     code: EFFECT_KIND.ACTOR_RELATIONSHIP,

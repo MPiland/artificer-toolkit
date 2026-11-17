@@ -5,12 +5,12 @@ import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/s
 import {
   resolveSceneCombatPerceptionEnvironment,
   senseRangeInSceneUnits,
-  type CampaignSceneState,
   type CombatPerceptionCapabilityInstance,
   type CombatPerceptionChannel,
   type CombatPerceptionContributionResult,
   type CombatPerceptionContributionSource,
   type CombatPerceptionEnvironment,
+  type PerceptionSceneState,
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
@@ -23,10 +23,6 @@ import {
 
 const PINNED_SENSE_INSTANCE_NAMESPACE = 'e526f4c9-a37d-46a8-8f85-73568add6b56'
 
-type PerceptionSceneState = Pick<
-  CampaignSceneState,
-  'ambientIllumination' | 'barriers' | 'darknessZones' | 'doorStates' | 'grid' | 'lights' | 'tokens'
->
 type PerceptionSceneToken = Pick<SceneToken, 'height' | 'position' | 'width'>
 
 function pinnedSenseInstanceId(observerActorId: string, pin: PinnedSenseDefinition): string {

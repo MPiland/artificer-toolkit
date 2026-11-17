@@ -772,17 +772,20 @@ export async function readEncounterActionChoices(
     effectsByHolder,
     zeroHitPointActorIds: await readZeroHitPointActorIds(tx, runActors)
   })) {
-    // A repeat's free cast-turn use is offered as FREE until it is spent (D190a).
-    const activation =
+    // A repeat's free use is offered as FREE until it is spent (D190a); a free repeat with no use
+    // left this turn is not offered at all.
+    const freeUseKey =
       offer.kind === 'REPEAT_SOURCE_PATH' &&
-      offer.castTurnUse &&
-      repeatOfferFreeUseKey({
-        offer,
-        turn: state,
-        spentKeys: await readTurnUses(tx, { state, actorId: actor.id })
-      }) !== null
-        ? 'FREE'
-        : offer.activation
+      (offer.castTurnUse !== undefined || offer.usesPerTurn !== undefined)
+        ? repeatOfferFreeUseKey({
+            offer,
+            actorId: actor.id,
+            turn: state,
+            spentKeys: await readTurnUses(tx, { state, actorId: actor.id })
+          })
+        : null
+    if (offer.activation === 'FREE' && freeUseKey === null) continue
+    const activation = freeUseKey === null ? offer.activation : 'FREE'
     const economy = await readEconomy({ code: activation, amount: 1 })
     const shared = {
       effectId: offer.effectId,

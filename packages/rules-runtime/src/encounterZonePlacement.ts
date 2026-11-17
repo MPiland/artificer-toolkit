@@ -26,6 +26,10 @@ export interface PlacedSpaceZone {
   ringThickness?: CompiledActionZonePlacement['ringThickness']
   /** The spot DC that conceals the zone (MOVE-3.4). Absent for a zone in plain sight. */
   camouflage?: CompiledActionZonePlacement['camouflage']
+  /** How its source moves the zone while it lasts (QUALITY-15.T3y8). Absent for a zone that stays. */
+  move?: CompiledActionZonePlacement['move']
+  /** The light the zone sheds out from its area. Absent for a zone that sheds none. */
+  light?: CompiledActionZonePlacement['light']
   /**
    * Its components in authored order, each with the one behavior its entry runs: the first covers
    * the zone's shape, each later one the region it authors (D154). A component that only lends an
@@ -74,12 +78,15 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'hollow',
   'wallThickness',
   'camouflage',
+  'move',
+  // Perception reads the light the zone sheds beside the Scene's own lights.
+  'light',
   'components',
   'componentsMustResolveInOrder',
   // The GM destroys a layer by its criteria (D223); a destroyed layer is removed, so it stays so.
   'destructionMustResolveInOrder',
   'destroyedComponentsRemainDestroyed',
-  // Its halo is a record of the zone's own (D223); a rule that acts as a creature moves is refused.
+  // Its halo is a record of the zone's own (D223).
   'proximityRule',
   'designatedCreatureImmunity',
   // The room turns a placement over a creature's space away, spending the casting if it authors so.
@@ -120,9 +127,18 @@ function hasUnmodeledField(value: object, modeled: ReadonlySet<string>): boolean
 }
 
 /**
+ * The zone interaction each proximity event is met by (D223): moving within reach is entering the
+ * halo, ending there or passing through it, and starting a turn there is starting it in the halo.
+ */
+const PROXIMITY_INTERACTION_KINDS = {
+  MOVE_WITHIN: 'ENTER_OR_PASS_THROUGH',
+  START_TURN: 'START_TURN_IN_SPACE'
+} as const
+
+/**
  * The component a zone's proximity rule puts a creature near the zone through (D223): the rule's one
- * behavior, caught at the start of the creature's turn, that needs sight of the zone when the rule
- * does. A rule that also acts as a creature moves is refused until movement reads that sight.
+ * behavior, caught as the creature moves within reach or starts its turn there, as the rule
+ * authors, that needs sight of the zone when the rule does.
  */
 function proximityPlan(
   rule: CompiledManifestProximityRule,
@@ -133,10 +149,6 @@ function proximityPlan(
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A proximity rule belongs to a zone left where its cast places it.'
     )
-  if (rule.events.length !== 1 || rule.events[0] !== 'START_TURN')
-    throw new CharacterRuleActionUnsupportedCompilationError(
-      'A proximity rule acts only at the start of a creature’s turn.'
-    )
   return {
     reach: rule.distance,
     planned: {
@@ -144,7 +156,7 @@ function proximityPlan(
         id: rule.id,
         order: 1,
         label,
-        interactionKinds: ['START_TURN_IN_SPACE'],
+        interactionKinds: rule.events.map((event) => PROXIMITY_INTERACTION_KINDS[event]),
         ...(rule.requiresSight ? { requiredSight: ['OCCUPANT_SEES_ZONE' as const] } : {})
       },
       behavior: rule.behavior
@@ -175,12 +187,16 @@ function singlePlacedSpaceManifest(
 
 /**
  * The save each creature in the area makes when the zone an action places appears (D154
- * amendment): the action narrowed to its save outcome entries, run as its area occurrence. Null
- * when the action authors none beside its zone.
+ * amendment): the action narrowed to its save outcome entries, run as its area occurrence. A zone a
+ * failed save leaves on its target is that save's own outcome, so the save is kept with no other.
+ * Null when the action authors none beside its zone.
  */
 export function zoneAppearSave(compiledEffect: CompiledEffectGroup): CompiledEffectGroup | null {
-  const entries = compiledEffect.entries.filter((entry) => entry.pathCode !== 'ON_USE')
-  return entries.length ? { ...compiledEffect, entries } : null
+  const zone = placedSpaceEntries(compiledEffect)?.entry
+  const entries = compiledEffect.entries.filter(
+    (entry) => entry.pathCode !== 'ON_USE' && entry !== zone
+  )
+  return entries.length || zone?.pathCode === 'ON_SAVE_FAIL' ? { ...compiledEffect, entries } : null
 }
 
 /**
@@ -257,7 +273,7 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
       )
     return { component, behavior }
   })
-  const { hollow, wallThickness, camouflage } = manifest
+  const { hollow, wallThickness, camouflage, move, light } = manifest
   if (Boolean(hollow) !== (wallThickness !== undefined))
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A hollow zone has a wall thickness, and only a hollow zone has one.'
@@ -271,8 +287,16 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     throw new CharacterRuleActionUnsupportedCompilationError(
       'Only a zone left where its cast places it is refused over an occupied space, and a refused placement spends the casting only then.'
     )
+  // A moved zone is one stored record its move translates whole; a source zone already moves with it.
+  if (move && (manifest.attachmentKind !== 'PLACED_SPACE' || components.length > 1))
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'Only a placed zone of one component is moved by its source.'
+    )
   return {
-    attachment: manifest.attachmentKind === 'SOURCE' ? 'SOURCE' : 'PLACED_SPACE',
+    attachment:
+      manifest.attachmentKind === 'SOURCE' || manifest.attachmentKind === 'PRIMARY_TARGET'
+        ? manifest.attachmentKind
+        : 'PLACED_SPACE',
     label,
     shape,
     ...(manifest.proximityRule
@@ -280,6 +304,8 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
       : {}),
     ...(wallThickness ? { ringThickness: wallThickness } : {}),
     ...(camouflage ? { camouflage } : {}),
+    ...(move ? { move } : {}),
+    ...(light ? { light } : {}),
     components: planned,
     ...(layered ? { layered: true as const } : {}),
     ...(destructible && manifest.destructionMustResolveInOrder
