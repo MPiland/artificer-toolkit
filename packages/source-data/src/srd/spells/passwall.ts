@@ -6,6 +6,7 @@ import {
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -47,6 +48,14 @@ export const passwall: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        },
+        // A passage up to 5 feet wide, 8 feet tall and 20 feet deep into the surface at a point you
+        // can see within range (SRD 5.1, Passwall).
+        shape: {
+          id: spellChildId(SPELL_IDS.PASSWALL, 0x214, 1),
+          shapeKind: SHAPE_KIND.LINE,
+          length: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET },
+          width: { amount: 5, unit: MEASUREMENT_UNIT_CODE.FEET }
         }
       },
       paths: [

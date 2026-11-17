@@ -5,7 +5,9 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -42,11 +44,17 @@ export const controlWeather: SpellAuthored = {
         },
         range: {
           id: spellChildId(SPELL_IDS.CONTROL_WEATHER, 0x211, 1),
-          rangeKind: RANGE_KIND.SPECIAL
+          rangeKind: RANGE_KIND.SELF
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        },
+        // Range: Self (5-mile radius); the weather within 5 miles of you (SRD 5.1, Control Weather).
+        shape: {
+          id: spellChildId(SPELL_IDS.CONTROL_WEATHER, 0x214, 1),
+          shapeKind: SHAPE_KIND.SPHERE,
+          radius: { amount: 5, unit: MEASUREMENT_UNIT_CODE.MILES }
         }
       },
       paths: [
