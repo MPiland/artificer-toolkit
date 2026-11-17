@@ -115,7 +115,7 @@ describe('the SRD Chain Devil’s Unnerving Mask (SPELLS-33.T6e)', () => {
       label: 'Unnerving Mask',
       anchorKind: 'TOKEN',
       requiredSight: ['OCCUPANT_SEES_SOURCE', 'SOURCE_SEES_OCCUPANT'],
-      heldCondition: { conditionId: FRIGHTENED, endsAtEndOfHolderTurn: true, recordsSource: true }
+      heldCondition: { conditionId: FRIGHTENED, holderTurns: 1, recordsSource: true }
     })
   })
 
