@@ -2257,3 +2257,15 @@ QUALITY-15.T3v's seam trace found that Prismatic Wall's ordered layers cannot be
 - **Ruling (orchestrator): the Antimagic Field immunity key is treated as satisfied,** because the room has no antimagic suppression; a doc note records it.
 - **Ruling (user, 2026-11-16): "GM now, player later".** Zone state changes are GM commands: IGNITE_ZONE for Oil, and "destroy next layer" for Prismatic Wall, which shows the authored criterion, refuses out of order and can be undone. Player-driven triggering is a post-launch enhancement (future-enhancements).
 - **Tracking:** QUALITY-15.T3v1-T3v7, T3w; timed expiry for non-Concentration zones is QUALITY-15.T3ag.
+
+## D224 (2026-11-16): Guards and Wards' warded area is a GM ruling
+
+- **Ruling (user, 2026-11-16):** Guards and Wards goes on the D198 description-only list. The SRD gives its area no shape ("shaped as you desire"), so the compiler keeps refusing it as must-name-shape and the GM resolves the ward by hand.
+- **Found by:** QUALITY-15.T3ac.
+- **Tracking:** `docs/roadmap/future-enhancements.md`, Deferred rules pieces.
+
+## D225 (2026-11-16): Planar Ally is a GM ruling
+
+- **Ruling (user, 2026-11-16):** Planar Ally goes on the D198 description-only list. The GM picks the celestial, elemental or fiend, places it with the existing GM tools and runs the bargain; the creature is under no compulsion, so nothing is automated.
+- **Found by:** QUALITY-15.T3aa.
+- **Tracking:** `docs/roadmap/future-enhancements.md`, Deferred rules pieces.
