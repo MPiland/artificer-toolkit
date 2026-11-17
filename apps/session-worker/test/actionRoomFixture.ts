@@ -276,9 +276,23 @@ export function deathBurstWolf(radiusFeet: number, damage = 1): CreatureAuthored
   })
 }
 
+/**
+ * `casterCenteredAreaWolf` whose sphere is authored as centered on the Wolf over a distance range
+ * rather than a Self one ("any creature within range", QUALITY-15.T3ac3).
+ */
+export function userCenteredAreaWolf(radiusFeet: number, rangeFeet: number): CreatureAuthored {
+  return selfAreaWolf(
+    { shapeKind: 'SPHERE', radius: { amount: radiusFeet, unit: 'FEET' }, centeredOnUser: true },
+    1,
+    rangeFeet
+  )
+}
+
+/** The Bite's area on a Self range, or on a distance range of `rangeFeet` when given. */
 function selfAreaWolf(
   shape: Record<string, unknown> & { shapeKind: string },
-  damage = 1
+  damage = 1,
+  rangeFeet?: number
 ): CreatureAuthored {
   const bite = biteWolf('SAVE', { reachFeet: 150, damage })
   return creatureAuthoredDtoSchema.parse({
@@ -292,7 +306,15 @@ function selfAreaWolf(
               ...effect,
               invocation: {
                 ...effect.invocation,
-                range: { id: effect.invocation.range.id, rangeKind: 'SELF' as const },
+                range:
+                  rangeFeet === undefined
+                    ? { id: effect.invocation.range.id, rangeKind: 'SELF' as const }
+                    : {
+                        id: effect.invocation.range.id,
+                        rangeKind: 'DISTANCE' as const,
+                        amount: rangeFeet,
+                        unit: 'FEET' as const
+                      },
                 targeting: {
                   selectionKind: 'AREA_CONTENTS' as const,
                   dispositionKind: 'ANY' as const
@@ -759,7 +781,9 @@ export async function actionRoom(config: ActionRoomConfig) {
           },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       sender: 'GM' | 'PLAYER' = 'GM',
-      castModifier?: CastModifierChoice
+      castModifier?: CastModifierChoice,
+      /** The action aimed: the room's own, or one an Effect offers (a repeat). */
+      chosenActionId = actionId
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -774,7 +798,7 @@ export async function actionRoom(config: ActionRoomConfig) {
           sceneId: room.scene.id,
           expectedSceneVersion: room.scene.version
         },
-        actionId,
+        actionId: chosenActionId,
         optionalCombatIntent: null,
         sceneContext: null,
         ...(castModifier && {

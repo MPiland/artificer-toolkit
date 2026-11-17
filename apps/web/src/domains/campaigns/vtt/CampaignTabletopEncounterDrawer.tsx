@@ -19,6 +19,7 @@ import type {
   EncounterCommandResultDto,
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
+  DestroyZoneLayerInputDto,
   DisarmZoneInputDto,
   IgniteZoneInputDto,
   ReleaseRelationshipInputDto,
@@ -120,6 +121,7 @@ export function CampaignTabletopEncounterDrawer({
       | { actorId: string | null; type: 'SET_CURRENT_ACTOR' }
       | (Pick<RevealZoneInputDto, 'spatialEffectId' | 'actorIds'> & { type: 'REVEAL_ZONE' })
       | (Pick<DisarmZoneInputDto, 'spatialEffectId'> & { type: 'DISARM_ZONE' })
+      | (Pick<DestroyZoneLayerInputDto, 'spatialEffectId'> & { type: 'DESTROY_ZONE_LAYER' })
       | (Pick<IgniteZoneInputDto, 'spatialEffectId'> & { type: 'IGNITE_ZONE' })
   ): void {
     onCommand({
@@ -436,6 +438,7 @@ export function CampaignTabletopEncounterDrawer({
                 actors={encounter.actors}
                 disabled={controlsDisabled}
                 zones={session?.placedZones ?? []}
+                onDestroyLayer={(destroy) => command({ ...destroy, type: 'DESTROY_ZONE_LAYER' })}
                 onDisarm={(disarm) => command({ ...disarm, type: 'DISARM_ZONE' })}
                 onIgnite={(ignite) => command({ ...ignite, type: 'IGNITE_ZONE' })}
                 onReveal={(reveal) => command({ ...reveal, type: 'REVEAL_ZONE' })}

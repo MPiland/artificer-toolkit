@@ -554,6 +554,7 @@ describe('VTT scene renderer model', () => {
             shape: { kind: 'CIRCLE' as const, center: { x: 240, y: 160 }, radius: 70 },
             spotDc: { value: 15, source: 'FLAT' as const },
             disarmDc: { value: 12, source: 'FLAT' as const },
+            destruction: null,
             unawareActorIds: []
           },
           {
@@ -567,6 +568,7 @@ describe('VTT scene renderer model', () => {
             },
             spotDc: null,
             disarmDc: null,
+            destruction: null,
             unawareActorIds: []
           },
           {
@@ -582,6 +584,7 @@ describe('VTT scene renderer model', () => {
             },
             spotDc: null,
             disarmDc: null,
+            destruction: null,
             unawareActorIds: []
           }
         ]

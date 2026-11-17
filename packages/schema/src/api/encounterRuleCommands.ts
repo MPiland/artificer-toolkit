@@ -745,6 +745,16 @@ export const igniteZoneInputDtoSchema = lazySchema(() =>
   })
 )
 /**
+ * GM-only (D223): destroys one layer of a layered zone by its authored criteria, which removes it.
+ * A zone whose layers fall in order refuses a layer while one before it remains.
+ */
+export const destroyZoneLayerInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('DESTROY_ZONE_LAYER'),
+    spatialEffectId: postgresUuidSchema
+  })
+)
+/**
  * GM-only morale save (ENCOUNTER-6.1): checks one of the actor's offered or GM-declared triggers.
  * `leaderActorId` names the group's leader for a group trigger; null rolls the fallback roller. The
  * GM enters the d20 faces or the server rolls them under the save's frozen roll mode.
@@ -809,6 +819,7 @@ export type SetZoneDcsInputDto = z.infer<typeof setZoneDcsInputDtoSchema>
 export type DismissZoneSightingInputDto = z.infer<typeof dismissZoneSightingInputDtoSchema>
 export type RevealZoneInputDto = z.infer<typeof revealZoneInputDtoSchema>
 export type DisarmZoneInputDto = z.infer<typeof disarmZoneInputDtoSchema>
+export type DestroyZoneLayerInputDto = z.infer<typeof destroyZoneLayerInputDtoSchema>
 export type IgniteZoneInputDto = z.infer<typeof igniteZoneInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>

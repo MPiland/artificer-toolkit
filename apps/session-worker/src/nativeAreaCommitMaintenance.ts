@@ -77,7 +77,7 @@ export async function prepareAreaCommitMaintenance(args: {
     return [
       planEncounterPlacedZone({ ...zoneInput, id: zoneId }),
       ...planEncounterZoneBands({ ...zoneInput, ids: bandIds, regions: placement.regions }),
-      ...planEncounterZoneLayers({ ...zoneInput, ids: layerIds })
+      ...planEncounterZoneLayers({ ...zoneInput, zoneId, ids: layerIds })
     ]
   }
   const holdingZone = placement?.zone.heldCondition

@@ -10,6 +10,11 @@ import {
 import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
+  DND5E_ACTIVE_EFFECT_DURATION_COMPLETE_CONDITION_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_HELD_FACT_KEY
+} from '../systems/dnd5e/effectActionContracts.js'
+import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
@@ -23,11 +28,14 @@ import {
 
 /**
  * QUALITY-15.T3r: a failed save's condition with no duration of its own, which a repeated save at the
- * end of each of the holder's turns ends, lasts until that save ends it. A repeated save whose full
- * duration petrifies stays refused (a failure that deals damage is QUALITY-15.T3z's).
+ * end of each of the holder's turns ends, lasts until that save ends it (a failure that deals damage
+ * is QUALITY-15.T3z's). QUALITY-15.T3ad: a timed condition whose counted failures add a condition it
+ * holds, and whose full duration leaves that condition, compiles too.
  */
 
 const POISONED = srdCondition('Poisoned')
+const RESTRAINED = srdCondition('Restrained')
+const PETRIFIED = srdCondition('Petrified')
 const conditionDefinitionIds = srdSystemRecord.conditionTypes.map(({ id }) => id)
 const abilityDefinitions = (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
 
@@ -87,17 +95,35 @@ function compileSpell(label: string) {
     ),
     conditionDefinitionIds
   }
-  return () =>
-    dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
-      action,
-      compilerSource: buildCompiledActionCompilerSource(action)
-    })
+  const plan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+    action,
+    compilerSource: buildCompiledActionCompilerSource(action)
+  })
+  return { action, plan }
 }
 
-describe('repeated saves that need room behavior the repeat-save effect does not have stay refused', () => {
-  it('Flesh to Stone’s petrification when its full duration completes is not applied by the repeat-save effect', () => {
-    expect(compileSpell('Flesh to Stone')).toThrow(
-      'D&D test action has an unsupported bounded shape.'
-    )
+describe('a timed condition whose counted failures escalate and whose full duration leaves a condition', () => {
+  it('Flesh to Stone restrains for its minute, holds petrified at three failures, and leaves it at the minute’s end', () => {
+    const { action, plan } = compileSpell('Flesh to Stone')
+    expect(plan?.kind).toBe('TEST_OUTCOME')
+    if (plan?.kind !== 'TEST_OUTCOME') return
+    const plans =
+      dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
+        action,
+        published: plan.test.published
+      }) ?? []
+    expect(plans).toHaveLength(1)
+    expect(plans[0]).toMatchObject({
+      frozenGraphNodeId: 'repeat-save-test',
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 10,
+      saveThresholds: { successesToEnd: 3, failuresToResolve: 3, consecutive: false },
+      conditionContributions: [{ conditionId: RESTRAINED }, { conditionId: PETRIFIED }],
+      adapterFacts: {
+        [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]: PETRIFIED,
+        [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_HELD_FACT_KEY]: true,
+        [DND5E_ACTIVE_EFFECT_DURATION_COMPLETE_CONDITION_FACT_KEY]: PETRIFIED
+      }
+    })
   })
 })

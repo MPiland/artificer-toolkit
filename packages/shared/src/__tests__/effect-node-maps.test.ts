@@ -85,7 +85,7 @@ describe('effect node maps', () => {
         evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.RESTORE_RESOURCE } })
       ).toBe(true)
       expect(
-        evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.ARMOR_CLASS_FLOOR } })
+        evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.TELEPATHIC_LINK } })
       ).toBe(false)
     }
   })

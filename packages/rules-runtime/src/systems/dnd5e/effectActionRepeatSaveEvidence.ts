@@ -20,6 +20,8 @@ import {
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_HELD_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_DURATION_COMPLETE_CONDITION_FACT_KEY,
   ENTRY_DAMAGE_NODE_PREFIX,
   UUID,
   Dnd5eEffectActionCompilerError
@@ -222,17 +224,21 @@ export function settleRepeatedSave({
   const thresholds = definition.recurrence.saveThresholds
   const escalationConditionId =
     definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]
+  const escalationHeld =
+    definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_HELD_FACT_KEY] === true
+  const durationCompleteConditionId =
+    definition.adapterFacts[DND5E_ACTIVE_EFFECT_DURATION_COMPLETE_CONDITION_FACT_KEY]
   const saveTally =
     thresholds && repeatedSavePath !== 'ATTEMPT_REFUSED'
       ? countRepeatSave(thresholds, lifecycle.saveTally, repeatedSavePath)
       : undefined
   // A failed or refused attempt on the last counted turn ends the effect with its duration. A
   // thresholds effect ends on its last success instead, and on its last failure when that
-  // escalates; one that does not escalate settles there.
-  const terminal =
-    (thresholds
-      ? tallyEnds(thresholds, saveTally, escalationConditionId !== undefined)
-      : repeatedSavePath === 'ON_SAVE_SUCCESS') || lifecycle.remainingTicks === 1
+  // escalation ends it; one whose escalation it holds, or that does not escalate, settles there.
+  const endedBySave = thresholds
+    ? tallyEnds(thresholds, saveTally, escalationConditionId !== undefined && !escalationHeld)
+    : repeatedSavePath === 'ON_SAVE_SUCCESS'
+  const terminal = endedBySave || lifecycle.remainingTicks === 1
   // A failure that goes on deals the damage its graph rolled, before anything the save ends.
   const failureDamage = graph.nodes.some(({ id }) => isRepeatSaveFailureDamageNode(id))
     ? testApplications({ execution, published, ...target }, undefined, {
@@ -250,53 +256,66 @@ export function settleRepeatedSave({
       emptyApplicationAllowed: true,
       ...(saveTally ? { saveTally } : {})
     }
-  if (
-    escalationConditionId !== undefined &&
-    (typeof escalationConditionId !== 'string' || !UUID.test(escalationConditionId))
-  ) {
-    throw new Dnd5eEffectActionCompilerError(
-      'D&D repeat-save escalation condition identity is invalid.'
-    )
-  }
+  for (const conditionId of [escalationConditionId, durationCompleteConditionId])
+    if (conditionId !== undefined && (typeof conditionId !== 'string' || !UUID.test(conditionId)))
+      throw new Dnd5eEffectActionCompilerError(
+        'D&D repeat-save escalation condition identity is invalid.'
+      )
+  const escalation = typeof escalationConditionId === 'string' ? escalationConditionId : undefined
+  const failuresSettled =
+    thresholds !== undefined &&
+    ((saveTally ?? lifecycle.saveTally)?.failures ?? 0) >= thresholds.failuresToResolve
+  // A held escalation is added by the failure that settles the tally; one that ends the effect is
+  // left by the failure that ends it.
+  const escalates =
+    escalation !== undefined &&
+    repeatedSavePath === 'ON_SAVE_FAIL' &&
+    (escalationHeld ? saveTally?.failures === thresholds?.failuresToResolve : terminal)
+  const left = [
+    ...(escalates ? [escalation] : []),
+    // An effect that runs its full duration leaves its duration-complete condition.
+    ...(terminal && !endedBySave && typeof durationCompleteConditionId === 'string'
+      ? [durationCompleteConditionId]
+      : [])
+  ].filter(
+    (conditionId, index, all) =>
+      all.indexOf(conditionId) === index &&
+      // A target that cannot hold a condition is not left with it.
+      !(target.conditionImmunityIds ?? []).includes(conditionId)
+  )
+  // The effect releases what it held, and a held escalation once the tally added it, unless the
+  // effect leaves it in place.
+  const released = terminal
+    ? [...conditionIds, ...(escalationHeld && failuresSettled && escalation ? [escalation] : [])]
+    : []
   const path = repeatedSavePath === 'ATTEMPT_REFUSED' ? null : repeatedSavePath
   const application = {
-    sourceActiveEffectId: activeEffectId,
     targetActorId: target.targetActorId,
     sourceNodeId: definition.frozenGraphNodeId,
     sourceOperationKey: DND5E_SAVE_TEST_OPERATION_KEY,
     authoredPath: path,
     resolvedPath: path
   }
+  const applications = [
+    ...failureDamage,
+    ...released
+      .filter((conditionId) => !left.includes(conditionId))
+      .map((conditionId) => ({
+        ...application,
+        sourceActiveEffectId: activeEffectId,
+        kind: 'CONDITION_REMOVE' as const,
+        conditionId
+      })),
+    ...left.map((conditionId) => ({
+      ...application,
+      kind: 'CONDITION_APPLY' as const,
+      conditionId
+    }))
+  ]
   return terminal
-    ? {
-        applications: [
-          ...failureDamage,
-          ...conditionIds.map((conditionId) => ({
-            ...application,
-            kind: 'CONDITION_REMOVE' as const,
-            conditionId
-          })),
-          // A failed save leaves the escalated condition, unless the target cannot hold it.
-          ...(escalationConditionId !== undefined &&
-          repeatedSavePath === 'ON_SAVE_FAIL' &&
-          !(target.conditionImmunityIds ?? []).includes(escalationConditionId)
-            ? [
-                {
-                  kind: 'CONDITION_APPLY' as const,
-                  conditionId: escalationConditionId,
-                  sourceNodeId: application.sourceNodeId,
-                  sourceOperationKey: application.sourceOperationKey,
-                  authoredPath: application.authoredPath,
-                  resolvedPath: application.resolvedPath,
-                  targetActorId: application.targetActorId
-                }
-              ]
-            : [])
-        ],
-        terminal: true
-      }
+    ? { applications, terminal: true }
     : {
-        applications: failureDamage,
+        applications,
         terminal: false,
         emptyApplicationAllowed: true,
         ...(saveTally ? { saveTally } : {})

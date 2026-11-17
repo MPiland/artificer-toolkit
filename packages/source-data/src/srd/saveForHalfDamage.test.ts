@@ -11,7 +11,6 @@ const SAVE_FOR_HALF_TEXT =
  * the halved success path like every other spell.
  */
 const DAMAGE_NOT_AUTHORED: Readonly<Record<string, string>> = {
-  'Call Lightning': 'MANUAL_ADJUDICATION: the recurring bolt action is not authored',
   'Control Water': 'MANUAL_ADJUDICATION: the whirlpool is not authored',
   'Delayed Blast Fireball': 'MANUAL_ADJUDICATION: the detonation is not authored',
   Earthquake: 'ZONE manifest without damage',

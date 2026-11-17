@@ -160,6 +160,7 @@ const zone = (
   label: `Zone ${index}`,
   shape: square,
   ...dcs,
+  destruction: null,
   unawareActorIds
 })
 

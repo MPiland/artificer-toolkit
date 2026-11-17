@@ -4,6 +4,7 @@ import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/sy
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { bestowCurse } from '@artificer-toolkit/source-data/srd/spells/bestow-curse.js'
+import { barkskin } from '@artificer-toolkit/source-data/srd/spells/barkskin.js'
 import {
   SRD_ABILITIES,
   SRD_ABILITY_DEFINITION_IDS,
@@ -33,6 +34,7 @@ import {
   encounterSavingThrowAddedDice,
   encounterSourceSightSaveGrants,
   withActiveGrantSpeeds,
+  withCreatureActiveGrantArmorClass,
   withCreatureActiveGrantSaves,
   withCreatureActiveGrantSkillTotal,
   withHolderStateGrantSaves
@@ -254,6 +256,23 @@ describe('Creature holder of an active grant', () => {
       (target(effects).targetDerivedFacts.statBlock as { armorClass?: number }).armorClass
     expect(armorClass([shield])).toBe(14)
     expect(armorClass([])).toBe(12)
+  })
+
+  it('floors the armor class at a MINIMUM_VALUE grant (Barkskin) after its bonuses', () => {
+    const bark = plannedGrantEffect({
+      id: EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      effect: barkskin.effects?.[0],
+      sourceLabel: barkskin.label
+    })
+    const shield = shimmeringShieldEffect({ id: OTHER_EFFECT_ID, holderActorId: HOLDER_ID })
+    expect(withCreatureActiveGrantArmorClass(12, [bark])).toBe(16)
+    expect(withCreatureActiveGrantArmorClass(18, [bark])).toBe(18)
+    // The floor holds the final value: 15 + 2 beats it, 12 + 2 does not.
+    expect(withCreatureActiveGrantArmorClass(15, [bark, shield])).toBe(17)
+    expect(withCreatureActiveGrantArmorClass(12, [bark, shield])).toBe(16)
+    expect(withCreatureActiveGrantArmorClass(12, [])).toBe(12)
+    expect(withCreatureActiveGrantArmorClass(null, [bark])).toBeNull()
   })
 
   it('adds a skill grant (Pass without Trace) to that skill total only, only while held', () => {
@@ -570,6 +589,22 @@ describe('Character holder of an active grant', () => {
     expect(armorClass(withCharacterActiveGrants(fighter.facts, [shield]))).toBe(
       armorClass(fighter.facts) + 2
     )
+  })
+
+  it('floors the effective armor class at a MINIMUM_VALUE grant (Barkskin)', () => {
+    const armorClass = (facts: typeof fighter.facts) =>
+      evaluateDnd5e2014CharacterPolicy(facts).derivedStats.armorClass.effective
+    const bark = plannedGrantEffect({
+      id: EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      effect: barkskin.effects?.[0],
+      sourceLabel: barkskin.label
+    })
+    const shield = shimmeringShieldEffect({ id: OTHER_EFFECT_ID, holderActorId: HOLDER_ID })
+    // Unarmored, the Fighter's armor class sits below the floor, even with a +2 bonus.
+    expect(armorClass(fighter.facts) + 2).toBeLessThan(16)
+    expect(armorClass(withCharacterActiveGrants(fighter.facts, [bark]))).toBe(16)
+    expect(armorClass(withCharacterActiveGrants(fighter.facts, [bark, shield]))).toBe(16)
   })
 
   it('folds a Help into a Character ability checks, skill checks and attack rolls', () => {

@@ -23007,6 +23007,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -23161,6 +23162,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -23469,6 +23471,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -24225,6 +24228,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -24379,6 +24383,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -24687,6 +24692,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -25410,6 +25416,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -25564,6 +25571,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -25872,6 +25880,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -26637,6 +26646,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -26791,6 +26801,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -27099,6 +27110,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -27936,6 +27948,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -28090,6 +28103,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -28398,6 +28412,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -29133,6 +29148,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -29287,6 +29303,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -29595,6 +29612,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -30310,6 +30328,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -30464,6 +30483,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -30772,6 +30792,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -31567,6 +31588,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -31721,6 +31743,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -32029,6 +32052,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -32950,6 +32974,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -33102,6 +33127,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -33406,6 +33432,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -34148,6 +34175,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -34300,6 +34328,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -34604,6 +34633,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -35317,6 +35347,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -35469,6 +35500,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -35773,6 +35805,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -36525,6 +36558,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -36677,6 +36711,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -36981,6 +37016,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -37801,6 +37837,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -37953,6 +37990,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -38257,6 +38295,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -38976,6 +39015,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -39128,6 +39168,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -39432,6 +39473,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -40134,6 +40176,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -40286,6 +40329,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -40590,6 +40634,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -41368,6 +41413,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -41520,6 +41566,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -41824,6 +41871,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -42828,6 +42876,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -42980,6 +43029,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -43284,6 +43334,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -44026,6 +44077,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -44178,6 +44230,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -44482,6 +44535,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -45195,6 +45249,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -45347,6 +45402,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -45651,6 +45707,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -46403,6 +46460,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -46555,6 +46613,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -46859,6 +46918,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -47679,6 +47739,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -47831,6 +47892,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -48135,6 +48197,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -48854,6 +48917,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -49006,6 +49070,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -49310,6 +49375,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -50012,6 +50078,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -50164,6 +50231,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -50468,6 +50536,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -51246,6 +51315,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -51398,6 +51468,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -51702,6 +51773,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -52783,6 +52855,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -52937,6 +53010,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -53245,6 +53319,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -54001,6 +54076,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -54155,6 +54231,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -54463,6 +54540,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -55186,6 +55264,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -55340,6 +55419,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -55648,6 +55728,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -56413,6 +56494,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -56567,6 +56649,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -56875,6 +56958,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -57712,6 +57796,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -57866,6 +57951,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -58174,6 +58260,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -58909,6 +58996,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -59063,6 +59151,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -59371,6 +59460,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -60086,6 +60176,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -60240,6 +60331,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -60548,6 +60640,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -61343,6 +61436,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -61497,6 +61591,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -61805,6 +61900,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -62726,6 +62822,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -62878,6 +62975,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -63182,6 +63280,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -63924,6 +64023,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -64076,6 +64176,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -64380,6 +64481,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -65093,6 +65195,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -65245,6 +65348,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -65549,6 +65653,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -66301,6 +66406,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -66453,6 +66559,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -66757,6 +66864,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -67577,6 +67685,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -67729,6 +67838,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -68033,6 +68143,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -68752,6 +68863,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -68904,6 +69016,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -69208,6 +69321,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -69910,6 +70024,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -70062,6 +70177,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -70366,6 +70482,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -71144,6 +71261,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -71296,6 +71414,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -71600,6 +71719,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -72604,6 +72724,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -72756,6 +72877,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -73060,6 +73182,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -73802,6 +73925,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -73954,6 +74078,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -74258,6 +74383,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -74971,6 +75097,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -75123,6 +75250,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -75427,6 +75555,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -76179,6 +76308,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -76331,6 +76461,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -76635,6 +76766,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -77455,6 +77587,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -77607,6 +77740,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -77911,6 +78045,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -78630,6 +78765,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -78782,6 +78918,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -79086,6 +79223,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -79788,6 +79926,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -79940,6 +80079,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -80244,6 +80384,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -81022,6 +81163,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -81174,6 +81316,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -81478,6 +81621,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -82568,6 +82712,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -82722,6 +82867,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -83030,6 +83176,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -83786,6 +83933,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -83940,6 +84088,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -84248,6 +84397,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -84971,6 +85121,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -85125,6 +85276,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -85433,6 +85585,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -86198,6 +86351,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -86352,6 +86506,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -86660,6 +86815,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -87497,6 +87653,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -87651,6 +87808,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -87959,6 +88117,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -88694,6 +88853,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -88848,6 +89008,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -89156,6 +89317,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -89871,6 +90033,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -90025,6 +90188,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -90333,6 +90497,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -91128,6 +91293,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -91282,6 +91448,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -91590,6 +91757,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -92511,6 +92679,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -92663,6 +92832,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -92967,6 +93137,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -93709,6 +93880,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -93861,6 +94033,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -94165,6 +94338,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -94878,6 +95052,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -95030,6 +95205,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -95334,6 +95510,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -96086,6 +96263,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -96238,6 +96416,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -96542,6 +96721,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -97362,6 +97542,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -97514,6 +97695,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -97818,6 +98000,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -98537,6 +98720,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -98689,6 +98873,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -98993,6 +99178,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -99695,6 +99881,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -99847,6 +100034,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -100151,6 +100339,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -100929,6 +101118,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -101081,6 +101271,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -101385,6 +101576,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -102389,6 +102581,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -102541,6 +102734,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -102845,6 +103039,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -103587,6 +103782,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -103739,6 +103935,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -104043,6 +104240,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -104756,6 +104954,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -104908,6 +105107,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -105212,6 +105412,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -105964,6 +106165,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -106116,6 +106318,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -106420,6 +106623,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -107240,6 +107444,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -107392,6 +107597,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -107696,6 +107902,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -108415,6 +108622,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -108567,6 +108775,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -108871,6 +109080,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -109573,6 +109783,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -109725,6 +109936,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -110029,6 +110241,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -110807,6 +111020,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -110959,6 +111173,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -111263,6 +111478,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -112344,6 +112560,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -112498,6 +112715,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -112806,6 +113024,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -113562,6 +113781,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -113716,6 +113936,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -114024,6 +114245,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -114747,6 +114969,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -114901,6 +115124,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -115209,6 +115433,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -115974,6 +116199,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -116128,6 +116354,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -116436,6 +116663,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -117273,6 +117501,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -117427,6 +117656,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -117735,6 +117965,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -118470,6 +118701,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -118624,6 +118856,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -118932,6 +119165,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -119647,6 +119881,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -119801,6 +120036,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -120109,6 +120345,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -120904,6 +121141,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -121058,6 +121296,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -121366,6 +121605,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -122287,6 +122527,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -122439,6 +122680,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -122743,6 +122985,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -123485,6 +123728,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -123637,6 +123881,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -123941,6 +124186,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -124654,6 +124900,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -124806,6 +125053,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -125110,6 +125358,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -125862,6 +126111,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -126014,6 +126264,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -126318,6 +126569,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -127138,6 +127390,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -127290,6 +127543,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -127594,6 +127848,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -128313,6 +128568,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -128465,6 +128721,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -128769,6 +129026,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -129471,6 +129729,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -129623,6 +129882,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -129927,6 +130187,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -130705,6 +130966,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -130857,6 +131119,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -131161,6 +131424,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -132165,6 +132429,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -132317,6 +132582,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -132621,6 +132887,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -133363,6 +133630,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -133515,6 +133783,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -133819,6 +134088,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -134532,6 +134802,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -134684,6 +134955,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -134988,6 +135260,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -135740,6 +136013,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -135892,6 +136166,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -136196,6 +136471,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -137016,6 +137292,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -137168,6 +137445,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -137472,6 +137750,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -138191,6 +138470,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -138343,6 +138623,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -138647,6 +138928,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -139349,6 +139631,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -139501,6 +139784,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -139805,6 +140089,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -140583,6 +140868,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -140735,6 +141021,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -141039,6 +141326,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -142155,6 +142443,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -142309,6 +142598,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -142617,6 +142907,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -143373,6 +143664,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -143527,6 +143819,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -143835,6 +144128,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -144558,6 +144852,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -144712,6 +145007,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -145020,6 +145316,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -145785,6 +146082,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -145939,6 +146237,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -146247,6 +146546,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -147084,6 +147384,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -147238,6 +147539,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -147546,6 +147848,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -148281,6 +148584,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -148435,6 +148739,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -148743,6 +149048,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -149458,6 +149764,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -149612,6 +149919,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -149920,6 +150228,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -150715,6 +151024,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -150869,6 +151179,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -151177,6 +151488,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -152098,6 +152410,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -152250,6 +152563,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -152554,6 +152868,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -153296,6 +153611,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -153448,6 +153764,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -153752,6 +154069,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -154465,6 +154783,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -154617,6 +154936,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -154921,6 +155241,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -155673,6 +155994,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -155825,6 +156147,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -156129,6 +156452,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -156949,6 +157273,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -157101,6 +157426,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -157405,6 +157731,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -158124,6 +158451,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -158276,6 +158604,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -158580,6 +158909,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -159282,6 +159612,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -159434,6 +159765,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -159738,6 +160070,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -160516,6 +160849,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -160668,6 +161002,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -160972,6 +161307,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -161976,6 +162312,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -162128,6 +162465,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -162432,6 +162770,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -163174,6 +163513,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -163326,6 +163666,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -163630,6 +163971,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -164343,6 +164685,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -164495,6 +164838,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -164799,6 +165143,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -165551,6 +165896,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -165703,6 +166049,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -166007,6 +166354,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -166827,6 +167175,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -166979,6 +167328,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -167283,6 +167633,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -168002,6 +168353,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -168154,6 +168506,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -168458,6 +168811,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -169160,6 +169514,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -169312,6 +169667,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -169616,6 +169972,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -170394,6 +170751,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -170546,6 +170904,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -170850,6 +171209,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -171931,6 +172291,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -172085,6 +172446,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -172393,6 +172755,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -173149,6 +173512,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -173303,6 +173667,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -173611,6 +173976,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -174334,6 +174700,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -174488,6 +174855,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -174796,6 +175164,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -175561,6 +175930,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -175715,6 +176085,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -176023,6 +176394,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -176860,6 +177232,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -177014,6 +177387,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -177322,6 +177696,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -178057,6 +178432,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -178211,6 +178587,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -178519,6 +178896,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -179234,6 +179612,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -179388,6 +179767,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -179696,6 +180076,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -180491,6 +180872,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -180645,6 +181027,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -180953,6 +181336,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -181874,6 +182258,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -182026,6 +182411,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -182330,6 +182716,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -183072,6 +183459,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -183224,6 +183612,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -183528,6 +183917,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -184241,6 +184631,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -184393,6 +184784,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -184697,6 +185089,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -185449,6 +185842,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -185601,6 +185995,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -185905,6 +186300,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -186725,6 +187121,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -186877,6 +187274,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -187181,6 +187579,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -187900,6 +188299,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -188052,6 +188452,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -188356,6 +188757,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -189058,6 +189460,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -189210,6 +189613,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -189514,6 +189918,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -190292,6 +190697,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -190444,6 +190850,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -190748,6 +191155,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -191752,6 +192160,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -191904,6 +192313,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -192208,6 +192618,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -192950,6 +193361,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -193102,6 +193514,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -193406,6 +193819,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -194119,6 +194533,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -194271,6 +194686,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -194575,6 +194991,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -195327,6 +195744,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -195479,6 +195897,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -195783,6 +196202,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -196603,6 +197023,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -196755,6 +197176,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -197059,6 +197481,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -197778,6 +198201,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -197930,6 +198354,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -198234,6 +198659,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -198936,6 +199362,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -199088,6 +199515,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -199392,6 +199820,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -200170,6 +200599,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -200322,6 +200752,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -200626,6 +201057,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -201708,6 +202140,7 @@ export declare const api: {
                                     shapeKind: "CUBE";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     height: {
                                       amount: number;
                                       scaling?:
@@ -201862,6 +202295,7 @@ export declare const api: {
                                     shapeKind: "CYLINDER";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -202170,6 +202604,7 @@ export declare const api: {
                                     };
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -202922,6 +203357,7 @@ export declare const api: {
                                     shapeKind: "CUBE";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     height: {
                                       amount: number;
                                       scaling?:
@@ -203076,6 +203512,7 @@ export declare const api: {
                                     shapeKind: "CYLINDER";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -203384,6 +203821,7 @@ export declare const api: {
                                     };
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -204106,6 +204544,7 @@ export declare const api: {
                                     shapeKind: "CUBE";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     height: {
                                       amount: number;
                                       scaling?:
@@ -204260,6 +204699,7 @@ export declare const api: {
                                     shapeKind: "CYLINDER";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -204568,6 +205008,7 @@ export declare const api: {
                                     };
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -205329,6 +205770,7 @@ export declare const api: {
                                     shapeKind: "CUBE";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     height: {
                                       amount: number;
                                       scaling?:
@@ -205483,6 +205925,7 @@ export declare const api: {
                                     shapeKind: "CYLINDER";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -205791,6 +206234,7 @@ export declare const api: {
                                     };
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -206620,6 +207064,7 @@ export declare const api: {
                                     shapeKind: "CUBE";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     height: {
                                       amount: number;
                                       scaling?:
@@ -206774,6 +207219,7 @@ export declare const api: {
                                     shapeKind: "CYLINDER";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -207082,6 +207528,7 @@ export declare const api: {
                                     };
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -207813,6 +208260,7 @@ export declare const api: {
                                     shapeKind: "CUBE";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     height: {
                                       amount: number;
                                       scaling?:
@@ -207967,6 +208415,7 @@ export declare const api: {
                                     shapeKind: "CYLINDER";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -208275,6 +208724,7 @@ export declare const api: {
                                     };
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -208986,6 +209436,7 @@ export declare const api: {
                                     shapeKind: "CUBE";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     height: {
                                       amount: number;
                                       scaling?:
@@ -209140,6 +209591,7 @@ export declare const api: {
                                     shapeKind: "CYLINDER";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -209448,6 +209900,7 @@ export declare const api: {
                                     };
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -210235,6 +210688,7 @@ export declare const api: {
                                     shapeKind: "CUBE";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     height: {
                                       amount: number;
                                       scaling?:
@@ -210389,6 +210843,7 @@ export declare const api: {
                                     shapeKind: "CYLINDER";
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -210697,6 +211152,7 @@ export declare const api: {
                                     };
                                   }
                                 | {
+                                    centeredOnUser?: boolean;
                                     id: string;
                                     radius: {
                                       amount: number;
@@ -211600,6 +212056,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -211752,6 +212209,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -212056,6 +212514,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -212785,6 +213244,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -212937,6 +213397,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -213241,6 +213702,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -213941,6 +214403,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -214093,6 +214556,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -214397,6 +214861,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -215130,6 +215595,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -215282,6 +215748,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -215586,6 +216053,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -216383,6 +216851,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -216535,6 +217004,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -216839,6 +217309,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -217545,6 +218016,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -217697,6 +218169,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -218001,6 +218474,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -218690,6 +219164,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -218842,6 +219317,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -219146,6 +219622,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -219907,6 +220384,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -220059,6 +220537,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -220363,6 +220842,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -221347,6 +221827,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -221499,6 +221980,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -221803,6 +222285,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -222532,6 +223015,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -222684,6 +223168,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -222988,6 +223473,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -223688,6 +224174,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -223840,6 +224327,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -224144,6 +224632,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -224877,6 +225366,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -225029,6 +225519,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -225333,6 +225824,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -226130,6 +226622,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -226282,6 +226775,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -226586,6 +227080,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -227292,6 +227787,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -227444,6 +227940,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -227748,6 +228245,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -228437,6 +228935,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -228589,6 +229088,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -228893,6 +229393,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -229654,6 +230155,7 @@ export declare const api: {
                               shapeKind: "CUBE";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               height: {
                                 amount: number;
                                 scaling?:
@@ -229806,6 +230308,7 @@ export declare const api: {
                               shapeKind: "CYLINDER";
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -230110,6 +230613,7 @@ export declare const api: {
                               };
                             }
                           | {
+                              centeredOnUser?: boolean;
                               id: string;
                               radius: {
                                 amount: number;
@@ -231185,6 +231689,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -231339,6 +231844,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -231647,6 +232153,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -232403,6 +232910,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -232557,6 +233065,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -232865,6 +233374,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -233588,6 +234098,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -233742,6 +234253,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -234050,6 +234562,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -234815,6 +235328,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -234969,6 +235483,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -235277,6 +235792,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -236114,6 +236630,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -236268,6 +236785,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -236576,6 +237094,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -237311,6 +237830,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -237465,6 +237985,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -237773,6 +238294,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -238488,6 +239010,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -238642,6 +239165,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -238950,6 +239474,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -239745,6 +240270,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -239899,6 +240425,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -240207,6 +240734,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -241128,6 +241656,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -241280,6 +241809,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -241584,6 +242114,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -242326,6 +242857,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -242478,6 +243010,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -242782,6 +243315,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -243495,6 +244029,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -243647,6 +244182,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -243951,6 +244487,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -244703,6 +245240,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -244855,6 +245393,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -245159,6 +245698,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -245979,6 +246519,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -246131,6 +246672,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -246435,6 +246977,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -247154,6 +247697,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -247306,6 +247850,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -247610,6 +248155,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -248312,6 +248858,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -248464,6 +249011,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -248768,6 +249316,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -249546,6 +250095,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -249698,6 +250248,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -250002,6 +250553,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -251006,6 +251558,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -251158,6 +251711,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -251462,6 +252016,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -252204,6 +252759,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -252356,6 +252912,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -252660,6 +253217,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -253373,6 +253931,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -253525,6 +254084,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -253829,6 +254389,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -254581,6 +255142,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -254733,6 +255295,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -255037,6 +255600,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -255857,6 +256421,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -256009,6 +256574,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -256313,6 +256879,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -257032,6 +257599,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -257184,6 +257752,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -257488,6 +258057,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -258190,6 +258760,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -258342,6 +258913,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -258646,6 +259218,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -259424,6 +259997,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -259576,6 +260150,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -259880,6 +260455,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -260961,6 +261537,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -261115,6 +261692,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -261423,6 +262001,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -262179,6 +262758,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -262333,6 +262913,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -262641,6 +263222,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -263364,6 +263946,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -263518,6 +264101,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -263826,6 +264410,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -264591,6 +265176,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -264745,6 +265331,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -265053,6 +265640,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -265890,6 +266478,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -266044,6 +266633,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -266352,6 +266942,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -267087,6 +267678,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -267241,6 +267833,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -267549,6 +268142,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -268264,6 +268858,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -268418,6 +269013,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -268726,6 +269322,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -269521,6 +270118,7 @@ export declare const api: {
                                       shapeKind: "CUBE";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       height: {
                                         amount: number;
                                         scaling?:
@@ -269675,6 +270273,7 @@ export declare const api: {
                                       shapeKind: "CYLINDER";
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -269983,6 +270582,7 @@ export declare const api: {
                                       };
                                     }
                                   | {
+                                      centeredOnUser?: boolean;
                                       id: string;
                                       radius: {
                                         amount: number;
@@ -270904,6 +271504,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -271056,6 +271657,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -271360,6 +271962,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -272102,6 +272705,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -272254,6 +272858,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -272558,6 +273163,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -273271,6 +273877,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -273423,6 +274030,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -273727,6 +274335,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -274479,6 +275088,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -274631,6 +275241,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -274935,6 +275546,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -275755,6 +276367,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -275907,6 +276520,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -276211,6 +276825,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -276930,6 +277545,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -277082,6 +277698,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -277386,6 +278003,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -278088,6 +278706,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -278240,6 +278859,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -278544,6 +279164,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -279322,6 +279943,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -279474,6 +280096,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -279778,6 +280401,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -280782,6 +281406,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -280934,6 +281559,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -281238,6 +281864,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -281980,6 +282607,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -282132,6 +282760,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -282436,6 +283065,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -283149,6 +283779,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -283301,6 +283932,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -283605,6 +284237,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -284357,6 +284990,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -284509,6 +285143,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -284813,6 +285448,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -285633,6 +286269,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -285785,6 +286422,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -286089,6 +286727,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -286808,6 +287447,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -286960,6 +287600,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -287264,6 +287905,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -287966,6 +288608,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -288118,6 +288761,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -288422,6 +289066,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -289200,6 +289845,7 @@ export declare const api: {
                                 shapeKind: "CUBE";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 height: {
                                   amount: number;
                                   scaling?:
@@ -289352,6 +289998,7 @@ export declare const api: {
                                 shapeKind: "CYLINDER";
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -289656,6 +290303,7 @@ export declare const api: {
                                 };
                               }
                             | {
+                                centeredOnUser?: boolean;
                                 id: string;
                                 radius: {
                                   amount: number;
@@ -296294,9 +296942,11 @@ export declare const api: {
             spatialEffectId: string;
           }>;
           placedZones: Array<{
+            destruction: { criteria: Array<string>; next: boolean } | null;
             disarmDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
             id: string;
             label: string | null;
+            layer?: true;
             shape:
               | {
                   center: { x: number; y: number };

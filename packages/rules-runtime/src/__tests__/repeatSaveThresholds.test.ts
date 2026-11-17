@@ -26,7 +26,8 @@ async function endOfTurn(
     remainingTicks: number
     saveTally?: { successes: number; failures: number }
   },
-  face: number | null
+  face: number | null,
+  conditionImmunityIds: readonly string[] = []
 ) {
   const input = {
     activeEffectId: testUuid(0xe306),
@@ -47,6 +48,7 @@ async function endOfTurn(
       ]
     },
     defenses: [],
+    conditionImmunityIds,
     runtime: createSrdRulesRuntime()
   } as const
   const paused = await executeTargetBoundActiveRuleEffectWithPause(input)
@@ -164,7 +166,7 @@ describe('repeat-save THRESHOLDS counts successes and failures across end-of-tur
 
 describe('a THRESHOLDS repeat save that escalates (SPELLS-4.T2ps-b)', () => {
   const attempts = { successesToEnd: 3, failuresToResolve: 3, consecutive: false }
-  const plannedEscalating = () => plannedEffect(attempts, { escalates: true })
+  const plannedEscalating = () => plannedEffect(attempts, { escalation: 'ENDS' })
 
   it('lasts until its tally settles, and names the escalated condition', async () => {
     const definition = await plannedEscalating()
@@ -221,6 +223,81 @@ describe('a THRESHOLDS repeat save that escalates (SPELLS-4.T2ps-b)', () => {
       PASS
     )
     expect(ended).toMatchObject({
+      terminal: true,
+      applications: [{ kind: 'CONDITION_REMOVE', conditionId: STUNNED }]
+    })
+  })
+})
+
+describe('a THRESHOLDS repeat save whose escalation the effect holds for its duration (QUALITY-15.T3ad)', () => {
+  const attempts = { successesToEnd: 3, failuresToResolve: 3, consecutive: false }
+  const plannedHeld = () => plannedEffect(attempts, { escalation: 'HELD' })
+  const ticks = (remainingTicks: number, successes: number, failures: number) => ({
+    schemaVersion: 1 as const,
+    remainingTicks,
+    saveTally: { successes, failures }
+  })
+
+  it('keeps its own duration, and owns the escalated condition beside the held one', async () => {
+    const definition = await plannedHeld()
+    expect(definition.recurrence.saveThresholds).toEqual(attempts)
+    expect(definition.recurrence.expiration).toMatchObject({ kind: 'TICKS', initialRemaining: 10 })
+    expect(
+      definition.stateContributions.flatMap((contribution) =>
+        contribution.kind === 'CONDITION_OWNERSHIP' ? [contribution.conditionId] : []
+      )
+    ).toEqual([STUNNED, PETRIFIED])
+  })
+
+  it('adds the escalated condition at the failure count, and lasts out its duration', async () => {
+    const definition = await plannedHeld()
+    const escalated = await endOfTurn(definition, ticks(8, 1, 2), FAIL)
+    expect(escalated).toMatchObject({
+      terminal: false,
+      saveTally: { successes: 1, failures: 3 },
+      applications: [{ kind: 'CONDITION_APPLY', conditionId: PETRIFIED }]
+    })
+    const settled = await endOfTurn(definition, ticks(7, 1, 3), null)
+    expect(settled).toMatchObject({ terminal: false, applications: [] })
+  })
+
+  it('releases the held condition and leaves the escalated one when its full duration runs out', async () => {
+    const definition = await plannedHeld()
+    const completed = await endOfTurn(definition, ticks(1, 1, 3), null)
+    expect(completed).toMatchObject({
+      terminal: true,
+      applications: [
+        { kind: 'CONDITION_REMOVE', conditionId: STUNNED },
+        { kind: 'CONDITION_APPLY', conditionId: PETRIFIED }
+      ]
+    })
+  })
+
+  it('leaves the duration-complete condition on a target whose tally never settled', async () => {
+    const definition = await plannedHeld()
+    const completed = await endOfTurn(definition, ticks(1, 1, 1), FAIL)
+    expect(completed).toMatchObject({
+      terminal: true,
+      applications: [
+        { kind: 'CONDITION_REMOVE', conditionId: STUNNED },
+        { kind: 'CONDITION_APPLY', conditionId: PETRIFIED }
+      ]
+    })
+  })
+
+  it('ends with the held condition released, and nothing left, at the success count', async () => {
+    const definition = await plannedHeld()
+    const ended = await endOfTurn(definition, ticks(5, 2, 2), PASS)
+    expect(ended).toMatchObject({
+      terminal: true,
+      applications: [{ kind: 'CONDITION_REMOVE', conditionId: STUNNED }]
+    })
+  })
+
+  it('leaves no condition the target is immune to', async () => {
+    const definition = await plannedHeld()
+    const completed = await endOfTurn(definition, ticks(1, 1, 1), FAIL, [PETRIFIED])
+    expect(completed).toMatchObject({
       terminal: true,
       applications: [{ kind: 'CONDITION_REMOVE', conditionId: STUNNED }]
     })

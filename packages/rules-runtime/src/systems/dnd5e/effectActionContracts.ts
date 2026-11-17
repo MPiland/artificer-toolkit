@@ -212,6 +212,15 @@ export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY =
 /** The condition a failed repeat save leaves in place of the held one ("restrained, then petrified"). */
 export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY =
   'dnd5e.active-effect-repeat-save-escalation-condition-id'
+/**
+ * Set when the escalation does not end the effect: a settled failure tally adds the escalation
+ * condition, which the effect holds beside the held one until its duration ends.
+ */
+export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_HELD_FACT_KEY =
+  'dnd5e.active-effect-repeat-save-escalation-held'
+/** The condition the effect leaves on its holder when it runs its full duration, not ended by a save. */
+export const DND5E_ACTIVE_EFFECT_DURATION_COMPLETE_CONDITION_FACT_KEY =
+  'dnd5e.active-effect-duration-complete-condition-id'
 export const DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY = 'dnd5e.active-effect-timed-condition'
 export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY =
   'dnd5e.active-effect-repeat-save-roll-influence'

@@ -37,6 +37,11 @@ export interface PlacedSpaceZone {
    * a shape and the regions beside it. Absent for a zone of one layer or with regions.
    */
   layered?: true
+  /**
+   * Whether a layered zone's layers are destroyed only in order and stay destroyed (D223). Absent
+   * when no layer authors what destroys it, or any may fall first.
+   */
+  destructionInOrder?: true
   /** Whether the caster designates creatures at cast that the zone never affects. */
   designatedCreatureImmunity?: true
   /** The save each creature in the area makes when the zone appears; null for none. */
@@ -60,6 +65,9 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'camouflage',
   'components',
   'componentsMustResolveInOrder',
+  // The GM destroys a layer by its criteria (D223); a destroyed layer is removed, so it stays so.
+  'destructionMustResolveInOrder',
+  'destroyedComponentsRemainDestroyed',
   'designatedCreatureImmunity',
   // No antimagic suppression exists, so a zone immune to it is honored as is (D223).
   'suppressionImmunities'
@@ -86,6 +94,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'automaticSaveSuccessImmunityDamageTypeId',
   'occupantSaveBonus',
   'occupantConditionImmunity',
+  'destructionCriteria',
   'requiresIgnition',
   'behaviors'
 ])
@@ -158,6 +167,13 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
         ? `A layered zone has 2 to ${MAX_ZONE_LAYERS} layers, each covering its shape.`
         : 'A placed zone’s first component covers its shape, and each later one a region beside it.'
     )
+  const destructible =
+    manifest.destructionMustResolveInOrder === true ||
+    components.some((component) => component.destructionCriteria?.length)
+  if (destructible && (!layered || manifest.destroyedComponentsRemainDestroyed !== true))
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'Only a layered zone whose destroyed layers stay destroyed authors what destroys them.'
+    )
   // Lighting is the zone's own state, so a zone waiting to be lit has nothing beside it.
   if (components.length > 1 && components.some((component) => component.requiresIgnition))
     throw new CharacterRuleActionUnsupportedCompilationError(
@@ -205,6 +221,9 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     ...(camouflage ? { camouflage } : {}),
     components: planned,
     ...(layered ? { layered: true as const } : {}),
+    ...(destructible && manifest.destructionMustResolveInOrder
+      ? { destructionInOrder: true as const }
+      : {}),
     ...(manifest.designatedCreatureImmunity ? { designatedCreatureImmunity: true as const } : {}),
     appearSave,
     entry,

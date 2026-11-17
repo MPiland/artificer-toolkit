@@ -28,6 +28,7 @@ import { rollModeContributorSourceOfMechanicSource } from '@artificer-toolkit/sh
 import {
   activeAttackRollDice,
   activeFixedGrantTotal,
+  activeGlobalAmounts,
   activeAfterRollSavingThrowDice,
   activeSavingThrowDice,
   activeSpeedGrantFeet,
@@ -1591,14 +1592,19 @@ export function creatureActiveGrantCheckContributors(
 
 /**
  * A Creature holder's armor class with its active fixed armor-class bonuses and penalties
- * (Shimmering Shield's +2) added to its stat block value. A Character folds the same grants
- * through its own policy instead.
+ * (Shimmering Shield's +2) added to its stat block value, then floored by its highest active
+ * minimum (Barkskin's 16). A Character folds the same grants through its own policy instead.
  */
 export function withCreatureActiveGrantArmorClass(
   armorClass: number | null,
   effects: readonly ActiveRuleEffectRecord[]
 ): number | null {
-  return armorClass === null ? null : armorClass + activeFixedGrantTotal(effects, 'ARMOR_CLASS')
+  return armorClass === null
+    ? null
+    : Math.max(
+        armorClass + activeFixedGrantTotal(effects, 'ARMOR_CLASS'),
+        ...activeGlobalAmounts(effects, 'ARMOR_CLASS', 'MINIMUM_VALUE')
+      )
 }
 
 /**
