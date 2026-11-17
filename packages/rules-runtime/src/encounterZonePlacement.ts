@@ -5,7 +5,8 @@ import type {
 import { MAX_ZONE_LAYERS } from '@artificer-toolkit/schema/shared/spatial'
 import type {
   CompiledEffectGroup,
-  CompiledManifestComponent
+  CompiledManifestComponent,
+  CompiledManifestProximityRule
 } from '@artificer-toolkit/shared/compilers'
 
 import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
@@ -42,6 +43,14 @@ export interface PlacedSpaceZone {
    * when no layer authors what destroys it, or any may fall first.
    */
   destructionInOrder?: true
+  /**
+   * The proximity rule that puts a creature within `reach` of the zone through its behavior (D223);
+   * absent for a zone with none.
+   */
+  proximity?: {
+    reach: CompiledManifestProximityRule['distance']
+    planned: PlacedSpaceZone['components'][number]
+  }
   /** Whether the caster designates creatures at cast that the zone never affects. */
   designatedCreatureImmunity?: true
   /** The save each creature in the area makes when the zone appears; null for none. */
@@ -68,6 +77,8 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   // The GM destroys a layer by its criteria (D223); a destroyed layer is removed, so it stays so.
   'destructionMustResolveInOrder',
   'destroyedComponentsRemainDestroyed',
+  // Its halo is a record of the zone's own (D223); a rule that acts as a creature moves is refused.
+  'proximityRule',
   'designatedCreatureImmunity',
   // No antimagic suppression exists, so a zone immune to it is honored as is (D223).
   'suppressionImmunities'
@@ -101,6 +112,39 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
 
 function hasUnmodeledField(value: object, modeled: ReadonlySet<string>): boolean {
   return Object.entries(value).some(([key, field]) => field !== undefined && !modeled.has(key))
+}
+
+/**
+ * The component a zone's proximity rule puts a creature near the zone through (D223): the rule's one
+ * behavior, caught at the start of the creature's turn, that needs sight of the zone when the rule
+ * does. A rule that also acts as a creature moves is refused until movement reads that sight.
+ */
+function proximityPlan(
+  rule: CompiledManifestProximityRule,
+  label: string,
+  attachmentKind: PlacedSpaceManifest['attachmentKind']
+): NonNullable<PlacedSpaceZone['proximity']> {
+  if (attachmentKind !== 'PLACED_SPACE')
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A proximity rule belongs to a zone left where its cast places it.'
+    )
+  if (rule.events.length !== 1 || rule.events[0] !== 'START_TURN')
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A proximity rule acts only at the start of a creature’s turn.'
+    )
+  return {
+    reach: rule.distance,
+    planned: {
+      component: {
+        id: rule.id,
+        order: 1,
+        label,
+        interactionKinds: ['START_TURN_IN_SPACE'],
+        ...(rule.requiresSight ? { requiredSight: ['OCCUPANT_SEES_ZONE' as const] } : {})
+      },
+      behavior: rule.behavior
+    }
+  }
 }
 
 /**
@@ -217,6 +261,9 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     attachment: manifest.attachmentKind === 'SOURCE' ? 'SOURCE' : 'PLACED_SPACE',
     label,
     shape,
+    ...(manifest.proximityRule
+      ? { proximity: proximityPlan(manifest.proximityRule, label, manifest.attachmentKind) }
+      : {}),
     ...(wallThickness ? { ringThickness: wallThickness } : {}),
     ...(camouflage ? { camouflage } : {}),
     components: planned,
