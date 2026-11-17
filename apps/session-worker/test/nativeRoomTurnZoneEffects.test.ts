@@ -24,6 +24,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
+import { createFoodAndWater } from '@artificer-toolkit/source-data/srd/spells/create-food-and-water.js'
 import { darkness } from '@artificer-toolkit/source-data/srd/spells/darkness.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -1198,6 +1199,35 @@ describe('the SRD Darkness, a zone that only marks its area, in the room (QUALIT
     const { outgoing, incoming } = await storedZonePhases(room, advance.commandId)
     expect(outgoing).toBeUndefined()
     expect(incoming).toBeUndefined()
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
+    expect(await readZones(room)).toHaveLength(1)
+  })
+})
+
+describe('the SRD Create Food and Water, a zone that only marks where it lies, in the room (QUALITY-15.T3aa)', () => {
+  it('places the labeled zone at the chosen point with nothing to maintain, and it stays as turns pass', async () => {
+    const room = await actionRoom({
+      actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [createFoodAndWater], prepared: [createFoodAndWater.id] },
+      characterAction: (action) => action.label.startsWith(createFoodAndWater.label),
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE
+    })
+    const { answer } = await room.startAreaAction(FIELD_POINT)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const [zone, ...others] = await readZones(room)
+    expect(others).toEqual([])
+    expect(zone?.placement).toMatchObject({ label: 'Food and water' })
+    expect(await readMaintainedStates(room)).toEqual([])
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    // A round passes over the Wolf inside it.
+    for (let turn = 0; turn < 2; turn++) {
+      const advance = await advanceCommand(room)
+      expect((await advance.send()).type).toBe('COMMAND_COMMITTED')
+    }
+
     expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore)
     expect(await readZones(room)).toHaveLength(1)
   })

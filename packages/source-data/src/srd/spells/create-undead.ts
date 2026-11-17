@@ -3,7 +3,6 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
-  DURATION_KIND,
   EFFECT_KIND,
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -15,7 +14,8 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, CREATURE_IDS, SPELL_IDS } from '../ids.js'
+import { conjuredCreatureForms } from './conjuredCreatureForms.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const createUndead: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -23,7 +23,7 @@ export const createUndead: SpellAuthored = {
   label: 'Create Undead',
   description:
     '<p>You can cast this spell only at night. Choose up to three corpses of Medium or Small humanoids within range. Each corpse becomes a ghoul under your control. (The GM has game statistics for these creatures.) As a bonus action on each of your turns, you can mentally command any creature you animated with this spell if the creature is within 120 feet of you (if you control multiple creatures, you can command any or all of them at the same time, issuing the same command to each one). You decide what action the creature will take and where it will move during its next turn, or you can issue a general command, such as to guard a particular chamber or corridor. If you issue no commands, the creature only defends itself against hostile creatures. Once given an order, the creature continues to follow it until its task is complete. The creature is under your control for 24 hours, after which it stops obeying any command you have given it. To maintain control of the creature for another 24 hours, you must cast this spell on the creature before the current 24-hour period ends. This use of the spell reasserts your control over up to three creatures you have animated with this spell, rather than animating new ones. At Higher Levels. When you cast this spell using a 7th-level spell slot, you can animate or reassert control over four ghouls. When you cast this spell using an 8th-level spell slot, you can animate or reassert control over five ghouls or two ghasts or wights. When you cast this spell using a 9th-level spell slot, you can animate or reassert control over six ghouls, three ghasts or wights, or two mummies.</p>',
-  castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
+  castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 1 },
   level: 6,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
@@ -63,16 +63,18 @@ export const createUndead: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.CREATE_UNDEAD, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.CREATE_UNDEAD, 0x213, 1),
-              durationKind: DURATION_KIND.DAY,
-              amount: 1
-            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CREATE_UNDEAD, 0x212, 1),
+                // The ghouls share one turn of their own and stay until they fall (D200). Casting
+                // only at night on corpses, commanding them as a Bonus Action, the 24 hours they
+                // obey, reasserting control and the higher slots' creatures are GM rulings.
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.SUMMON,
+                turnTiming: 'OWN_INITIATIVE',
+                forms: conjuredCreatureForms(SPELL_IDS.CREATE_UNDEAD, [
+                  [CREATURE_IDS.GHOUL, 'Ghoul', 3]
+                ])
               }
             ]
           }

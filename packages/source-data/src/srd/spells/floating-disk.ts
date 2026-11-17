@@ -8,7 +8,6 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
-  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -18,6 +17,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const floatingDisk: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -54,14 +54,6 @@ export const floatingDisk: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        },
-        shape: {
-          id: spellChildId(SPELL_IDS.FLOATING_DISK, 0x212, 1),
-          shapeKind: SHAPE_KIND.CIRCLE,
-          radius: {
-            amount: 18,
-            unit: MEASUREMENT_UNIT_CODE.INCHES
-          }
         }
       },
       paths: [
@@ -83,8 +75,18 @@ export const floatingDisk: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FLOATING_DISK, 0x213, 1),
+                // Its 500-pound load, following its caster beyond 20 feet, the 10-foot elevation it
+                // can't cross and the spell ending beyond 100 feet are GM rulings; moving it is an
+                // ordinary token move.
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.OBJECT
+                manifestKind: MANIFEST_KIND.SUMMON,
+                statBlock: {
+                  // A plane of force 3 feet across, drawn in one 5-foot square, that floats above
+                  // the ground and takes no harm: the SRD gives it no Armor Class or hit points.
+                  size: SIZE_CODE.SMALL,
+                  damageabilityKind: 'INVULNERABLE',
+                  occupiesSpace: false
+                }
               }
             ]
           }

@@ -42,6 +42,12 @@ import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { conjureAnimals } from '@artificer-toolkit/source-data/srd/spells/conjure-animals.js'
 import { conjureFey } from '@artificer-toolkit/source-data/srd/spells/conjure-fey.js'
+import { createUndead } from '@artificer-toolkit/source-data/srd/spells/create-undead.js'
+import { findSteed } from '@artificer-toolkit/source-data/srd/spells/find-steed.js'
+import { floatingDisk } from '@artificer-toolkit/source-data/srd/spells/floating-disk.js'
+import { unseenServant } from '@artificer-toolkit/source-data/srd/spells/unseen-servant.js'
+import { ghoul } from '@artificer-toolkit/source-data/srd/creatures/ghoul.js'
+import { warhorse } from '@artificer-toolkit/source-data/srd/creatures/warhorse.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
 import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
@@ -1870,6 +1876,226 @@ describe('room Conjure Fey (QUALITY-15.T3x)', () => {
     expect(history.commands.filter(({ commandType }) => commandType === 'SUMMONS_ENDED')).toEqual([
       expect.objectContaining({ label: 'Summon released' })
     ])
+  }, 120000)
+})
+
+/** The creature forms an SRD summon spell offers. */
+function summonForms(spell: typeof findSteed) {
+  const outcome = spell.effects
+    ?.flatMap((effect) => effect.paths)
+    .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
+    .find((candidate) => candidate.effectKind === 'MANIFEST' && candidate.manifestKind === 'SUMMON')
+  return outcome?.effectKind === 'MANIFEST' ? (outcome.forms ?? []) : []
+}
+
+/**
+ * QUALITY-15.T3aa: Find Steed, once refused as an area with no shape, conjures the steed form and
+ * creature type its caster picks, owned by the caster and acting on its caster's turn, with no
+ * duration; the owner's Sheet lists it until it drops to 0 hit points.
+ */
+describe('room Find Steed (QUALITY-15.T3aa)', () => {
+  it('conjures the picked steed as the picked type on its owner’s turn, and lists it until it falls', async () => {
+    const warhorseForm = summonForms(findSteed).find(
+      (form) => form.creatureId === CREATURE_IDS.WARHORSE
+    )
+    if (!warhorseForm) throw new Error('Find Steed must offer the Warhorse form.')
+    const CELESTIAL = creatureTypeId('CELESTIAL')
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [findSteed], prepared: [findSteed.id] },
+      characterAction: (action) => action.label.startsWith(findSteed.label),
+      formCreatures: [applyCreatureAttackRolls(warhorse)],
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
+    })
+    const summons = await ownerSheet(room)
+    const participantsBefore = (await initiativeOrder(room)).participants.map(
+      ({ actorId }) => actorId
+    )
+    // Three squares below the caster, clear of its square, within the spell's 30 feet.
+    const steed = await castSummon(
+      room,
+      { x: 150, y: 450 },
+      { formId: warhorseForm.id, creatureTypeId: CELESTIAL }
+    )
+    expect(steed.actor).toMatchObject({
+      kind: 'CREATURE',
+      sourceId: CREATURE_IDS.WARHORSE,
+      label: 'Warhorse',
+      maxHitPoints: warhorse.hitPoints,
+      owner: { ownerActorId: CHARACTER_ACTOR_ID }
+    })
+    // It acts on its caster's turn: it takes no initiative of its own.
+    expect(steed.actor.owner).not.toHaveProperty('turnTiming')
+    expect((await initiativeOrder(room)).participants.map(({ actorId }) => actorId)).toEqual(
+      participantsBefore
+    )
+    const snapshotRow = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .documents('encounterActorSnapshots')
+        .find(({ checksum }) => checksum === steed.actor.snapshotChecksum)
+    )
+    if (!snapshotRow) throw new Error('The steed’s snapshot is not stored.')
+    expect(readStoredActorSnapshot(snapshotRow)).toMatchObject({
+      payload: { creatureTypeId: CELESTIAL }
+    })
+    await vi.waitFor(
+      () =>
+        expect(summons()).toEqual([
+          expect.objectContaining({
+            encounterActorId: steed.actor.id,
+            spellId: findSteed.id,
+            displayName: 'Warhorse',
+            concentration: false
+          })
+        ]),
+      ROOM_REPLY_WAIT
+    )
+
+    // It has no duration: it stays a round later, and goes when it drops to 0 hit points.
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect(await conjured(room)).toHaveLength(1)
+    await setSummonHitPoints(room, steed.actor.id, 0)
+    await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3aa: Create Undead, once refused as an area with no shape, raises up to three ghouls
+ * as one group token under its caster, sharing one turn of their own (D200).
+ */
+describe('room Create Undead (QUALITY-15.T3aa)', () => {
+  it('raises the picked number of ghouls as one group on their own initiative, and no more than three', async () => {
+    const [ghoulForm] = summonForms(createUndead)
+    if (ghoulForm?.creatureId !== CREATURE_IDS.GHOUL)
+      throw new Error('Create Undead must offer the Ghoul form.')
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 11 },
+      characterSpellcasting: { spells: [createUndead], prepared: [createUndead.id] },
+      characterAction: (action) => action.label.startsWith(createUndead.label),
+      formCreatures: [applyCreatureAttackRolls(ghoul)],
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
+    })
+    const GHOUL_POINT = { x: 150, y: 250 }
+    const tooMany = await room.startAreaCommand({
+      kind: 'POINT',
+      point: GHOUL_POINT,
+      formId: ghoulForm.id,
+      count: 4
+    })
+    expect(tooMany.answer.type).toBe('COMMAND_REJECTED')
+    expect(await conjured(room)).toEqual([])
+
+    const ghouls = await castSummon(room, GHOUL_POINT, { formId: ghoulForm.id, count: 3 })
+    expect(ghouls.actor).toMatchObject({
+      kind: 'CREATURE',
+      sourceId: CREATURE_IDS.GHOUL,
+      maxHitPoints: 3 * ghoul.hitPoints,
+      owner: { ownerActorId: CHARACTER_ACTOR_ID, count: 3, turnTiming: 'OWN_INITIATIVE' }
+    })
+    expect(
+      (await initiativeOrder(room)).participants.filter(
+        ({ actorId }) => actorId === ghouls.actor.id
+      )
+    ).toHaveLength(1)
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3aa: Unseen Servant, once refused as an area with no shape, conjures an owned servant
+ * of 1 hit point that makes no attack; the owner's Sheet lists it.
+ */
+describe('room Unseen Servant (QUALITY-15.T3aa)', () => {
+  it('conjures the servant with 1 hit point and no attack, and takes it away when the cast is reverted', async () => {
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [unseenServant], prepared: [unseenServant.id] },
+      characterAction: (action) => action.label.startsWith(unseenServant.label)
+    })
+    const summons = await ownerSheet(room)
+    const servant = await castSummon(room, { x: 350, y: 150 })
+    expect(servant.actor).toMatchObject({
+      kind: 'CUSTOM',
+      label: 'Unseen Servant',
+      maxHitPoints: 1,
+      currentHitPoints: 1
+    })
+    const snapshotRow = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .documents('encounterActorSnapshots')
+        .find(({ checksum }) => checksum === servant.actor.snapshotChecksum)
+    )
+    if (!snapshotRow) throw new Error('The servant’s snapshot is not stored.')
+    expect(readStoredActorSnapshot(snapshotRow)).toMatchObject({
+      body: { damageabilityKind: 'NORMAL', cannotAttack: true }
+    })
+    expect((await room.actionChoices()).effectOffers).toEqual([])
+    await vi.waitFor(
+      () =>
+        expect(summons()).toEqual([
+          expect.objectContaining({
+            encounterActorId: servant.actor.id,
+            spellId: unseenServant.id,
+            displayName: 'Unseen Servant',
+            hitPoints: { current: 1, maximum: 1, temp: 0 }
+          })
+        ]),
+      ROOM_REPLY_WAIT
+    )
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await conjured(room)).toEqual([])
+  }, 120000)
+})
+
+/**
+ * QUALITY-15.T3aa: Floating Disk, once refused for a duration with no plan to hold it, conjures an
+ * owned, invulnerable disk that takes no space and moves as any token does, for its hour.
+ */
+describe('room Floating Disk (QUALITY-15.T3aa)', () => {
+  it('conjures the disk, moves it as a token, and keeps it past the round of the cast', async () => {
+    const DISK_POINT = { x: 350, y: 150 }
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [floatingDisk], prepared: [floatingDisk.id] },
+      characterAction: (action) => action.label.startsWith(floatingDisk.label)
+    })
+    const disk = await castSummon(room, DISK_POINT)
+    expect(disk.actor).toMatchObject({ label: 'Floating Disk', kind: 'CUSTOM' })
+    const snapshotRow = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .documents('encounterActorSnapshots')
+        .find(({ checksum }) => checksum === disk.actor.snapshotChecksum)
+    )
+    if (!snapshotRow) throw new Error('The disk’s snapshot is not stored.')
+    expect(readStoredActorSnapshot(snapshotRow)).toMatchObject({
+      body: { damageabilityKind: 'INVULNERABLE', occupiesSpace: false }
+    })
+
+    const moved = await room.room.move(
+      [DISK_POINT, { x: 350, y: 250 }],
+      await room.version(),
+      room.room.scene.version + 1,
+      disk.tokenId
+    )
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+    // A round later it is still there: it lasts its hour.
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect(await conjured(room)).toHaveLength(1)
   }, 120000)
 })
 
