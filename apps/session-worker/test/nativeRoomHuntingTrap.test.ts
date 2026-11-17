@@ -20,7 +20,7 @@ import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * QUALITY-15.T3aa3: the real SRD Hunting Trap, set by a Character at a point, is a placed-space zone
- * that holds the creature failing its entry save as restrained until a Strength check reaches DC 13.
+ * that holds the creature failing its entry save as grappled until a Strength check reaches DC 13.
  */
 
 const SETTER_ACTOR_ID = testUuid(0x2700)
@@ -31,7 +31,7 @@ const WALKER_ID = testUuid(0x2702)
 const TRAP_POINT = { x: 250, y: 150 }
 const WALKER_START = { x: 450, y: 150 }
 const WALK_INTO = [WALKER_START, TRAP_POINT]
-const RESTRAINED_ID = conditionTypeId('RESTRAINED')
+const GRAPPLED_ID = conditionTypeId('GRAPPLED')
 
 /** Every die shows its lowest face unless `rolls` leads with others: the save fails, damage is 1. */
 const DIE = 0
@@ -115,7 +115,7 @@ describe('setting the Hunting Trap', () => {
     expect(zones[0]?.placement).toMatchObject({
       label: 'Hunting trap',
       triggerModes: ['ENTER', 'CROSS'],
-      heldCondition: { conditionId: RESTRAINED_ID, escape: { dc: 13 } }
+      heldCondition: { conditionId: GRAPPLED_ID, escape: { dc: 13 } }
     })
   })
 
@@ -130,7 +130,7 @@ describe('setting the Hunting Trap', () => {
 })
 
 describe('stepping on the Hunting Trap', () => {
-  it('holds a creature that fails the save, restrained and hurt, where it stopped', async () => {
+  it('holds a creature that fails the save, grappled and hurt, where it stopped', async () => {
     const room = await trapSetRoom()
     const hitPointsBefore = await hitPointsOf(room, WALKER_ID)
 
@@ -141,7 +141,7 @@ describe('stepping on the Hunting Trap', () => {
     })
     expect(walk.terminalPosition.x).toBeGreaterThan(TRAP_POINT.x)
     expect(await hitPointsOf(room, WALKER_ID)).toBe((hitPointsBefore ?? 0) - 1)
-    expect(await conditionsOf(room)).toEqual([{ conditionTypeId: RESTRAINED_ID }])
+    expect(await conditionsOf(room)).toEqual([{ conditionTypeId: GRAPPLED_ID }])
     const [zone] = await readZones(room)
     const [held, ...others] = await heldEffectsOf(room)
     expect(others).toEqual([])
@@ -149,7 +149,7 @@ describe('stepping on the Hunting Trap', () => {
       stateContributions: [
         {
           kind: 'CONDITION_OWNERSHIP',
-          conditionId: RESTRAINED_ID,
+          conditionId: GRAPPLED_ID,
           heldBySpatialEffectId: zone?.id
         },
         { kind: 'CONDITION_ESCAPE', label: 'Hunting trap' }
@@ -172,7 +172,7 @@ describe('stepping on the Hunting Trap', () => {
   it('frees the held creature when its Strength check reaches DC 13', async () => {
     const room = await trapSetRoom(SAVE_FAILS_THEN_ESCAPES)
     await walkerMoves(room, WALK_INTO)
-    expect(await conditionsOf(room)).toEqual([{ conditionTypeId: RESTRAINED_ID }])
+    expect(await conditionsOf(room)).toEqual([{ conditionTypeId: GRAPPLED_ID }])
 
     const answer = await escape(room)
 
@@ -188,7 +188,7 @@ describe('stepping on the Hunting Trap', () => {
 
     await escape(room)
 
-    expect(await conditionsOf(room)).toEqual([{ conditionTypeId: RESTRAINED_ID }])
+    expect(await conditionsOf(room)).toEqual([{ conditionTypeId: GRAPPLED_ID }])
     expect(await heldEffectsOf(room)).toHaveLength(1)
   })
 

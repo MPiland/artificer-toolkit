@@ -118,7 +118,7 @@ export const huntingTrap: EquipmentAuthored = {
                                 {
                                   id: S.equipmentChildId(S.equipId(143), 0x227, 1),
                                   effectKind: S.EFFECT_KIND.CONDITION,
-                                  conditionId: S.conditionTypeId('RESTRAINED')
+                                  conditionId: S.conditionTypeId('GRAPPLED')
                                 }
                               ]
                             }
