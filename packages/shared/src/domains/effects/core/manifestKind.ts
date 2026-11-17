@@ -4,7 +4,6 @@ export const MANIFEST_KIND = {
   CREATURE: 'CREATURE',
   SUMMON: 'SUMMON',
   ZONE: 'ZONE',
-  SENSOR: 'SENSOR',
   WEAPON: 'WEAPON',
   OBJECT: 'OBJECT',
   ILLUSION: 'ILLUSION'
@@ -28,11 +27,6 @@ export const MANIFEST_KIND_REGISTRY: Record<ManifestKind, ManifestKindOption> = 
     code: MANIFEST_KIND.ZONE,
     label: 'Zone',
     description: 'Create a persistent area or field.'
-  },
-  [MANIFEST_KIND.SENSOR]: {
-    code: MANIFEST_KIND.SENSOR,
-    label: 'Sensor',
-    description: 'Create a persistent magical sensor.'
   },
   [MANIFEST_KIND.WEAPON]: {
     code: MANIFEST_KIND.WEAPON,

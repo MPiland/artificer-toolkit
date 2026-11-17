@@ -83,7 +83,7 @@ describe('a camouflaged zone through the zone node map (MOVE-3.4)', () => {
 
   it('offers camouflage on a zone and not on any other manifest', async () => {
     expect(nodesOf(await resolve(pit), 'camouflage')).toMatchObject([{ visible: true }])
-    expect(nodesOf(await resolve({ ...pit, manifestKind: 'SENSOR' }), 'camouflage')).toMatchObject([
+    expect(nodesOf(await resolve({ ...pit, manifestKind: 'WEAPON' }), 'camouflage')).toMatchObject([
       { visible: false }
     ])
   })
