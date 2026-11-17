@@ -2633,13 +2633,13 @@
             },
             {
               "id": "PLATFORM-28.T7d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 5,
-                "size": 3,
+                "size": 1,
                 "after": [
                   "PLATFORM-28.T7c",
                   "PLATFORM-28.T7c2",
@@ -2649,9 +2649,10 @@
                   "PLATFORM-28.T7c3d"
                 ]
               },
-              "text": "The fake live transport harness, the fake Convex client and the story-only tabletop fixtures are deleted with a no-importer proof; data fixtures imported by unit tests stay.",
-              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "The last export kept only for the deleted fake tabletop harness (tabletopMapAssetId) is un-exported.",
+              "note": "Registered 2026-11-15 from the T7 seam trace; resize in approved scope (D221). Narrowed to size 1 on 2026-11-16: the harness was already gone. The planned T7e (convert about 110 component stories) was not registered: the D218 amendment lets component stories take DTO-parsed fixture props.",
+              "mergedAt": "2026-11-16",
+              "proof": "m841; slice tip dfef7f5ee: Tests 43966673505, Live 43970441463, Browser journeys 43966673544 green. The fake window harness was already deleted by T7c3d; tabletopMapAssetId is no longer exported."
             },
             {
               "id": "PLATFORM-28.T9",
@@ -2670,8 +2671,7 @@
             },
             {
               "id": "PLATFORM-28.T10",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "text": "The passage browser proof is root-caused and stable: the \"Open pending decision\" button clears as the journey expects, proved by three consecutive green dispatched runs with no rerun.",
               "wsjf": {
@@ -2680,11 +2680,13 @@
                 "rr": 5,
                 "size": 3
               },
-              "note": "Registered 2026-11-16 as a resize in approved scope: the passage proof failed batch runs 43891284200 and 43950526154 and passed on rerun both times."
+              "note": "Registered 2026-11-16 as a resize in approved scope: the passage proof failed batch runs 43891284200 and 43950526154 and passed on rerun both times.",
+              "mergedAt": "2026-11-16",
+              "proof": "m842; slice tip bf1089594: Tests 43973002012, Live 43977528726, Browser journeys 43973002045 plus dispatched passage proofs 43969882993, 43971624797, 43975811937 green with no rerun. Root cause (a product race): the room reported an answered decision for one frame only, and two frames about 2 ms apart reached one React render, stranding the decision drawer. The room now reports the answer until the next decision is shown (the GM_SKIP lifetime) and CampaignVttStage derives the clear. Proof RED at the merge-base: nativeRoomDecisionSettlement.test."
             },
             {
               "id": "PLATFORM-28.T8",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-28.1"],
               "wsjf": {
                 "bv": 3,
@@ -2703,8 +2705,10 @@
                   "PLATFORM-28.T7c3d"
                 ]
               },
-              "text": "The remaining story-only fixture modules are deleted and a guard test fails when a story imports a fixture module; a Storybook run logs no \"No queryFn\" message.",
-              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221)."
+              "text": "A guard test fails when a story imports a story-only fixture module (one no unit test imports); unused fixture modules are deleted; the global fake client stays only for component stories that issue no query, and a Storybook run logs no \"No queryFn\" message (D218 amendment: component stories may take DTO-parsed fixture props shared with unit tests).",
+              "note": "Registered 2026-11-14 from the T1 split; resize in approved scope (D218, D221).",
+              "mergedAt": "2026-11-16",
+              "proof": "m843; slice tip 8479c8bf1: Tests 43979531432, Live 43979593961, Browser journeys 43979531430, full Tests 43982658133 (Storybook tests and e2e log no \"No queryFn\") green. characterRest.fixtures.ts and characterSpell.fixtures.ts deleted; VttLoadFixture kept as the 8K load harness. D218 amendment recorded. Proof RED at the merge-base: storyOnlyFixtures.test."
             }
           ],
           "internalReason": "Developer tooling: changes where Storybook stories get their data, not a product flow."
@@ -27851,10 +27855,9 @@
             },
             {
               "id": "QUALITY-15.T3ah",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
-              "text": "Wall of Force, Wall of Ice, Wall of Stone and Gate carry the Concentration attribute the SRD gives them, so casting them takes Concentration and their zones are maintained by it.",
+              "text": "Every SRD spell carries the Concentration attribute exactly when its SRD Duration line says Concentration (corpus-wide check), so casting the walls and Gate takes Concentration and their zones are maintained by it.",
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
@@ -27862,11 +27865,13 @@
                 "size": 2,
                 "after": ["QUALITY-15.T3ag"]
               },
-              "note": "Registered 2026-11-16 from the T3ag report (source-data rows lacked SPELL_ATTRIBUTE.CONCENTRATION)."
+              "note": "Registered 2026-11-16 from the T3ag report (source-data rows lacked SPELL_ATTRIBUTE.CONCENTRATION).",
+              "mergedAt": "2026-11-16",
+              "proof": "m840; slice tip df9e8fc4b: Tests 43965958152, Live 43965958155, Browser journeys 43965958315 green. Concentration added to Wall of Force, Wall of Ice, Wall of Stone, Gate, Control Weather, Gaseous Form, Giant Insect, Greater Invisibility, Gust of Wind, Locate Creature, Locate Object, Magic Weapon, Reverse Gravity and Scrying, and removed from Animal Friendship, Freedom of Movement and Jump, each checked against its SRD Duration line. Golden: 15 rows (Scrying stays REFUSED with \"D&D Concentration spell has no supported maintained effect.\"). Proof RED at the merge-base: srdConcentrationWallZone.test (3/3)."
             },
             {
               "id": "QUALITY-15.T3v1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "A zone authored with ordered components places one spatial record per layer on the same area with a layer index, and a creature crossing it meets the layers in order; designated creatures are unaffected (D223).",
               "wsjf": {
@@ -27877,11 +27882,12 @@
                 "after": ["QUALITY-15.T3ag"]
               },
               "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace). First green tip cb6151784 (Tests 43954580157, Live 43954580120, Browser journeys 43954580045); re-syncing onto m837.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m841; slice tip ca1b8528e: Tests 43967669366, Live 43967669387, Browser journeys 43967669300 green. Layer records share the zone's single duration and expire together. Proofs RED at the merge-base: nativeRoomLayeredZone.test (4/4), characterSpellCastActions.test (1/185), vtt-spatial.test (2/105)."
             },
             {
               "id": "QUALITY-15.T3v2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Layers are destroyed in order and stay destroyed: the GM destroys the next layer by command, which shows its authored criterion, refuses out of order and can be undone (D223, user ruling 2026-11-16).",
               "wsjf": {
@@ -27891,7 +27897,8 @@
                 "size": 3,
                 "after": ["QUALITY-15.T3v1"]
               },
-              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace)."
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3v3",
@@ -27965,7 +27972,7 @@
             },
             {
               "id": "QUALITY-15.T3w",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Oil (flask) places as one zone component that applies on entering and on ending a turn in it at most once per turn, only once the GM ignites it (IGNITE_ZONE command, user ruling 2026-11-16); its duration starts at ignition; the level-surface rule is left to the GM (placementSurfaceKind removed).",
               "wsjf": {
@@ -27976,11 +27983,12 @@
                 "after": ["QUALITY-15.T3ag"]
               },
               "note": "Registered 2026-11-16 from the T3o report under the standing approval for QUALITY growth (2026-11-13). Resized 3 -> 5 on 2026-11-16: ignition state and GM command (D223).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m843; slice tip f73804bcb: Tests 43979745065, Live 43979744960, Browser journeys 43979744781 green. Oil (flask) places as an unlit zone the GM ignites (IGNITE_ZONE, undone by revertZoneState); the fixed-damage graph has one home (effectActionFixedOutcomeGraph.ts) shared by the compiler and zones; withZoneDcs no longer drops other spatialState fields; compiler cap 3622 -> 3552. Golden: Oil (flask) pour REFUSED -> ZONE_PLACEMENT. Proofs RED at the merge-base: nativeRoomOilIgnition.test (3/3), encounterZoneIgnition.test (5/5), nativeRoomPlayerParity.test (1/46), CampaignTabletopEncounterDrawer.test (1/37)."
             },
             {
               "id": "QUALITY-15.T3x",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Summoned and animated creatures from Concentration spells: Animate Objects stat blocks per object size, Dancing Lights as several light-shedding objects, and Conjure Elemental and Conjure Fey creatures turning hostile when Concentration breaks, through generic summon and light plans.",
               "wsjf": {
@@ -27989,11 +27997,12 @@
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3y",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Maintained Concentration effects with ongoing behavior: Barkskin AC floor, Call Lightning repeat bolt, Delayed Blast Fireball detonating when the spell ends, Flaming Sphere as a movable damaging sphere, Resilient Sphere as a zone attached to its target, Clairvoyance sensor, and Tree Stride, through generic plans.",
               "wsjf": {
@@ -28002,7 +28011,8 @@
                 "rr": 3,
                 "size": 8
               },
-              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3n report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3z",
@@ -28049,7 +28059,7 @@
             },
             {
               "id": "QUALITY-15.T3ac",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "Areas with a Sight or Special range or a slot-scaled size (Storm of Vengeance, Control Weather, Create or Destroy Water) place, and Guards and Wards, Passwall and Find Traps get SRD-cited shapes, through generic placement data.",
               "wsjf": {
@@ -28058,11 +28068,12 @@
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3ad",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "A threshold escalation on an effect with its own duration, and a duration-complete outcome that applies a condition when the effect runs its full course (Flesh to Stone), compile and the room applies them.",
               "wsjf": {
@@ -28071,7 +28082,8 @@
                 "rr": 3,
                 "size": 5
               },
-              "note": "Registered 2026-11-16 from the T3r report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the T3r report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3ae",
@@ -28240,11 +28252,25 @@
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 8,
                 "after": ["QUALITY-15.T3t"]
               },
-              "note": "Registered 2026-11-16 from the T3t split as a resize in approved scope. Seams: effectActionObjectManifestation.ts and the plan chain in effectActionCompiler.ts.",
+              "note": "Registered 2026-11-16 from the T3t split as a resize in approved scope. Seams: effectActionObjectManifestation.ts and the plan chain in effectActionCompiler.ts. Resized 5 -> 8 on 2026-11-16: the improvised thrown items (Acid, Alchemist's Fire, Holy Water, Oil) lacked their Dexterity attack modifier, and Shields proficiency lost its category in the grant fold so it matched every attack item. First green tip c7b0b96e3; re-syncing onto m843.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3ai",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["QUALITY-15.1"],
+              "text": "The Sheet lists a category-scoped all-items equipment proficiency (a Fighter's Shields) on the Character's proficiency list.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3t2 review (sheetProficiency.ts looks the proficiency up by item id \"*\")."
             },
             {
               "id": "QUALITY-15.T3f",
