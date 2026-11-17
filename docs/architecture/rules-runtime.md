@@ -1,12 +1,12 @@
 # Shared rules runtime
 
-> **Status:** canonical current guide for `packages/rules-runtime` and its callers. Phase 8.3 rules scope is target and labeled as such.
+> **Status:** canonical current guide for `packages/rules-runtime` and its callers. Anything not yet built is labeled target or "not built" in place.
 >
 > **Scope:** the pure Rules Kernel, System capability contracts, published definitions, execution, frozen occurrences, decisions, receipts, and who calls the runtime
 >
 > **Update when:** graph contracts, primitive ownership, System capabilities, publication, occurrence, replay or receipt behavior, the package export surface, or a caller changes
 >
-> **Verification:** `packages/rules-runtime`, `packages/encounter-persistence`, `apps/session-worker/src` (`native*`, `room*`), `apps/apis/convex/{content,characters,encounters}`, `apps/web/src/domains/characters/builder/evaluation`, ADRs 0023-0026, 0029, 0034-0036, and [the RUL-9 rules audit](../handoffs/rul-9-rules-audit.md)
+> **Verification:** `packages/rules-runtime`, `packages/encounter-persistence`, `apps/session-worker/src` (`native*`, `room*`), `apps/apis/convex/{content,characters,encounters}`, `apps/web/src/domains/characters/builder/evaluation`, ADRs 0023-0026, 0029, 0034-0036, 0038, and [the RUL-9 rules audit](../handoffs/rul-9-rules-audit.md)
 
 The Rules Kernel (`packages/shared/src/domains/rules`) is a pure execution library. It walks a validated
 bounded graph, accepts explicit facts, random evidence and decisions, and returns typed proposals and a
@@ -272,13 +272,12 @@ four separate lights placed from one cast and moved as a group are not modeled).
 center on the Scene grid (`zoneMoveWithinDistance`), spends the authored activation through the shared rule economy,
 and `persistEncounterMoveZone` re-centers the geometry under a zone-version fence. Occupancy needs no separate path:
 turn triggers read the current geometry, and moving onto a creature is not an entry. A GM undo restores the prior
-geometry and returns the spent activation (`revertZoneMove`). The caster reaches it from the Sheet and encounter
-drawer's zone row, listed as `zoneMoves` on the action choices (QUALITY-15.T3y8b). SRD Flaming Sphere moves 30 feet for a Bonus Action and
-Moonbeam 60 feet for an Action, authored from core options. Target: an offer surface on the Sheet and tabletop (the
-move is a Run command today with no player UI). GM rulings, not authored: steering over barriers and pits, igniting
+geometry and returns the spent activation (`revertZoneMove`). The caster reaches it from the tabletop action
+drawer's zone row (`CampaignTabletopZoneMoves.tsx`), listed as `zoneMoves` on the action choices (QUALITY-15.T3y8b). SRD Flaming Sphere moves 30 feet for a Bonus Action and
+Moonbeam 60 feet for an Action, authored from core options. GM rulings, not authored: steering over barriers and pits, igniting
 unattended flammable objects, the bright and dim light, and the unoccupied-space placement rule.
 
-**A moved zone meeting a creature (target, QUALITY-15.T3y8c; not built).** Moving a zone into a creature is the same
+**A moved zone meeting a creature (target, QUALITY-15.T3y8c; not built, deferred by the 2026-11-17 QUALITY-15 freeze).** Moving a zone into a creature is the same
 contact as a moving source carrying its zone onto one. `collectSpatialMovementCandidates` already raises it for a
 TOKEN-anchored zone whose source moves (`sourceMoved`). In the target, `MOVE_ZONE` runs that collection with the
 zone's own move path and settles its contacts through the spatial movement settlement, persistence and undo, with the
@@ -1708,7 +1707,7 @@ On the tabletop, `CampaignTabletopZoneTool` (`apps/web`) authors the zone throug
 `outcome` node map, sizes it with `pointAreaOfShape` (`shared/vtt`, the same reading the area actions use), aims it
 through the stage's point-area pick and sends `PLACE_ZONE`. It offers undo while the placement is still the Run's last
 action, sending `REVERT_LAST_ACTION` at the placement's committed version so a later command makes the undo stale.
-The stage does not yet draw a placed zone's outline.
+The stage draws each placed zone's outline (SPELLS-17, `vttSceneRenderer.model.ts`), filtered per viewer for concealment.
 
 **Concealed zones (MOVE-3.3, server current; GM DC input and map outline on web pending).** A zone fixed to the Scene
 may carry a spot DC and a disarm DC, each a flat number (`FLAT`) or the placer's Stealth or Sleight of Hand roll result
@@ -2474,7 +2473,7 @@ roll (`TARGET_PRECONDITION_WARNING_CODES`, D173 Q1). Touch range reuses the Heal
 GM, and de-duplicated by the app-roll attempt identity. GM undo, through the generic check receipt, restores the Action, the used
 Help and the target's death saves and keeps the roll on the record (`packages/rules-runtime/src/encounterBasicActionCheck.ts`,
 `packages/encounter-persistence/src/actionRevert.ts`).
-Spare the Dying and Sheet tracking of death saves are not built (target).
+Spare the Dying is authored from the same `STABILIZE` outcome (`packages/source-data/src/srd/spells/spare-the-dying.ts`; room journey `apps/session-worker/test/nativeRoomStabilizeAction.test.ts`). The Sheet tracks death saves (current, D96): the `SET_DEATH_SAVES` Sheet command (`sheetCommandReducer.ts`) and `CharacterSheetDeathSaves.tsx`.
 
 **d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20
 before the check settles. Two commands act on one occurrence: the d20 response pends a second `ENCOUNTER_D20_WINDOW`
@@ -2903,8 +2902,9 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   holder owns the DC. `savingThrow` may be `DERIVED_DC` (`incomingGateSaveDc`: `baseDc` + the owner's ability modifier,
   proficiency bonus and static bonuses, as they stand now). An optional `attackerCreatureTypeIds` limits the ward to attackers
   of those Creature types (a Character has none, so it is never covered). Nature's Sanctuary is authored this way. The
-  payload's `successImmunity {duration}` is authored and node-mapped but **not yet enforced**: runtime immunity needs the
-  Character-target receipt to carry a SOURCE_IMMUNITY effect (T4k2c), so until then a passing attacker saves again on each attack.
+  payload's `successImmunity {duration}` is enforced: an attacker that passes the ward leaves a source immunity on the
+  holder (`passedWardImmunityPlan` in `encounterWardImmunity.ts`, committed by `apps/session-worker/src/nativeGateImmunity.ts`),
+  so it is not asked for the save again; a System that cannot count the duration fails closed.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
@@ -3208,7 +3208,7 @@ Ability-check bonuses (current, SPELLS-31.T5q-B): an `ABILITY_CHECK` `BONUS` gra
 - **Commit:** `selectedEndedEffects` returns the ended effects plus the condition releases. Linked dependents (D172 `withLinkedDependents`) end with their effect, and a condition leaves only when the ended effects were its sole owner (`endedEffectReleases`), all in the one transaction and receipt; undo restores both. The System reads its own outcome back through `ExecutionOutcomeCapabilityAdapter.endsEffects`, so the commit stays system-neutral.
 - **Origin selector (SPELLS-4.T2j2a):** `originCreatureTypeIds` narrows the candidates to effects whose origin creature (`definition.origin.sourceActorId`, kind `ENCOUNTER`) is one of the listed creature types; `actorCreatureTypeIdsOf` resolves the types from the encounter's actors and `planEndEffects` carries them to the commit. Proof: `endEffectsAuthoringParity.test.ts` and `encounterEndedEffectRelease.test.ts`.
 - **Same-effect selector (SPELLS-31.T5k):** an authored `SAME_EFFECT` selector (`{ kind: 'SAME_EFFECT' }`, no fields) matches the effects the outcome's own Effect made earlier, so a new use replaces the old one. `normalizeCharacterActionMechanicFacts` resolves it at compile time to `{ kind: 'SAME_EFFECT', effectId }` (the owning Effect's id), and `endEffectsCandidates` matches `definition.authoredEffectId`. Fiendish Resilience is authored from it: a free, once-between-rests action on its user that picks a damage type (a cast pick on a `SELF` target, whose choice target carries `choiceOptions`), ends its earlier grant and grants the resistance `UNTIL_DISPELLED`. `modifierGrantEntryPlan` holds an `UNTIL_DISPELLED` grant with no counted turns and no recurrence until an `END_EFFECTS` or the GM ends it. It matches the same Effect from any origin, and it runs only in the live room (the Sheet has no out-of-Encounter feature-action command). Proofs: `featureChoiceRulingsAuthoringParity.test.ts`, `encounterEndedEffectRelease.test.ts` and `apps/session-worker/test/nativeRoomFiendishResilience.test.ts`.
-- **Not covered:** a condition held without an owning effect is not ended (`CONDITION_REMOVE.sourceActiveEffectId` is required). Tag selectors (curses, ability and hit-point-maximum reductions) are a separate slice (T2f2); Dispel Magic ships with `levelCheck`; Greater Restoration's exhaustion and attunement clauses and Protection from Poison's grant clauses stay `MANUAL_ADJUDICATION` rulings in a SEQUENTIAL ruling sequence (one executable outcome plus rulings).
+- **Not covered:** a condition held without an owning effect is not ended (`CONDITION_REMOVE.sourceActiveEffectId` is required). Tag selectors (curses, ability and hit-point-maximum reductions) are not built: Remove Curse is a `MANUAL_ADJUDICATION` ruling and the selector is a future enhancement ("Curse tag ending" in future-enhancements); Dispel Magic ships with `levelCheck`; Greater Restoration's exhaustion and attunement clauses and Protection from Poison's grant clauses stay `MANUAL_ADJUDICATION` rulings in a SEQUENTIAL ruling sequence (one executable outcome plus rulings).
 - **Proofs:** `endEffectsAuthoringParity.test.ts` (the SRD Lesser Restoration and a homebrew variant compile to the same plan shape), `encounterEndedEffectRelease.test.ts` (selection, pick, links), `effect-node-maps.test.ts`, and the room journey `apps/session-worker/test/nativeRoomEndEffectsSpell.test.ts`.
 
 ### Character Unarmed Strike and weapon die grants (current, SPELLS-31.T4l2, D156)
@@ -3368,7 +3368,7 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 - **Frozen at cast:** `frozenRepeatOffer` (`encounterActionEffectPlans.ts`) rewrites the stored offer's save to `FIXED_DC` with the DC the cast settled (`d20.defenseOrDc`), or the caster's spell save DC at the cast when the cast forced no save of its own (Call Lightning, QUALITY-15.T3y3; `preparedSpellcasting` in `encounterPreparedSpellCast.ts`), and records the cast level as a sibling `castLevel` (D166 words it as converted rows; a sibling lets the compiler's own scaling rows select, with no second scaling path). The repeat therefore never reads the caster's stats or slots as they stand later.
 - **Action source:** `REPEAT_PATH` (`encounterRepeatPathAction.ts`), id `<actorId>:REPEAT_PATH:<carrierEffectId>:<offerIndex>`. `resolveEncounterActionSource` resolves it from the holder's live effects and compiles the offer's frozen Effect (`compileEffect` then `bindEncounterEffect`); a missing carrier or offer is stale. `featureActionMechanic` supplies `spellCastLevel`, the activation and `save.dc`, so the repeat runs the normal capability pipeline: no slot, no new Concentration.
 - **No new pending arm:** the repeat is an ordinary `RESOLVE_ACTION`; its `ENCOUNTER_ACTION` pending replays the command and the repeat id re-resolves from live effects at each replay.
-- **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
+- **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is the tabletop drawer's effect-offer row (`CampaignTabletopEffectOffers.tsx`, `effectOffers.model.ts`).
 - **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. The activation aspect (`compileDnd5eActivation`) admits a `BONUS_ACTION`, so a `BONUS_ACTION` saving throw (a repeat's charge) compiles through `activatedAction`.
 - **Node maps:** `LOCAL_COLLECTION` sources take `up` (ancestors, nearest first) so the offer's `pathIds` select from the path list several groups up.
 - **Carrier kinds (SPELLS-4.T2n2, D181):** a repeat offer on a grant with no chosen item is an ordinary grant's offer: `modifierGrantPlan` plans it (an offer counts as grant content) and the generic modifier-grant path freezes it, so an attack's carrier works (Vampiric Touch). Only a chosen-item grant takes the Heat Metal rider (`effectActionRepeatCarrier.ts`: save, bound to the item, ends on release). An attack grant authored alike on the hit and the miss applies on either result; two grants on hit results are still refused.
@@ -3643,7 +3643,8 @@ Source-scoped `ATTACK_ROLL` and `DAMAGE` grants. Armor and shield still use real
 `acceptedWieldConflict` naming exactly the evaluated shield; the stow joins the source Character's batch
 (`stowEquippedItemInstanceId`) and the receipt records `sourceItemUseStateTransition`. Initiative
 declarations, movement reactions, Legendary Actions, Cleaving and Disarm are `UNPROMPTED`. Player-driven
-action submission, which would move the prompt to the player, is not built.
+action submission is current: a player controller submits `RESOLVE_ACTION` for its own actor from the tabletop
+action drawer (`CampaignTabletopActionDrawer.tsx` sends `acceptedWieldConflict`), so the prompt reaches the player.
 
 **Weapon draw (ATTACK-19.T2, D107).** A directly resolved attack (`PROMPTED`) whose bound weapon is
 carried draws it into a free hand for no action; declared, reactive and follow-up attacks never do.
@@ -4688,11 +4689,10 @@ copy shows the specific reason.
 
 These are not current behavior:
 
-- Phase 8.3 "Player play parity" ([ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md)):
-  spell casting and area targeting, death saves, Sheet-tabletop integration, map targeting, non-movement
-  reactions. Core spell casting and the slot spend are current (SPELLS-8.T1); the Fireball journey, Spare the Dying and `APPLY_GRANT` spells are SPELLS-8.T2 to T4. The gaps by area (grapple,
-  conditions) are in
-  [the RUL-9 audit](../handoffs/rul-9-rules-audit.md).
+- Phase 8.3 "Player play parity" ([ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md)) is no longer a
+  target for the rules in this guide. Spell casting, area targeting, death saves and non-movement reactions (`reactionTrigger`, [ADR 0038](../adr/0038-rules-authored-from-core-options.md)) are current and described above; the
+  rules gaps the RUL-9 audit listed (grapple, conditions) are a 2026-10-01 snapshot in
+  [the RUL-9 audit](../handoffs/rul-9-rules-audit.md), not a current list.
 - Opposed-test, dice-pool and result-band, and level-less-track Kernel fixtures are conformance work, not
   current Kernel capabilities.
 - Acceptance status of the room and Convex flows is tracked in the
