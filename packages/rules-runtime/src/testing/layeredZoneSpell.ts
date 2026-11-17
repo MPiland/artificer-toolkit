@@ -1,10 +1,11 @@
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { prismaticWall } from '@artificer-toolkit/source-data/srd/spells/prismatic-wall.js'
 
-/** What a layered zone authors that later D223 slices model: destruction, proximity, light, placement refusal. */
+/**
+ * What a layered zone authors that later D223 slices model: proximity, light, placement refusal and
+ * what ends the whole zone.
+ */
 const LATER_SLICE_KEYS = [
-  'destructionMustResolveInOrder',
-  'destroyedComponentsRemainDestroyed',
   'placementMustBeUnoccupied',
   'invalidPlacementConsumesInvocation',
   'proximityRule',
@@ -16,8 +17,9 @@ const LATER_SLICE_KEYS = [
  * A layered zone authored from core options (D223): the SRD Prismatic Wall's wall and sphere with
  * only their first `layerCount` layers (Red fire, Orange acid, Yellow lightning: a Dexterity save
  * against the caster's DC for 10d6, half on a success), resolving in order and sparing the creatures
- * its caster designates, without anything later slices build. It lasts `minutes` (10, as the wall
- * does) with no Concentration.
+ * its caster designates, each destroyed in order by what it authors (Red by 25 cold damage, Orange
+ * by a strong wind, Yellow by 60 force damage), without anything later slices build. It lasts
+ * `minutes` (10, as the wall does) with no Concentration.
  */
 export function layeredZoneSpell(layerCount = 3, minutes = 10): SpellAuthored {
   const spell: SpellAuthored = { ...structuredClone(prismaticWall), label: 'Layered Ward' }
@@ -32,7 +34,7 @@ export function layeredZoneSpell(layerCount = 3, minutes = 10): SpellAuthored {
       for (const key of LATER_SLICE_KEYS) delete outcome[key]
       outcome.components = outcome.components
         ?.slice(0, layerCount)
-        .map(({ destructionCriteria, blockingRules, ...layer }) => layer)
+        .map(({ blockingRules, ...layer }) => layer)
     }
   }
   return spell

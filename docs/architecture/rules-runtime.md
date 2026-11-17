@@ -1684,9 +1684,20 @@ mover.
 the whole zone (`definition`, `lifecycle`, `placement`, `spatialState`) and the GM's undo recreates it under the same id
 (`revertZoneDisarm`). `IGNITE_ZONE` (GM-only, QUALITY-15.T3w) clears `unlit` from a zone placed waiting to be lit
 (`igniteZone`); a lit zone is `TARGET_UNAVAILABLE`. It shares the `before`/`after` receipt and `revertZoneState` undo, which
-puts the zone out again. The five zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
+puts the zone out again. The zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
 GM-only in `placedZones`, including for a player who was shown the zone. A botched disarm is the GM's call.
 
+**Destroying a layer (QUALITY-15.T3v2, D223, current).** A layered zone's component may author `destructionCriteria`;
+the compiler (`placedSpaceZone`) accepts them only on a layered zone whose manifest authors
+`destroyedComponentsRemainDestroyed`, and `destructionMustResolveInOrder` becomes the plan's `destructionInOrder`. Each layer
+record then carries `placement.destruction` (`zoneId`: the zone's own first-layer record, which groups its layers;
+`inOrder`; the authored `criteria`). `DESTROY_ZONE_LAYER` (GM-only) deletes one such record and refuses a layer while an
+earlier layer of an in-order zone remains (`zoneLayerOutOfOrder`, `encounterZoneLayerDestruction.ts`). A deleted layer stays
+destroyed. It shares `DISARM_ZONE`'s receipt, which now also keeps the record's `maintainedEffectStateId`, and its undo
+(`revertZoneDisarm`). `DISARM_ZONE` refuses a layer record, and `placedZones[].layer` marks one so the drawer offers no
+Disarm. The GM's `placedZones[].destruction` lists the criteria as text in
+the System's damage terms (`zoneLayerDestructionCriterionText`) and whether the layer is next; players read null. The GM
+drives it from the encounter drawer's zone controls. A player destroying a layer by the criterion is later work.
 **Unnoticed zones (MOVE-3.6, current).** An actor not in a concealed zone's `knownByActorIds` has not noticed it.
 `toSpatialInstances` carries `knownByActorIds` onto the spatial instance, and `crossesSpatialFieldCarefully`
 (`shared/vtt/spatial.ts`) lets a careful mover skip the entry save and pay double only in a field it knows of: both
