@@ -122,12 +122,9 @@ import { CampaignVttCarefulMoveChoice } from './CampaignVttCarefulMoveChoice'
 import { CampaignVttFacingChoice } from './CampaignVttFacingChoice'
 import { CampaignVttSceneObjectMenu } from './CampaignVttSceneObjectMenu'
 import { CampaignVttForcedMovementPick } from './CampaignVttForcedMovementPick'
-import {
-  forcedMovementDestinationOverlays,
-  forcedMovementDestinationPick
-} from './vttForcedMovementPick.model'
+import { forcedMovementDestinationOverlays } from './vttForcedMovementPick.model'
 import { CampaignTabletopSummonTurnPrompt } from './CampaignTabletopSummonTurnPrompt'
-import { isEncounterActorMine } from './encounterActorControl'
+import { useForcedMovementDestination } from './useForcedMovementDestination'
 
 export function CampaignVttStage({
   campaign,
@@ -615,36 +612,14 @@ export function CampaignVttStage({
     [controlledScene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
   // A forced movement waiting on its source is picked on the board by whoever acts for it (D157).
-  const destinationPending =
-    pendingOccurrence?.kind === 'FORCED_MOVEMENT_DESTINATION' ? pendingOccurrence : null
-  const destinationSource = encounterActors.find(
-    ({ id }) => id === destinationPending?.sourceActorId
-  )
-  const destinationTokenId = [...actorIdByTokenId].find(
-    ([, actorId]) => actorId === destinationPending?.targetActorId
-  )?.[0]
-  const destinationPick = useMemo(
-    () =>
-      destinationPending &&
-      renderedScene &&
-      destinationTokenId &&
-      destinationSource &&
-      isEncounterActorMine(campaign, currentUserId, destinationSource, encounterActors)
-        ? forcedMovementDestinationPick({
-            pending: destinationPending,
-            scene: renderedScene,
-            targetTokenId: destinationTokenId
-          })
-        : null,
-    [
-      campaign,
-      currentUserId,
-      destinationPending,
-      destinationSource,
-      destinationTokenId,
-      renderedScene
-    ]
-  )
+  const { pending: destinationPending, pick: destinationPick } = useForcedMovementDestination({
+    actorIdByTokenId,
+    actors: encounterActors,
+    campaign,
+    currentUserId,
+    pendingOccurrence,
+    scene: renderedScene
+  })
   // A destination this viewer picks on the board is answered there, not in the decision drawer.
   const drawerDecision = (destinationPick ? null : pendingOccurrence) ?? settledDecision
   const tokenArtUrls = useVttTokenArtUrls({

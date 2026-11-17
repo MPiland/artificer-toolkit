@@ -41,8 +41,6 @@ import {
   canControlSceneToken,
   canPreserveSceneTokenDrag,
   clampPolygonToRadius,
-  darknessZoneStyle,
-  dashedPolygonSegments,
   dimOverlayAlpha,
   ellipseArcPoints,
   describeAreaOverlays,
@@ -92,6 +90,12 @@ import {
   facingArcDiagnostics,
   tokenFacingLabel
 } from './vttTokenFacing'
+import {
+  darknessZoneCues,
+  darknessZoneLabelPrefix,
+  dashedOutline,
+  obscurementLabelPrefix
+} from './vttDarknessZoneCues'
 import { createVttAreaAimGesture } from './vttAreaAimGesture'
 import type { VttSceneRendererDiagnostics } from './vttSceneRendererDiagnostics'
 import { createVttPingPress, isVttPingKey, vttPingRingFrame } from './vttPing'
@@ -264,10 +268,8 @@ const tokenSelectionLabel = 'token-selection'
 const zoomFactor = 1.1
 /** A larger map renders its darkness and sight textures at a lower resolution than this. */
 const maxLightingTextureSize = 2048
-const darknessZoneLabelPrefix = 'darkness-zone:'
 /** A zone whose System level dispels light; other zones are labelled by their render class. */
 const darknessZoneSuppressingLabel = `${darknessZoneLabelPrefix}SUPPRESSES_LIGHT`
-const obscurementLabelPrefix = 'obscurement:'
 const lightTintDimLabel = 'light-tint-dim'
 const lightTintBrightLabel = 'light-tint-bright'
 
@@ -1067,59 +1069,12 @@ export async function createVttSceneRenderer(
         }
     }
     for (const area of areas) if (area.level.suppressesLight) drawArea(area)
-    for (const zone of scene.darknessZones) drawZoneCues(zone)
+    for (const zone of scene.darknessZones)
+      obscurementLayer.addChild(...darknessZoneCues(pixi, zone, illuminationLevels, colors))
     darknessTexture = textureForMap(darknessTexture, map)
     renderLightingTexture(classMap, darknessTexture, map)
     darknessSprite.texture = darknessTexture
     darknessSprite.scale.set(map.width / darknessTexture.width)
-  }
-
-  /** What a zone shows beyond its class: a visual-only fill, and non-colour outlines. */
-  function drawZoneCues(zone: CampaignSceneStateDto['darknessZones'][number]): void {
-    const style = darknessZoneStyle(zone, illuminationLevels)
-    const points = zone.polygon.points
-    if (zone.mechanicalIllumination === null) {
-      const fill = new pixi.Graphics()
-        .poly(points.flatMap((point) => [point.x, point.y]))
-        .fill({ alpha: zone.opacity, color: colors.darkness })
-      fill.label = `${darknessZoneLabelPrefix}VISUAL`
-      obscurementLayer.addChild(fill)
-    }
-    const { obscurementOutline } = style
-    if (obscurementOutline) {
-      const outline =
-        obscurementOutline.dash === null
-          ? new pixi.Graphics()
-              .poly(points.flatMap((point) => [point.x, point.y]))
-              .stroke({ color: colors.barrier, width: obscurementOutline.width })
-          : dashedOutline(points, obscurementOutline.dash, obscurementOutline.gap, {
-              color: colors.barrier,
-              width: obscurementOutline.width
-            })
-      outline.label = `${obscurementLabelPrefix}${zone.mechanicalObscurement}`
-      obscurementLayer.addChild(outline)
-    }
-    if (style.illuminationOutline) {
-      obscurementLayer.addChild(
-        dashedOutline(points, style.illuminationOutline.dash, style.illuminationOutline.gap, {
-          color: colors.arcane,
-          width: style.illuminationOutline.width
-        })
-      )
-    }
-  }
-
-  function dashedOutline(
-    points: readonly ScenePoint[],
-    dash: number,
-    gap: number,
-    stroke: { color: number; width: number }
-  ): Graphics {
-    const outline = new pixi.Graphics()
-    for (const [from, to] of dashedPolygonSegments(points, dash, gap)) {
-      outline.moveTo(from.x, from.y).lineTo(to.x, to.y)
-    }
-    return outline.stroke({ ...stroke, cap: 'round' })
   }
 
   /**
@@ -1866,6 +1821,7 @@ export async function createVttSceneRenderer(
     token: CampaignSceneStateDto['tokens'][number]
   ): void {
     const outline = dashedOutline(
+      pixi,
       ellipseArcPoints(
         token.width / 2 + selectionOutlineOffset,
         token.height / 2 + selectionOutlineOffset,
