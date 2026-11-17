@@ -25143,7 +25143,7 @@
                 "tc": 13,
                 "rr": 8,
                 "size": 2,
-                "after": ["PERF-1.T8", "PERF-1.T9", "PERF-1.T10", "PERF-1.T11"]
+                "after": ["PERF-1.T8", "PERF-1.T9", "PERF-1.T10", "PERF-1.T11", "PERF-1.T12"]
               },
               "text": "D229 step 5: scripts/v15Budgets.mjs stops scaling fixed COMPLETE costs (actors, scenes) per command and includes the post-START save, then V15 runs in CI on the final source and scripts/v15Budgets.mjs gates it at 4.3 MB (D209). Projected 3.6 to 4.2 MB; if still over, report the measured figure to the user."
             },
@@ -25189,17 +25189,30 @@
             },
             {
               "id": "PERF-1.T11",
-              "status": "IN_PROGRESS",
+              "status": "TODO",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 13,
                 "rr": 8,
                 "size": 3,
-                "after": []
+                "after": ["PERF-1.T9"]
               },
-              "text": "D229 step 4 (user, 2026-11-17): an action posts one chat card holding its attack, damage and save rolls (Foundry midi-qol style) instead of one card per roll; private and revealed rolls keep their visibility rules; follow DESIGN.md for the card; prove the card content and the entries-per-command drop with real-code tests and a browser check of the card.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "D229 step 4a: a ROLL chat entry carries a non-empty rolls list instead of one roll (schema, stored payload, nonce fingerprint and replay, presentation and visibility projection; GM reveal and rest consumption stay per roll); standalone and free rolls become a one-item list with unchanged behaviour; the web chat card renders every roll per DESIGN.md; migrate development data in the same change.",
+              "note": "Resized 2026-11-17 from the seam trace (D229 step 4 resize): persisted contract shared with T9, so it follows T9."
+            },
+            {
+              "id": "PERF-1.T12",
+              "status": "TODO",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 2,
+                "after": ["PERF-1.T11"]
+              },
+              "text": "D229 step 4b: recordActionRollCards and recordIncomingGateRollCards collect an action's TABLE-audience rolls and write one card per author at commit end (an area cast is one action); private rolls stay out of chat; prove one entry holding attack, damage and save, no private roll in the table payload, a standalone roll unchanged, the entries-per-command drop, and a Browser journeys assertion on the card."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
