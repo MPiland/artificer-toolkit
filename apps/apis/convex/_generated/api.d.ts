@@ -296947,6 +296947,16 @@ export declare const api: {
             id: string;
             label: string | null;
             layer?: true;
+            light?: {
+              bright: {
+                amount: number;
+                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+              };
+              dimAdditional: {
+                amount: number;
+                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+              };
+            };
             shape:
               | {
                   center: { x: number; y: number };
