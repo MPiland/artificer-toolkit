@@ -411,7 +411,7 @@ export async function readNativeLiveMovementInputs(input: {
     !save.movementResolution &&
     command.movementKind !== 'TELEPORT' &&
     spatialPathBlockingEffect({
-      effects: toSpatialInstances(spatialEffects, state.actors),
+      effects: toSpatialInstances(spatialEffects, actors),
       tokens: scene.tokens,
       moverTokenId: token.id,
       path: command.path
