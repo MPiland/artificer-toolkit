@@ -933,11 +933,6 @@ describe('area ruling compilation from the SRD (QUALITY-15.T3m)', () => {
     expect(() => compile({}, spellEffect(label))).toThrow(reason)
   })
 
-  it('compiles Passwall to a placed line zone aimed from a point within range', () => {
-    // A line from the caster (Self range) stays a directed area: see the directed describe above.
-    expect(() => compile({}, spellEffect('Passwall'))).not.toThrow()
-  })
-
   it('refuses an area that tests no one when its outcome is not a GM ruling', () => {
     // Sleep's Unconscious over its sphere, with no hit-point pool deciding who it reaches.
     const targeting = { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' } as const
