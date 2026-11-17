@@ -32,7 +32,8 @@ const storyBrowser: BrowserConfigOptions = {
   enabled: true,
   fileParallelism: false,
   headless: true,
-  provider: playwright({}),
+  // A CI runner's /dev/shm is 64 MB; Chromium renderers that outgrow it crash between story files.
+  provider: playwright({ launchOptions: { args: ['--disable-dev-shm-usage'] } }),
   instances: [{ browser: 'chromium' }]
 }
 
