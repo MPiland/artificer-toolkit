@@ -10,7 +10,8 @@ import {
   casterCenteredAreaWolf,
   directedAreaWolf,
   fireballWolf,
-  frightenOnFailedSave
+  frightenOnFailedSave,
+  userCenteredAreaWolf
 } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
@@ -161,6 +162,28 @@ describe('room radius centered on the caster', () => {
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect(vitalsOf(await readRoomHistory(stub))).toEqual(vitalsOf(before))
+  })
+})
+
+describe('room radius centered on the caster over a distance range (QUALITY-15.T3ac3)', () => {
+  // A sphere authored as centered on its user is placed on the caster, not at a point within its
+  // 120 ft range ("any trap within range").
+  it('offers the area with no aim and catches the Wolves within its radius', async () => {
+    const room = await centeredRoom(userCenteredAreaWolf(10, 120))
+    expect((await room.actionChoices()).actions.map(({ target }) => target)).toEqual([
+      { kind: 'CASTER_CENTERED', area: { kind: 'RADIUS', radius: feet(10) } }
+    ])
+    const { answer } = await room.startCasterCenteredAreaAction()
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await pendingSaves(room)).toEqual([FIRST_ID, SECOND_ID].sort())
+  })
+
+  it('refuses a point for it', async () => {
+    const room = await centeredRoom(userCenteredAreaWolf(10, 120))
+    expect((await room.startAreaAction({ x: 350, y: 150 })).answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'TARGET_UNAVAILABLE'
+    })
   })
 })
 

@@ -46,8 +46,13 @@ const shape = buildNodeMap<ShapeAuthored>()
 
 export const SHAPE_NODE_MAP = shape.define('shape', ({ map, cond, nodes, logic }) => {
   const { or } = logic
-  const { selectSingle, groupObject } = nodes
+  const { selectSingle, groupObject, toggle } = nodes
   const local = cond.local()
+  const isRound = or([
+    local.field(['shapeKind']).eq('CYLINDER'),
+    local.field(['shapeKind']).eq('SPHERE'),
+    local.field(['shapeKind']).eq('CIRCLE')
+  ])
 
   map
     .set(
@@ -128,6 +133,14 @@ export const SHAPE_NODE_MAP = shape.define('shape', ({ map, cond, nodes, logic }
         presentation: 'inline',
         order: 2,
         showIf: local.field(['shapeKind']).eq('WALL')
+      })
+    )
+    .set(
+      'centeredOnUser',
+      toggle(['centeredOnUser'], 'Centered on Its User', {
+        order: 3,
+        showIf: isRound,
+        hiddenBehavior: 'CLEAR'
       })
     )
 })

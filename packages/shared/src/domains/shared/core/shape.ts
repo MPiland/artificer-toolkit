@@ -70,6 +70,11 @@ export type ShapeMeasurementAuthored = ShapeMeasurementValueAuthored & {
   scaling?: ScalableValueAuthored<ShapeMeasurementValueAuthored>
 }
 
+/** A round area centered on its user whatever its range ("any trap within range"). */
+type CenteredOnUserAuthored = {
+  centeredOnUser?: boolean
+}
+
 export type ShapePayloadByType = {
   [SHAPE_KIND.LINE]: {
     length: ShapeMeasurementAuthored
@@ -84,10 +89,10 @@ export type ShapePayloadByType = {
   [SHAPE_KIND.CYLINDER]: {
     height: ShapeMeasurementAuthored
     radius: ShapeMeasurementAuthored
-  }
+  } & CenteredOnUserAuthored
   [SHAPE_KIND.SPHERE]: {
     radius: ShapeMeasurementAuthored
-  }
+  } & CenteredOnUserAuthored
   [SHAPE_KIND.WALL]: {
     length: ShapeMeasurementAuthored
     height: ShapeMeasurementAuthored
@@ -95,7 +100,7 @@ export type ShapePayloadByType = {
   }
   [SHAPE_KIND.CIRCLE]: {
     radius: ShapeMeasurementAuthored
-  }
+  } & CenteredOnUserAuthored
   [SHAPE_KIND.DOME]: {
     radius: ShapeMeasurementAuthored
   }
