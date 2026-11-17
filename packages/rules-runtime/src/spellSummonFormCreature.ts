@@ -15,6 +15,7 @@ import {
   type NumericExpr
 } from '@artificer-toolkit/shared/core'
 import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
@@ -185,6 +186,9 @@ export function summonFormActorCreature(
       id: creature.id,
       label: creature.label,
       systemId: creature.systemId,
+      // The form is its own source: its one revision is the version, and the stat block its checksum.
+      sourceVersionId: creature.id,
+      sourceChecksum: checksumCanonicalJson(creature),
       sourceRevision: 1,
       maxHitPoints,
       payload: creature,

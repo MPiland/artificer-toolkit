@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { animateObjects } from '@artificer-toolkit/source-data/srd/spells/animate-objects.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { snapshotStatBlock } from '../encounterProjection.js'
-import { summonFormCreature } from '../spellSummonFormCreature.js'
+import { summonFormActorCreature, summonFormCreature } from '../spellSummonFormCreature.js'
+import { SRD_VOCABULARY } from '../testing/dnd5eSrdEncounter.js'
 
 const forms = (animateObjects.effects ?? [])
   .flatMap((effect) => effect.paths)
@@ -42,6 +43,23 @@ describe('summonFormCreature (QUALITY-15.T3x2)', () => {
       label: 'Slam',
       rollDefinitions: [{ kind: 'ATTACK', expression: { die: 20, modifier: 8 } }],
       effects: [{ invocation: { range: { amount: 5 } } }]
+    })
+  })
+
+  it('carries the immutable source provenance creature actions are discovered from', () => {
+    const form = forms[0]!
+    const { snapshot } = summonFormActorCreature({
+      form,
+      systemId: SRD_SYSTEM_ID,
+      userId: SRD_USER_ID,
+      vocabulary: SRD_VOCABULARY
+    })
+    expect(snapshot).toMatchObject({
+      kind: 'CREATURE',
+      id: form.id,
+      sourceVersionId: form.id,
+      sourceChecksum: expect.stringMatching(/^[a-f0-9]{64}$/),
+      sourceRevision: 1
     })
   })
 
