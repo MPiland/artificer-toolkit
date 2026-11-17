@@ -40,7 +40,6 @@ export function repeatSaveEffectPlan(
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { saveEntry, leadEntries } = directRepeatSaveEntries(entries)
   const leadEntry = leadEntries[0]
-  const entryId = compiledEntryId ?? leadEntry?.resultBlockId ?? ''
   const pathCode = triggerCode === 'ACTIVATED' ? 'ON_USE' : 'ON_SAVE_FAIL'
   if (
     // A cast with no save of its own applies only what its save repeats (Power Word Stun).
@@ -70,6 +69,7 @@ export function repeatSaveEffectPlan(
   ) {
     return null
   }
+  const entryId = compiledEntryId ?? leadEntry.resultBlockId
   const lead = leadEntry.outcome
   const save = saveEntry.outcome
   const leadConditions = leadEntries.flatMap((entry) =>
