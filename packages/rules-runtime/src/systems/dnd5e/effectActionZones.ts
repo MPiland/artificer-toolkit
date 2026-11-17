@@ -733,7 +733,7 @@ type ZoneHeldCondition = NonNullable<CharacterRuleActionZonePlacementPlan['heldC
  */
 function zoneHeldRepeatSave(
   action: Dnd5eCompiledEffectActionSource,
-  failEntries: readonly CompiledEffectGroup['entries'][number][]
+  failEntries: CompiledEffectGroup['entries']
 ): NonNullable<ZoneHeldCondition['repeatSave']> {
   const plan = repeatSaveEffectPlan(action, failEntries)
   const save = failEntries.flatMap((entry) =>

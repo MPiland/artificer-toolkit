@@ -33,7 +33,7 @@ import { canonicalRepeatTriggers } from './effectActionRepeatCarrier.js'
  */
 export function repeatSaveEffectPlan(
   action: Dnd5eCompiledEffectActionSource,
-  entries: readonly CompiledEffectGroup['entries'][number][],
+  entries: CompiledEffectGroup['entries'],
   triggerCode: 'SAVING_THROW' | 'ACTIVATED' = 'SAVING_THROW'
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { saveEntry, leadEntries } = directRepeatSaveEntries(entries)
