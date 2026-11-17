@@ -3,9 +3,15 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_VALUE_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALING,
+  SCALING_AMOUNT_KIND,
+  SCALING_SOURCE,
+  SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -15,7 +21,32 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+/**
+ * The space within 5 feet of the 5-foot sphere: on the grid, the sphere's square and every square
+ * around it, a 15-foot cube centered on the sphere.
+ */
+const reach = (kind: number) => ({
+  id: spellChildId(SPELL_IDS.FLAMING_SPHERE, kind, 1),
+  shapeKind: SHAPE_KIND.CUBE,
+  edgeLength: { amount: 15, unit: MEASUREMENT_UNIT_CODE.FEET }
+})
+/** The sphere's fire damage: 2d6 cast at the 2nd level, and 1d6 more for each slot level above it. */
+const sphereDamage = (kind: number) => ({
+  id: spellChildId(SPELL_IDS.FLAMING_SPHERE, kind, 1),
+  effectKind: EFFECT_KIND.DAMAGE,
+  damageTypeId: damageTypeId('FIRE'),
+  valueKind: DAMAGE_VALUE_KIND.DICE,
+  scalingKind: SCALING.PER_LEVEL,
+  scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+  levels: Array.from({ length: 8 }, (_, index) => ({
+    id: spellChildId(SPELL_IDS.FLAMING_SPHERE, kind, index + 2),
+    level: index + 2,
+    order: index + 1,
+    diceConfig: `${index + 2}d6`
+  }))
+})
 export const flamingSphere: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.FLAMING_SPHERE,
@@ -46,6 +77,7 @@ export const flamingSphere: SpellAuthored = {
           amount: 60,
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
+        shape: reach(0x215),
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
           dispositionKind: TARGET_DISPOSITION_KIND.ANY
@@ -62,14 +94,76 @@ export const flamingSphere: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x214, 1),
+              durationKind: 'MINUTE',
+              amount: 1
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: 'Resolve Environmental Ignition',
-                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions:
-                  'The sphere ignites flammable objects not being worn or carried, and it sheds bright light in a 20-foot radius and dim light for an additional 20 feet.'
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Flaming Sphere',
+                shape: reach(0x220),
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x221, 1),
+                    order: 1,
+                    label: 'End a turn beside the sphere',
+                    interactionKinds: ['END_TURN_IN_SPACE' as const],
+                    behaviors: [
+                      {
+                        id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: TRIGGER.SAVING_THROW,
+                          savingThrow: {
+                            id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x223, 1),
+                            dcMethod: 'SOURCE_SAVE_DC' as const,
+                            abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
+                          },
+                          range: {
+                            id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x224, 1),
+                            rangeKind: RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x225, 1),
+                            order: 1,
+                            pathCode: PATH_CODE.ON_SAVE_FAIL,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x225, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [sphereDamage(0x226)]
+                            }
+                          },
+                          {
+                            id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x227, 1),
+                            order: 2,
+                            pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+                            groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x227, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [
+                                { ...sphereDamage(0x228), amountKind: SCALING_AMOUNT_KIND.HALF }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

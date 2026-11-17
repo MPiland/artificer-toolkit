@@ -230,8 +230,10 @@ export type EncounterZoneChoiceTarget = Extract<
 
 /**
  * What placing `zone` with an action of `rangeKind` asks the client to aim, as authored (D154): a
- * straight wall between two endpoints within range, a ring (a hollow round zone) around a point
- * within range, or the point or caster a filled zone is centered on ({@link encounterAreaTargetKind}).
+ * straight wall between two endpoints within range, a line (Passwall's passage) from a point within
+ * range toward a direction, drawn as a wall whose far end only gives that direction and a length no
+ * longer than the line ({@link zoneAimedPoints}), a ring (a hollow round zone) around a point within
+ * range, or the point or caster a filled zone is centered on ({@link encounterAreaTargetKind}).
  * The zone's own shape decides, never the action's: a cast that offers several zones may offer
  * several shapes. Null is a zone this path cannot place. The compiler, the action's choice and the
  * Worker all read it.
@@ -246,10 +248,12 @@ export function encounterZoneChoiceTarget(
   // A band beside the wall is reached on the side the caster picks once the wall is aimed.
   const band = zone.regionComponents?.find(({ region }) => region.kind === 'SIDE_BAND')
   const sideBand = band ? { sideBand: { distance: band.region.distance } } : {}
-  if (shape.shapeKind === 'WALL')
-    return shape.thickness && rangeKind !== 'SELF'
-      ? { kind: 'WALL', area: { maxLength: shape.length, thickness: shape.thickness }, ...sideBand }
+  if (shape.shapeKind === 'WALL' || shape.shapeKind === 'LINE') {
+    const thickness = shape.shapeKind === 'WALL' ? shape.thickness : shape.width
+    return thickness && rangeKind !== 'SELF'
+      ? { kind: 'WALL', area: { maxLength: shape.length, thickness }, ...sideBand }
       : null
+  }
   const area = pointAreaOfShape(shape)
   if (ringThickness)
     return area?.kind === 'RADIUS' && rangeKind !== 'SELF'
@@ -572,6 +576,27 @@ type ZoneCommandTarget =
 const AREA_SIZE_TOLERANCE = 1e-6
 
 /**
+ * The points a command aims that range and sight are measured at: a point area's point, a wall's two
+ * ends, a ring's center, and a line zone's origin alone, since its far end only gives the direction
+ * and the length it runs (Passwall's passage reaches into a surface the caster cannot see through).
+ */
+export function zoneAimedPoints(
+  zoneShapeKind: string | null,
+  target: ResolveEncounterActionTargetDto | ZoneCommandTarget
+): ScenePoint[] {
+  switch (target.kind) {
+    case 'POINT':
+      return [target.point]
+    case 'WALL':
+      return zoneShapeKind === 'LINE' ? [target.from] : [target.from, target.to]
+    case 'RING':
+      return [target.center]
+    default:
+      return []
+  }
+}
+
+/**
  * Resolves where a zone is placed from the zone's own target (D154), {@link encounterZoneChoiceTarget}:
  * the area it covers, and the overridable range and sight warnings for the points it is aimed at (a
  * wall's two endpoints, a ring's or a point area's center). A refusal is hard and says why: the
@@ -668,12 +693,12 @@ export function evaluateEncounterZoneTarget(input: {
   }
   if (aim?.kind === 'POINT' && target.kind === 'POINT') {
     const shape = pointAreaInSceneCoordinates(aim.area, grid)
-    const warnings = aimedAt([target.point])
+    const warnings = aimedAt(zoneAimedPoints(input.zone.shape.shapeKind, target))
     return shape && warnings ? placed(shape, warnings) : unsupported
   }
   if (aim?.kind === 'WALL' && target.kind === 'WALL') {
     const bounds = wallAreaBoundsInSceneCoordinates({ kind: 'WALL', ...aim.area }, grid)
-    const warnings = aimedAt([target.from, target.to])
+    const warnings = aimedAt(zoneAimedPoints(input.zone.shape.shapeKind, target))
     if (!bounds || !warnings) return unsupported
     const length = Math.hypot(target.to.x - target.from.x, target.to.y - target.from.y)
     if (length > bounds.maximum * (1 + AREA_SIZE_TOLERANCE)) return { refusal: 'AREA_TOO_LARGE' }
@@ -682,7 +707,7 @@ export function evaluateEncounterZoneTarget(input: {
   }
   if (aim?.kind === 'RING' && target.kind === 'RING') {
     const bounds = wallAreaBoundsInSceneCoordinates({ kind: 'RING', ...aim.area }, grid)
-    const warnings = aimedAt([target.center])
+    const warnings = aimedAt(zoneAimedPoints(input.zone.shape.shapeKind, target))
     if (!bounds || !warnings) return unsupported
     const { outerRadius } = target
     if (outerRadius > bounds.maximum * (1 + AREA_SIZE_TOLERANCE))

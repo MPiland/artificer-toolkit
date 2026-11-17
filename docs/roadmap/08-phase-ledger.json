@@ -27910,11 +27910,24 @@
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["QUALITY-15.T3v2"]
               },
-              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace).",
+              "note": "Split from QUALITY-15.T3v on 2026-11-16 (resized 5 -> 18 after the seam trace). Resized 3 -> 5 on 2026-11-16: OCCUPANT_SEES_ZONE sight rule, proximity halo, timed held condition and the turn-boundary proof; movement entry split to T3v3b.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3v3b",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "A creature that moves within range of a proximity zone it can see triggers its effect, with the Worker computing sight from the mover's pre-move position.",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3v3 report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3v4",
@@ -28012,10 +28025,23 @@
                 "bv": 3,
                 "tc": 2,
                 "rr": 3,
-                "size": 5
+                "size": 8
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13).",
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3x report under the standing approval for QUALITY growth (2026-11-13). Resized 5 -> 8 on 2026-11-16: a generic spell-defined summon body with authored actions, plus Animate Objects at its base slot; upcasting split to T3x2c.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "QUALITY-15.T3x2c",
+              "status": "TODO",
+              "closes": ["QUALITY-15.1"],
+              "text": "The summon command carries the cast slot level, and per-slot summon counts apply (Animate Objects; the lowest-slot gap in Conjure Animals and Conjure Minor Elementals).",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3x2 report under the standing approval for QUALITY growth (2026-11-13)."
             },
             {
               "id": "QUALITY-15.T3x3",
@@ -28089,7 +28115,7 @@
             },
             {
               "id": "QUALITY-15.T3y5",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Flaming Sphere places a Concentration-held zone that deals fire damage (Dexterity save for half) to a creature ending its turn within 5 feet.",
               "wsjf": {
@@ -28099,7 +28125,8 @@
                 "size": 3
               },
               "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13). Narrowed from 8 to 3: the movable-sphere command split to T3y8.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m850; slice tip 5a44616c4: Tests 44017882307, Live 44017882251, Browser journeys 44017882421 green. Flaming Sphere places a Concentration-held zone dealing fire damage (Dexterity save for half) to a creature ending its turn within 5 feet. Golden: Flaming Sphere REFUSED -> ZONE_PLACEMENT."
             },
             {
               "id": "QUALITY-15.T3y6",
@@ -28129,7 +28156,7 @@
             },
             {
               "id": "QUALITY-15.T3y8",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["QUALITY-15.1"],
               "text": "The caster moves a maintained zone by an authored distance with an authored action (Flaming Sphere: bonus action, 30 feet; Moonbeam: action, 60 feet), and the GM can undo the move.",
               "wsjf": {
@@ -28138,7 +28165,8 @@
                 "rr": 3,
                 "size": 8
               },
-              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13)."
+              "note": "Registered 2026-11-16 from the QUALITY-15.T3y report under the standing approval for QUALITY growth (2026-11-13).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "QUALITY-15.T3z",
@@ -28157,7 +28185,7 @@
             },
             {
               "id": "QUALITY-15.T3aa",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["QUALITY-15.1"],
               "text": "Spells that create a creature or object compile on the generic summon and inert-zone plans (Create Food and Water, Create Undead, Find Steed, Floating Disk, Unseen Servant); Planar Ally is a GM ruling (D225).",
               "wsjf": {
@@ -28167,7 +28195,8 @@
                 "size": 3
               },
               "note": "Registered 2026-11-16 from the T3m report under the standing approval for QUALITY growth (2026-11-13). Resized 5 -> 3 on 2026-11-16: data-only conversions; Phantom Steed and Hunting Trap split to T3aa2 and T3aa3; Planar Ally ruled description-only (D225).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "mergedAt": "2026-11-16",
+              "proof": "m849; slice tip 204334cc1: Tests 44017862915, Live 44017862780, Browser journeys 44017862849 green. Create Food and Water, Create Undead, Find Steed, Floating Disk and Unseen Servant compile on the generic summon and inert-zone plans (data only)."
             },
             {
               "id": "QUALITY-15.T3aa2",

@@ -255,6 +255,14 @@ beasts of challenge rating 6 or lower, all fey) use it. GM rulings: which elemen
 creature's 1-hour limit, and the higher slots' challenge rating. A carrier that lapses at its full hour also releases
 rather than removes the creature.
 
+**Flaming Sphere (current, QUALITY-15.T3y5).** The sphere compiles through data alone as a Concentration-held placed
+zone: a 15-foot cube centered on the sphere's square (the space within 5 feet of it) whose one `END_TURN_IN_SPACE`
+component makes a Dexterity save against the caster's DC for the scaled fire damage, halved on a success. Entering the
+area does nothing. Moving the sphere (and Moonbeam's beam) needs a zone-move command that does not exist yet (target, a
+follow-up slice); until then the zone stays where it was placed. GM rulings, not authored: the ram (a creature the sphere is moved into saves and the move
+stops), steering over barriers and pits, igniting unattended flammable objects, the bright and dim light, and the
+unoccupied-space placement rule.
+
 **Lifetime aspect (current, QUALITY-15.T1c).** One model, `dnd5eLifetime` in `effectActionLifetimeAspect`, chooses
 the plan that holds what an action leaves behind, by precedence: a sequential composition (D156), a repeated follow-up
 save, a timed condition, grant, link, form or GM ruling, a relationship, a recurring result, then a concealment. The compiler
