@@ -171,6 +171,11 @@ type CommitScope = {
   unaffectedActorIds: readonly string[]
   /** The Scene the commit places its zone on; null when it places none. */
   zoneSceneId: string | null
+  /**
+   * The tokens of the chosen creatures a zone left on a failed save may enclose; such a zone is
+   * placed only when its creature failed. Null for a zone left where the action was aimed.
+   */
+  zoneTargetTokenIds: readonly string[] | null
 }
 
 /**
@@ -264,7 +269,8 @@ export async function persistEncounterAreaCommit(
       caughtChecksum: encounterChosenActorsChecksum(reachedActorIds),
       removedActorIds: [],
       unaffectedActorIds: input.unaffectedActorIds,
-      zoneSceneId: null
+      zoneSceneId: null,
+      zoneTargetTokenIds: null
     }
   } else {
     const { area } = input
@@ -357,7 +363,14 @@ export async function persistEncounterAreaCommit(
       caughtChecksum: context.caughtChecksum,
       removedActorIds: context.removedActorIds,
       unaffectedActorIds: context.unaffectedActorIds ?? [],
-      zoneSceneId: context.placesZone ? (context.scene?.sceneId ?? null) : null
+      zoneSceneId: context.placesZone ? (context.scene?.sceneId ?? null) : null,
+      // A zone with no area is left around the chosen creature that failed its save.
+      zoneTargetTokenIds:
+        context.placesZone && context.area === null
+          ? context.targets.flatMap(({ collision, token }) =>
+              !collision && token ? [token.tokenId] : []
+            )
+          : null
     }
   }
   // A mover's collision damage (D159) settles as one more entry per mover, after the caught creatures',
@@ -404,7 +417,15 @@ export async function persistEncounterAreaCommit(
     root.caughtChecksum !== scope.caughtChecksum ||
     checksumCanonicalJson(root.placedSpatialEffectIds) !==
       checksumCanonicalJson(input.placedZones.map(({ id }) => id)) ||
-    (scope.zoneSceneId !== null) !== input.placedZones.length > 0 ||
+    (input.placedZones.length > 0
+      ? scope.zoneSceneId === null ||
+        input.placedZones.some(
+          ({ placement }) =>
+            scope.zoneTargetTokenIds !== null &&
+            (placement.anchorKind !== 'TOKEN' ||
+              !scope.zoneTargetTokenIds.some((tokenId) => tokenId === placement.sourceTokenId))
+        )
+      : scope.zoneSceneId !== null && scope.zoneTargetTokenIds === null) ||
     checksumCanonicalJson(root.removedActorIds) !== checksumCanonicalJson(scope.removedActorIds) ||
     checksumCanonicalJson(root.targetOccurrenceIds) !==
       checksumCanonicalJson(kept.map(({ occurrenceId }) => occurrenceId)) ||

@@ -791,11 +791,34 @@ describe('a zone failure composed from core outcomes (D141, D142)', () => {
     expect(zone).not.toHaveProperty('heldCondition')
   })
 
+  it('holds a condition on an untimed zone until its escape, with a fixed-DC check', () => {
+    const authored = startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+      savePath.resultBlock.lifecycle = {
+        heldBySource: true,
+        escape: {
+          activation: { code: 'ACTION', amount: 1 },
+          checks: { skillIds: [], abilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.STRENGTH] },
+          dc: { kind: 'FIXED', value: 13 }
+        }
+      }
+    })
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+    const zone = zonePlacementOf(authored)
+    expect(zone.maintenance).toBeNull()
+    expect(zone.heldCondition).toMatchObject({
+      conditionId: conditionId('POISONED'),
+      escape: { dc: { kind: 'FIXED', value: 13 } }
+    })
+  })
+
   it.each<readonly [string, EquipmentAuthored]>([
     [
-      'a zone-held condition on a zone that Concentration does not maintain',
-      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
+      'a zone-held condition on a timed zone that Concentration does not maintain',
+      startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ effect, savePath }) => {
         savePath.resultBlock.lifecycle = { heldBySource: true }
+        const [placement] = effect.paths
+        if (placement?.selectionKind !== 'FIXED') throw new Error('The zone must author one path.')
+        placement.resultBlock.duration = { id: extraId(32), durationKind: 'HOUR', amount: 1 }
       })
     ],
     [

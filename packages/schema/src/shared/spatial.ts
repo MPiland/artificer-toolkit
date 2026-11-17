@@ -1,18 +1,32 @@
-import { z, lazySchema } from '../zod.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 
 import { activationDtoSchema } from '../effects/activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from '../effects/check.js'
 import { manifestDestructionCriterionDtoSchema } from '../effects/destructionCriterion.js'
-import { MAX_ACTIVE_EFFECT_TURNS } from './activeRuleEffectLifecycle.js'
+import { zoneMoveDtoSchema } from '../effects/effectOffer.js'
+import { manifestLightDtoSchema } from '../effects/manifest.js'
+import {
+  MAX_ACTIVE_EFFECT_TURNS,
+  activeEffectSaveThresholdsSchema
+} from './activeRuleEffectLifecycle.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { manifestBlockingRuleSchema, manifestRequiredSightSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import {
+  activeEffectFactsSchema,
   activeRuleEffectDefinitionDtoSchema,
   activeRuleEffectLifecycleDtoSchema
 } from './activeRuleEffects.js'
+import {
+  compiledRuleGraphDtoSchema,
+  serverPublishedRuleDefinitionDtoSchema
+} from './ruleExecutionCore.js'
+import {
+  ruleExecutionCapabilityKeySchema,
+  ruleExecutionLocalNodeIdSchema
+} from './ruleExecutionPrimitives.js'
 import {
   MAX_SPATIAL_CANDIDATES,
   MAX_SPATIAL_PATH_POINTS,
@@ -174,12 +188,48 @@ export const zoneRequiredSightSchema = lazySchema(() =>
 )
 
 /**
+ * The repeated save a zone-held condition runs on its holder (Prismatic Wall's Indigo layer), as
+ * the effect that holds the condition counts it: the save graph, its facts, the turn boundary of
+ * its anchor and how long it waits. Compiled, its graph is the published definition and the facts
+ * name the cast save DC's key; placed, the graph is compiled and the DC is pinned into the facts.
+ */
+const heldRepeatSaveShape = lazySchemaParts(() => ({
+  compiledEntryId: uuidSchema,
+  frozenGraphNodeId: ruleExecutionLocalNodeIdSchema,
+  adapterFacts: activeEffectFactsSchema,
+  recurrenceStage: z.enum(['START_OF_TURN', 'END_OF_TURN']),
+  anchor: z.enum(['HOLDER', 'SOURCE']),
+  initialRemaining: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS)),
+  /** Set on a save counted to thresholds (three failures or three successes). */
+  saveThresholds: z.optional(activeEffectSaveThresholdsSchema)
+}))
+
+export const compiledSpatialHeldRepeatSaveDtoSchema = lazySchema(() =>
+  z.strictObject({
+    ...heldRepeatSaveShape(),
+    frozenGraph: serverPublishedRuleDefinitionDtoSchema,
+    capabilityContractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
+    /** The fact the placement pins the caster's save DC into; null for a save against a fixed DC. */
+    castSaveDcFactKey: z.nullable(ruleExecutionCapabilityKeySchema)
+  })
+)
+
+export const placedSpatialHeldRepeatSaveDtoSchema = lazySchema(() =>
+  z.strictObject({ ...heldRepeatSaveShape(), frozenGraph: compiledRuleGraphDtoSchema })
+)
+
+/**
  * The condition a zone holds on a creature that fails its save (D146), with the escape it offers:
  * a placed zone pins the escape DC (`dcSchema` is a number there), a compiled one may name its
- * source's save DC.
+ * source's save DC. A condition the holder repeats a save against carries that save too.
  */
-export function spatialHeldConditionDtoSchema<TDc extends z.ZodMiniType>(dcSchema: TDc) {
+export function spatialHeldConditionDtoSchema<
+  TDc extends z.ZodMiniType,
+  TRepeatSave extends z.ZodMiniType
+>(dcSchema: TDc, repeatSaveSchema: TRepeatSave) {
   return z.strictObject({
+    /** The save the holder repeats; the condition lasts until that save ends it. */
+    repeatSave: z.optional(repeatSaveSchema),
     conditionId: uuidSchema,
     /** The condition ends when the creature leaves the zone's area. */
     endsOnLeavingArea: z.optional(z.literal(true)),
@@ -229,12 +279,13 @@ export const spatialLayerDestructionDtoSchema = lazySchema(() =>
 
 /** A compiled zone's held condition; its escape DC may be its source's save DC. */
 export const compiledSpatialHeldConditionDtoSchema = lazySchema(() =>
-  spatialHeldConditionDtoSchema(heldEscapeDcDtoSchema)
+  spatialHeldConditionDtoSchema(heldEscapeDcDtoSchema, compiledSpatialHeldRepeatSaveDtoSchema)
 )
 
 /**
- * Immutable Encounter/Scene placement. Trigger and movement arrays are already
- * canonical when persisted; parsing never silently changes execution order.
+ * Encounter/Scene placement, immutable except for a movable zone's geometry, which its source's
+ * zone move translates (QUALITY-15.T3y8). Trigger and movement arrays are already canonical when
+ * persisted; parsing never silently changes execution order.
  */
 export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
   z
@@ -294,7 +345,10 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       failedSaveLosesAction: z.optional(z.boolean()),
       /** The condition the zone holds on a creature failing its save, its escape DC pinned. */
       heldCondition: z.optional(
-        spatialHeldConditionDtoSchema(z.number().check(z.int()).check(z.positive()))
+        spatialHeldConditionDtoSchema(
+          z.number().check(z.int()).check(z.positive()),
+          placedSpatialHeldRepeatSaveDtoSchema
+        )
       ),
       /** The zone catches a creature inside it that hits its source token with a melee attack (D153). */
       retaliatesMeleeHits: z.optional(z.literal(true)),
@@ -311,10 +365,26 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
         })
       ),
       /** The conditions the zone keeps off its source and the source's allies inside it. */
-      occupantConditionImmunity: z.optional(spatialOccupantConditionImmunityDtoSchema)
+      occupantConditionImmunity: z.optional(spatialOccupantConditionImmunityDtoSchema),
+      /**
+       * How the zone's source moves it while it maintains it (QUALITY-15.T3y8), as authored; absent
+       * for a zone that stays where it was placed.
+       */
+      move: z.optional(zoneMoveDtoSchema),
+      /**
+       * The light the zone sheds out from its whole area, in its authored lengths; perception converts
+       * them on the Scene's grid. Only a zone's own record carries it.
+       */
+      light: z.optional(manifestLightDtoSchema)
     })
     .check(
       z.superRefine((placement, context) => {
+        if (placement.move && placement.anchorKind !== 'FIXED')
+          context.addIssue({
+            code: 'custom',
+            path: ['move'],
+            message: 'Only a zone fixed to the Scene is moved by its source.'
+          })
         const triggered =
           placement.triggerModes.length > 0 ||
           placement.turnTriggers !== undefined ||

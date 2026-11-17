@@ -260,8 +260,19 @@ rather than removes the creature.
 **Flaming Sphere (current, QUALITY-15.T3y5).** The sphere compiles through data alone as a Concentration-held placed
 zone: a 15-foot cube centered on the sphere's square (the space within 5 feet of it) whose one `END_TURN_IN_SPACE`
 component makes a Dexterity save against the caster's DC for the scaled fire damage, halved on a success. Entering the
-area does nothing. Moving the sphere (and Moonbeam's beam) needs a zone-move command that does not exist yet (target, a
-follow-up slice); until then the zone stays where it was placed. GM rulings, not authored: the ram (a creature the sphere is moved into saves and the move
+area does nothing.
+
+**Moving a zone (current, QUALITY-15.T3y8).** A fixed placed-space zone its source maintains may author a `move`
+(`activation`, `maxDistance`) on its ZONE manifest; the compiler carries it onto the placement
+(`encounterZonePlacement.ts`) and refuses it on a zone that is not maintained or whose components do not act on
+creatures. The Run command `MOVE_ZONE` (actor, zone, destination) is admitted like any holder command: the Worker
+(`nativeMoveZoneAction.ts`) checks the actor placed the zone (`sourceZoneMove`), measures the move from the zone's
+center on the Scene grid (`zoneMoveWithinDistance`), spends the authored activation through the shared rule economy,
+and `persistEncounterMoveZone` re-centers the geometry under a zone-version fence. Occupancy needs no separate path:
+turn triggers read the current geometry, and moving onto a creature is not an entry. A GM undo restores the prior
+geometry and returns the spent activation (`revertZoneMove`). SRD Flaming Sphere moves 30 feet for a Bonus Action and
+Moonbeam 60 feet for an Action, authored from core options. Target: an offer surface on the Sheet and tabletop (the
+move is a Run command today with no player UI). GM rulings, not authored: the ram (a creature the sphere is moved into saves and the move
 stops), steering over barriers and pits, igniting unattended flammable objects, the bright and dim light, and the
 unoccupied-space placement rule.
 
@@ -1705,17 +1716,34 @@ that acts on a creature within `distance` of the zone. It compiles to `zonePlace
 plus a record plan like a layer's: its own label, trigger, `requiredSight` and frozen entry). The Worker places it as one
 more record on the zone's anchor (`planEncounterZoneProximity`), a `FIXED` / `SCENE_ABSOLUTE` halo whose geometry is the
 zone's area grown by the reach (`expandedAreaGeometry`; a cube's or wall's corners stay square, so the halo reaches a
-little past the reach there), named on the root and ended with the zone like a layer. Only `START_TURN` is supported:
-a rule that also acts on `MOVE_WITHIN` is refused at compile until the movement path reads sight (QUALITY-15.T3v3b).
-`requiresSight` becomes the `requiredSight` value `OCCUPANT_SEES_ZONE`: at a turn boundary the Worker's `loadPointSight`
+little past the reach there), named on the root and ended with the zone like a layer. `START_TURN` becomes the
+`START_TURN_IN_SPACE` interaction and `MOVE_WITHIN` becomes `ENTER_OR_PASS_THROUGH` (QUALITY-15.T3v3b), so a creature
+that moves into or through the halo meets it, through the same movement contacts as any zone.
+`requiresSight` becomes the `requiredSight` value `OCCUPANT_SEES_ZONE`: the Worker's `loadPointSight`
 (`readNativeLivePointSight` at the zone's anchor point) says whether the occupant sees the zone, and a creature that
-does not succeeds on the save unrolled, like the source-sight values. A zone placed for the turn path has a fixed
-point to see; a zone that follows its source is refused for this value. A condition a failed save applies for a
+does not succeeds on the save unrolled, like the source-sight values. Both paths read it through one
+`zoneSightContactFacts` (`encounterSpatialCandidateExecution.ts`): at a turn boundary from where the occupant stands,
+and on a move from where the occupant began it (its walk's first point, `observerPosition`), so a resumed move reads
+the same sight however far the pause moved the token. A creature that only gains sight of the zone by moving is a
+deferred edge case. A movement contact has no source sight to read, so a zone that needs sight between its source and
+occupant and acts on movement is refused at compile. Only a zone left at a Scene point has a fixed point to see; a zone
+that follows its source is refused for `OCCUPANT_SEES_ZONE`. A condition a failed save applies for a
 duration is held for it generically: `zoneHeldCondition` turns an authored condition duration into
 `heldCondition.holderTurns` (a minute is 10 of the holder's turns), and `planSpatialHeldCondition` makes a
 condition-ownership effect that expires after that many of the holder's turns (this replaces the old
 `endsAtEndOfHolderTurn`, which was `holderTurns` of 1). This is the held condition's own expiry, distinct from a
 zone's duration (`withZoneDuration`, QUALITY-15.T3ag), which ends the zone.
+
+**A held condition the holder repeats a save against (QUALITY-15.T3v6, D146, current).** A zone component that
+authors a condition with one `FOLLOW_UP_SAVE` (and no damage, stop, grant or lost-action entry) holds it through that
+repeated save: `zoneHeldRepeatSave` calls `repeatSaveEffectPlan` (`effectActionRepeatSavePlan.ts`, the plan Flesh to
+Stone, Contagion and Hold Person already compile through; it lives apart from `effectActionCompiler.ts` because the zone
+compiler cannot import it) and carries the plan, its published graph and the cast-DC fact key on
+`heldCondition.repeatSave`. At placement `pinnedHeldRepeatSave` compiles the graph and pins the caster's DC into
+`adapterFacts`; `planSpatialHeldCondition` then builds the held effect from it (its own recurrence stage, anchor, save
+thresholds and tick count) beside the same condition ownership and escape. Indigo (three failures petrify, three
+successes free, not consecutive) holds at the holder's turn end; Violet holds until the source's next turn start, and its
+failed save is the plan's MANUAL_ADJUDICATION ruling (plane shift is a GM ruling).
 
 **Destroying a layer (QUALITY-15.T3v2, D223, current).** A layered zone's component may author `destructionCriteria`;
 the compiler (`placedSpaceZone`) accepts them only on a layered zone whose manifest authors
@@ -1749,6 +1777,21 @@ zone cast has no cast d20, so the zone's entering save is exposed in the action 
 sheet resolves `actionMechanic.save.dc`, and the Worker pins it on the zone's `adapterFacts` under
 `DND5E_SAVE_DC_FACT_KEY` when the zone is placed (`castSaveDcFactKey` on the zone entry). Zone limits are refused, never
 partly honored: half damage, bonuses, scaling, per-turn caps and turn-based interactions stay SPELLS-20 T4.
+
+**Zones left on a failed save (QUALITY-15.T3y6a, current).** An authored `MANIFEST` `ZONE` with
+`attachmentKind: 'PRIMARY_TARGET'` on an `ON_SAVE_FAIL` path (Resilient Sphere) is the action's zone
+(`placedSpaceEntries`), with `zonePlacement.attachment: 'PRIMARY_TARGET'`. Its save is the zone's appear save
+(`zoneAppearSave`), kept with no other outcome because the zone is that save's own outcome, so the compiled plan is
+`TEST_OUTCOME` and the inert zone plan holds it for its duration. The compiler requires `CHOSEN_CREATURES` targeting of
+exactly one creature and a radius shape; the action's choice is the `ACTORS` cap, not a zone target
+(`zonePlacementChoiceTarget` returns null), its target policy carries no shape, so the cast takes no point
+(`buildCompiledActionTargetPolicy`), the appear save may hold no outcome entry (`rolledTest`), and the Worker refuses the cast unless it names a Scene with that creature's
+token. The cast runs the chosen-creatures path (`sealReachSaves`, then the area commit). `prepareChosenActorsReach`
+places the zone at the target's token, anchored to it (`sourceToken` is the target's token, so `zoneAnchor` gives a
+`TOKEN_LOCAL` circle of the authored radius plus half the token's width), and `completeAreaCommit` keeps it only when
+that creature's save resolved `ON_SAVE_FAIL` and it spent no Legendary Resistance; a made save places no zone and opens
+no Concentration. The pending area snapshot records `placesZone` with no area, and the area commit persistence accepts
+the zone only as a `TOKEN` anchor on a sealed target's token (`zoneTargetTokenIds`), or no zone at all.
 
 Each choice also carries `range` when its compiled target policy has a measurable one, the range the evaluator that
 handles the policy measures. A single-target policy that `singleTargetMeasure` accepts advertises `SELF`, `WITHIN` (Touch
@@ -3311,6 +3354,7 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 
 - **Measured from a conjured creature (current, SPELLS-4.T2v2a3a, D190a):** an offer's `origin` is `ACTOR` (default; absent means ACTOR) or `CONJURED`. The offer's source still acts and pays; only the token range and flanking are measured from changes. `repeatOfferOriginActorId` names the creature: the actor itself, or for `CONJURED` the creature whose `owner` is (`actorId`, carrier effect id); `encounterActionOriginActorId` resolves it from an action id, and a non-repeat id is always its actor. The listing sets `originActorId` on a choice whose origin is another creature and leaves out a `CONJURED` offer with no such creature. The Scene read (`readEncounterActionOriginActorId` in `actionSceneInputs.ts`) is keyed by the command's `actionId` (`actionSceneRequestDtoSchema.actionId`), so the preview, the room plan, the commit, the pending replay and the contest re-read all bind the same source token: a `CONJURED` repeat must send the conjured creature's token and every other action its actor's, or the read is stale. The summon carries the offer on its carrier: a summon cast's second ON_USE outcome is an empty `APPLY_GRANT` that holds only the block lifecycle's `effectOffers`, with the summon's duration and an end-of-turn tick on the holder; `compileSummonPlacement` plans the summon entry from it (`modifierGrantEntryPlan`), and anything else on that grant is refused.
 - **Free cast-turn use (current, SPELLS-4.T2v2a3b, D190a):** a repeat offer may author `castTurnUse: 'FREE_ONCE'`. The cast freezes the Run's `turnSequence` onto the held offer as `castTurnSequence` (`frozenRepeatOffer`, fed by `prepareEncounterActionEffectPlans`' `turnSequence`), and the stored schema requires both or neither. `repeatOfferFreeUseKey` returns the once-per-turn key `repeat-free:<effectId>:<offerIndex>` only while the Run is in that turn (`turnSequence` equal and a current actor: between turns nothing is spent) and the key is unspent; the offer goes only to its source, so only the caster takes it. When it holds, `discoverEncounterRepeatPath` charges the repeat a `FREE` activation and the REPEAT_PATH source carries the key as `grantedUseKey`, which the worker spends through `spendTurnUses` exactly like a granted action's (D160), so `REVERT_LAST_ACTION` restores it. An area repeat (Call Lightning's bolt, QUALITY-15.T3y3) resolves through the same offers (`loadCasterActionSource` in `nativeAreaPreparation.ts`), and its area commit carries the key as `turnUses` (`sourceGrantedUseKey`), which `persistEncounterAreaCommit` spends the same way. Any other use is charged the authored activation. The choice listing shows `activation: 'FREE'` while the free use is open.
+- **Free repeat with uses per turn (current, QUALITY-15.T3y7):** a repeat offer may author `activation: 'FREE'` only with `usesPerTurn` (1-10), and no other offer is free (`checkEffectOfferActivations`, `compileLifecycle`). `repeatOfferFreeUseKey` returns the first unspent of the keys `repeat-free:<effectId>:<offerIndex>:<n>` only in the turn of the actor taking it (the source), so its uses come back once a round; with none left `discoverEncounterRepeatPath` refuses the repeat and the choice listing omits it. The key is spent like the free cast-turn use above. Tree Stride's 500-foot step is a free repeat of a sibling Self TELEPORT (`SPECIFIED_POINT`) Effect, so it grants the teleport allowance the player's move then spends; the trees themselves are a GM ruling (`MANUAL_ADJUDICATION`).
 - **Counted uses (current, SPELLS-4.T2n3):** a carrier with a path `lifecycle.uses` (Goodberry's ten berries) holds `lifecycle.remainingUses`; each settled repeat spends one (`settledCountedUseSpend`, beside the decoy strike: `spentUseGrants`, the Mirror Image lifecycle CAS) and the last ends the carrier (`consumedGrants`). Undo restores either. A carrier with no count is never spent. `spentUseGrants` holds at most two (a decoy strike and a repeat).
 
 #### Damage-derived heal: `HEAL` `valueKind: 'DAMAGE_DEALT'` (current, SPELLS-4.T2n2, D181)
@@ -4577,6 +4621,18 @@ Scene. The Worker composes it onto bound tokens (`withSceneTokenLights`) for the
 movement reactions and the room's vision display, and `resolveSceneIlluminationAt` treats each token light
 as a point light at the token, radii measured from its footprint edge, for both perception (D108) and the
 renderer. Activated item and spell lights are not consumed yet.
+
+Zone light (current, QUALITY-15.T3v4): a ZONE manifest's `light` (bright, then dim for `dimAdditional` more)
+compiles onto `CompiledActionZonePlacement.light` and is written, in its authored lengths, only on the zone's
+own placement record (`spatialRuleEffectPlacementDtoSchema.light`); its bands, layers and halo carry none.
+Nothing stores it on the Scene. `placedZoneLights` (`rules-runtime/src/actorLight.ts`) composes each placed
+zone's light at runtime as a `SceneZoneLight` (its current area, radii in Scene coordinates), and
+`resolveEncounterActorPairPerception` adds them to the Scene it perceives, so attack, point-sight, turn-effect
+and movement-reaction perception all see it. `resolveSceneIlluminationAt` lights a point from the zone's
+nearest point (`nearestZoneLightSource`), so the whole area is its own source, with the same radii rule
+and barrier check as point lights. Transitional: the web renderer, the room's vision display and the holder
+light read by Sunlight Sensitivity (`apps/session-worker/src/nativeHolderLight.ts`) do not read zone light yet,
+and a zone that needs lighting sheds its light before it is lit.
 
 Attack-roll perception (current, D100): the room's `RESOLVE_ACTION` passes an optional
 `loadAttackPerception` to `prepareEncounterActionMechanics`

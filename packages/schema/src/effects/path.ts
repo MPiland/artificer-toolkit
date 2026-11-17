@@ -25,7 +25,6 @@ import { restoreResourceDtoSchema } from './restoreResource.js'
 import { spellSlotExchangeDtoSchema } from './spellSlotExchange.js'
 import { telepathicLinkDtoSchema } from './telepathicLink.js'
 import { plantPortalDtoSchema } from './plantPortal.js'
-import { treeStrideDtoSchema } from './treeStride.js'
 import { actorRelationshipDtoSchema } from './actorRelationship.js'
 import { activationDtoSchema } from './activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from './check.js'
@@ -98,7 +97,6 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             spellSlotExchangeDtoSchema,
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
-            treeStrideDtoSchema,
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
             removeFromPlayDtoSchema,
@@ -133,7 +131,6 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             spellSlotExchangeDtoSchema,
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
-            treeStrideDtoSchema,
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
             removeFromPlayDtoSchema,

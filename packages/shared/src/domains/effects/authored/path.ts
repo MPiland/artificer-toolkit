@@ -153,6 +153,7 @@ export type PathLifecycleAuthored = {
    * invocation), a `target`: `HOLDER` (default) or the re-run invocation's own targets, an
    * `origin` its range is measured from: the actor (default) or the creature the effect conjured,
    * and a `castTurnUse`: `FREE_ONCE` makes one use free in the turn the effect was made (D190a).
+   * A `FREE` repeat sets `usesPerTurn`, the uses it allows in each of its source's own turns.
    */
   effectOffers?: {
     kind: 'MOVE_HELD_EFFECT' | 'REPEAT_SOURCE_PATH'
@@ -165,6 +166,7 @@ export type PathLifecycleAuthored = {
     target?: 'HOLDER' | 'INVOCATION'
     origin?: 'ACTOR' | 'CONJURED'
     castTurnUse?: 'FREE_ONCE'
+    usesPerTurn?: number
   }[]
 }
 

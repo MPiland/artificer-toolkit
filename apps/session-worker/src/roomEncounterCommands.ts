@@ -55,6 +55,7 @@ import {
   executeRoomEncounterEndHeldGrant,
   executeRoomEncounterEscapeResponse,
   executeRoomEncounterMoveHeldEffect,
+  executeRoomEncounterMoveZone,
   executeRoomEncounterReleaseRelationship
 } from './roomEncounterBasicActions.js'
 import { removeAreaActionTarget } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
@@ -67,6 +68,7 @@ import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
+  MoveZoneInputDto,
   ReleaseRelationshipInputDto,
   RemoveAreaTargetInputDto,
   ResolveRuleOccurrenceInputDto
@@ -320,14 +322,16 @@ export async function executeRoomEncounterCommand(input: {
                   ? await executeEndHeldGrant(command)
                   : command.type === 'MOVE_HELD_EFFECT'
                     ? await executeMoveHeldEffect(command)
-                    : command.type === 'RELEASE_RELATIONSHIP'
-                      ? await executeReleaseRelationship(command)
-                      : command.type === 'CHANGE_FACING'
-                        ? await executeChangeFacing(command)
-                        : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
-                            command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
-                          ? await executeTokenBinding(command)
-                          : await recordEncounterCommand(context, command, userId, input.random)
+                    : command.type === 'MOVE_ZONE'
+                      ? await executeMoveZone(command)
+                      : command.type === 'RELEASE_RELATIONSHIP'
+                        ? await executeReleaseRelationship(command)
+                        : command.type === 'CHANGE_FACING'
+                          ? await executeChangeFacing(command)
+                          : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
+                              command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+                            ? await executeTokenBinding(command)
+                            : await recordEncounterCommand(context, command, userId, input.random)
   const parsedGm = encounterGmProjectionDtoSchema.safeParse(rawResult.projection)
   const readCommittedRun = async () => {
     const run = await context.db
@@ -635,6 +639,29 @@ export async function executeRoomEncounterCommand(input: {
     if (!input.turnExecution) throw new Error('Room effect-move execution is unavailable.')
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     return executeRoomEncounterMoveHeldEffect({
+      ...input.turnExecution,
+      ctx: context,
+      store,
+      transaction,
+      inputs,
+      observed,
+      random: input.random,
+      scope: {
+        campaignId,
+        authorityEpoch: epoch,
+        expectedUserId: userId,
+        expectedRole: membership.role,
+        encounterId: command.encounterId.toLowerCase(),
+        expectedVersion: command.expectedVersion
+      },
+      command
+    })
+  }
+
+  async function executeMoveZone(command: MoveZoneInputDto) {
+    if (!input.turnExecution) throw new Error('Room zone-move execution is unavailable.')
+    const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
+    return executeRoomEncounterMoveZone({
       ...input.turnExecution,
       ctx: context,
       store,

@@ -531,7 +531,8 @@ export type EncounterAreaActionPendingContextDto = {
   casterActorId: string
   /**
    * Whether the action leaves a zone at the origin; such an area catches no creature by itself
-   * unless `zoneAppearSave`, when each creature in it saves as the zone appears (D154).
+   * unless `zoneAppearSave`, when each creature in it saves as the zone appears (D154). With no
+   * area, the zone is left around the chosen creature that fails the save (QUALITY-15.T3y6a).
    */
   placesZone: boolean
   zoneAppearSave: boolean
@@ -823,11 +824,12 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             path: ['zoneAppearSave'],
             message: 'Only a placed zone saves as it appears.'
           })
-        if ((value.placesZone || value.placesSummon) && value.area === null)
+        // A zone with no area is left on the chosen creature that fails its save.
+        if (value.placesSummon && value.area === null)
           context.addIssue({
             code: 'custom',
             path: ['area'],
-            message: 'A placed zone or summon fills an area.'
+            message: 'A placed summon fills an area.'
           })
         if (value.placesZone && value.placesSummon)
           context.addIssue({

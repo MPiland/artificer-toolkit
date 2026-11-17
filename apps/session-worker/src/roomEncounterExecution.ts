@@ -299,6 +299,7 @@ export async function commitRoomEncounterCommand(
             command.type === 'ESCAPE' ||
             command.type === 'END_HELD_GRANT' ||
             command.type === 'MOVE_HELD_EFFECT' ||
+            command.type === 'MOVE_ZONE' ||
             command.type === 'CHANGE_FACING' ||
             command.type === 'RELEASE_RELATIONSHIP'
               ? {

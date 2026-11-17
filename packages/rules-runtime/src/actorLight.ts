@@ -3,7 +3,15 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ActiveRuleEffectObjectManifestationContributionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
-import type { SceneActorVision } from '@artificer-toolkit/shared/vtt'
+import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
+import {
+  effectiveSpatialGeometry,
+  lengthMeasurementInSceneUnits,
+  sceneDistanceAsCoordinateLength,
+  type CampaignSceneState,
+  type SceneActorVision,
+  type SceneZoneLight
+} from '@artificer-toolkit/shared/vtt'
 import { snapshotFeatures } from './encounterFeatureActionCapabilityDiscovery.js'
 
 type LightActor = Pick<EncounterProjectionActorInput, 'kind' | 'snapshot'>
@@ -75,5 +83,30 @@ export function actorTokenLights(
     const actor = actorById.get(actorId)
     const light = actor && actorEmittedLight(actor, activeEffectsByActorId.get(actorId) ?? [])
     return light ? [{ tokenId, light }] : []
+  })
+}
+
+/**
+ * The light each placed zone sheds from its whole area, where it stands on the Scene now (a zone on
+ * a token moves with it), to compose onto the Scene beside its own lights. A zone whose area cannot
+ * be resolved sheds none (fails closed).
+ */
+export function placedZoneLights(
+  effects: readonly Pick<EncounterSpatialRuleEffectRecord, 'placement'>[],
+  scene: Pick<CampaignSceneState, 'grid' | 'tokens'>
+): SceneZoneLight[] {
+  const coordinates = (length: Parameters<typeof lengthMeasurementInSceneUnits>[0]) =>
+    sceneDistanceAsCoordinateLength(scene.grid, lengthMeasurementInSceneUnits(length, scene.grid))
+  return effects.flatMap(({ placement }) => {
+    const geometry = placement.light && effectiveSpatialGeometry(placement, scene.tokens)
+    if (!placement.light || !geometry) return []
+    const brightRadius = coordinates(placement.light.bright)
+    return [
+      {
+        geometry,
+        brightRadius,
+        dimRadius: brightRadius + coordinates(placement.light.dimAdditional)
+      }
+    ]
   })
 }

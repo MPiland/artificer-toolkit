@@ -134,14 +134,29 @@ export function settledCountedUseSpend(
  * The once-per-turn key the free use of a `FREE_ONCE` repeat offer spends now (D190a), or null when a
  * use costs the offer's activation: the use is free only in the Run turn the cast was made, only while
  * that turn runs (between turns no key is spent), and only until its key is spent. The offer goes only
- * to its source, so only the caster ever takes it.
+ * to its source, so only the caster ever takes it. A `FREE` repeat with `usesPerTurn` spends the
+ * first of that many keys still unspent, and only in its source's own turn, so its uses come back
+ * once a round.
  */
 export function repeatOfferFreeUseKey(input: {
-  offer: Pick<LiveEffectOffer, 'effectId' | 'offerIndex'> & { castTurnSequence?: number }
+  offer: Pick<LiveEffectOffer, 'effectId' | 'offerIndex'> & {
+    castTurnSequence?: number
+    usesPerTurn?: number
+  }
+  actorId: string
   turn: Pick<EncounterRunState, 'turnSequence' | 'currentActorId'>
   spentKeys: readonly string[]
 }): string | null {
   const key = `repeat-free:${input.offer.effectId}:${input.offer.offerIndex}`
+  const { usesPerTurn } = input.offer
+  if (usesPerTurn !== undefined) {
+    if (input.turn.currentActorId !== input.actorId) return null
+    return (
+      Array.from({ length: usesPerTurn }, (_, use) => `${key}:${use + 1}`).find(
+        (useKey) => !input.spentKeys.includes(useKey)
+      ) ?? null
+    )
+  }
   return input.offer.castTurnSequence === input.turn.turnSequence &&
     input.turn.currentActorId !== null &&
     !input.spentKeys.includes(key)
@@ -192,9 +207,12 @@ export function discoverEncounterRepeatPath(input: {
   if (!grant) throw new Error('The selected repeat action is stale.')
   const freeUseKey = repeatOfferFreeUseKey({
     offer,
+    actorId: input.actorId,
     turn: input.turn,
     spentKeys: input.spentKeys
   })
+  if (offer.activation === 'FREE' && freeUseKey === null)
+    throw new Error('The selected repeat action has no use left this turn.')
   const mechanicFacts = normalizeCharacterActionMechanicFacts(compiledEffect)
   const { invocation } = mechanicFacts
   const capability: EncounterRepeatPathCapabilityDescriptor = {

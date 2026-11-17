@@ -750,7 +750,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
   - **Wake action:** the Couatl Bite's poison, ended for the unconscious target by another creature's action with no check.
   - **Stacking recurring damage ended by healing:** the Horned Devil infernal wound, growing by 3d6 with each tail hit and closed by magical healing.
   - **Follow-up check under a save path:** the Horned Devil Tail's authored DC 12 Wisdom (Medicine) stanch check (`FOLLOW_UP_CHECK`) has no executor inside a failed save's outcomes, so the Tail stays on the creature attack allowlist (`OUTCOME_KIND`) until it does.
-  - **Absolute tree size for tree travel:** the Dryad Tree Stride's Large-or-bigger trees (`TREE_STRIDE` only knows a size relative to the traveler).
+  - **Trees on the Scene for tree travel:** the Scene has no tree objects, so the Tree Stride spell's 500-foot step (a free, once-per-round repeat that teleports its caster) leaves the tree kind, a living tree at least the traveler's size (the Dryad's Large or bigger), the 5-foot entry and exit movement cost and ending the turn outside a tree to the GM.
 - **Damage-taken lifecycle condition:** a held effect's `onTriggers` `DAMAGE_TAKEN` applying a timed condition, such as Contagion's Slimy Doom stun until the end of the holder's next turn (SPELLS-4.T2m3).
 - **Curse tag ending:** Remove Curse.
 - **Dispel acting on a placed zone.**

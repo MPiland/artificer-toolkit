@@ -45,6 +45,7 @@ import {
   readNativeLiveMovementConcentrationStates
 } from './nativeEncounterMovementConcentration.js'
 import type { NativeLiveMovementMaintenanceProjection } from './nativeEncounterMaintenance.js'
+import { readNativeLivePointSight } from './nativeAttackPerception.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 
 export type CharacterFacts = PreparedLiveCharacterSheet
@@ -76,7 +77,7 @@ type ContinuationCallbacks = Parameters<
 
 type Captured = Pick<
   Awaited<ReturnType<typeof readNativeLiveMovementInputs>>,
-  'actors' | 'capture' | 'drag' | 'spatialEffects' | 'runtime'
+  'actors' | 'capture' | 'drag' | 'spatialEffects' | 'runtime' | 'system'
 >
 
 /**
@@ -97,7 +98,7 @@ export function nativeSpatialStepCallbacks(
   step: Pick<ContinuationInput, 'occurrenceId' | 'executionCommandId' | 'occurredAt'>
 ): Pick<ContinuationCallbacks, 'evaluateSpatial' | 'spatialSettlement' | 'prepareConcentration'> {
   const { state, userId, autoRoll, carefully, captured, random, finalActors } = context
-  const { actors, capture, drag, runtime } = captured
+  const { actors, capture, drag, runtime, system } = captured
   // A zone whose Concentration a contact ended leaves the Scene for the rest of the move (D220).
   const removedZoneIds = new Set<string>()
   const spatialEffects = () => captured.spatialEffects.filter(({ id }) => !removedZoneIds.has(id))
@@ -109,7 +110,27 @@ export function nativeSpatialStepCallbacks(
           carefully,
           draggedTokenIds: drag?.tokens.map(({ tokenId }) => tokenId),
           leavingAreaHolds: leavingAreaHolds(targets.values()),
-          moveEndHolds: moveEndHolds(targets.values())
+          moveEndHolds: moveEndHolds(targets.values()),
+          // A zone that needs to be seen is seen from where its occupant began the move (D223).
+          loadPointSight: async ({ occupantActorId, from, point }) => {
+            const occupant = targets.get(occupantActorId)
+            if (!occupant) throw new Error('Movement zone sight actor is unavailable.')
+            return (
+              (await readNativeLivePointSight({
+                state,
+                system,
+                observer: occupant,
+                point,
+                observerPosition: from,
+                sceneContext: {
+                  sceneId: spatial.sceneId,
+                  sceneVersion: spatial.sceneVersion,
+                  grid: spatial.sceneGrid
+                },
+                capture
+              })) === 'SEES'
+            )
+          }
         },
         state,
         actors,
