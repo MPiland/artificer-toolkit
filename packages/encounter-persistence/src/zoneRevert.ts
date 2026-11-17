@@ -6,6 +6,7 @@ import { readRunActors } from './documents.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { commitRevert, type RevertScope, type StoredCommand } from './revertCommit.js'
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
+import { returnSpentActionEconomy } from './spentAllowanceReturn.js'
 import { revertUnavailable } from './targetMechanicsInverse.js'
 
 /**
@@ -91,6 +92,38 @@ export async function revertZoneDisarm(
     ...input,
     actors,
     nextActors: [...actors],
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/**
+ * Undoes a source's move of its zone (QUALITY-15.T3y8): the zone returns where it was and the move's
+ * activation goes back, only while nothing changed the zone since.
+ */
+export async function revertZoneMove(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'MOVE_ZONE' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const { actorId, actionEconomy, spatialEffectId, before, afterVersion } = root.receipt
+  const actors = await readRunActors(ctx, state)
+  const actor = actors.find((entry) => entry.id === actorId)
+  if (!actor) revertUnavailable('The actor left the Encounter; adjust manually.')
+  const { store, current } = await readRevertZone(ctx, state, spatialEffectId)
+  if (!store || !current || current.version !== afterVersion)
+    revertUnavailable('The zone changed after it was moved; adjust manually.')
+  await store.updateCurrentStateCas({
+    id: current.id,
+    expectedVersion: current.version,
+    lifecycle: current.lifecycle,
+    spatialState: current.spatialState,
+    placement: { ...current.placement, geometry: before }
+  })
+  const restored = returnSpentActionEconomy(actor, actionEconomy)
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
     updatedAt: new Date().toISOString()
   })
 }

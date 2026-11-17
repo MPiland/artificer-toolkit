@@ -97,6 +97,7 @@ import {
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
 import { MANIFEST_CAMOUFLAGE_NODE_MAP } from './manifestCamouflage.js'
+import { MANIFEST_ZONE_MOVE_NODE_MAP } from './manifestZoneMove.js'
 import { MANIFEST_LIGHT_NODE_MAP } from './manifestLight.js'
 import {
   MANIFEST_OCCUPANT_CONDITION_IMMUNITY_NODE_MAP,
@@ -114,6 +115,7 @@ import { PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP } from './pathLifecycleEffectOffer
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { CHOICE_OPTION_REQUIRED_RULE_NODE_MAP } from './choiceOptionRequiredRule.js'
 import { registerForcedMovementOutcomeFields, type ForcedMovementCond } from './forcedMovement.js'
+import { registerTreeStrideOutcomeFields } from './treeStrideOutcomeFields.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
@@ -1969,62 +1971,8 @@ function registerOutcomeFields(
         showIf: local.field(['effectKind']).eq(EFFECT_KIND.PLANT_PORTAL)
       })
     )
-    .set(
-      'destinationDistance',
-      groupObject(['destinationDistance'], 'Destination Distance', () => MEASUREMENT_NODE_MAP, {
-        presentation: 'inline',
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
-      })
-    )
-    .set(
-      'entryMovementCost',
-      groupObject(['entryMovementCost'], 'Entry Movement Cost', () => MEASUREMENT_NODE_MAP, {
-        presentation: 'inline',
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
-      })
-    )
-    .set(
-      'exitMovementCost',
-      groupObject(['exitMovementCost'], 'Exit Movement Cost', () => MEASUREMENT_NODE_MAP, {
-        presentation: 'inline',
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
-      })
-    )
-    .set(
-      'sameTreeKind',
-      toggle(['sameTreeKind'], 'Same Tree Kind', {
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
-      })
-    )
-    .set(
-      'livingTreesOnly',
-      toggle(['livingTreesOnly'], 'Living Trees Only', {
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
-      })
-    )
-    .set(
-      'minimumTreeSizeRelativeToTraveler',
-      toggle(['minimumTreeSizeRelativeToTraveler'], 'Tree At Least Traveler Size', {
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
-      })
-    )
-    .set(
-      'usesPerRound',
-      number(['usesPerRound'], 'Uses per Round', {
-        constraints: { minimum: 1 },
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
-      })
-    )
-    .set(
-      'mustEndTurnOutside',
-      toggle(['mustEndTurnOutside'], 'Must End Turn Outside Tree', {
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
-      })
-    )
+  registerTreeStrideOutcomeFields(map, nodes, cond)
+  map
     .set(
       'actionEconomyRuleKind',
       selectSingle(
@@ -2106,6 +2054,18 @@ function registerOutcomeFields(
           local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
           local.field(['manifestKind']).eq(MANIFEST_KIND.ZONE)
         ])
+      })
+    )
+    .set(
+      'move',
+      groupObject(['move'], 'Source Moves the Zone', () => MANIFEST_ZONE_MOVE_NODE_MAP, {
+        presentation: 'inline',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.ZONE),
+          local.field(['attachmentKind']).eq('PLACED_SPACE')
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(

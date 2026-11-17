@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { spatialPointDtoSchema } from '../shared/spatialFacts.js'
 import {
+  spatialPersistedGeometryDtoSchema,
   spatialRuleEffectCurrentStateDtoSchema,
   spatialRuleEffectStateDtoSchema
 } from '../shared/spatial.js'
@@ -706,6 +707,21 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         /** The effect as the old holder kept it; undo recreates exactly this record there. */
         before: activeRuleEffectRecordSchema,
         /** The version the effect had at the new holder, so undo refuses once it has changed. */
+        afterVersion: z.number().check(z.int()).check(z.positive())
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('MOVE_ZONE'),
+      /** The timeline label: plain "Move zone", which never names a source a player cannot see. */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      /** What the move spent and where the zone was, so the GM's undo puts it back (QUALITY-15.T3y8). */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+        spatialEffectId: postgresUuidSchema,
+        before: spatialPersistedGeometryDtoSchema,
+        /** The version the move left the zone at, so undo refuses once it has changed since. */
         afterVersion: z.number().check(z.int()).check(z.positive())
       })
     }),

@@ -11,6 +11,8 @@ import {
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { persistEncounterEndHeldGrant } from '@artificer-toolkit/encounter-persistence/endHeldGrantPersistence'
 import { persistEncounterMoveHeldEffect } from '@artificer-toolkit/encounter-persistence/moveHeldEffectPersistence'
+import { persistEncounterMoveZone } from '@artificer-toolkit/encounter-persistence/moveZonePersistence'
+import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { persistEncounterChangeFacing } from '@artificer-toolkit/encounter-persistence/changeFacingPersistence'
 import { persistEncounterEscape } from '@artificer-toolkit/encounter-persistence/escapePersistence'
 import { persistEncounterReleaseRelationship } from '@artificer-toolkit/encounter-persistence/releaseRelationshipPersistence'
@@ -20,6 +22,7 @@ import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
+  MoveZoneInputDto,
   ReleaseRelationshipInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -32,6 +35,7 @@ import { planNativeLiveEndHeldGrant } from './nativeEndHeldGrantAction.js'
 import { planNativeLiveEscape } from './nativeEscapeAction.js'
 import { planNativeLiveEscapeResponse } from './nativeEscapeActionResponse.js'
 import { planNativeLiveMoveHeldEffect } from './nativeMoveHeldEffectAction.js'
+import { planNativeLiveMoveZone } from './nativeMoveZoneAction.js'
 import { planNativeLiveChangeFacing } from './nativeChangeFacingAction.js'
 import { setRoomActorFacing } from './roomActionFacing.js'
 import { planNativeLiveReleaseRelationship } from './nativeReleaseRelationshipAction.js'
@@ -203,6 +207,41 @@ export async function executeRoomEncounterMoveHeldEffect(
   const revisions = await readBasicActionRevisions(input)
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
   return persistEncounterMoveHeldEffect(
+    ctx,
+    { ...plan.input, revisions },
+    {
+      validateReadFence: (state, actors, fence) =>
+        assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, {
+          revisions: fence.revisions,
+          scenes: []
+        })
+    }
+  )
+}
+
+/** A source's move of a zone it maintains spends the move's activation and re-centers the zone in one native commit. */
+export async function executeRoomEncounterMoveZone(
+  input: RoomBasicActionInput & { command: MoveZoneInputDto }
+) {
+  const { ctx, transaction, scope, observed } = input
+  const plan = await planNativeLiveMoveZone(scope, input.command, {
+    ...basicActionExecution(input),
+    readZone: async (state, spatialEffectId) => {
+      const row = await ctx.db
+        .query('encounterSpatialRuleEffects')
+        .withIndex('by_publicId', (q) => q.eq('id', spatialEffectId))
+        .unique()
+      const scene =
+        row?.encounterId === state.id
+          ? await readRoomBoundSceneTokens(ctx, transaction, state)
+          : null
+      return row && scene ? { zone: readSpatialEffect(row), sceneGrid: scene.grid } : null
+    }
+  })
+  if (plan.kind === 'REPLAY') return plan.result
+  const revisions = await readBasicActionRevisions(input)
+  mergeNativeRulesRevisions(revisions, plan.input.revisions)
+  return persistEncounterMoveZone(
     ctx,
     { ...plan.input, revisions },
     {

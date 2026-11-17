@@ -245,6 +245,17 @@ const PARITY: Record<CommandType, Entry> = {
       target: { kind: 'ACTOR', actorId: SOME_ID }
     })
   },
+  MOVE_ZONE: {
+    access: 'PLAYER',
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'MOVE_ZONE',
+      actorId: probe.actorId,
+      spatialEffectId: SOME_ID,
+      destination: { x: 500, y: 500 }
+    })
+  },
   RELEASE_RELATIONSHIP: {
     access: 'PLAYER',
     actorScoped: true,
@@ -696,6 +707,7 @@ describe('registry', () => {
       'END_HELD_GRANT',
       'ESCAPE',
       'MOVE_HELD_EFFECT',
+      'MOVE_ZONE',
       'RELEASE_RELATIONSHIP',
       'RESOLVE_ACTION',
       'RESOLVE_RULE_OCCURRENCE',
