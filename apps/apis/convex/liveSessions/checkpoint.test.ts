@@ -43,7 +43,10 @@ import { disarmInRoom, nativeDisarmFixture } from '../../tests/fixtures/nativeDi
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readReceiptHeaders, readReceiptLedger } from '../lib/receiptLedgers'
 import { presentCampaignLiveAuthority } from './authority'
+import { auditTriggerRegistry, withBatchedSceneVisionTracking } from '../lib/mutations'
 import { publishChatCheckpoint, publishCheckpoint } from './checkpoint'
+import { createCheckpointIoMeter } from './checkpointIo'
+import { applyCheckpointRecords } from './checkpointRecords'
 import { requireSystem } from '../content/systemDocuments'
 import { retainUserRolls } from '../rollDocuments'
 import {
@@ -1907,4 +1910,102 @@ it('saves chat mid-Run without a Run row, replays idempotently, refuses a stale 
   }))
   expect(stored.bindings).toEqual([])
   expect(stored.entries).toHaveLength(2)
+})
+
+/**
+ * One save applied twice on twin Campaigns: once as the checkpoint now writes it (scope refreshed
+ * once per save) and once with every write tracked per row, as `withSceneVisionTracking` does.
+ */
+async function saveWithTracking(scenario: 'FLUSH' | 'COMPLETE', perRow: boolean) {
+  const base = await setupCharacterRun()
+  let authority = await activate(base)
+  const labelOf = (scope: string, id: string) =>
+    id === base.campaign.id ? scope : id === base.character.id ? `${scope}:character` : null
+  const readRevisions = async () =>
+    new Map(
+      (await base.t.run((ctx) => ctx.db.query('sceneVisionRevisions').take(100))).flatMap((row) => {
+        const label = labelOf(row.scope, row.id)
+        return label ? [[label, row.revision] as const] : []
+      })
+    )
+  if (scenario === 'COMPLETE')
+    authority = (await publishNext(base, authority, [await runStatusChange(base, 'ACTIVE')]))
+      .authority
+  const changes = [
+    await enemyHitPointChange(base),
+    ...(scenario === 'FLUSH'
+      ? [(await playChange(base)).change]
+      : [await runStatusChange(base, 'COMPLETED')])
+  ]
+  const before = await readRevisions()
+  const known = {
+    system: null,
+    campaign: before.get('CAMPAIGN') ?? null,
+    play: before.get('PLAY') ?? null,
+    characters: [
+      { characterId: base.character.id, revision: before.get('CHARACTER:character') ?? null }
+    ],
+    preferences: '0'.repeat(64)
+  }
+  const saved = await base.t.run(async (ctx) => {
+    const batched = withBatchedSceneVisionTracking(ctx)
+    const tracking = perRow
+      ? { ...batched, db: () => batched.ctx.db, changed: async () => {}, untracked: batched.ctx }
+      : batched
+    const io = createCheckpointIoMeter(ctx)
+    await io.mark('fence')
+    const adopted = await applyCheckpointRecords(
+      tracking,
+      { campaignId: base.campaign.id, epoch: authority.epoch, checkpointId: crypto.randomUUID() },
+      { changes, history: [], scenes: [], retainedRolls: [] },
+      known,
+      io
+    )
+    return { adopted, io: await io.finish() }
+  })
+  const after = await readRevisions()
+  return {
+    refreshed: [...after]
+      .filter(([label, revision]) => before.get(label) !== revision)
+      .map(([label]) => label)
+      .sort(),
+    adopted: {
+      play: saved.adopted.play === after.get('PLAY'),
+      characters: saved.adopted.characters.map(
+        ({ characterId, revision }) =>
+          characterId === base.character.id && revision === after.get('CHARACTER:character')
+      )
+    },
+    documentsRead: saved.io.documentsRead
+  }
+}
+
+it.each(['FLUSH', 'COMPLETE'] as const)(
+  'refreshes Scene vision once per save with the revisions and adoption of per-row tracking and fewer reads (%s, D229)',
+  async (scenario) => {
+    const perRow = await saveWithTracking(scenario, true)
+    const batched = await saveWithTracking(scenario, false)
+    expect(perRow.refreshed).toContain('PLAY')
+    expect(batched.refreshed).toEqual(perRow.refreshed)
+    expect(batched.adopted).toEqual(perRow.adopted)
+    expect(batched.documentsRead).toBeLessThan(perRow.documentsRead)
+  }
+)
+
+it('accounts for every registered trigger as a Scene vision selector or an effect (D229)', () => {
+  const audit = auditTriggerRegistry()
+  expect(audit.length).toBeGreaterThan(0)
+  for (const { table, registered, scopeSelectors, effects } of audit)
+    expect(registered, `${table} has a trigger registered outside the two helpers`).toBe(
+      scopeSelectors + effects
+    )
+})
+
+it('keeps effect triggers off the Run child tables the finished-Run delete writes untracked (D229)', () => {
+  const runChildTables = auditTriggerRegistry().filter(
+    ({ table }) => table.startsWith('encounter') && table !== 'encounterRuns'
+  )
+  expect(runChildTables.length).toBeGreaterThan(0)
+  for (const { table, effects } of runChildTables)
+    expect(effects, `${table} has an effect trigger the raw-context delete would skip`).toBe(0)
 })

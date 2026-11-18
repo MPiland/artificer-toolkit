@@ -127,18 +127,61 @@ function trackedHandler(handler: (ctx: MutationCtx, ...args: never) => unknown) 
   })
 }
 
+/** Tables with a trigger other than a scene-vision refresh (live-room notices, Sheet stores, counters). */
+const effectTables = new Map<TableNames, number>()
+/** Keyed by table, so a table's selectors only ever see that table's documents. */
+const sceneVisionSelectors = new Map<TableNames, ScopeSelector<never>[]>()
+
+function registerEffect<TableName extends TableNames>(
+  tableName: TableName,
+  trigger: Parameters<typeof triggers.register<TableName>>[1]
+) {
+  effectTables.set(tableName, (effectTables.get(tableName) ?? 0) + 1)
+  triggers.register(tableName, trigger)
+}
+
+/**
+ * Per table, the triggers on the shared registry against the two registrations that account for
+ * them. A trigger added with `triggers.register` directly would be skipped by the batched
+ * tracking, so every table must satisfy `registered === scopeSelectors + effects`.
+ */
+export function auditTriggerRegistry() {
+  return Object.entries(triggers.registered).map(([table, registered]) => ({
+    table,
+    registered: registered?.length ?? 0,
+    scopeSelectors: sceneVisionSelectors.get(table as TableNames)?.length ?? 0,
+    effects: effectTables.get(table as TableNames) ?? 0
+  }))
+}
+
+async function selectScopes<TableName extends TableNames>(
+  ctx: TriggerContext,
+  selectors: readonly ScopeSelector<TableName>[],
+  documents: readonly (Doc<TableName> | null)[]
+) {
+  const scopes = new Map<string, SceneVisionScope>()
+  for (const document of documents) {
+    if (!document) continue
+    for (const selectScope of selectors) {
+      const scope = await selectScope(ctx, document)
+      if (scope) scopes.set(`${scope.scope}:${scope.id}`, scope)
+    }
+  }
+  return scopes.values()
+}
+
 function registerScope<TableName extends TableNames>(
   tableName: TableName,
   selectScope: ScopeSelector<TableName>
 ) {
+  sceneVisionSelectors.set(tableName, [...(sceneVisionSelectors.get(tableName) ?? []), selectScope])
   triggers.register(tableName, async (ctx, change) => {
-    const scopes = new Map<string, SceneVisionScope>()
-    for (const document of [change.oldDoc, change.newDoc]) {
-      if (!document) continue
-      const scope = await selectScope(ctx, document)
-      if (scope) scopes.set(`${scope.scope}:${scope.id}`, scope)
-    }
-    for (const scope of scopes.values()) await refreshScope(ctx.innerDb, scope)
+    for (const scope of await selectScopes<TableName>(
+      ctx,
+      [selectScope],
+      [change.oldDoc, change.newDoc]
+    ))
+      await refreshScope(ctx.innerDb, scope)
   })
 }
 
@@ -215,7 +258,7 @@ registerScope('reusableDefinitions', (_, document) => systemScope(document.gameS
 
 // Imported rows are readable only while their job is COMPLETED (`imports/visibility.ts`), so a
 // visibility change changes the content of every System the job imported roots into (D34).
-triggers.register('importJobs', async (ctx, change) => {
+registerEffect('importJobs', async (ctx, change) => {
   const visible = (job: Doc<'importJobs'> | null) => job?.status === 'COMPLETED'
   const job = change.newDoc ?? change.oldDoc
   if (!job || visible(change.oldDoc) === visible(change.newDoc)) return
@@ -258,18 +301,18 @@ async function markAuthoredContent(
     await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: share.campaignId }, true)
 }
 
-triggers.register('authoredRoots', async (ctx, change) => {
+registerEffect('authoredRoots', async (ctx, change) => {
   for (const root of [change.oldDoc, change.newDoc]) if (root) await markAuthoredContent(ctx, root)
 })
 // Versions change with their root; a version write alone still changes the published document.
-triggers.register('authoredVersions', async (ctx, change) => {
+registerEffect('authoredVersions', async (ctx, change) => {
   for (const version of [change.oldDoc, change.newDoc])
     if (version)
       await markContentScope(ctx, { scope: 'SOURCE', scopeId: version.contentSourceId }, true)
 })
 // Snapshots carry each root's compilation, and a recompile (derived sync, a parent's children, the
 // compiler migration) writes only this row; a build that found it missing waits for this mark.
-triggers.register('authoredVersionCompilations', async (ctx, change) => {
+registerEffect('authoredVersionCompilations', async (ctx, change) => {
   const { subjectId } = change.newDoc ?? change.oldDoc
   const root = await ctx.innerDb
     .query('authoredRoots')
@@ -277,16 +320,16 @@ triggers.register('authoredVersionCompilations', async (ctx, change) => {
     .unique()
   if (root) await markAuthoredContent(ctx, root)
 })
-triggers.register('contentSources', async (ctx, change) => {
+registerEffect('contentSources', async (ctx, change) => {
   if (change.operation === 'insert') return
   await markContentScope(ctx, { scope: 'SOURCE', scopeId: change.oldDoc.id }, false)
 })
-triggers.register('campaignContentShares', async (ctx, change) => {
+registerEffect('campaignContentShares', async (ctx, change) => {
   for (const share of [change.oldDoc, change.newDoc])
     if (share) await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: share.campaignId }, true)
 })
 // Share validity reads the System, owner, catalogues and the sharing member's active membership.
-triggers.register('campaigns', async (ctx, change) => {
+registerEffect('campaigns', async (ctx, change) => {
   if (change.operation === 'insert') return
   const { oldDoc, newDoc } = change
   if (
@@ -299,7 +342,7 @@ triggers.register('campaigns', async (ctx, change) => {
     return
   await markContentScope(ctx, { scope: 'CAMPAIGN', scopeId: oldDoc.id }, false)
 })
-triggers.register('campaignMemberships', async (ctx, change) => {
+registerEffect('campaignMemberships', async (ctx, change) => {
   if (change.operation === 'insert') return
   const { oldDoc, newDoc } = change
   if (newDoc && oldDoc.status === newDoc.status && oldDoc.role === newDoc.role) return
@@ -345,7 +388,7 @@ async function queueCharacterSheetStore(ctx: TriggerContext, target: CharacterSh
 function registerCharacterSheetInput(tableName: TableNames) {
   const input: CharacterSheetInput<TableNames> | undefined = characterSheetInputs[tableName]
   if (!input || !('queue' in input)) return
-  triggers.register(tableName, async (ctx, change) => {
+  registerEffect(tableName, async (ctx, change) => {
     for (const target of await input.queue(ctx.innerDb, change))
       await queueCharacterSheetStore(ctx, target)
   })
@@ -360,7 +403,7 @@ registerScope('campaignCharacterAssignments', (_, document) => campaignScope(doc
 registerScope('campaignCharacterAssignments', (_, document) => playScope(document.campaignId))
 registerScope('campaignContentShares', (_, document) => campaignScope(document.campaignId))
 
-triggers.register('campaignNotebookSections', async (ctx, change) => {
+registerEffect('campaignNotebookSections', async (ctx, change) => {
   const campaignIds = new Set(
     [change.oldDoc, change.newDoc].flatMap((document) => (document ? [document.campaignId] : []))
   )
@@ -380,7 +423,7 @@ function registerCampaignContentUsage(
   tableName: 'campaignNotebookSections' | 'campaignVehicles' | 'sceneDefinitions',
   resource: 'campaignEntriesPerCampaign' | 'scenesPerCampaign'
 ) {
-  triggers.register(tableName, async (ctx, change) => {
+  registerEffect(tableName, async (ctx, change) => {
     if (change.operation === 'insert')
       await changeCampaignContentUsage(ctx.innerDb, change.newDoc.campaignId, resource, 1)
     else if (change.operation === 'delete')
@@ -407,11 +450,11 @@ registerScope('authoredRouteIds', (_, document) =>
 registerScope('campaignScenePresentations', (_, document) => playScope(document.campaignId))
 // Play settings are the room's PLAY input; Encounter writes below come from the room's own commands.
 registerScope('campaignPlaySettings', (_, document) => playScope(document.campaignId))
-triggers.register('campaignPlaySettings', async (ctx, change) => {
+registerEffect('campaignPlaySettings', async (ctx, change) => {
   for (const settings of [change.oldDoc, change.newDoc])
     if (settings) recordLiveRoomInput(ctx.innerDb, settings.campaignId, 'PLAY')
 })
-triggers.register('userProfiles', async (ctx, change) => {
+registerEffect('userProfiles', async (ctx, change) => {
   if (
     change.operation !== 'update' ||
     (change.oldDoc.autoRollDice === change.newDoc.autoRollDice &&
@@ -430,7 +473,7 @@ registerScope('encounterRuns', (ctx, document) => {
   return playScope(document.campaignId)
 })
 // Combat pauses the Campaign clock, whichever path (command, room checkpoint, deletion) changes a Run.
-triggers.register('encounterRuns', async (ctx, change) => {
+registerEffect('encounterRuns', async (ctx, change) => {
   if ((change.oldDoc?.status === 'ACTIVE') === (change.newDoc?.status === 'ACTIVE')) return
   const run = change.newDoc ?? change.oldDoc
   if (run) await syncCampaignClockWithCombat(ctx.innerDb, run.campaignId)
@@ -471,6 +514,43 @@ registerScope('encounterRuleOccurrences', (ctx, document) =>
  * notices, so product writes use `mutation` or `internalMutation`.
  */
 export const withSceneVisionTracking = triggers.wrapDB
+
+/**
+ * Change tracking for a transaction that writes many rows of one Campaign (the live-room checkpoint).
+ * `ctx` is the fully tracked context; `untracked` is the raw one. A write to a table whose only trigger is the scene-vision
+ * refresh goes through `db(table)` untracked, with `changed` naming the old and new document;
+ * `flush` then refreshes every touched scope once, instead of reading each row back through its
+ * trigger. Scopes, revisions and the effect triggers of other tables are exactly those of `ctx`.
+ */
+export function withBatchedSceneVisionTracking(rawCtx: MutationCtx) {
+  const ctx = withSceneVisionTracking(rawCtx)
+  const triggerCtx: TriggerContext = { ...rawCtx, innerDb: rawCtx.db }
+  const pending = new Map<string, SceneVisionScope>()
+  const touch = (scope: SceneVisionScope) => pending.set(`${scope.scope}:${scope.id}`, scope)
+  return {
+    ctx,
+    untracked: rawCtx,
+    db: (table: TableNames) => (effectTables.has(table) ? ctx.db : rawCtx.db),
+    /** Records a write made through `db(table)`; a table with effect triggers tracked it itself. */
+    async changed<TableName extends TableNames>(
+      table: TableName,
+      oldDoc: Doc<TableName> | null,
+      newDoc: Doc<TableName> | null
+    ) {
+      if (effectTables.has(table)) return
+      const selectors = (sceneVisionSelectors.get(table) ?? []) as ScopeSelector<TableName>[]
+      for (const scope of await selectScopes(triggerCtx, selectors, [oldDoc, newDoc])) touch(scope)
+    },
+    /** Rows of this Campaign's Runs were written untracked. */
+    touchPlay: (campaignId: string) => touch(playScope(campaignId)),
+    async flush() {
+      for (const scope of pending.values()) await refreshScope(rawCtx.db, scope)
+      pending.clear()
+    }
+  }
+}
+export type BatchedSceneVisionTracking = ReturnType<typeof withBatchedSceneVisionTracking>
+
 export const mutation = withLazyValidators<'mutation', MutationCtx, 'public'>(
   rawMutation,
   trackedHandler

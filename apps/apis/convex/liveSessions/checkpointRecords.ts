@@ -39,6 +39,7 @@ import { removeFinishedRunRows } from '../encounters/campaignDeletion'
 import { carryOverRunGrants, endOutsideCarriedGrants } from '../encounters/runGrantCarryOver'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readSceneVisionRevision } from '../scenes/visionFreshness'
+import type { BatchedSceneVisionTracking } from '../lib/mutations'
 import type { CheckpointIoMeter } from './checkpointIo'
 import { applyCheckpointScenes } from './checkpointScenes'
 import { applyCheckpointPrivateRolls } from './checkpointPrivateRolls'
@@ -120,7 +121,7 @@ async function readOwnRevisions(
  * revisions the room may adopt as its own (see `liveSessionCheckpointAdoptionSchema`).
  */
 export async function applyCheckpointRecords(
-  ctx: MutationCtx,
+  tracking: BatchedSceneVisionTracking,
   frame: { campaignId: string; epoch: string; checkpointId: string },
   records: LiveSessionCheckpointRecords,
   known: LiveSessionRoomAuthorizationRevisions | null,
@@ -131,6 +132,7 @@ export async function applyCheckpointRecords(
    */
   { replay = false }: { replay?: boolean } = {}
 ): Promise<LiveSessionCheckpointAdoption> {
+  const { ctx } = tracking
   const heldRuns = new Set<string>()
   const changes = new Map<string, LiveSessionCheckpointRecordChange>()
   const seen = new Set<string>()
@@ -455,9 +457,12 @@ export async function applyCheckpointRecords(
   for (const [identity, change] of changes) {
     const row = currentRows.get(identity)
     const next = nextRows.get(identity)
+    // Scene vision is refreshed once per scope after the writes (`tracking.flush`), not per row.
+    const db = tracking.db(change.table)
     if (!next) {
       if (row) {
-        await ctx.db.delete(row._id)
+        await db.delete(row._id)
+        await tracking.changed(change.table, row, null)
         if (change.table === 'encounterRunActors') {
           const actor = row as Doc<'encounterRunActors'>
           await removeActorLoot(ctx, actor.encounterId, actor.id)
@@ -475,10 +480,10 @@ export async function applyCheckpointRecords(
           .filter((field) => !Object.hasOwn(stored, field))
           .map((field) => [field, undefined])
       )
-      await ctx.db.patch(_id, { ...changedFields(before, stored), ...removed })
+      await db.patch(_id, { ...changedFields(before, stored), ...removed })
       written.set(identity, { ...stored, _id, _creationTime } as typeof row)
     } else {
-      const _id = await ctx.db.insert(change.table, stored)
+      const _id = await db.insert(change.table, stored)
       // Validators ignore system fields; the insert's creation time is not read back.
       written.set(identity, {
         ...stored,
@@ -486,6 +491,7 @@ export async function applyCheckpointRecords(
         _creationTime: Date.now()
       } as Doc<typeof change.table>)
     }
+    await tracking.changed(change.table, row ?? null, written.get(identity) ?? null)
   }
   await io.mark('records')
   const pendingOccurrences = new Set<string>()
@@ -603,7 +609,9 @@ export async function applyCheckpointRecords(
   for (const { encounterId, casterCharacterIds } of newConcentrationCasters)
     await endOutsideCarriedGrants(ctx, frame.campaignId, encounterId, casterCharacterIds)
   for (const encounterId of completedRuns) {
-    await removeFinishedRunRows(ctx, encounterId)
+    // It deletes only Run child rows, whose sole trigger is the scene-vision refresh.
+    await removeFinishedRunRows(tracking.untracked, encounterId)
+    tracking.touchPlay(frame.campaignId)
     for (const characterId of await carryOverRunGrants(ctx, frame.campaignId, encounterId))
       carriedOver.add(characterId)
   }
@@ -628,6 +636,7 @@ export async function applyCheckpointRecords(
   await io.mark('privateRolls')
   if (heldRuns.size) await reconcileCharacterHolds(ctx, frame.campaignId, frame.epoch, heldRuns)
   await io.mark('holds')
+  await tracking.flush()
   if (!known || !before) return { characters: [] }
   const after = await readOwnRevisions(ctx, frame.campaignId, deltaCharacterIds)
   await io.mark('remainder')
