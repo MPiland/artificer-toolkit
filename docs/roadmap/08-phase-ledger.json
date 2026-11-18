@@ -25192,7 +25192,7 @@
             },
             {
               "id": "PERF-1.T11",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25203,11 +25203,11 @@
               },
               "text": "D229 step 4a: a ROLL chat entry carries a non-empty rolls list instead of one roll (schema, stored payload, nonce fingerprint and replay, presentation and visibility projection; GM reveal and rest consumption stay per roll); standalone and free rolls become a one-item list with unchanged behaviour; the web chat card renders every roll per DESIGN.md; migrate development data in the same change.",
               "note": "Resized 2026-11-17 from the seam trace (D229 step 4 resize): persisted contract shared with T9, so it follows T9.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "proof": "m873 (384073e75): Tests 44236941318, Live 44236941358, Browser journeys 44236941407 green; schema rejects an empty rolls list; per-roll reveal and consumption; fingerprint over the list; rest settles and consumes one roll inside a multi-roll entry; web renders a multi-roll card; by_rollId index removed (rest finds the entry by nonce = roll id)."
             },
             {
               "id": "PERF-1.T12",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25216,7 +25216,8 @@
                 "size": 2,
                 "after": ["PERF-1.T11"]
               },
-              "text": "D229 step 4b: recordActionRollCards and recordIncomingGateRollCards collect an action's TABLE-audience rolls and write one card per author at commit end (an area cast is one action); private rolls stay out of chat; prove one entry holding attack, damage and save, no private roll in the table payload, a standalone roll unchanged, the entries-per-command drop, and a Browser journeys assertion on the card."
+              "text": "D229 step 4b: recordActionRollCards and recordIncomingGateRollCards collect an action's TABLE-audience rolls and write one card per author at commit end (an area cast is one action); private rolls stay out of chat; prove one entry holding attack, damage and save, no private roll in the table payload, a standalone roll unchanged, the entries-per-command drop, and a Browser journeys assertion on the card.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
