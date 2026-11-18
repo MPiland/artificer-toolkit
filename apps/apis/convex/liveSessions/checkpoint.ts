@@ -17,7 +17,11 @@ import {
   type LiveSessionCheckpointFenceInput
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
 import type { MutationCtx } from '../_generated/server'
-import { untrackedInternalMutation, withSceneVisionTracking } from '../lib/mutations'
+import {
+  untrackedInternalMutation,
+  withBatchedSceneVisionTracking,
+  type BatchedSceneVisionTracking
+} from '../lib/mutations'
 import { commitCampaignLiveCheckpoint, presentCampaignLiveAuthority } from './authority'
 import { requireCampaignLiveAuthority } from './authorityGuard'
 import { createCheckpointIoMeter, type CheckpointIoMeter } from './checkpointIo'
@@ -41,8 +45,8 @@ export async function publishCheckpoint(
     throw new Error('Live Session checkpoint payload exceeds its journal page bound.')
   if (checksumCanonicalJson(records) !== frame.payloadChecksum)
     throw new Error('Live Session checkpoint payload checksum does not match.')
-  return publishCheckpointFrame(rawCtx, frame, (ctx, io) =>
-    applyCheckpointRecords(ctx, frame, records, knownAuthorization, io)
+  return publishCheckpointFrame(rawCtx, frame, (tracking, io) =>
+    applyCheckpointRecords(tracking, frame, records, knownAuthorization, io)
   )
 }
 
@@ -53,14 +57,17 @@ export async function publishCheckpoint(
 export async function publishCheckpointFrame(
   rawCtx: MutationCtx,
   frame: LiveSessionCheckpointFenceInput,
-  apply: (ctx: MutationCtx, io: CheckpointIoMeter) => Promise<LiveSessionCheckpointAdoption>
+  apply: (
+    tracking: BatchedSceneVisionTracking,
+    io: CheckpointIoMeter
+  ) => Promise<LiveSessionCheckpointAdoption>
 ): Promise<LiveSessionCheckpointResponse> {
   // Refresh outside-view revisions without invalidating the room's own committed inputs.
-  const ctx = withSceneVisionTracking(rawCtx)
+  const tracking = withBatchedSceneVisionTracking(rawCtx)
   const io = createCheckpointIoMeter(rawCtx)
-  const result = await commitCampaignLiveCheckpoint(ctx, frame, async () => {
+  const result = await commitCampaignLiveCheckpoint(tracking.ctx, frame, async () => {
     await io.mark('fence')
-    return apply(ctx, io)
+    return apply(tracking, io)
   })
   // The authority patch, or the whole replay check, belongs to the fence too.
   await io.mark('fence')
@@ -87,11 +94,11 @@ export async function publishChatCheckpoint(
   const authority = await requireCampaignLiveAuthority(ctx, { campaignId, epoch })
   if (authority.phase === 'ACTIVATING') throw new Error('Live Session authority is not active.')
   // The same revision tracking and adoption as a full save, so the room's own writes never look foreign.
-  const tracked = withSceneVisionTracking(ctx)
+  const tracking = withBatchedSceneVisionTracking(ctx)
   const io = createCheckpointIoMeter(ctx)
   await io.mark('fence')
   const adopted = await applyCheckpointRecords(
-    tracked,
+    tracking,
     { campaignId, epoch, checkpointId: crypto.randomUUID() },
     { changes, history: [], scenes: [], retainedRolls },
     knownAuthorization,

@@ -25177,7 +25177,7 @@
             },
             {
               "id": "PERF-1.T10",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25187,7 +25187,7 @@
                 "after": ["PERF-1.T8"]
               },
               "text": "D229 step 3 (revised): the checkpoint path refreshes scene-vision scope once per save instead of through per-row triggers (withSceneVisionTracking), so actor and Run rows are not re-read per change; prove the same visibility result and the lower read count with real-code tests.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "proof": "m871 (6d77670a5): Tests 44213795303, Live 44213795304, Browser journeys 44213795293 green; trigger-registry audit test; V15 44213833715 modelled 5.91 MB (from 6.32 MB), COMPLETE 592 KB at about 0.5 s."
             },
             {
               "id": "PERF-1.T11",
