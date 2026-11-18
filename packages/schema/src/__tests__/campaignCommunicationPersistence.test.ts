@@ -97,9 +97,8 @@ it('fingerprints the retry fields and ignores reveal and consumption', () => {
   const entry = campaignStoredEntrySchema.parse(rollEntry)
   const fingerprint = campaignRollNonceFingerprint(entry)
   expect(fingerprint).toMatch(/^[a-f0-9]{64}$/)
-  expect(
-    campaignRollNonceFingerprint({ ...entry, revealedByGm: true, consumedAt: base.createdAt })
-  ).toBe(fingerprint)
+  const spent = { ...entry, revealedByGm: true, consumedAt: base.createdAt }
+  expect(campaignRollNonceFingerprint(spent)).toBe(fingerprint)
   expect(campaignRollNonceFingerprint({ ...entry, authorUsername: 'Other' })).not.toBe(fingerprint)
   expect(
     campaignRollNonceFingerprint({
