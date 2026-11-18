@@ -128,7 +128,7 @@ function trackedHandler(handler: (ctx: MutationCtx, ...args: never) => unknown) 
 }
 
 /** Tables with a trigger other than a scene-vision refresh (live-room notices, Sheet stores, counters). */
-const effectTables = new Set<TableNames>()
+const effectTables = new Map<TableNames, number>()
 /** Keyed by table, so a table's selectors only ever see that table's documents. */
 const sceneVisionSelectors = new Map<TableNames, ScopeSelector<never>[]>()
 
@@ -136,8 +136,22 @@ function registerEffect<TableName extends TableNames>(
   tableName: TableName,
   trigger: Parameters<typeof triggers.register<TableName>>[1]
 ) {
-  effectTables.add(tableName)
+  effectTables.set(tableName, (effectTables.get(tableName) ?? 0) + 1)
   triggers.register(tableName, trigger)
+}
+
+/**
+ * Per table, the triggers on the shared registry against the two registrations that account for
+ * them. A trigger added with `triggers.register` directly would be skipped by the batched
+ * tracking, so every table must satisfy `registered === scopeSelectors + effects`.
+ */
+export function auditTriggerRegistry() {
+  return Object.entries(triggers.registered).map(([table, registered]) => ({
+    table,
+    registered: registered?.length ?? 0,
+    scopeSelectors: sceneVisionSelectors.get(table as TableNames)?.length ?? 0,
+    effects: effectTables.get(table as TableNames) ?? 0
+  }))
 }
 
 async function selectScopes<TableName extends TableNames>(

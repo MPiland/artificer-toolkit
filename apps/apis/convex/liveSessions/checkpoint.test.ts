@@ -43,7 +43,7 @@ import { disarmInRoom, nativeDisarmFixture } from '../../tests/fixtures/nativeDi
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readReceiptHeaders, readReceiptLedger } from '../lib/receiptLedgers'
 import { presentCampaignLiveAuthority } from './authority'
-import { withBatchedSceneVisionTracking } from '../lib/mutations'
+import { auditTriggerRegistry, withBatchedSceneVisionTracking } from '../lib/mutations'
 import { publishChatCheckpoint, publishCheckpoint } from './checkpoint'
 import { createCheckpointIoMeter } from './checkpointIo'
 import { applyCheckpointRecords } from './checkpointRecords'
@@ -1991,3 +1991,21 @@ it.each(['FLUSH', 'COMPLETE'] as const)(
     expect(batched.documentsRead).toBeLessThan(perRow.documentsRead)
   }
 )
+
+it('accounts for every registered trigger as a Scene vision selector or an effect (D229)', () => {
+  const audit = auditTriggerRegistry()
+  expect(audit.length).toBeGreaterThan(0)
+  for (const { table, registered, scopeSelectors, effects } of audit)
+    expect(registered, `${table} has a trigger registered outside the two helpers`).toBe(
+      scopeSelectors + effects
+    )
+})
+
+it('keeps effect triggers off the Run child tables the finished-Run delete writes untracked (D229)', () => {
+  const runChildTables = auditTriggerRegistry().filter(
+    ({ table }) => table.startsWith('encounter') && table !== 'encounterRuns'
+  )
+  expect(runChildTables.length).toBeGreaterThan(0)
+  for (const { table, effects } of runChildTables)
+    expect(effects, `${table} has an effect trigger the raw-context delete would skip`).toBe(0)
+})
