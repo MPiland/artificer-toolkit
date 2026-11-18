@@ -1443,9 +1443,12 @@ and checkpoints the entry; checkpoints never delete conversation history. The no
 nonce: same-conversation, same-kind retries return the original entry. Edits expire after fifteen minutes and
 unsend after five (a tombstone stays); a roll entry changes only through GM reveal and rest consumption.
 
-Risk (PERF-1.T9): the room's chat-metadata hydrate and the unread-count window read whole entries, so DIRECT-room
-bodies and roll evidence now bill and ship with the hydrate where only compact headers did before. Billed bytes are
-the same with or without a field projection; narrowing the hydrate to the nonce index needs an architect ruling.
+The room's chat-metadata hydrate still ships only access and nonce metadata: `readChatMetadataPage` reads each
+whole entry document, so it bills the document, and returns `projectCampaignEntryMetadata` (id, Campaign,
+conversation, author, time, `kind`, `clientNonce` and a `rollNonceFingerprint` for ROLL entries). The fingerprint is
+computed at read time by `campaignRollNonceFingerprint` (`packages/schema`) and never stored. Historical text and
+roll payloads stay in Convex; the room's entry rows are a union (`campaignRoomEntrySchema`) of the full entries it
+wrote and these metadata rows, and a nonce replay of a metadata-only row is refused as before.
 
 ### Campaign rolls
 

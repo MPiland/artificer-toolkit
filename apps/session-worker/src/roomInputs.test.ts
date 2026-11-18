@@ -45,7 +45,7 @@ import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/json
 import {
   campaignStoredConversationSchema,
   campaignStoredConversationMemberSchema,
-  campaignStoredEntrySchema
+  campaignStoredEntryMetadataSchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { ruleCapabilityReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleState'
@@ -1012,7 +1012,7 @@ describe('room inputs (ADR 0035 S2)', () => {
           table: 'campaignConversationEntries',
           id: 'chat:header',
           creationTime: 0,
-          fields: campaignStoredEntrySchema.parse({
+          fields: campaignStoredEntryMetadataSchema.parse({
             id: uuid(0x712),
             campaignId: CAMPAIGN,
             conversationId,
@@ -1020,16 +1020,7 @@ describe('room inputs (ADR 0035 S2)', () => {
             createdAt: timestamp,
             clientNonce: nonce,
             kind: 'CHAT',
-            mode: 'OOC',
-            body: 'Historical table talk',
-            roll: null,
-            revealedByGm: false,
-            authorUsername: 'Author',
-            characterId: null,
-            characterLabel: null,
-            editedAt: null,
-            unsentAt: null,
-            consumedAt: null
+            rollNonceFingerprint: null
           })
         }
       ]
@@ -1057,7 +1048,8 @@ describe('room inputs (ADR 0035 S2)', () => {
           query.eq('campaignId', CAMPAIGN).eq('authorUserId', uuid(4)).eq('clientNonce', nonce)
         )
         .unique()
-      expect(entry).toMatchObject({ id: uuid(0x712), body: 'Historical table talk' })
+      expect(entry).toMatchObject({ id: uuid(0x712), kind: 'CHAT', rollNonceFingerprint: null })
+      expect(entry).not.toHaveProperty('body')
       expect(restarted.checksum).toBe(checksum)
       expect(convex.reads).toEqual([])
       expect(convex.loads).toEqual([])

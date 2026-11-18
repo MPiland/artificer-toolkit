@@ -3,6 +3,7 @@ import { campaignAnnouncementDtoSchema } from '../api/campaignAnnouncements.js'
 import { campaignChatEntryDtoSchema } from '../api/campaignCommunication.js'
 import { timestampSchema, uuidSchema } from '../api/campaignContractSchemas.js'
 import { projectionChecksumSchema } from './identity.js'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 export const campaignStoredConversationSchema = lazySchema(() =>
   z
@@ -93,3 +94,85 @@ export const campaignStoredEntrySchema = lazySchema(() =>
       })
     )
 )
+
+/**
+ * The room's hydrated view of a historical entry: identity and nonce evidence only. Text, roll
+ * payloads and snapshots stay in Convex. It is a read-time projection of the stored entry and is
+ * never stored.
+ */
+export const campaignStoredEntryMetadataSchema = lazySchema(() =>
+  z
+    .extend(
+      z.pick(campaignChatEntryDtoSchema, {
+        id: true,
+        campaignId: true,
+        conversationId: true,
+        authorUserId: true,
+        createdAt: true,
+        kind: true
+      }),
+      { clientNonce: uuidSchema, rollNonceFingerprint: z.nullable(projectionChecksumSchema) }
+    )
+    .check(
+      z.superRefine((metadata, context) => {
+        if ((metadata.kind === 'ROLL') !== (metadata.rollNonceFingerprint !== null))
+          context.addIssue({ code: 'custom', message: 'Invalid Campaign chat nonce evidence.' })
+      })
+    )
+)
+
+/** A room's entry row: a full entry it wrote, or the metadata it hydrated for a historical one. */
+export const campaignRoomEntrySchema = lazySchema(() =>
+  z.union([campaignStoredEntrySchema, campaignStoredEntryMetadataSchema])
+)
+
+/** Exactly the fields the table-roll retry compares; reveal and consumption do not alter reuse. */
+export function campaignRollNonceFingerprint(
+  entry: Pick<
+    z.infer<typeof campaignStoredEntrySchema>,
+    | 'kind'
+    | 'roll'
+    | 'authorUsername'
+    | 'characterId'
+    | 'characterLabel'
+    | 'mode'
+    | 'body'
+    | 'editedAt'
+    | 'unsentAt'
+  >
+): string {
+  return checksumCanonicalJson({
+    kind: entry.kind,
+    roll: entry.roll,
+    authorUsername: entry.authorUsername,
+    characterId: entry.characterId,
+    characterLabel: entry.characterLabel,
+    mode: entry.mode,
+    body: entry.body,
+    editedAt: entry.editedAt,
+    unsentAt: entry.unsentAt
+  })
+}
+
+/** The one projection of a stored entry to what the room hydrates. */
+export function projectCampaignEntryMetadata(
+  entry: z.infer<typeof campaignStoredEntrySchema>
+): z.infer<typeof campaignStoredEntryMetadataSchema> {
+  return {
+    id: entry.id,
+    campaignId: entry.campaignId,
+    conversationId: entry.conversationId,
+    authorUserId: entry.authorUserId,
+    createdAt: entry.createdAt,
+    kind: entry.kind,
+    clientNonce: entry.clientNonce,
+    rollNonceFingerprint: entry.kind === 'ROLL' ? campaignRollNonceFingerprint(entry) : null
+  }
+}
+
+/** Whether a room row carries text or a roll, not just hydrated metadata. */
+export function hasCampaignEntryContent(
+  entry: z.infer<typeof campaignRoomEntrySchema>
+): entry is z.infer<typeof campaignStoredEntrySchema> {
+  return 'roll' in entry
+}

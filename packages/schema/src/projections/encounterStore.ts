@@ -40,7 +40,7 @@ import {
 import {
   campaignStoredConversationSchema,
   campaignStoredConversationMemberSchema,
-  campaignStoredEntrySchema
+  campaignRoomEntrySchema
 } from './campaignCommunicationPersistence.js'
 
 /**
@@ -79,7 +79,7 @@ export const encounterStoreSchemas = {
   characterCommandReceipts: characterStoredCommandReceiptSchema,
   campaignConversations: campaignStoredConversationSchema,
   campaignConversationMembers: campaignStoredConversationMemberSchema,
-  campaignConversationEntries: campaignStoredEntrySchema
+  campaignConversationEntries: campaignRoomEntrySchema
 }
 
 export type EncounterStoreDocuments = {

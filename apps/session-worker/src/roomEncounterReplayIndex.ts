@@ -1,5 +1,6 @@
 import { removeFinishedRunRowsPage } from '@artificer-toolkit/encounter-persistence/finishedRunRows'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
+import { hasCampaignEntryContent } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import type { EncounterStoreDocuments } from '@artificer-toolkit/schema/projections/encounterStore'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
@@ -72,7 +73,8 @@ export async function lookupRoomEncounterReplay(
     kind: 'INDEXED',
     encounterId: row.encounterId,
     version: row.version,
-    roll: card?.roll ?? null
+    // A card older than the room's hydrate is metadata only; its roll stays in Convex.
+    roll: card && hasCampaignEntryContent(card) ? card.roll : null
   }
 }
 

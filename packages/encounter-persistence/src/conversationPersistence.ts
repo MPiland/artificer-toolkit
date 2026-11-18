@@ -2,6 +2,7 @@ import type { CampaignConversationDto } from '@artificer-toolkit/schema/api/camp
 import {
   campaignStoredConversationSchema,
   campaignStoredConversationMemberSchema,
+  hasCampaignEntryContent,
   type campaignStoredEntrySchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import type { CampaignAuthority } from './ports.js'
@@ -169,6 +170,9 @@ export async function readConversationEntryReplay(
     throw new Error('Chat nonce was used in another conversation.')
   if (entry.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
   if (entry.kind !== kind) throw new Error('Chat nonce was used for a different entry kind.')
+  // A room holds only the nonce metadata of entries older than its hydrate; their text stays in Convex.
+  if (!hasCampaignEntryContent(entry))
+    throw new Error('Stored conversation payload is unavailable.')
   return entry
 }
 

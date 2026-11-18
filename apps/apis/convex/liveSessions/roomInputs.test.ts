@@ -43,7 +43,11 @@ import {
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { api } from '../_generated/api'
-import { campaignStoredEntrySchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import {
+  campaignRollNonceFingerprint,
+  campaignStoredEntrySchema,
+  projectCampaignEntryMetadata
+} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { insertConversationEntry } from '../campaigns/conversationDocuments'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { requireDefaultUserContentSource } from '../content/sources'
@@ -724,8 +728,7 @@ describe('raw room chat metadata inputs', () => {
     const documents = pages.flatMap((page) => page.documents)
     for (const [table, rows] of [
       ['campaignConversations', stored.conversations],
-      ['campaignConversationMembers', stored.members],
-      ['campaignConversationEntries', stored.entries]
+      ['campaignConversationMembers', stored.members]
     ] as const)
       expect(documents.filter((document) => document.table === table)).toEqual(
         rows.map(({ _id, _creationTime, ...fields }) => ({
@@ -735,12 +738,34 @@ describe('raw room chat metadata inputs', () => {
           fields
         }))
       )
+    // An entry is one stored document, but only its identity and nonce metadata reach the room.
+    expect(
+      documents.filter((document) => document.table === 'campaignConversationEntries')
+    ).toEqual(
+      stored.entries.map(({ _id, _creationTime, ...fields }) => ({
+        table: 'campaignConversationEntries',
+        id: _id,
+        creationTime: _creationTime,
+        fields: projectCampaignEntryMetadata(campaignStoredEntrySchema.parse(fields))
+      }))
+    )
     expect(
       pages.filter((page) => page.documents[0]?.table === 'campaignConversationEntries')
     ).toHaveLength(2)
-    // An entry is one document, so the room holds each historical entry whole.
-    const rollEntry = documents.find((document) => document.fields.id === stored.rollEntryId)
-    expect(rollEntry?.fields).toMatchObject({ kind: 'ROLL', roll: { id: expect.any(String) } })
+    const rollEntry = stored.entries.find((entry) => entry.id === stored.rollEntryId)!
+    const rollMetadata = documents.find((document) => document.fields.id === stored.rollEntryId)
+    expect(rollMetadata?.fields).toMatchObject({
+      kind: 'ROLL',
+      rollNonceFingerprint: campaignRollNonceFingerprint(rollEntry)
+    })
+    expect(
+      documents
+        .filter((document) => document.fields.kind === 'CHAT')
+        .every((document) => document.fields.rollNonceFingerprint === null)
+    ).toBe(true)
+    expect(JSON.stringify(documents)).not.toMatch(
+      /Private historical body|Private retained roll evidence|Private roll label/
+    )
     expect(documents.every((document) => document.fields.campaignId === base.campaign.id)).toBe(
       true
     )
