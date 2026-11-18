@@ -56,6 +56,25 @@ describe('generated fixture usernames', () => {
     expect(validateUsernameOnServer(username).message).toBeNull()
   })
 
+  // Profile proof run 44248294381: the journey also saves the upper-case name, where a digit before a
+  // capital splits the name into other parts, so a suffix allowed in mixed case can be refused there.
+  it('draws the profile name again when only its upper-case form is refused', () => {
+    const mixedCaseOnlySuffix = 'cac0d520f49e'
+    const suffixes = [mixedCaseOnlySuffix, 'c0ffee123456']
+    let drawn = 0
+
+    const username = generateProfileUsername(() => suffixes[drawn++] as string)
+
+    expect(validateUsernameOnServer(`Reader_${mixedCaseOnlySuffix}`).message).toBeNull()
+    expect(
+      validateUsernameOnServer(`Reader_${mixedCaseOnlySuffix}`.toUpperCase()).message
+    ).not.toBeNull()
+    expect(username).toBe(`Reader_${suffixes[1]}`)
+    for (const form of [username, username.toUpperCase(), username.toLowerCase()]) {
+      expect(validateUsernameOnServer(form).message).toBeNull()
+    }
+  })
+
   it('never returns a random name the real policy rejects', () => {
     for (let draw = 0; draw < 500; draw++) {
       expect(
