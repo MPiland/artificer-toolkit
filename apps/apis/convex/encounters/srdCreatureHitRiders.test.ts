@@ -33,6 +33,7 @@ import {
   queueRoomRolls,
   readRoomEncounterSession,
   readRoomRollCards,
+  readRoomRollEntries,
   readRoomTimeline,
   seedRoomContentSnapshots,
   useLocalRoomWorker
@@ -297,6 +298,17 @@ describe('seeded SRD Creature hit riders in the room', () => {
         .sort((a, b) => a - b)
     ).toEqual([4, 2 + 3])
     expect(await damageTaken(base)).toBe(2 + 3 + 4)
+  }, 30000)
+
+  it('posts one table card holding the attack and both damage rolls of the Hell Hound’s Bite (D229)', async () => {
+    const base = await setup({ creature: 'Hell Hound', feature: 'Bite', playerAutoRoll: true })
+    await rollFaces(base, [19, 0, 0, 0, 0, 0, 0])
+    const result = await executeInRoom(base.owner.caller, { command: base.command })
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    // One command used to post a card per roll: three entries. It posts one, led by the attack.
+    const entries = await readRoomRollEntries(base.owner.caller, base.campaign.id)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]?.map((card) => card.source.kind)).toEqual(['ATTACK', 'DAMAGE', 'DAMAGE'])
   }, 30000)
 
   it('hits with the Aboleth’s newly authored Tentacle (D60)', async () => {

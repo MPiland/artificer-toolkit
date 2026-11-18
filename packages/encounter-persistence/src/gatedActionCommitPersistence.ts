@@ -25,6 +25,7 @@ import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import { sameGate } from './actionPending.js'
 import { recordIncomingGateRollCards } from './actionRollCards.js'
+import { postTableRollCards, type TableRollCardBatch } from './ruleRollCards.js'
 
 /**
  * Commits an action its incoming gate stopped, in the transaction of the roll that failed it: the root
@@ -159,7 +160,8 @@ export async function persistEncounterGatedActionCommit(
   })
   const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
   // A failed gate is carded as a passed one is, from the source who rolled it.
-  await recordIncomingGateRollCards(ctx, {
+  const rollCards: TableRollCardBatch = new Map()
+  await recordIncomingGateRollCards(ctx, rollCards, {
     campaign,
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
@@ -173,6 +175,7 @@ export async function persistEncounterGatedActionCommit(
     visibility: command.visibility,
     createdAt: input.occurredAt
   })
+  await postTableRollCards(ctx, { campaign, batch: rollCards })
   return recordActionCommit(ctx, {
     admission,
     command,

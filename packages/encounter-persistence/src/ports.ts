@@ -170,12 +170,12 @@ export interface EncounterTurnReadPorts<
 export interface EncounterWritePorts<CharacterSources = never> extends EncounterCommandReadPorts {
   /** Reads the Scene a GM command places into, such as an environmental zone's grid. */
   readonly sceneReaders: Pick<EncounterActionSceneReaders, 'readScene'>
-  /** Posts an already-evaluated roll to the Campaign's table log, once per client nonce. */
+  /** Posts already-evaluated rolls as one card of the Campaign's table log, once per client nonce. */
   insertTableRoll(
     authority: CampaignAuthority,
     userId: string,
     clientNonce: string,
-    roll: RollRecordDto
+    rolls: readonly [RollRecordDto, ...RollRecordDto[]]
   ): Promise<CampaignChatEntryDto>
   /**
    * Retains a roll in one user's private history. The Campaign GM's copy (Q14) carries the

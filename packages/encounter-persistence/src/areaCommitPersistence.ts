@@ -85,7 +85,11 @@ import {
   recordIncomingGateRollCards,
   settledD20s
 } from './actionRollCards.js'
-import { rollerAsPerceivedByCaster } from './ruleRollCards.js'
+import {
+  postTableRollCards,
+  rollerAsPerceivedByCaster,
+  type TableRollCardBatch
+} from './ruleRollCards.js'
 import type { persistEncounterConcentrationChildren } from './concentrationChildrenPersistence.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import { insertReinforcementInitiative } from './actorReinforcementInitiative.js'
@@ -964,8 +968,9 @@ export async function persistEncounterAreaCommit(
     [...settledMovements.actors, ...summonedActors],
     settledMovements.rules
   )
-  // Each creature's save is its own card; the area's one damage roll is carded once, with the first,
-  // unless every entry rolled its own.
+  // The cast is one action, so its rolls post as one card per author: every creature's save, and the
+  // area's one damage roll once, with the first, unless every entry rolled its own.
+  const rollCards: TableRollCardBatch = new Map()
   const answers = await actionSystemRollAnswers(ctx, {
     occurrenceId: areaOccurrenceId,
     response: input.response,
@@ -974,7 +979,7 @@ export async function persistEncounterAreaCommit(
   // Each ray's saves at its creatures' wards are the caster's cards, before the ray's own: the saves
   // that turned it, then the one it was lost at or passed.
   for (const [index, sealed] of caught.entries())
-    await recordIncomingGateRollCards(ctx, {
+    await recordIncomingGateRollCards(ctx, rollCards, {
       campaign,
       encounterId: state.id,
       gameSystemId: state.gameSystemId,
@@ -992,7 +997,7 @@ export async function persistEncounterAreaCommit(
       createdAt: input.occurredAt
     })
   for (const [index, { actor, batch, occurrenceId }] of children.entries())
-    await recordActionRollCards(ctx, {
+    await recordActionRollCards(ctx, rollCards, {
       campaign,
       encounterId: state.id,
       gameSystemId: state.gameSystemId,
@@ -1013,6 +1018,7 @@ export async function persistEncounterAreaCommit(
         dice: settledD20s(batch)
       })
     })
+  await postTableRollCards(ctx, { campaign, batch: rollCards })
   return recordActionCommit(ctx, {
     admission,
     command,

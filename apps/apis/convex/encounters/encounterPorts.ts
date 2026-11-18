@@ -36,8 +36,8 @@ export function encounterWriteTransaction(
       snapshotOptionalCombatPolicies: (campaign, userId, definitionIds) =>
         snapshotEncounterOptionalCombatPolicies(ctx, campaign, userId, definitionIds),
       sceneReaders: { readScene: (sceneId) => readLiveScene(ctx, sceneId, 'MEMBER') },
-      insertTableRoll: (authority, userId, clientNonce, roll) =>
-        insertPreEvaluatedCampaignTableRoll(ctx, authority, userId, clientNonce, roll),
+      insertTableRoll: (authority, userId, clientNonce, rolls) =>
+        insertPreEvaluatedCampaignTableRoll(ctx, authority, userId, clientNonce, rolls),
       retainPrivateRoll: async (userId, roll, gmCampaignRoll) => {
         const retained = await ctx.db
           .query('userRollHistory')

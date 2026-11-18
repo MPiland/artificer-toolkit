@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { GmCampaignRollDto, RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { recordRuleRollCard } from '../ruleRollCards.js'
+import {
+  collectRuleRollCard,
+  postTableRollCards,
+  recordRuleRollCard,
+  type TableRollCardBatch
+} from '../ruleRollCards.js'
 
 const OWNER_ID = 'owner'
 const PLAYER_ID = 'player'
@@ -26,14 +31,17 @@ function actorOf(options: { controllerUserIds: string[]; public: boolean }) {
   } as unknown as EncounterRunActorState
 }
 
-/** Records a card against recording ports; returns the answer and every retention and table post. */
-async function record(
-  actor: EncounterRunActorState,
-  options: { playerStatus?: 'ACTIVE' | 'LEFT'; withGmRoll?: boolean } = {}
+type Retained = { userId: string; roll: RollRecordDto; binding: GmCampaignRollDto | null }
+type Post = { author: string; nonce: string; rolls: RollRecordDto[] }
+
+/** Ports that record every table post and private retention instead of writing them. */
+function recordingCtx(
+  posted: RollRecordDto[],
+  retained: Retained[],
+  playerStatus: 'ACTIVE' | 'LEFT' = 'ACTIVE',
+  posts: Post[] = []
 ) {
-  const posted: RollRecordDto[] = []
-  const retained: { userId: string; roll: RollRecordDto; binding: GmCampaignRollDto | null }[] = []
-  const ctx = {
+  return {
     db: {
       query: () => ({
         withIndex: (
@@ -42,7 +50,7 @@ async function record(
         ) => {
           const q = { eq: () => q }
           build(q)
-          return { unique: async () => ({ status: options.playerStatus ?? 'ACTIVE' }) }
+          return { unique: async () => ({ status: playerStatus }) }
         }
       })
     },
@@ -51,11 +59,12 @@ async function record(
       requireCampaignAuthority: async () => ({}),
       insertTableRoll: async (
         _authority: unknown,
-        _author: string,
-        _nonce: string,
-        posting: RollRecordDto
+        author: string,
+        nonce: string,
+        posting: RollRecordDto[]
       ) => {
-        posted.push(posting)
+        posted.push(...posting)
+        posts.push({ author, nonce, rolls: posting })
         return null
       },
       retainPrivateRoll: async (
@@ -67,6 +76,16 @@ async function record(
       }
     }
   } as unknown as Parameters<typeof recordRuleRollCard>[0]
+}
+
+/** Records a card against recording ports; returns the answer and every retention and table post. */
+async function record(
+  actor: EncounterRunActorState,
+  options: { playerStatus?: 'ACTIVE' | 'LEFT'; withGmRoll?: boolean } = {}
+) {
+  const posted: RollRecordDto[] = []
+  const retained: Retained[] = []
+  const ctx = recordingCtx(posted, retained, options.playerStatus)
   const answer = await recordRuleRollCard(ctx, {
     campaign: { id: 'campaign', ownerUserId: OWNER_ID } as Parameters<
       typeof recordRuleRollCard
@@ -141,5 +160,121 @@ describe('recordRuleRollCard routing for a table card', () => {
     expect(answer).toMatchObject({ audience: 'TABLE', playerCopyUserId: null })
     expect(posted).toEqual([roll])
     expect(retained).toEqual([])
+  })
+
+  it('posts a standalone roll as a one-roll list under the caller’s nonce', async () => {
+    const posts: Post[] = []
+    const ctx = recordingCtx([], [], 'ACTIVE', posts)
+    await recordRuleRollCard(ctx, {
+      campaign: { id: 'campaign', ownerUserId: OWNER_ID } as Parameters<
+        typeof recordRuleRollCard
+      >[1]['campaign'],
+      encounterId: ENCOUNTER_ID,
+      roller: actorOf({ controllerUserIds: [PLAYER_ID], public: true }),
+      initiatorUserId: PLAYER_ID,
+      visibility: undefined,
+      clientNonce: 'command-nonce',
+      roll
+    })
+    expect(posts).toEqual([{ author: PLAYER_ID, nonce: 'command-nonce', rolls: [roll] }])
+  })
+})
+
+const campaign = { id: 'campaign', ownerUserId: OWNER_ID } as Parameters<
+  typeof collectRuleRollCard
+>[2]['campaign']
+
+/** An action's rolls, collected from each roller in turn and posted once at commit end. */
+async function commitAction(
+  rolls: { roller: EncounterRunActorState; roll: RollRecordDto }[],
+  posted: RollRecordDto[] = [],
+  retained: Retained[] = [],
+  posts: Post[] = []
+) {
+  const ctx = recordingCtx(posted, retained, 'ACTIVE', posts)
+  const batch: TableRollCardBatch = new Map()
+  for (const { roller, roll: collected } of rolls)
+    await collectRuleRollCard(ctx, batch, {
+      campaign,
+      encounterId: ENCOUNTER_ID,
+      roller,
+      initiatorUserId: PLAYER_ID,
+      visibility: undefined,
+      roll: collected
+    })
+  await postTableRollCards(ctx, { campaign, batch })
+}
+
+const rollNamed = (id: string) => ({ id }) as unknown as RollRecordDto
+
+describe('an action’s table card', () => {
+  it('holds every table roll of the action in the order rolled, in one card', async () => {
+    const [attack, damage, save] = [rollNamed('attack'), rollNamed('damage'), rollNamed('save')]
+    const posts: Post[] = []
+    await commitAction(
+      [
+        { roller: actorOf({ controllerUserIds: [PLAYER_ID], public: true }), roll: attack },
+        { roller: actorOf({ controllerUserIds: [PLAYER_ID], public: true }), roll: damage },
+        { roller: actorOf({ controllerUserIds: [PLAYER_ID], public: true }), roll: save }
+      ],
+      [],
+      [],
+      posts
+    )
+    expect(posts).toEqual([{ author: PLAYER_ID, nonce: 'attack', rolls: [attack, damage, save] }])
+  })
+
+  it('keeps a private roll of the same action out of the table card', async () => {
+    const [open, hidden] = [rollNamed('open'), rollNamed('hidden')]
+    const [posts, retained]: [Post[], Retained[]] = [[], []]
+    await commitAction(
+      [
+        { roller: actorOf({ controllerUserIds: [PLAYER_ID], public: true }), roll: open },
+        { roller: actorOf({ controllerUserIds: [PLAYER_ID], public: false }), roll: hidden }
+      ],
+      [],
+      retained,
+      posts
+    )
+    expect(posts).toEqual([{ author: PLAYER_ID, nonce: 'open', rolls: [open] }])
+    expect(retained.map(({ userId, roll: kept }) => [userId, kept])).toEqual([
+      [OWNER_ID, hidden],
+      [PLAYER_ID, hidden]
+    ])
+  })
+
+  it('posts one card per author when the rollers have different controllers', async () => {
+    const [mine, theirs, mineAgain] = [rollNamed('mine'), rollNamed('theirs'), rollNamed('again')]
+    const posts: Post[] = []
+    await commitAction(
+      [
+        { roller: actorOf({ controllerUserIds: [PLAYER_ID], public: true }), roll: mine },
+        { roller: actorOf({ controllerUserIds: ['other'], public: true }), roll: theirs },
+        { roller: actorOf({ controllerUserIds: [PLAYER_ID], public: true }), roll: mineAgain }
+      ],
+      [],
+      [],
+      posts
+    )
+    expect(posts).toEqual([
+      { author: PLAYER_ID, nonce: 'mine', rolls: [mine, mineAgain] },
+      { author: 'other', nonce: 'theirs', rolls: [theirs] }
+    ])
+  })
+
+  it('posts nothing for an action whose rolls were all private', async () => {
+    const posts: Post[] = []
+    await commitAction(
+      [
+        {
+          roller: actorOf({ controllerUserIds: [PLAYER_ID], public: false }),
+          roll: rollNamed('hidden')
+        }
+      ],
+      [],
+      [],
+      posts
+    )
+    expect(posts).toEqual([])
   })
 })

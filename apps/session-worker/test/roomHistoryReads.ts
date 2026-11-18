@@ -257,6 +257,20 @@ export function readRoomRollCards(stub: RoomStub) {
   })
 }
 
+/** The table's roll entries in the order the room stored them: each card's author and its rolls. */
+export function readRoomTableRollEntries(stub: RoomStub) {
+  return runInDurableObject(stub, async (_instance, context) =>
+    new RoomEncounterStore(context.storage)
+      .documents('campaignConversationEntries')
+      .filter(hasCampaignEntryContent)
+      .filter((entry) => entry.rolls.length > 0)
+      .map((entry) => ({
+        authorUserId: entry.authorUserId,
+        rolls: entry.rolls.map(({ roll }) => roll)
+      }))
+  )
+}
+
 /**
  * Each private roll the room retains: whose history holds it and whether the GM's reveal binding
  * rides along (a player's own copy has none).

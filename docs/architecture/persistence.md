@@ -668,8 +668,8 @@ records the settled check as `passedGate` (TRIGGER origin only; a passed ward's 
 grant), checked against the pending gate at the commit (`persistEncounterActionCommit`). A fail commits the
 child as `ENCOUNTER_GATED_ACTION` (`lost: 'SPELL'`), spending its slot and reaction; the parent's resume reads a
 gated child as one that did not cancel, so the cast goes on. Either way the check is carded once, as the
-reactor's `Counter` check on the child's occurrence (`recordIncomingGateRollCards`, the one card path of every
-incoming gate: a ward's save is carded the same way as a `Ward` save, from the attacker or the caster, for a single
+reactor's `Counter` check on the child's occurrence (`recordIncomingGateRollCards`, the one roll-collection path of every
+incoming gate; its rolls join the action's one card per author, posted by `postTableRollCards`: a ward's save is carded the same way as a `Ward` save, from the attacker or the caster, for a single
 attack at its commit and for each ray of a list, passed, lost or turned, at the area commit; a single attack turned
 to another creature carries the saves that turned it in the optional `retargeted` list of its `ENCOUNTER_ACTION`
 pending context, as a turned ray does, and `failedWardsBehind` is the one rule that reads it, for the carry, its

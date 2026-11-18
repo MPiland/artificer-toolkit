@@ -686,9 +686,14 @@ Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
 redacted. Manual mode records an idempotent receipt at an unchanged version without invoking the Kernel or
-applying state and carries no rules cue (ADR 0034). **One card per die (ENCOUNTER-7, current).** Every
-Encounter rule die posts exactly one roll card through `recordRuleRollCard`: an action's d20s and damage
-totals, a Legendary Action's (`recordActionRollCards`), each Recharge d6 (source kind `RECHARGE`), the
+applying state and carries no rules cue (ADR 0034). **One card per action (ENCOUNTER-7, D229 step 4, current).** Every
+Encounter rule die gets one roll record, and an action's TABLE records share one chat card per author,
+written once at the end of the commit and never appended to: `collectRuleRollCard` gathers an action's
+d20s and damage totals and a Legendary Action's (`recordActionRollCards`, `recordIncomingGateRollCards`)
+into a `TableRollCardBatch`, and `postTableRollCards` posts each author's list under the first roll's id
+as the nonce, so a retried commit rebuilds the same card. An area cast is one action. A private roll never
+joins the batch. A standalone roll (`recordRuleRollCard`: a Sheet or GM roll, each Recharge d6 with source
+kind `RECHARGE`) is a one-roll card, as are the
 turn-start death save and, under `DECLARED_ACTION_ROLL`, each declared actor's initiative die (ENCOUNTER-9,
 the same `INITIATIVE` card `ROLL_ACTOR_INITIATIVE` posts, both built by the one `initiativeRollRecord`,
 written by `persistEncounterInitiativeRollCards` in the terminal turn commit from the settled

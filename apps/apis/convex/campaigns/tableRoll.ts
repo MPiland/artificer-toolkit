@@ -15,14 +15,14 @@ export async function insertPreEvaluatedCampaignTableRoll(
   authority: Awaited<ReturnType<typeof requireCampaignAuthority>>,
   userId: string,
   clientNonce: string,
-  roll: RollRecordDto
+  rolls: readonly [RollRecordDto, ...RollRecordDto[]]
 ): Promise<CampaignChatEntryDto> {
   return insertStoredCampaignTableRoll(
     { db: createConvexEncounterStore(ctx) },
     authority,
     userId,
     clientNonce,
-    roll,
+    rolls,
     {
       requireAuthenticatedUsername: async (userId) => {
         const actor = await getAuthenticatedProfile(ctx)

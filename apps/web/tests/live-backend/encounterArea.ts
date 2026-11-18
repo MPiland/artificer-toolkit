@@ -260,6 +260,22 @@ export async function verifyEncounterAreaBrowser(
           path: input.evidenceDirectory + '/area-owner-history.png',
           fullPage: true
         })
+        stage = 'verify the cast posts its rolls on one Table card'
+        await ownerPage.getByRole('button', { name: 'Open Campaign chat', exact: true }).click()
+        const tableHistory = ownerPage.getByRole('log', { name: 'Table history' })
+        await expect(tableHistory.getByRole('article').first()).toBeVisible()
+        // An action's rolls share one card (D229), so some card holds more than one roll.
+        const rollsPerCard = await tableHistory
+          .getByRole('article')
+          .evaluateAll((cards) =>
+            cards.map((card) => card.textContent?.match(/Rolled/g)?.length ?? 0)
+          )
+        expect(Math.max(...rollsPerCard)).toBeGreaterThan(1)
+        await ownerPage.screenshot({
+          caret: 'initial',
+          path: input.evidenceDirectory + '/area-owner-table-rolls.png',
+          fullPage: true
+        })
       },
       endTurn: async () => {
         stage = 'end the turn'

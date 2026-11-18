@@ -10,13 +10,17 @@ import {
 import type { CampaignAuthority } from './ports.js'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
 
-/** Inserts an already-authorized RollRecord without evaluating or retaining it again. */
+/**
+ * Inserts one card of already-authorized RollRecords without evaluating or retaining them again. The
+ * card is attributed to its first roll's creature; a retry reuses the card only with the same rolls
+ * in the same order.
+ */
 export async function insertPreEvaluatedCampaignTableRoll(
   ctx: EncounterWriteContext,
   authority: CampaignAuthority,
   userId: string,
   clientNonce: string,
-  roll: RollRecordDto,
+  rolls: readonly [RollRecordDto, ...RollRecordDto[]],
   callbacks: {
     requireAuthenticatedUsername(userId: string): Promise<string>
     requirePeerAuthority(campaignId: string, userId: string): Promise<CampaignAuthority>
@@ -33,14 +37,18 @@ export async function insertPreEvaluatedCampaignTableRoll(
   const access = await openConversation(ctx, authority, 'TABLE', callbacks.requirePeerAuthority)
   const { conversation } = access
   const normalizedNonce = clientNonce.toLowerCase()
+  const lead = rolls[0]
   const prior = await readConversationEntryReplay(ctx, access, userId, normalizedNonce, 'ROLL')
   if (prior) {
     if (
-      prior.rolls.length !== 1 ||
-      checksumCanonicalJson(prior.rolls[0]!.roll) !== checksumCanonicalJson(roll) ||
+      prior.rolls.length !== rolls.length ||
+      prior.rolls.some(
+        (stored, index) =>
+          checksumCanonicalJson(stored.roll) !== checksumCanonicalJson(rolls[index])
+      ) ||
       prior.authorUsername !== username ||
       prior.characterId !== null ||
-      prior.characterLabel !== roll.characterLabel ||
+      prior.characterLabel !== lead.characterLabel ||
       prior.mode !== null ||
       prior.body !== null ||
       prior.editedAt !== null ||
@@ -63,10 +71,10 @@ export async function insertPreEvaluatedCampaignTableRoll(
       kind: 'ROLL',
       mode: null,
       body: null,
-      rolls: [{ roll, revealedByGm: false, consumedAt: null }],
+      rolls: rolls.map((roll) => ({ roll, revealedByGm: false, consumedAt: null })),
       authorUsername: username,
       characterId: null,
-      characterLabel: roll.characterLabel,
+      characterLabel: lead.characterLabel,
       editedAt: null,
       unsentAt: null
     })

@@ -71,13 +71,13 @@ export async function roomEncounterWriteTransaction(
       },
       // The room charges the TABLE bucket for the whole command (D72), so the roll consumes no
       // separate conversation rate.
-      insertTableRoll: async (authority, author, clientNonce, roll) => {
+      insertTableRoll: async (authority, author, clientNonce, rolls) => {
         const entry = await insertPreEvaluatedCampaignTableRoll(
           { db: store.store },
           authority,
           author,
           clientNonce,
-          roll,
+          rolls,
           {
             requireAuthenticatedUsername: async (author) => {
               const username = authorization.preferences.find(
