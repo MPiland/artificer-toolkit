@@ -124,6 +124,11 @@ describe('useCampaignLiveSession', () => {
     await expect(options.getAccessToken()).resolves.toBe('test-access-token')
     expect(mocks.getAccessToken).toHaveBeenCalledWith({ fetchOptions: { throw: false } })
 
+    // A refusal shows only on the caller that sent the command, so one is in flight when it arrives.
+    mocks.submitCommand.mockReturnValueOnce(new Promise(() => undefined))
+    act(() => {
+      void result.current.sendCommand(command)
+    })
     act(() => {
       options.onTransient({ envelope, userId })
       options.onStatus('CONNECTED')
@@ -156,7 +161,8 @@ describe('useCampaignLiveSession', () => {
     await act(async () => {
       await expect(result.current.sendCommand(command)).resolves.toEqual(commit)
     })
-    expect(mocks.submitCommand).toHaveBeenCalledWith(command)
+    expect(mocks.submitCommand).toHaveBeenCalledTimes(2)
+    expect(mocks.submitCommand).toHaveBeenLastCalledWith(command)
     expect(result.current.rejection).toBeNull()
     expect(result.current.sendTransient(envelope)).toBe(true)
     expect(mocks.sendTransient).toHaveBeenCalledWith(envelope)
