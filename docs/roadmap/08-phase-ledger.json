@@ -25149,7 +25149,7 @@
             },
             {
               "id": "PERF-1.T7",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25159,7 +25159,7 @@
                 "after": ["PERF-1.T8", "PERF-1.T9", "PERF-1.T10", "PERF-1.T11", "PERF-1.T12"]
               },
               "text": "D229 step 5: scripts/v15Budgets.mjs stops scaling fixed COMPLETE costs (actors, scenes) per command and includes the post-START save, then V15 runs in CI on the final source and scripts/v15Budgets.mjs gates it at 4.3 MB (D209). Projected 3.6 to 4.2 MB; if still over, report the measured figure to the user. scripts/v15Budgets.mjs also classifies the chat checkpoint route (liveSessions/checkpoint:publishChat, POST /live-sessions/chat-checkpoint) as checkpoint ingestion and counts the BACKLOG chat save under it.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "proof": "m877 (c454ef825): Tests 44318872290, Live 44318872413, Browser journeys 44318872233 green; V15 44311973758 green (one rerun of the :742 paint flake). scripts/v15Budgets.test.mjs (11) RED without the slice. Modelled session 5,266,581 B: over the 4.3 MB gate by 0.97 MB; gate not loosened. Per D229 the figure went to the user, who chose a Fable audit of realistic cuts with no UX change (2026-11-18)."
             },
             {
               "id": "PERF-1.T8",
@@ -25260,6 +25260,20 @@
               },
               "text": "profile-browser saves its generated profile username in upper case (authenticatedSession.ts:220), but generateProfileUsername (apps/apis/tests/fixtures/generatedUsername.ts) validates only the mixed-case draw, and the policy splits parts at case changes, so the upper-case form can be refused (\"That username isn't allowed.\", run 44248294381). The fixture draws a name whose every form the journey saves passes validateUsernameOnServer, with a regression test that fails today on a recorded suffix.",
               "proof": "m875 (aa022e7a9): Tests 44312451556, Live 44312451789, Browser journeys 44312451591 and profile-browser 44312461376 green; generatedUsername.test.ts skips suffix cac0d520f49e (allowed mixed case, refused upper case: a digit before a capital adds a part split)."
+            },
+            {
+              "id": "PERF-1.T15",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 1,
+                "after": ["PERF-1.T7"]
+              },
+              "text": "Read-only Fable cost audit of the V15 modelled session (5.27 MB vs 4.3 MB, D209/D229): per bucket (BACKLOG chat saves, COMPLETE, post-START, combat, out-of-combat, START, lifecycle) what is read and written, what is redundant, and candidate cuts with saving, user-visible effect (chat history and visibility must stay intact), recovery impact and size; flag harness artefacts. Output local-validation/perf-audit/v15-io-audit.md; cut tasks register from it with user approval of any UX trade-off."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
