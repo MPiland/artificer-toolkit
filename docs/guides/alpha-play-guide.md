@@ -2,7 +2,7 @@
 
 A plain-language guide to the live table for alpha players and GMs. It describes what the app does today, checked against the code and its tests. Where a feature is not finished, a note says so instead of guessing.
 
-> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. The [known gaps](#known-gaps) and [how to send feedback](#sending-feedback) are at the end.
+> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. Progress: the Spells section's former "Still in progress" items were rechecked against merged code and tests at phase-branch commit `7082947b2` (see [the walkthrough note](../validation/release-7-t3-walkthrough-2026-11-18.md)); the remaining statements are not yet walked in the app. The [known gaps](#known-gaps) and [how to send feedback](#sending-feedback) are at the end.
 
 ## Words used in this guide
 
@@ -77,11 +77,9 @@ Optional Campaign settings (frozen into each Encounter): **ammunition tracking**
 - **Concentration**: casting a Concentration spell replaces the one you hold (no prompt, when you can hold one). Damage that does at least 1 hit point of damage makes you roll a Concentration check against DC 10 or half the damage, whichever is higher; failing ends the spell and effects tied to it. Dropping to 0 hit points or becoming incapacitated ends it with no roll. You can end it yourself at any time.
 - Where a Character can hold more than one Concentration, casting another at the limit asks **End which Concentration?**; each held spell gets its own save in the order cast, and a failure ends only that spell.
 
-> **Still in progress**
->
-> - The Sheet's picker for ending one of two held Concentrations is not finished. Use the cast-time prompt for now.
-> - Sorcerer metamagic: Subtle, Careful, Sculpt and Heightened are available. Twinned, Distant, Extended, Quickened, Overchannel and Empowered are not yet; the GM should rule these by hand.
-> - Once-per-dawn uses and some advantage rules on second Concentrations are not finished, and replacing a held Haste can fail.
+- **Ending one of two held Concentrations**: the Sheet lists each held Concentration with its own **End Concentration: <spell>** button, so you can pick which one ends there as well as at cast time.
+- **Sorcerer Metamagic**: all eight options in the SRD are offered with the cast when you can afford them and the spell fits: Careful, Distant, Empowered, Extended, Heightened, Quickened, Subtle and Twinned. The sorcery points are spent with the cast (Empowered is paid when you roll the damage). Twinned needs a spell that aims at one creature. Subtle only spends its point, since components are not checked. Wizard **Overchannel** (School of Evocation) is a GM ruling, not applied by the app.
+- **Items that let you hold a second Concentration** (such as a ring that allows one more, once per dawn): the extra Concentration is kept by spending one of the item's daily uses, a spent item replaces the old Concentration as normal, and a held Haste is replaced cleanly (its lethargy follows). The ring's advantage and disadvantage on each Concentration save are named on the roll.
 
 ### Reactions
 
@@ -177,7 +175,7 @@ These are things you may run into. None is a surprise bug: the team knows about 
 
 - **Some spell parts are description only.** Where a spell names an effect the app cannot yet model (for example, ending a chosen list of creatures' conditions with Heroes' Feast, or Mass Heal's shared pool), the GM resolves it.
 - **Dice are spent on the first matching roll.** Guidance and Resistance cannot be saved for later or applied to initiative.
-- **Metamagic, Monk and Warlock gaps.** See [Spells](#spells) for the Sorcerer list. Open Hand pushes exactly 15 feet; the GM moves the token back if the Monk wants less.
+- **Metamagic, Monk and Warlock gaps.** Wizard Overchannel is a GM ruling (see [Spells](#spells)). Open Hand pushes exactly 15 feet; the GM moves the token back if the Monk wants less.
 - **Spell-slot recovery is not limited by the app.** Arcane Recovery and Natural Recovery are not restricted to a short rest, so keep to the rule yourselves.
 - **Magic Weapon does not start Concentration** until its source data is corrected; track it by hand.
 
