@@ -24999,6 +24999,15 @@
                 "User approval 2026-11-03 (D187 growth): a Sheet command hit the 1 s mutation limit in the m-batch Browser journeys run 41767872164; triage the intermittent CI failures before staging"
               ],
               "note": "Closed 2026-11-04 by PERF-1.T6."
+            },
+            {
+              "id": "PERF-1.6",
+              "text": "A browser tab holds one live-session connection per Campaign however many panels use it, so opening Campaign chat on the live encounter page connects without a 429 (today each useCampaignLiveSession caller opens its own socket and the room allows four per user).",
+              "status": "TODO",
+              "journeys": ["area-browser"],
+              "origin": [
+                "User approval 2026-11-18 (D187 growth): PERF-1.T12 browser run 44244581799 hit a 429 opening chat on the encounter session page"
+              ]
             }
           ],
           "wsjf": {
@@ -25136,7 +25145,7 @@
             },
             {
               "id": "PERF-1.T7",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25145,7 +25154,8 @@
                 "size": 2,
                 "after": ["PERF-1.T8", "PERF-1.T9", "PERF-1.T10", "PERF-1.T11", "PERF-1.T12"]
               },
-              "text": "D229 step 5: scripts/v15Budgets.mjs stops scaling fixed COMPLETE costs (actors, scenes) per command and includes the post-START save, then V15 runs in CI on the final source and scripts/v15Budgets.mjs gates it at 4.3 MB (D209). Projected 3.6 to 4.2 MB; if still over, report the measured figure to the user. scripts/v15Budgets.mjs also classifies the chat checkpoint route (liveSessions/checkpoint:publishChat, POST /live-sessions/chat-checkpoint) as checkpoint ingestion and counts the BACKLOG chat save under it."
+              "text": "D229 step 5: scripts/v15Budgets.mjs stops scaling fixed COMPLETE costs (actors, scenes) per command and includes the post-START save, then V15 runs in CI on the final source and scripts/v15Budgets.mjs gates it at 4.3 MB (D209). Projected 3.6 to 4.2 MB; if still over, report the measured figure to the user. scripts/v15Budgets.mjs also classifies the chat checkpoint route (liveSessions/checkpoint:publishChat, POST /live-sessions/chat-checkpoint) as checkpoint ingestion and counts the BACKLOG chat save under it.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-1.T8",
@@ -25207,7 +25217,7 @@
             },
             {
               "id": "PERF-1.T12",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25217,7 +25227,21 @@
                 "after": ["PERF-1.T11"]
               },
               "text": "D229 step 4b: recordActionRollCards and recordIncomingGateRollCards collect an action's TABLE-audience rolls and write one card per author at commit end (an area cast is one action); private rolls stay out of chat; prove one entry holding attack, damage and save, no private roll in the table payload, a standalone roll unchanged, the entries-per-command drop, and a Browser journeys assertion on the card.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "proof": "m874 (a5a493706): Tests 44245792583, Live 44245792525, Browser journeys 44245792575 and area-browser 44245798203 green; Hell Hound Bite 3 entries -> 1, movement reaction 3 -> 2, area cast 4 -> 1 per author; private rolls stay out of the card; standalone roll a one-item list."
+            },
+            {
+              "id": "PERF-1.T13",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["PERF-1.6"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 3,
+                "after": []
+              },
+              "text": "useCampaignLiveSession shares one connection per Campaign per tab (reference-counted subscribers, released when the last panel unmounts) instead of one socket per caller; a regression test that fails today proves five panels on one Campaign open one socket; the area-browser journey opens Campaign chat on the encounter session page again."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
