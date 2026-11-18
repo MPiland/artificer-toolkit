@@ -35,6 +35,7 @@ import {
   readRoomHistory,
   readRoomPrivateRollHolders,
   readRoomRollCards,
+  readRoomTableRollEntries,
   readRoomTimeline,
   type RoomHistory
 } from './roomHistoryReads.js'
@@ -1807,6 +1808,19 @@ describe('room area visibility by role', () => {
     const chat = JSON.stringify(await readRoomChatBodies(stub))
     expect(chat).not.toContain('Shadow Wolf')
     expect(chat).not.toContain(HIDDEN_ID)
+  })
+
+  it('posts the whole area cast as one table card per author (D229)', async () => {
+    const room = await visibilityRoom({ hiddenCreature: shadowWolf })
+    await answerAllSaves(room)
+
+    const stub = room.room.base.stub
+    const entries = await readRoomTableRollEntries(stub)
+    const tableRolls = (await readRoomRollCards(stub)).filter((card) => card.audience === 'TABLE')
+    // Every creature is the GM's, so the cast is one card holding every table roll the cast made.
+    expect(entries.map(({ authorUserId }) => authorUserId)).toHaveLength(1)
+    expect(entries[0]?.rolls.length).toBeGreaterThan(1)
+    expect(entries[0]?.rolls.map((roll) => roll.id)).toEqual(tableRolls.map(({ roll }) => roll.id))
   })
 
   describe('the GM-only history line', () => {

@@ -105,16 +105,94 @@ export async function retainPrivateRuleRoll(
   return playerCopyUserId
 }
 
+/** The TABLE rolls an action collected, by the author each card is posted as, in the order rolled. */
+export type TableRollCardBatch = Map<string, RollRecordDto[]>
+
 /**
- * Records one rule roll's chat card: a TABLE card, or a roll retained as `retainPrivateRuleRoll`
- * describes. Returns the posted table entry.
+ * Posts a batch as one chat card per author, written once at the end of the commit (D229 step 4).
+ * A card's nonce is its first roll's id, so a retried commit rebuilds the same card and never a
+ * second one.
+ */
+export async function postTableRollCards(
+  ctx: EncounterReadTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll'>
+  },
+  input: { campaign: CampaignAuthority['campaign']; batch: TableRollCardBatch }
+): Promise<CampaignChatEntryDto[]> {
+  const entries: CampaignChatEntryDto[] = []
+  for (const [authorUserId, rolls] of input.batch) {
+    const [lead, ...rest] = rolls
+    if (!lead) continue
+    entries.push(
+      await ctx.ports.insertTableRoll(
+        await ctx.ports.requireCampaignAuthority(input.campaign.id, authorUserId),
+        authorUserId,
+        lead.id,
+        [lead, ...rest]
+      )
+    )
+  }
+  return entries
+}
+
+/**
+ * Routes one rule roll: a TABLE roll joins `batch` under its author for `postTableRollCards`, and a
+ * private roll is retained as `retainPrivateRuleRoll` describes. A roll the server adjusted for
+ * sight (ATTACK-10.1) carries `gmRoll`, the same dice with the GM's specific reason: the table card
+ * keeps the generic `roll`, and the GM's history holds `gmRoll`, already revealed when the table has
+ * `roll`, and the only card when the roll is private.
  *
  * A private card is also the roller's own when a player controls the roller (`playerCopyUserId`):
  * their answer carries it. The table and the area's caster learn nothing of it.
- *
- * A roll the server adjusted for sight (ATTACK-10.1) carries `gmRoll`, the same dice with the GM's
- * specific reason. The table card keeps the generic `roll`; the GM's history holds `gmRoll`, already
- * revealed when the table has `roll`, and the only card when the roll is private.
+ */
+export async function collectRuleRollCard(
+  ctx: EncounterReadTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'retainPrivateRoll'>
+  },
+  batch: TableRollCardBatch,
+  input: {
+    campaign: CampaignAuthority['campaign']
+    /** Null for a roll outside an Encounter, such as a Sheet death save. */
+    encounterId: string | null
+    roller: RuleRollRoller | null
+    initiatorUserId: string
+    visibility: RollVisibilityDto | undefined
+    roll: RollRecordDto
+    gmRoll?: RollRecordDto
+  }
+): Promise<{
+  audience: 'TABLE' | 'PRIVATE'
+  /** The player who rolled a private card and keeps their own copy; null when only the GM holds it. */
+  playerCopyUserId: string | null
+}> {
+  const { campaign, roller, roll } = input
+  const { audience, authorUserId } = await readRuleRollRouting(ctx, input)
+  const creature =
+    roller && input.encounterId ? { encounterId: input.encounterId, actorId: roller.id } : null
+  if (audience === 'TABLE') {
+    batch.set(authorUserId, [...(batch.get(authorUserId) ?? []), roll])
+    if (input.gmRoll)
+      await ctx.ports.retainPrivateRoll(campaign.ownerUserId, input.gmRoll, {
+        campaignId: campaign.id,
+        creature,
+        revealedAt: input.gmRoll.createdAt,
+        noticedAt: null
+      })
+    return { audience, playerCopyUserId: null }
+  }
+  const playerCopyUserId = await retainPrivateRuleRoll(ctx, {
+    campaign,
+    creature,
+    authorUserId,
+    roll,
+    gmRoll: input.gmRoll
+  })
+  return { audience, playerCopyUserId }
+}
+
+/**
+ * Records one standalone rule roll's chat card at once: a one-roll TABLE card under `clientNonce`,
+ * or a roll routed as `collectRuleRollCard` describes. Returns the posted table entry.
  */
 export async function recordRuleRollCard(
   ctx: EncounterReadTransaction & {
@@ -137,32 +215,17 @@ export async function recordRuleRollCard(
   /** The player who rolled a private card and keeps their own copy; null when only the GM holds it. */
   playerCopyUserId: string | null
 }> {
-  const { campaign, roller, roll } = input
-  const { audience, authorUserId } = await readRuleRollRouting(ctx, input)
-  const creature =
-    roller && input.encounterId ? { encounterId: input.encounterId, actorId: roller.id } : null
-  if (audience === 'TABLE') {
-    const entry = await ctx.ports.insertTableRoll(
-      await ctx.ports.requireCampaignAuthority(campaign.id, authorUserId),
-      authorUserId,
-      input.clientNonce,
-      roll
-    )
-    if (input.gmRoll)
-      await ctx.ports.retainPrivateRoll(campaign.ownerUserId, input.gmRoll, {
-        campaignId: campaign.id,
-        creature,
-        revealedAt: input.gmRoll.createdAt,
-        noticedAt: null
-      })
-    return { audience, entry, playerCopyUserId: null }
-  }
-  const playerCopyUserId = await retainPrivateRuleRoll(ctx, {
-    campaign,
-    creature,
+  const batch: TableRollCardBatch = new Map()
+  const { clientNonce, ...routed } = input
+  const { audience, playerCopyUserId } = await collectRuleRollCard(ctx, batch, routed)
+  const [posted] = batch
+  if (!posted) return { audience, entry: null, playerCopyUserId }
+  const [authorUserId] = posted
+  const entry = await ctx.ports.insertTableRoll(
+    await ctx.ports.requireCampaignAuthority(input.campaign.id, authorUserId),
     authorUserId,
-    roll,
-    gmRoll: input.gmRoll
-  })
-  return { audience, entry: null, playerCopyUserId }
+    clientNonce,
+    [input.roll]
+  )
+  return { audience, entry, playerCopyUserId }
 }

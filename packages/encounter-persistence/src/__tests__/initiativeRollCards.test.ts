@@ -85,9 +85,9 @@ async function persist(root: TurnCoordinatorRootDto) {
         _authority: unknown,
         _author: string,
         _nonce: string,
-        roll: RollRecordDto
+        rolls: RollRecordDto[]
       ) => {
-        posted.push(roll)
+        posted.push(...rolls)
         return null
       },
       retainPrivateRoll: async () => undefined

@@ -577,12 +577,14 @@ one indexed header read per insert, so same-millisecond writers never fall to th
 The GM's private roll (`EXECUTE_PRIVATE_ROLL`) and both reveals (`REVEAL_ROLL`, `FULL` or `NOTICE`) are
 `CAMPAIGN_CHAT` commands. A private roll is answered to the GM alone and carried in the checkpoint
 `retainedRolls`. A private roll made before the live table started exists only in Convex, and the room
-refuses to reveal it. Every automatic rule roll gets a card through `recordRuleRollCard`; a hidden
+refuses to reveal it. Every automatic rule roll is routed by `collectRuleRollCard` (D229 step 4): an
+action's TABLE rolls post as one card per author at commit end (`postTableRollCards`), a standalone roll
+as a one-roll card (`recordRuleRollCard`); a hidden
 roller is PRIVATE, a roller with a non-owner controller is TABLE, otherwise the command's `visibility`
 or the stored `gmRollVisibility` decides. Convex and the room present rolls through one
 `presentRoll`/`presentRetainedRoll` in `@artificer-toolkit/rules-runtime`.
 
-Area save cards (current, D103): each caught creature's save is its own card, authored by the creature's
+Area save cards (current, D103; D229 step 4 puts the cast's table rolls on one card per author): each caught creature's save is its own roll, authored by the creature's
 roller and routed by the rules above, except that a creature the area's caster cannot perceive is routed as a
 hidden roller (`rollerAsPerceivedByCaster`, D62), so its card is PRIVATE and never reaches the table. The
 area's one damage roll is carded once, with the first creature. A PRIVATE card of a creature a player

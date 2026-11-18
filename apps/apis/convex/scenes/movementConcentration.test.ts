@@ -830,12 +830,17 @@ it('ends Concentration without a check when a movement reaction defeats the hold
     room: 'TABLE',
     limit: 100
   })
-  expect(chat.entries.map((entry) => entry.rolls[0]?.roll.source.label ?? entry.body)).toEqual(
+  // The attack and its damage share one card (D229 step 4), so the table holds that card and the line.
+  expect(
+    chat.entries.flatMap((entry) =>
+      entry.rolls.length > 0 ? entry.rolls.map(({ roll }) => roll.source.label) : [entry.body]
+    )
+  ).toEqual(
     expect.arrayContaining([
       'Bite',
       'Bite: Piercing damage',
       expect.stringMatching(/can't act and loses Concentration\.$/)
     ])
   )
-  expect(chat.entries).toHaveLength(3)
+  expect(chat.entries).toHaveLength(2)
 }, 60_000)

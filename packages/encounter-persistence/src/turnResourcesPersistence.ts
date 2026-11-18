@@ -64,7 +64,7 @@ import {
   persistEncounterMeleeRetaliation,
   readMeleeRetaliationScene
 } from './meleeRetaliationPersistence.js'
-import { recordRuleRollCard } from './ruleRollCards.js'
+import { postTableRollCards, recordRuleRollCard, type TableRollCardBatch } from './ruleRollCards.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 
@@ -475,8 +475,10 @@ export async function persistEncounterTurnResources(
           : spentResources
       })
     )
-    // The action's dice post exactly as a direct action's do, each Legendary Action in its own scope.
-    await recordActionRollCards(ctx, {
+    // The action's dice post exactly as a direct action's do: each Legendary Action is its own
+    // action, so it posts its own card, in its own scope.
+    const rollCards: TableRollCardBatch = new Map()
+    await recordActionRollCards(ctx, rollCards, {
       campaign: input.campaign,
       encounterId: state.id,
       gameSystemId: state.gameSystemId,
@@ -492,6 +494,7 @@ export async function persistEncounterTurnResources(
         [0, 1].filter((checkIndex) => legendaryAppCarded.has(2 * ordinal + checkIndex))
       )
     })
+    await postTableRollCards(ctx, { campaign: input.campaign, batch: rollCards })
     if (!application.meleeRetaliation) continue
     // The zones the melee hit set off burn the owner after its charge is spent (D153), selected
     // against the Run as the hit found it.

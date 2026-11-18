@@ -62,6 +62,7 @@ import {
   recordIncomingGateRollCards,
   settledD20s
 } from './actionRollCards.js'
+import { postTableRollCards, type TableRollCardBatch } from './ruleRollCards.js'
 
 /** Validates the admitted completed root and applies its native writes in the owning transaction. */
 export async function persistEncounterActionCommit(
@@ -424,8 +425,10 @@ export async function persistEncounterActionCommit(
     : { moves: [], landings: [], actors: nextActors, rules: input.rules }
   nextActors = settledMovements.actors
   const projection = await projectNativeGm(ctx, nextState, nextActors, settledMovements.rules)
-  // Each d20 the action rolled gets a chat card: an attack is the source's, a save the target's.
-  await recordActionRollCards(ctx, {
+  // The action's rolls post as one chat card per author: an attack is the source's, a save the
+  // target's.
+  const rollCards: TableRollCardBatch = new Map()
+  await recordActionRollCards(ctx, rollCards, {
     campaign,
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
@@ -447,7 +450,7 @@ export async function persistEncounterActionCommit(
       dice: settledD20s(batch)
     })
   })
-  await recordIncomingGateRollCards(ctx, {
+  await recordIncomingGateRollCards(ctx, rollCards, {
     campaign,
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
@@ -464,6 +467,7 @@ export async function persistEncounterActionCommit(
     visibility: command.visibility,
     createdAt: input.occurredAt
   })
+  await postTableRollCards(ctx, { campaign, batch: rollCards })
   // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
   const outcomes = executionOutcomeCapabilityRegistry.require(state.gameSystemId)
   const addsSpeed = outcomes.addsSpeedToMovement(execution)

@@ -539,13 +539,24 @@ export async function readRoomTimeline(caller: RoomCaller, campaignId: string) {
  * them after a checkpoint. An action's d20s and damage totals are visible only here (D85).
  */
 export async function readRoomRollCards(caller: RoomCaller, campaignId: string) {
+  return (await readRoomRollEntries(caller, campaignId)).flat()
+}
+
+/**
+ * The table chat's roll entries, oldest first, each as the rolls of the one card: an action posts
+ * all its table rolls on one card per author (D229).
+ */
+export async function readRoomRollEntries(caller: RoomCaller, campaignId: string) {
   await checkpointLiveRoom(campaignId)
   const page = await caller.query(api.campaigns.chat.list, {
     campaignId,
     room: 'TABLE',
     limit: 100
   })
-  return page.entries.flatMap((entry) => entry.rolls.map(({ roll }) => roll)).reverse()
+  return page.entries
+    .map((entry) => entry.rolls.map(({ roll }) => roll))
+    .filter((rolls) => rolls.length > 0)
+    .reverse()
 }
 
 /** The real room's answer to this member's `ENCOUNTER_READ`; its refusal rejects. */

@@ -16,7 +16,7 @@ import type {
   EncounterCharacterWriteTransaction,
   EncounterWritePorts
 } from './ports.js'
-import { recordRuleRollCard } from './ruleRollCards.js'
+import { collectRuleRollCard, type TableRollCardBatch } from './ruleRollCards.js'
 
 type MechanicsBatch = Extract<
   Extract<
@@ -42,16 +42,17 @@ const INCOMING_GATE_CARDS = {
 } as const
 
 /**
- * Cards the d20 of each incoming gate an action's source rolled before the action ran: the
+ * Collects the d20 of each incoming gate an action's source rolled before the action ran: the
  * spellcasting check a reactor rolled to counter a higher-level cast (D127, D219), or the save a
- * warded creature's ward asked of an attacker. One card per gate, from the source, whether the
+ * warded creature's ward asked of an attacker. One roll per gate, from the source, whether the
  * action went on or was lost. A die the app rolled for a `SYSTEM_ROLL` answer was carded as its app
- * attempt; an entered or auto-rolled die is carded here.
+ * attempt; an entered or auto-rolled die is collected here. The commit posts `cards` once at its end.
  */
 export async function recordIncomingGateRollCards(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'retainPrivateRoll'>
   },
+  cards: TableRollCardBatch,
   input: {
     campaign: CampaignAuthority['campaign']
     encounterId: string
@@ -67,7 +68,7 @@ export async function recordIncomingGateRollCards(
     response: ResolveRuleOccurrenceInputDto | null | undefined
     responderUserId: string
     initiatorUserId: string
-    visibility: Parameters<typeof recordRuleRollCard>[1]['visibility']
+    visibility: Parameters<typeof collectRuleRollCard>[2]['visibility']
     createdAt: string
   }
 ): Promise<void> {
@@ -100,28 +101,30 @@ export async function recordIncomingGateRollCards(
       ruleset,
       createdAt: input.createdAt
     })
-    await recordRuleRollCard(ctx, {
+    await collectRuleRollCard(ctx, cards, {
       campaign: input.campaign,
       encounterId: input.encounterId,
       roller: input.roller,
       initiatorUserId: input.initiatorUserId,
       visibility: input.visibility,
-      clientNonce: roll.id,
       roll
     })
   }
 }
 
 /**
- * Cards the dice a settled action (or Legendary Action) rolled, one card per die: an attack d20 is
- * the source's, a save d20 the target's, and each requested damage a total-only card from the
- * source. A d20 in `appCardedD20s` (from `readAppCardedDice` over `settledD20s`) is skipped,
- * because its app attempt already posted the card; an auto-rolled or entered d20 is carded here.
+ * Collects the dice a settled action (or Legendary Action) rolled, one roll per die: an attack d20
+ * is the source's, a save d20 the target's, and each requested damage a total-only roll from the
+ * source. The commit posts the TABLE rolls in `cards` once at its end, one card per author, so an
+ * action's attack, damage and save read as one card while a private roll stays out of it. A d20 in
+ * `appCardedD20s` (from `readAppCardedDice` over `settledD20s`) is skipped, because its app attempt
+ * already posted the card; an auto-rolled or entered d20 is collected here.
  */
 export async function recordActionRollCards(
   ctx: EncounterCharacterWriteTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
+    readonly ports: Pick<EncounterWritePorts, 'retainPrivateRoll'>
   },
+  cards: TableRollCardBatch,
   input: {
     campaign: CampaignAuthority['campaign']
     encounterId: string
@@ -133,7 +136,7 @@ export async function recordActionRollCards(
     source: EncounterRunActorState
     target: EncounterRunActorState
     initiatorUserId: string
-    visibility: Parameters<typeof recordRuleRollCard>[1]['visibility']
+    visibility: Parameters<typeof collectRuleRollCard>[2]['visibility']
     createdAt: string
     appCardedD20s: ReadonlySet<number>
   }
@@ -167,13 +170,12 @@ export async function recordActionRollCards(
         )
       })
     const roll = record('PLAYER')
-    await recordRuleRollCard(ctx, {
+    await collectRuleRollCard(ctx, cards, {
       campaign: input.campaign,
       encounterId: input.encounterId,
       roller,
       initiatorUserId: input.initiatorUserId,
       visibility: input.visibility,
-      clientNonce: roll.id,
       roll,
       ...(d20.modeAdjustment ? { gmRoll: record('GM') } : {})
     })
@@ -195,13 +197,12 @@ export async function recordActionRollCards(
       ruleset,
       createdAt: input.createdAt
     })
-    await recordRuleRollCard(ctx, {
+    await collectRuleRollCard(ctx, cards, {
       campaign: input.campaign,
       encounterId: input.encounterId,
       roller: source,
       initiatorUserId: input.initiatorUserId,
       visibility: input.visibility,
-      clientNonce: roll.id,
       roll
     })
   }
