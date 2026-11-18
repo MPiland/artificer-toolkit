@@ -25163,17 +25163,18 @@
             },
             {
               "id": "PERF-1.T9",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 13,
                 "rr": 8,
-                "size": 3,
+                "size": 8,
                 "after": ["PERF-1.T8"]
               },
               "text": "D229 step 2: a chat entry and its payload persist as one Convex document with trimmed indexes (keep only indexes a reader uses; migrate development data in the same change); chat paging, gap repair and checkpoint reads keep their contracts.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Resized 3 -> 8 at review: schema, persistence, Convex chat and roll paths, checkpoint guard, room store and 28 migrated tests. The room still hydrates metadata only (read-time projection; orchestrator ruling at review).",
+              "proof": "m872 (7fe64313c): Tests 44225853124, Live 44225853239, Browser journeys 44225853206 green; one entry document of 504 B (from about 650 B over two documents, estimate); privacy assertion restored in roomInputs.test.ts."
             },
             {
               "id": "PERF-1.T10",
@@ -25191,7 +25192,7 @@
             },
             {
               "id": "PERF-1.T11",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25201,7 +25202,8 @@
                 "after": ["PERF-1.T9"]
               },
               "text": "D229 step 4a: a ROLL chat entry carries a non-empty rolls list instead of one roll (schema, stored payload, nonce fingerprint and replay, presentation and visibility projection; GM reveal and rest consumption stay per roll); standalone and free rolls become a one-item list with unchanged behaviour; the web chat card renders every roll per DESIGN.md; migrate development data in the same change.",
-              "note": "Resized 2026-11-17 from the seam trace (D229 step 4 resize): persisted contract shared with T9, so it follows T9."
+              "note": "Resized 2026-11-17 from the seam trace (D229 step 4 resize): persisted contract shared with T9, so it follows T9.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-1.T12",
