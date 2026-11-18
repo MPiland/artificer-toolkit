@@ -122,6 +122,11 @@ export class RoomCheckpoints {
     return promise
   }
 
+  /** Whether a full checkpoint is retained for retry. */
+  retainsCheckpoint(): boolean {
+    return this.#readPending() !== null
+  }
+
   /**
    * A mid-Run backlog save (ADR 0035 Amendment 32): publishes only chat and rolls, through the
    * journal's head, without moving the fence, the room base or the journal. A retained full

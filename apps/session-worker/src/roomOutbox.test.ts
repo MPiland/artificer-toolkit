@@ -14,7 +14,8 @@ afterEach(() => {
 async function backlogFlush(
   runStatus: string,
   reason: 'ADMISSION' | 'BACKLOG' = 'BACKLOG',
-  withChat = false
+  withChat = false,
+  retained = false
 ) {
   const opened = createNodeSqliteRoomStorage()
   databases.push(opened.database)
@@ -68,6 +69,7 @@ async function backlogFlush(
       acknowledgePlay: () => void calls.push('acknowledgePlay')
     },
     checkpoints: {
+      retainsCheckpoint: () => retained,
       flush: async () => {
         calls.push('flush')
         return null
@@ -101,6 +103,10 @@ describe('RoomOutbox admission save', () => {
 
   it('publishes nothing while a Run is active and no chat is unsaved', async () => {
     expect(await backlogFlush('ACTIVE', 'ADMISSION')).toEqual([])
+  })
+
+  it('retries a retained checkpoint while a Run is active and no chat is unsaved', async () => {
+    expect(await backlogFlush('ACTIVE', 'ADMISSION', false, true)).toEqual(['flushChat'])
   })
 
   it('stays a full prefix save when no Run is active', async () => {
