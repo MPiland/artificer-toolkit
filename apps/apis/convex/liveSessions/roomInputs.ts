@@ -3,6 +3,7 @@ import { zodToConvexFields } from 'convex-helpers/server/zod4'
 import type { OrderedQuery, PaginationResult } from 'convex/server'
 import type { EncounterTableName } from '@artificer-toolkit/encounter-persistence/store'
 import {
+  LIVE_ROOM_CHAT_NONCE_WINDOW_MS,
   liveRoomInputsInputSchema,
   liveRoomInputsResponseSchema,
   type LiveRoomCharacterPart,
@@ -32,7 +33,7 @@ import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import { readCharacterSources, readCampaignCharacterSources } from '../characters/sourceReads'
 import { readContentSnapshotManifest } from '../contentSnapshots/manifest'
 import type { ContentSnapshotHead } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { livePublicationCampaignScope, type CampaignInternalScope } from '../campaigns/authority'
+import { livePublicationCampaignScope } from '../campaigns/authority'
 import { readRoomSceneDefinitionPage, readRoomSceneInputsPage } from './roomSceneInputs'
 import { readRoomDefinitionsPage } from './roomDefinitionInputs'
 
@@ -275,59 +276,75 @@ function toDocument(table: EncounterTableName, { _id, _creationTime, ...fields }
   return { table, id: _id, creationTime: _creationTime, fields }
 }
 
-const CHAT_METADATA_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTableQuery }> = [
-  {
-    table: 'campaignConversations',
-    query: (ctx, campaignId) =>
-      ctx.db
+/**
+ * The chat families in the fixed order the room reads them: conversations, members, then one entry
+ * range per conversation. Conversations and members grow with membership, so they hydrate whole.
+ * Entries read only from `entriesFrom`: the room needs their nonces to answer a resend, and nothing
+ * older can be resent (ADR 0035 Amendment 33).
+ */
+async function chatMetadataFamilies(ctx: QueryCtx, campaignId: string, entriesFrom: string) {
+  const conversations = await ctx.db
+    .query('campaignConversations')
+    .withIndex('by_campaignId_kind', (q) => q.eq('campaignId', campaignId))
+    .collect()
+  const families: Array<{ table: EncounterTableName; query: ReturnType<RunTableQuery> }> = [
+    {
+      table: 'campaignConversations',
+      query: ctx.db
         .query('campaignConversations')
         .withIndex('by_campaignId_kind', (q) => q.eq('campaignId', campaignId))
-  },
-  {
-    table: 'campaignConversationMembers',
-    query: (ctx, campaignId) =>
-      ctx.db
+    },
+    {
+      table: 'campaignConversationMembers',
+      query: ctx.db
         .query('campaignConversationMembers')
         .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
-  },
-  {
-    table: 'campaignConversationEntries',
-    query: (ctx, campaignId) =>
-      ctx.db
+    }
+  ]
+  for (const { id } of conversations)
+    families.push({
+      table: 'campaignConversationEntries',
+      query: ctx.db
         .query('campaignConversationEntries')
-        .withIndex('by_campaignId_authorUserId_clientNonce', (q) => q.eq('campaignId', campaignId))
-  }
-]
+        .withIndex('by_conversationId_createdAt_id', (q) =>
+          q.eq('conversationId', id).gte('createdAt', entriesFrom)
+        )
+    })
+  return families
+}
 
 /**
- * Conversations and members hydrate whole. An entry is one document holding its text or roll, so the
- * read bills the whole document, but only its nonce metadata leaves Convex: historical text and roll
- * payloads never reach the room (PERF-1.T9).
+ * An entry is one document holding its text or roll, so the read bills the whole document, but only
+ * its nonce metadata leaves Convex: historical text and roll payloads never reach the room
+ * (PERF-1.T9). The entry window starts `LIVE_ROOM_CHAT_NONCE_WINDOW_MS` before the epoch began
+ * (PERF-1.T17), a bound that stays fixed for the whole epoch so a paged read keeps its cursors.
  */
 async function readChatMetadataPage(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
+  authority: Doc<'campaignLiveAuthorities'>,
   scope: Extract<LiveRoomInputsScope, { kind: 'CHAT_METADATA' }>
 ): Promise<LiveRoomInputsResponse> {
+  const families = await chatMetadataFamilies(
+    ctx,
+    campaign.id,
+    new Date(Date.parse(authority.createdAt) - LIVE_ROOM_CHAT_NONCE_WINDOW_MS).toISOString()
+  )
   const paginationCursor = scope.cursor?.paginationCursor ?? null
   let position = scope.cursor?.position ?? 0
-  if (position >= CHAT_METADATA_TABLES.length) throw new Error('Room input cursor is invalid.')
+  if (position >= families.length) throw new Error('Room input cursor is invalid.')
   if (paginationCursor === null)
-    while (
-      position < CHAT_METADATA_TABLES.length &&
-      !(await CHAT_METADATA_TABLES[position]!.query(ctx, campaign.id).first())
-    )
-      position += 1
-  const entry = CHAT_METADATA_TABLES[position]
-  if (!entry) return { kind: 'CHAT_METADATA', documents: [], continueCursor: null }
-  const page = await entry.query(ctx, campaign.id).paginate({ ...PAGE, cursor: paginationCursor })
+    while (position < families.length && !(await families[position]!.query.first())) position += 1
+  const family = families[position]
+  if (!family) return { kind: 'CHAT_METADATA', documents: [], continueCursor: null }
+  const page = await family.query.paginate({ ...PAGE, cursor: paginationCursor })
   if (!page.isDone && page.continueCursor === paginationCursor)
     throw new Error('Room input page cannot advance.')
   return {
     kind: 'CHAT_METADATA',
     documents: page.page.map((row) => {
-      const document = toDocument(entry.table, row)
-      return entry.table === 'campaignConversationEntries'
+      const document = toDocument(family.table, row)
+      return family.table === 'campaignConversationEntries'
         ? {
             ...document,
             fields: projectCampaignEntryMetadata(campaignStoredEntrySchema.parse(document.fields))
@@ -336,7 +353,7 @@ async function readChatMetadataPage(
     }),
     continueCursor: !page.isDone
       ? { position, paginationCursor: page.continueCursor }
-      : position + 1 < CHAT_METADATA_TABLES.length
+      : position + 1 < families.length
         ? { position: position + 1, paginationCursor: null }
         : null
   }
@@ -583,11 +600,11 @@ async function readRoomInputs(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
   scope: LiveRoomInputsScope,
-  authorityScope: CampaignInternalScope
+  authority: Doc<'campaignLiveAuthorities'>
 ): Promise<LiveRoomInputsResponse> {
   switch (scope.kind) {
     case 'CHAT_METADATA':
-      return readChatMetadataPage(ctx, campaign, scope)
+      return readChatMetadataPage(ctx, campaign, authority, scope)
     case 'AUTHORITY':
       return readAuthorityPage(ctx, campaign, scope)
     case 'CAMPAIGN_PLAY':
@@ -614,9 +631,14 @@ async function readRoomInputs(
     case 'RUN':
       return readRunPage(ctx, campaign, scope)
     case 'SCENE':
-      return readRoomSceneInputsPage(ctx, campaign, scope, authorityScope)
+      return readRoomSceneInputsPage(ctx, campaign, scope, livePublicationCampaignScope(authority))
     case 'SCENE_DEFINITION':
-      return readRoomSceneDefinitionPage(ctx, campaign, scope, authorityScope)
+      return readRoomSceneDefinitionPage(
+        ctx,
+        campaign,
+        scope,
+        livePublicationCampaignScope(authority)
+      )
     case 'CHARACTERS':
       return readCharactersPage(ctx, campaign, scope)
     case 'DEFINITIONS':
@@ -661,7 +683,7 @@ export const read = internalQuery({
     if (!campaign) throw new Error('Campaign not found.')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     return liveRoomInputsResponseSchema.parse(
-      await readRoomInputs(ctx, campaign, input.scope, livePublicationCampaignScope(authority))
+      await readRoomInputs(ctx, campaign, input.scope, authority)
     )
   }
 })

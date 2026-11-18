@@ -10,6 +10,7 @@ import type {
   campaignMembershipDepartureResultSchema
 } from '@artificer-toolkit/schema/api/campaignCore'
 import {
+  LIVE_ROOM_CHAT_NONCE_WINDOW_MS,
   liveRoomActorSourceSchema,
   liveRoomInputsResponseSchema,
   type LiveRoomInputsInput,
@@ -42,7 +43,10 @@ import {
   readLiveAuthorityEpoch,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { api } from '../_generated/api'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { read as readRoomInputs } from './roomInputs'
 import {
   campaignRollNonceFingerprint,
   campaignStoredEntrySchema,
@@ -70,6 +74,14 @@ const leave = makeFunctionReference<
   z.output<typeof campaignMembershipDepartureResultSchema>
 >('campaigns/membershipDeparture:leave')
 const secret = 'private-room-inputs-test-secret-at-least-32-bytes'
+
+type Handler = (ctx: QueryCtx, args: unknown) => Promise<unknown>
+
+function handlerOf(registered: object): Handler {
+  if (!('_handler' in registered) || typeof registered._handler !== 'function')
+    throw new Error('Missing registered query handler.')
+  return registered._handler as Handler
+}
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
@@ -629,6 +641,7 @@ describe('raw room chat metadata inputs', () => {
     const stored = await base.t.run(async (ctx) => {
       const now = new Date().toISOString()
       let rollEntryId = ''
+      let tableConversationId = ''
       for (const [campaignId, authorUserId, count] of [
         [base.campaign.id, base.owner.userId, MAX_ROOM_INPUT_PAGE_DOCUMENTS + 1],
         [other.id, base.player.userId, 1]
@@ -650,6 +663,7 @@ describe('raw room chat metadata inputs', () => {
         })
         for (let index = 0; index < count; index += 1) {
           const id = crypto.randomUUID()
+          if (campaignId === base.campaign.id) tableConversationId = conversationId
           const roll =
             index === 0
               ? {
@@ -704,8 +718,8 @@ describe('raw room chat metadata inputs', () => {
           .collect(),
         entries: await ctx.db
           .query('campaignConversationEntries')
-          .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
-            q.eq('campaignId', base.campaign.id)
+          .withIndex('by_conversationId_createdAt_id', (q) =>
+            q.eq('conversationId', tableConversationId)
           )
           .collect()
       }
@@ -785,6 +799,100 @@ describe('raw room chat metadata inputs', () => {
         campaignId: other.id
       })
     ).rejects.toThrow('stale')
+  })
+
+  it('reads chat entry headers only from the resend window, so hydrate I/O stays flat as history grows (D230)', async () => {
+    const base = await setup()
+    const epochStart = Date.parse(
+      (await base.t.run((ctx) =>
+        ctx.db
+          .query('campaignLiveAuthorities')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
+          .unique()
+      ))!.createdAt
+    )
+    const conversationId = crypto.randomUUID()
+    const nonces: string[] = []
+    const insertEntry = (ctx: MutationCtx, createdAtMs: number) => {
+      const clientNonce = crypto.randomUUID()
+      return ctx.db
+        .insert(
+          'campaignConversationEntries',
+          campaignStoredEntrySchema.parse({
+            id: crypto.randomUUID(),
+            campaignId: base.campaign.id,
+            conversationId,
+            authorUserId: base.owner.userId,
+            clientNonce,
+            createdAt: new Date(createdAtMs).toISOString(),
+            kind: 'CHAT',
+            mode: 'OOC',
+            body: 'Historical text',
+            rolls: [],
+            authorUsername: 'Room metadata author',
+            characterId: null,
+            characterLabel: null,
+            editedAt: null,
+            unsentAt: null
+          })
+        )
+        .then(() => clientNonce)
+    }
+    await base.t.run(async (ctx) => {
+      const now = new Date(epochStart).toISOString()
+      await ctx.db.insert('campaignConversations', {
+        id: conversationId,
+        campaignId: base.campaign.id,
+        kind: 'TABLE',
+        participantUserIds: [],
+        createdAt: now
+      })
+      await ctx.db.insert('campaignConversationMembers', {
+        conversationId,
+        campaignId: base.campaign.id,
+        userId: base.owner.userId,
+        accessStartedAt: now,
+        lastReadAt: null
+      })
+      for (const hoursBefore of [1, 2, 3])
+        nonces.push(await insertEntry(ctx, epochStart - hoursBefore * 3_600_000))
+    })
+    const handler = handlerOf(readRoomInputs)
+    async function hydrate() {
+      const totals = createDatabaseIoTotals()
+      const entries: Record<string, unknown>[] = []
+      let cursor: Extract<LiveRoomInputsScope, { kind: 'CHAT_METADATA' }>['cursor'] = null
+      do {
+        const page = (await base.t.run((ctx) =>
+          handler(
+            { ...ctx, db: countDatabaseIo(ctx.db, totals) } as unknown as QueryCtx,
+            base.request({ kind: 'CHAT_METADATA', cursor })
+          )
+        )) as Extract<LiveRoomInputsResponse, { kind: 'CHAT_METADATA' }>
+        entries.push(
+          ...page.documents
+            .filter((document) => document.table === 'campaignConversationEntries')
+            .map((document) => document.fields)
+        )
+        cursor = page.continueCursor
+      } while (cursor)
+      return { entries, bytes: totals.reads.bytes, documents: totals.reads.documents }
+    }
+    const before = await hydrate()
+    expect(before.entries.map((entry) => entry.clientNonce).sort()).toEqual([...nonces].sort())
+
+    // Ten sessions of earlier chat, all older than the window the room still answers resends for.
+    await base.t.run(async (ctx) => {
+      for (let index = 0; index < 200; index += 1)
+        await insertEntry(
+          ctx,
+          epochStart - LIVE_ROOM_CHAT_NONCE_WINDOW_MS - (index + 1) * 3_600_000
+        )
+    })
+    const after = await hydrate()
+    expect(after.entries).toEqual(before.entries)
+    expect(after.documents).toBe(before.documents)
+    expect(after.bytes).toBe(before.bytes)
   })
 
   it('skips empty metadata families and refuses a cursor beyond the fixed family list', async () => {
