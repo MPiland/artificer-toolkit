@@ -244,7 +244,7 @@ describe('CampaignChatHistory', () => {
         total
       },
       characterId: null,
-      characterLabel: null,
+      characterLabel: 'Mira',
       source: { kind: 'MANUAL' as const, label: 'Manual' },
       ruleset: { systemId: 'system', code: 'dnd5e', version: '2014' },
       createdAt: '2026-09-18T12:00:00.000Z'

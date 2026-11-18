@@ -181,17 +181,21 @@ describe('native Campaign authoritative rolls', () => {
         body: null,
         mode: null,
         characterId: character.id,
-        roll: {
-          characterId: character.id,
-          characterLabel: character.label,
-          source: { kind: 'MANUAL', label: 'Manual roll' },
-          ruleset: {
-            systemId: srdSystemRecord.id,
-            code: srdSystemRecord.rulesetCode,
-            version: srdSystemRecord.rulesetVersion
-          },
-          evidence: { total: 12, terms: [{ rolls: [10] }] }
-        }
+        rolls: [
+          {
+            roll: {
+              characterId: character.id,
+              characterLabel: character.label,
+              source: { kind: 'MANUAL', label: 'Manual roll' },
+              ruleset: {
+                systemId: srdSystemRecord.id,
+                code: srdSystemRecord.rulesetCode,
+                version: srdSystemRecord.rulesetVersion
+              },
+              evidence: { total: 12, terms: [{ rolls: [10] }] }
+            }
+          }
+        ]
       })
     }
     expect(second.authorUsername).toBe('CampaignGM')

@@ -6435,7 +6435,9 @@ it('commits a TABLE enemy roll with its table card and one D72 TABLE charge, in 
             entry: expect.objectContaining({
               room: 'TABLE',
               kind: 'ROLL',
-              roll: expect.objectContaining({ id: tableRoll.id })
+              rolls: [
+                expect.objectContaining({ roll: expect.objectContaining({ id: tableRoll.id }) })
+              ]
             }),
             privateRoll: null
           }
@@ -6448,7 +6450,7 @@ it('commits a TABLE enemy roll with its table card and one D72 TABLE charge, in 
           authorUserId: base.playerId,
           clientNonce: commandId,
           kind: 'ROLL',
-          roll: expect.objectContaining({ id: tableRoll.id }),
+          rolls: [expect.objectContaining({ roll: expect.objectContaining({ id: tableRoll.id }) })],
           authorUsername: 'FixtureMember'
         })
       ])
@@ -6518,7 +6520,10 @@ it('commits a GM evidence roll with its table card and one D72 TABLE charge, in 
         expect.objectContaining({ commandId, userId: base.userId, attempt: 1 })
       ])
       expect(room.documents('campaignConversationEntries')).toEqual([
-        expect.objectContaining({ kind: 'ROLL', roll: expect.objectContaining({ id: roll?.id }) })
+        expect.objectContaining({
+          kind: 'ROLL',
+          rolls: [expect.objectContaining({ roll: expect.objectContaining({ id: roll?.id }) })]
+        })
       ])
       expect(tableBucketTokens(context.storage, base.userId)).toEqual([
         ACCOUNT_BUCKETS.TABLE.OWNER.capacity - 1

@@ -289,8 +289,8 @@ describe('useCharacterSheetRollController', () => {
 
   it('defaults a player Campaign roll to the table and can send it to the GM', async () => {
     rollMutationMocks.executeTable
-      .mockResolvedValueOnce({ roll: createRoll('table-roll') })
-      .mockResolvedValueOnce({ roll: createRoll('gm-roll') })
+      .mockResolvedValueOnce({ rolls: [{ roll: createRoll('table-roll'), revealedByGm: false }] })
+      .mockResolvedValueOnce({ rolls: [{ roll: createRoll('gm-roll'), revealedByGm: false }] })
     const { result } = renderHook(
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: false }),
       { wrapper: createWrapper() }
@@ -320,7 +320,9 @@ describe('useCharacterSheetRollController', () => {
   })
 
   it('defaults a GM Campaign roll to public and rolls it to the table', async () => {
-    rollMutationMocks.executeTable.mockResolvedValueOnce({ roll: createRoll('gm-public-roll') })
+    rollMutationMocks.executeTable.mockResolvedValueOnce({
+      rolls: [{ roll: createRoll('gm-public-roll'), revealedByGm: false }]
+    })
     const { result } = renderHook(
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
@@ -374,7 +376,9 @@ describe('useCharacterSheetRollController', () => {
   })
 
   it('keeps player hit-die rolls on Table or To GM, never Just me', async () => {
-    rollMutationMocks.executeTable.mockResolvedValue({ roll: createRoll('hit-die-roll') })
+    rollMutationMocks.executeTable.mockResolvedValue({
+      rolls: [{ roll: createRoll('hit-die-roll'), revealedByGm: false }]
+    })
     const { result } = renderHook(
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: false }),
       { wrapper: createWrapper() }
@@ -396,7 +400,9 @@ describe('useCharacterSheetRollController', () => {
   })
 
   it('keeps GM hit-die rolls on Public or Private', async () => {
-    rollMutationMocks.executeTable.mockResolvedValue({ roll: createRoll('gm-hit-die-roll') })
+    rollMutationMocks.executeTable.mockResolvedValue({
+      rolls: [{ roll: createRoll('gm-hit-die-roll'), revealedByGm: false }]
+    })
     const { result } = renderHook(
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
