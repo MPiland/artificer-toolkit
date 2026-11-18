@@ -29951,7 +29951,7 @@
                 "finalSource": true
               },
               "text": "Release-candidate walkthrough: step through each guide statement on the review data from RELEASE-8 in the running build (Browser pane against local web), correct mismatches, record the checked build identity. Agent drives the browser; owner's judgment on tone is optional.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted. 2026-11-18 part 1 merged m882: Still in progress block corrected from merged code (11 claims); the in-app walk of the remaining ~100 statements runs from the main checkout (worktrees lack the local env files).",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]

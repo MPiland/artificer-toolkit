@@ -19,7 +19,7 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path po
 
 ## Steps
 
-S1. **GM:** In the item authoring forms build the ring as the steps describe. If the form cannot express a rule, mark the scenario BLOCKED and report which rule is missing. Known gap: the Sheet picker to end one of two Concentrations by choice and the once-per-dawn use counter display are unfinished; do not assert them.
+S1. **GM:** In the item authoring forms build the ring as the steps describe. If the form cannot express a rule, mark the scenario BLOCKED and report which rule is missing. The Sheet lists each held Concentration with its own End Concentration button (SPELLS-12.T4b). Known gap: the once-per-dawn use counter display is unverified; do not assert it.
 
 1. **GM:** In authoring create the homebrew ring described above and give it to Sage. **P1:** Equip it on Sage's Sheet.
 2. **P1:** In the Encounter cast **Hold Person** on a Goblin, then **Fear** on the Wolf. Confirm both are held and the second cast does not replace the first.
