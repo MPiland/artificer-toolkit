@@ -654,12 +654,33 @@ find an expired token. Through its single coalesced alarm it sends `AUTHENTICATI
 admitted socket at `Admission.deadline` minus `reauthenticationLeadMs` (60 s), including a socket
 restored by a wake: a restore arms no expiry, so the alarm that wakes the room challenges it. The browser's
 `liveSessionClient` answers every challenge with an access token, so a passive socket re-admits before
-expiry. `useCampaignLiveSession` reuses its token while more than `LIVE_SESSION_REAUTHENTICATION_LEAD_MS`
+expiry. The shared connection (below) reuses its token while more than `LIVE_SESSION_REAUTHENTICATION_LEAD_MS`
 (the same 60 s, in `liveSessionIdentity.ts`) remains before its `exp`, and fetches a new one otherwise, so a
 repeated challenge costs no token fetch and the room's same-token check absorbs a duplicate answer. A socket that has not been re-admitted at its deadline is closed with the reason
 "Live-session sign-in expired." (1008). A revoked session cannot obtain a token, so an unanswered
 challenge ends the socket at expiry rather than by notice. The challenge drops the socket's feed
 subscriptions as any `AUTHENTICATION_REQUIRED` does, and the re-admission resends the state sync.
+
+### One shared connection per Campaign in a tab (current, PERF-1.6)
+
+The room admits four sockets per user (`ROOM_LIMITS.maxSocketsPerUser`, refused with 429) and one Sheet
+feed per socket, so a tab does not open a socket per panel.
+[campaignLiveConnections](../../apps/web/src/domains/campaigns/vtt/campaignLiveConnections.ts) keeps one
+`LiveSessionConnection` per Campaign and held Character Sheet, reference-counted across every
+`useCampaignLiveSession` caller: the first caller opens it, the last release closes it, and its ticket,
+token cache, reconnect and resume are the connection's own.
+
+- Each caller follows its own feeds. The connection requests the union (the Campaign summary when any caller
+  follows it; the Encounter session at the widest timeline any caller asks for) and delivers a frame only to
+  the callers that follow that feed. A caller that joins later is handed the connection's newest frames,
+  because the room pushes a frame only when it changed.
+- Events that belong to the connection (status, durable state, transients, errors, chat entries and private
+  rolls the room pushes) reach every caller. A command's ack settles only the promise of its sender, and a
+  refusal is shown only by the caller that sent the command.
+- After a forced close the connection reconnects once and resends the union of the remaining callers' feeds.
+- A caller that holds a Character Sheet feed (`characterSheetId`) uses the connection keyed by that Character,
+  since the room allows one Sheet feed per socket: a page of several held Characters' Sheets still opens one
+  socket per Character. Following several Sheets on one socket needs a protocol change and is not done.
 
 **Warm admission (ADR 0035 Amendment 18, current).** The ticket (version 3) carries `authSubject`,
 the Better Auth user ID (`identity.subject`, never an argument), beside `sub`, the app user ID. When an

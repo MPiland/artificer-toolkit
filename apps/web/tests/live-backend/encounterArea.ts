@@ -261,12 +261,6 @@ export async function verifyEncounterAreaBrowser(
           fullPage: true
         })
         stage = 'verify the cast posts its rolls on one Table card'
-        // The session page holds its own live sockets, so the chat opens from the campaign page.
-        await ownerPage.goto(origin + '/campaigns/' + encodeURIComponent(input.campaign.publicId), {
-          waitUntil: 'domcontentloaded',
-          timeout: 90_000
-        })
-        await waitForRouterIdle(ownerPage)
         await ownerPage.getByRole('button', { name: 'Open Campaign chat', exact: true }).click()
         const tableHistory = ownerPage.getByRole('log', { name: 'Table history' })
         await expect(tableHistory.getByRole('article').first()).toBeVisible()
