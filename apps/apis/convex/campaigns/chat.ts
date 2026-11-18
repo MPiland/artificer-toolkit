@@ -107,7 +107,10 @@ export async function readCampaignChatPage(
     // count and the whole entries need not be read a second time.
     unreadCount:
       !cursor && wanted >= campaignChatUnreadCountLimit
-        ? found.filter((entry) => isUnreadEntry(member, entry)).length
+        ? Math.min(
+            campaignChatUnreadCountLimit,
+            found.filter((entry) => isUnreadEntry(member, entry)).length
+          )
         : await countUnreadEntries(ctx, room, member)
   }
 }
