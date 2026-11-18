@@ -650,9 +650,17 @@ it('reconciles holds from the Run and actors the same save wrote, reading none b
   expect(await readHolds(base)).toMatchObject([
     { characterId: base.character.id, encounterId: base.run.id, epoch: authority.epoch }
   ])
-  // COMPLETE reads the hold it drops and that Character's assignment, not the Run it just wrote.
-  const completed = await publishNext(base, authority, [await runStatusChange(base, 'COMPLETED')])
-  expect(completed.io.sections.holds).toMatchObject({ documentsRead: 2 })
+  // COMPLETE reads the Run once, for its checksum fence; the holds do not read it again.
+  const totals = createDatabaseIoTotals()
+  const input = frame(authority, {
+    changes: [await runStatusChange(base, 'COMPLETED')],
+    history: []
+  })
+  const completed = await base.t.run((ctx) =>
+    publishCheckpoint({ ...ctx, db: countDatabaseIo(ctx.db, totals) }, input)
+  )
+  expect(completed.status).toBe('COMMITTED')
+  expect(totals.reads.byTable.encounterRuns?.documents).toBe(1)
   expect(await readHolds(base)).toEqual([])
 })
 
