@@ -574,7 +574,7 @@ describe('Encounter history stays in the room (D85)', () => {
       await checkpointLiveRoom(base.campaign.id)
       return base.t.run(async (ctx) =>
         (await ctx.db.query('campaignConversationEntries').collect())
-          .filter((entry) => entry.roll !== null)
+          .filter((entry) => entry.rolls.length > 0)
           .map((entry) => entry.id)
           .sort()
       )

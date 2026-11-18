@@ -74,7 +74,7 @@ export async function lookupRoomEncounterReplay(
     encounterId: row.encounterId,
     version: row.version,
     // A card older than the room's hydrate is metadata only; its roll stays in Convex.
-    roll: card && hasCampaignEntryContent(card) ? card.roll : null
+    roll: card && hasCampaignEntryContent(card) ? (card.rolls[0]?.roll ?? null) : null
   }
 }
 
