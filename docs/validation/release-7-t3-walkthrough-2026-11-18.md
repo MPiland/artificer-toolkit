@@ -24,6 +24,46 @@ The app walk was blocked. The local stack (Convex container, Session Worker, web
 
 Known gap carried in `docs/validation/uat/SPELLS/UAT-SPELLS-17.md` (S1) still says the Sheet picker and once-per-dawn counter display are unfinished; that scenario text is now stale (not edited here; UAT scenarios are owned separately).
 
-## Counts
+## Counts (part 1)
 
 Checked 11, matched 0, corrected 11, could not verify: all other statements in the guide (about 100; no running build).
+
+## Part 2: walk against the running local build (2026-11-18)
+
+Build walked: phase-branch commit `e36dc12674891a2815abf170ffe4eb9ef7722a0b` (detached HEAD, main checkout). Stack: local Docker Convex container, Session Worker on 8787, web on 3000, review data set 0 (Party in the Field). Walked as the seeded GM (`Review_Gm_Rowan`) in the built-in browser. Player accounts were not signed in; player-only statements were checked against code.
+
+### Per-section outcome
+
+| Guide section / statement                                                                          | Outcome                                                                                                                                   | Evidence                                                                                                    |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Joining: Open tabletop window in Live tabletop panel                                               | PASS                                                                                                                                      | Session page, walked                                                                                        |
+| Joining: GM badge, "Live editing available", Auto-roll switch                                      | PASS                                                                                                                                      | Tabletop header, walked                                                                                     |
+| Joining: players see "Play view"; "The GM has not presented a scene yet."; Main Character selector | PASS (code only)                                                                                                                          | `CampaignTabletopWindow.tsx:62`, `CampaignVttStage.tsx:1339`, `CampaignTabletopPlayerHeaderControls.tsx:34` |
+| Auto-roll preference (Settings > Preferences "Roll my dice automatically", starts on)              | PASS                                                                                                                                      | Walked; default `autoRollDice: true` in `authTriggers.helper.ts:42` (review accounts are seeded off)        |
+| Manual/Assisted setting under Campaign Table tab; ammunition off by default; cover on by default   | PASS                                                                                                                                      | Walked in Table settings                                                                                    |
+| Automatic cover source                                                                             | CORRECTED: "walls on the Scene" -> "walls and creatures on the Scene, and total cover blocks the target"                                  | Table settings text                                                                                         |
+| Reactions: "There is no timer"                                                                     | CORRECTED -> declines itself after "Reaction time (seconds)" (default 5, 3 to 15) and at once if the player is marked away                | Table settings; `pendingReads.ts:121-142`; countdown not exercised live                                     |
+| Live maps: upload limits, units, calibrate                                                         | CORRECTED: added "64 megapixels", "Calibrate on map", unit labels Feet / Meters / Squares                                                 | Prepare view, `CampaignScenePreparation.tsx`                                                                |
+| Present a scene, Show to players, Undo last token move                                             | PASS                                                                                                                                      | Walked                                                                                                      |
+| GM turn controls                                                                                   | CORRECTED: Undo last action and Complete encounter are in the session page's Encounter actions menu, not the tabletop; Players away added | Walked                                                                                                      |
+| Undo last action location                                                                          | CORRECTED to match                                                                                                                        | Walked                                                                                                      |
+| Roll visibility label                                                                              | CORRECTED (minor): GM manual roller says "Roll to" (Public / Private)                                                                     | Walked                                                                                                      |
+
+### Could not verify (no running exercise)
+
+- Player views, roll prompts and the player roll destinations (Table / To GM / Just me): not signed in as a player; labels exist in code only.
+- Token movement rules, opportunity attacks, Pending decision wording, doors: needs an active Encounter with live play.
+- Assisted warnings and Do it anyway, initiative rules, saves, legendary actions: live Encounter needed.
+- Spell statements, Concentration, Metamagic, items: covered by part 1 code checks, not exercised.
+- Reaction countdown timing, reconnect behavior, five-minute room close, removal from room: time and multi-client dependent.
+- Wall types, fog options, hidden tokens: not exercised.
+- Undo refusal cases, public and private reveal buttons: labels "My rolls", "Enemy rolls", "Show roll", "Show that I rolled" exist in code only.
+- All Known gaps statements: not exercised.
+
+### Tooling bug found and fixed
+
+`scripts/resetLocalConvex.ps1`: the `-Tables` parameter collided with a local `$tables` (PowerShell names are case-insensitive), so a reset planned 0 tables and reported success while leaving data. The local was renamed `$planned`. Local dev tooling only.
+
+### Counts (part 2)
+
+PASS 7 (2 of them by code only), CORRECTED 6, BUG 0, could not verify: the groups listed above.

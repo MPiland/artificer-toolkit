@@ -2,7 +2,7 @@
 
 A plain-language guide to the live table for alpha players and GMs. It describes what the app does today, checked against the code and its tests. Where a feature is not finished, a note says so instead of guessing.
 
-> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. Progress: the Spells section's former "Still in progress" items were rechecked against merged code and tests at phase-branch commit `7082947b2` (see [the walkthrough note](../validation/release-7-t3-walkthrough-2026-11-18.md)); the remaining statements are not yet walked in the app. The [known gaps](#known-gaps) and [how to send feedback](#sending-feedback) are at the end.
+> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. Progress: the Spells section's former "Still in progress" items were rechecked against merged code and tests at phase-branch commit `7082947b2` (see [the walkthrough note](../validation/release-7-t3-walkthrough-2026-11-18.md)); the rest was walked against the running local build as the GM, with player-only and live-play statements checked against code (see the same note for what could not be exercised). The [known gaps](#known-gaps) and [how to send feedback](#sending-feedback) are at the end.
 
 ## Words used in this guide
 
@@ -48,7 +48,7 @@ In **Assisted** mode a rule problem (out of range, wrong creature type, no actio
 
 In **Manual** mode the app is a map, a turn order and a place to roll, and the table keeps the rules.
 
-Optional Campaign settings (frozen into each Encounter): **ammunition tracking** (off by default; when on, each ammunition attack uses up pieces from the chosen stack), and **automatic cover** (on by default; cover comes from walls on the Scene).
+Optional Campaign settings (frozen into each Encounter): **ammunition tracking** (off by default; when on, each ammunition attack uses up pieces from the chosen stack), and **automatic cover** (on by default; cover comes from walls and creatures on the Scene, and total cover blocks the target).
 
 ### Moving tokens
 
@@ -85,7 +85,7 @@ Optional Campaign settings (frozen into each Encounter): **ammunition tracking**
 
 - A reaction prompt appears when a creature that can react is hit by an attack (Shield, Uncanny Dodge, Deflect Missiles), takes damage (Absorb Elements), sees a spell cast (Counterspell), or is left by a moving creature (opportunity attack).
 - The reacting creature's controller answers **Use** or **Decline** (the GM for monsters; the GM can answer for anyone). The attacker's player cannot answer for someone else.
-- Until the prompt is answered, the hit or cast is held and nothing is applied. There is no timer: a prompt waits until answered or until the GM skips it.
+- Until the prompt is answered, the hit or cast is held and nothing is applied. A prompt declines itself after the Campaign's **Reaction time (seconds)** (default 5, from 3 to 15), and at once if the player is marked away. The GM can also skip it.
 - You get one reaction per round. Dead, unconscious and incapacitated creatures are not offered one.
 - A Shield bonus applies to the attack that triggered it, so a hit can become a miss. Counterspell with a slot at least as high as the spell counters it; a lower slot needs an ability check from the Counterspell holder, and a failed check still spends the slot.
 - With auto-roll on you are still asked whether to react; only the dice are rolled for you.
@@ -98,7 +98,7 @@ When you roll you choose where the result goes: **Table** (everyone, the default
 
 ### Preparing and presenting Scenes
 
-- In **Live maps**, upload a map (JPEG, PNG or WebP, up to 25 MiB, 8192 pixels per side), name it, choose Square or Gridless, calibrate the grid on the map and set the cell size and unit (feet, metres or squares).
+- In **Live maps**, upload a map (JPEG, PNG or WebP, up to 25 MiB, 8192 pixels per side and 64 megapixels), name it, choose Square or Gridless, calibrate the grid with **Calibrate on map** and set the cell size and unit (Feet, Meters or Squares).
 - Only you can present a Scene. Choose it from **Present a scene**. Only you can add, change or remove tokens and walls, and edit fog.
 - **Show to players** is separate: it shows an image to players without presenting a Scene.
 - Wall types: wall, door, window and one-way block movement; terrain only slows it. Fog is optional per Scene (off, shared by the party, or per player). Tokens you mark hidden are not sent to players.
@@ -107,7 +107,7 @@ When you roll you choose where the result goes: **Table** (everyone, the default
 
 - Choose **Assisted** or **Manual** in the Campaign's table settings before you create the Encounter.
 - **Initiative**: you can roll or enter it for anyone. In Manual mode **Start encounter** stays disabled until every combatant has initiative. A player may roll or enter initiative once for a Character they control; a second attempt, or someone else's Character, is refused. Once the order is set, only you change it, including the tie-break order. Ties go to the higher Dexterity score; if equal, you choose the order. A Speed Factor initiative variant is also available.
-- **Turn controls**: Current turn, Previous turn, Next turn, Undo last action, Complete encounter.
+- **Turn controls**: Current turn, Previous turn, Next turn and **Players away** are in the turn order panel, on the tabletop and on the session page. **Undo last action** and **Complete encounter** are in the **Encounter actions** menu on the session page.
 - Non-Character creatures have a **Roll initiative** button and an Initiative number field.
 - **Opportunity attacks, legendary windows and Legendary Resistance** prompt the creature's controller, which for monsters is you.
 - **Skip decision**: cancels a paused action and treats declinable choices as declined. It is refused for decisions play cannot continue without (initiative, saves, Recharge, legendary dice, dice during a move).
@@ -115,7 +115,7 @@ When you roll you choose where the result goes: **Table** (everyone, the default
 
 ### Public and Private rolls
 
-- A **Public / Private** switch (**Roll visibility**) sits in the action drawer, the roll prompt and the GM roller. Your last choice is remembered on your profile; the default is Public.
+- A **Public / Private** switch (**Roll visibility**; labelled **Roll to** in the GM's manual roller) sits in the action drawer, the roll prompt and the GM roller. Your last choice is remembered on your profile; the default is Public.
 - It governs your manual rolls and the app's automatic rolls for monsters, including a monster's save against a player's spell. A hidden creature's roll is always Private. A player's own rolls always go to the table, whatever your switch says.
 - Find your private rolls in chat under **My rolls**, and the Encounter's enemy rolls under **Enemy rolls**.
 - Each private roll has two one-time reveal buttons: **Show roll** (posts the full roll to the table, marked "Revealed by GM") and **Show that I rolled** (tells the table you rolled, naming the creature if it was one). Each can be used once. A private roll made before the live table opened cannot be revealed until the session ends.
@@ -129,7 +129,7 @@ There are two separate undos, and only you can use them. Players cannot undo any
 - Restores the token's position and the fog from the latest unmatched move.
 - Refused if there is nothing to undo, the move settled Encounter mechanics (for example a successful climb), the move was part of an action (undo the action instead), the token changed since, or a movement decision is pending.
 
-**Undo last action** (Encounter turn menu)
+**Undo last action** (**Encounter actions** menu, session page)
 
 - Restores hit points, conditions, resources, effects, the action used and spell slots (including pact slots). It cannot be redone.
 - Works only if that action is the latest change in the Encounter.

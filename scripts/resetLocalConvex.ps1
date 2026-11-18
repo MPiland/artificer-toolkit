@@ -95,13 +95,14 @@ try {
   try {
     Invoke-LocalConvex -Arguments @('export', '--path', "$stem.before.zip") -LogPath "$stem.backup.log" -Label 'Local backup' -ExportPath "$stem.before.zip"
     $manifest.backupSha256 = (Get-FileHash -LiteralPath "$stem.before.zip" -Algorithm SHA256).Hash
-    $tables = @(Get-ResetTables -Snapshot "$stem.before.zip")
+    # PowerShell variable names are case-insensitive: a local named $tables would shadow the -Tables parameter.
+    $planned = @(Get-ResetTables -Snapshot "$stem.before.zip")
     if ($Tables) {
-      $tables = @($tables | Where-Object { $(if ($_.component) { "$($_.component)/$($_.table)" } else { $_.table }) -in $Tables })
+      $planned = @($planned | Where-Object { $(if ($_.component) { "$($_.component)/$($_.table)" } else { $_.table }) -in $Tables })
     }
-    $manifest.plannedTables = $tables
-    for ($index = 0; $index -lt $tables.Count; $index++) {
-      $entry = $tables[$index]
+    $manifest.plannedTables = $planned
+    for ($index = 0; $index -lt $planned.Count; $index++) {
+      $entry = $planned[$index]
       $arguments = @('import', '--replace', '--yes', '--table', $entry.table)
       if ($entry.component) { $arguments += @('--component', $entry.component) }
       $arguments += $emptyPath
@@ -110,12 +111,12 @@ try {
     }
     Invoke-LocalConvex -Arguments @('export', '--path', "$stem.after.zip") -LogPath "$stem.after.log" -Label 'Post-reset snapshot' -ExportPath "$stem.after.zip"
     $manifest.postResetSha256 = (Get-FileHash -LiteralPath "$stem.after.zip" -Algorithm SHA256).Hash
-    $cleared = @($tables | ForEach-Object { "$($_.component)/$($_.table)" })
+    $cleared = @($planned | ForEach-Object { "$($_.component)/$($_.table)" })
     $remaining = @(Get-ResetTables -Snapshot "$stem.after.zip" | Where-Object { "$($_.component)/$($_.table)" -in $cleared })
     if ($remaining.Count -gt 0) { throw "Post-reset snapshot retains $($remaining.Count) cleared tables." }
-    $manifest.clearedTableCount = $tables.Count
+    $manifest.clearedTableCount = $planned.Count
     $manifest.status = 'passed'
-    Write-Output "Reset $($tables.Count) nonempty local tables; backup at $stem.before.zip."
+    Write-Output "Reset $($planned.Count) nonempty local tables; backup at $stem.before.zip."
   } finally {
     Pop-Location
   }
