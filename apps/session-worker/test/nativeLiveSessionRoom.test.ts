@@ -2016,7 +2016,16 @@ it('recovers a native Scene commit whose acknowledgement was lost and retries wi
     )
   })
   let publishedSequence = 0
-  let publishedChecksum = 'a'.repeat(64)
+  // Convex still holds the checksum the room's activation committed.
+  let publishedChecksum = await runInDurableObject(
+    base.stub,
+    (_instance, context) =>
+      context.storage.sql
+        .exec<{ published_checksum: string }>(
+          'SELECT published_checksum FROM durable_session_authority WHERE id = 1'
+        )
+        .one().published_checksum
+  )
   const checkpoints: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
   await routeEncounterRequests(base, async (pathname, request) => {
     if (pathname === '/live-sessions/checkpoint') {

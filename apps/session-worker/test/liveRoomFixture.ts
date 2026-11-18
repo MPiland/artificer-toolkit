@@ -415,6 +415,7 @@ export async function fixture(
         const body = liveSessionActivationInputSchema.parse(await request.json())
         expect(body).toMatchObject({ campaignId, epoch: currentAuthorityEpoch })
         const now = new Date().toISOString()
+        persisted = { sequence: 0, checksum: body.stateChecksum }
         return Response.json({
           activationFingerprint,
           campaignId,
