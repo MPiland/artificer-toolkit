@@ -171,8 +171,8 @@ export function projectCampaignEntryMetadata(
 }
 
 /** Whether a room row carries text or a roll, not just hydrated metadata. */
-export function hasCampaignEntryContent(
-  entry: z.infer<typeof campaignRoomEntrySchema>
-): entry is z.infer<typeof campaignStoredEntrySchema> {
+export function hasCampaignEntryContent<Entry extends z.infer<typeof campaignRoomEntrySchema>>(
+  entry: Entry
+): entry is Extract<Entry, z.infer<typeof campaignStoredEntrySchema>> {
   return 'roll' in entry
 }
