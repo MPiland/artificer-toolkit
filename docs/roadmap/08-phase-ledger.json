@@ -24998,7 +24998,7 @@
               "origin": [
                 "User approval 2026-11-03 (D187 growth): a Sheet command hit the 1 s mutation limit in the m-batch Browser journeys run 41767872164; triage the intermittent CI failures before staging"
               ],
-              "note": "Closed 2026-11-04 by PERF-1.T6."
+              "note": "Closed 2026-11-04 by PERF-1.T6. Reopened 2026-11-18 (orchestrator resize): profile-browser refused its generated username in the m874 backstop run 44248294381. Closed again 2026-11-18 by PERF-1.T14 (m875)."
             },
             {
               "id": "PERF-1.6",
@@ -25242,6 +25242,20 @@
                 "after": []
               },
               "text": "useCampaignLiveSession shares one connection per Campaign per tab (reference-counted subscribers, released when the last panel unmounts) instead of one socket per caller; a regression test that fails today proves five panels on one Campaign open one socket; the area-browser journey opens Campaign chat on the encounter session page again."
+            },
+            {
+              "id": "PERF-1.T14",
+              "status": "DONE",
+              "closes": ["PERF-1.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 1,
+                "after": []
+              },
+              "text": "profile-browser saves its generated profile username in upper case (authenticatedSession.ts:220), but generateProfileUsername (apps/apis/tests/fixtures/generatedUsername.ts) validates only the mixed-case draw, and the policy splits parts at case changes, so the upper-case form can be refused (\"That username isn't allowed.\", run 44248294381). The fixture draws a name whose every form the journey saves passes validateUsernameOnServer, with a regression test that fails today on a recorded suffix.",
+              "proof": "m875 (aa022e7a9): Tests 44312451556, Live 44312451789, Browser journeys 44312451591 and profile-browser 44312461376 green; generatedUsername.test.ts skips suffix cac0d520f49e (allowed mixed case, refused upper case: a digit before a capital adds a part split)."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
