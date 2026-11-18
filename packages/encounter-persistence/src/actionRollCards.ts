@@ -68,7 +68,7 @@ export async function recordIncomingGateRollCards(
     response: ResolveRuleOccurrenceInputDto | null | undefined
     responderUserId: string
     initiatorUserId: string
-    visibility: Parameters<typeof recordRuleRollCard>[1]['visibility']
+    visibility: Parameters<typeof collectRuleRollCard>[2]['visibility']
     createdAt: string
   }
 ): Promise<void> {
@@ -136,7 +136,7 @@ export async function recordActionRollCards(
     source: EncounterRunActorState
     target: EncounterRunActorState
     initiatorUserId: string
-    visibility: Parameters<typeof recordRuleRollCard>[1]['visibility']
+    visibility: Parameters<typeof collectRuleRollCard>[2]['visibility']
     createdAt: string
     appCardedD20s: ReadonlySet<number>
   }
