@@ -141,10 +141,10 @@ function registerEffect<TableName extends TableNames>(
   triggers.register(tableName, trigger)
 }
 
-async function selectScopes(
+async function selectScopes<TableName extends TableNames>(
   ctx: TriggerContext,
-  selectors: readonly DocumentScopeSelector[],
-  documents: readonly (Doc<TableNames> | null)[]
+  selectors: readonly ScopeSelector<TableName>[],
+  documents: readonly (Doc<TableName> | null)[]
 ) {
   const scopes = new Map<string, SceneVisionScope>()
   for (const document of documents) {
@@ -161,11 +161,15 @@ function registerScope<TableName extends TableNames>(
   tableName: TableName,
   selectScope: ScopeSelector<TableName>
 ) {
-  const selector: DocumentScopeSelector = (ctx, document) =>
-    selectScope(ctx, document as Doc<TableName>)
+  // The registry is keyed by table name, so a table's selectors only ever see that table's documents.
+  const selector = selectScope as unknown as DocumentScopeSelector
   sceneVisionSelectors.set(tableName, [...(sceneVisionSelectors.get(tableName) ?? []), selector])
   triggers.register(tableName, async (ctx, change) => {
-    for (const scope of await selectScopes(ctx, [selector], [change.oldDoc, change.newDoc]))
+    for (const scope of await selectScopes<TableName>(
+      ctx,
+      [selectScope],
+      [change.oldDoc, change.newDoc]
+    ))
       await refreshScope(ctx.innerDb, scope)
   })
 }
