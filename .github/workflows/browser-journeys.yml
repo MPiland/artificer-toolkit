@@ -161,6 +161,23 @@ jobs:
             echo "- $proof: $result in $((SECONDS - started)) s$label" >> "$GITHUB_STEP_SUMMARY"
           done < <(jq -r '.[] | [.proof, .knownBug] | @tsv' <<< "$PROOFS")
           exit "$failed"
+      # D209: the V15 workload's Convex I/O per modelled session, read from the evidence in place so
+      # the script's mtime guard (evidence written inside the proof window) holds. The summary file
+      # is written before the script can fail, so a failing total still prints its figures.
+      - name: V15 session I/O against the budget
+        if: ${{ !cancelled() && contains(toJSON(matrix.proofs), 'v15-workload') }}
+        run: |
+          status=0
+          node scripts/v15Budgets.mjs v15-workload-ci | tee v15-budgets.out || status=$?
+          {
+            echo '### V15 session I/O'
+            echo '```'
+            cat v15-budgets.out
+            jq -r '.unitCosts | "Unit costs: START \(.fightSaves.start.convexIoBytes) B, post-START \(.fightSaves.postStart.convexIoBytes) B, COMPLETE \(.fightSaves.complete.convexIoBytes) B, combat \(.combat.convexIoBytes) B/command, out-of-combat \(.outOfCombatPerMinute.convexIoBytes) B/minute, token refresh \(.tokenRefresh.convexIoBytes) B x \(.tokenRefresh.refreshes) measured"' local-validation/local-convex-proofs/v15-workload-ci.v15-budgets.json || true
+            jq -r '"Lifecycle \(.convexPerSession.lifecycle.ioBytes) B; session total \(.sessionEstimate.estimate.convexIoBytes) B against \(.budgets.convexIoBytesPerSession) B"' local-validation/local-convex-proofs/v15-workload-ci.v15-budgets.json || true
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "$status"
       # The lifecycle's post-browser audit: no proof may leave the canonical SRD source changed.
       - name: Reaudit the SRD source after the proofs
         if: ${{ !cancelled() }}

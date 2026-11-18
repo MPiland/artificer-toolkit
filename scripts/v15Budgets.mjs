@@ -23,8 +23,15 @@ const SESSION_MODEL = {
   fights: 4,
   combatCommands: 2_000,
   outOfCombatMinutes: 120,
-  sessionHours: 5
+  sessionHours: 5,
+  // The GM and the 5 players of that table; each signed-in client refreshes its own token.
+  members: 6
 }
+// A client's Convex token lasts about 15 minutes (docs/architecture/live-sessions.md, ADR 0035
+// Decision 14: each socket re-authenticates every 15 minutes), and a real client refreshes it once
+// per lifetime, not per command. The driver refreshes on its own cadence, so its refreshes are
+// measured per refresh and charged at this one.
+export const TOKEN_LIFETIME_MINUTES = 15
 // Save points replace the interval (ADR 0035 Amendment 25): the room saves at a Run's START and
 // COMPLETE, so a fight costs one START save and one COMPLETE save, and nothing saves while it is
 // played. The driver measures each as its own window (a START per aggregate in its preparation, the
@@ -205,7 +212,7 @@ export function measuredWindows(executions, starts, failures) {
  * What reached Convex inside one window, and whether anything but tolerated traffic did. The window's
  * `calls` and `ioBytes` leave out background jobs, which `byClass` still lists.
  */
-function auditWindow({ name, executions }, strict, failures) {
+export function auditWindow({ name, executions }, strict, failures) {
   const { byFunction, byClass } = tally(executions)
   const untolerated = executions.filter(
     (execution) => !toleratedClasses.has(classOf(execution.identifier))
@@ -219,7 +226,11 @@ function auditWindow({ name, executions }, strict, failures) {
     failures.push(
       `${name}: ${failed.length} failed executions inside the window: ${[...new Set(failed.map((execution) => execution.identifier))].join(', ')}.`
     )
-  const play = executions.filter((execution) => classOf(execution.identifier) !== 'background')
+  // Sign-in token refreshes follow the driver's cadence, not the window's commands or minutes, so a
+  // window's cost leaves them out; the estimate charges them per member (`tokenRefreshCost`).
+  const play = executions.filter(
+    (execution) => !['background', 'authHttp'].includes(classOf(execution.identifier))
+  )
   return {
     name,
     calls: play.length,
@@ -227,6 +238,20 @@ function auditWindow({ name, executions }, strict, failures) {
     byClass,
     byFunction,
     unToleratedCalls: untolerated.length
+  }
+}
+
+/**
+ * The measured cost of one sign-in token refresh: the Better Auth route calls in the executions
+ * (each a refresh round trip) and the route plus adapter calls under them, averaged per route call.
+ */
+export function tokenRefreshCost(executions) {
+  const auth = executions.filter((execution) => classOf(execution.identifier) === 'authHttp')
+  const refreshes = auth.filter((execution) => /^(GET|POST) /.test(execution.identifier)).length
+  return {
+    refreshes,
+    convexCalls: refreshes === 0 ? 0 : auth.length / refreshes,
+    convexIoBytes: refreshes === 0 ? 0 : sum(auth, databaseIo) / refreshes
   }
 }
 
@@ -382,7 +407,7 @@ const assumption = (name) => {
  * A session estimate from the measured unit costs, for Convex I/O and calls:
  *
  *   lifecycle + fights * (START save + post-START saves + COMPLETE save) + commands * combat
- *     + minutes * out-of-combat
+ *     + minutes * out-of-combat + members * (hours * 60 / token lifetime) * token refresh
  *
  * where lifecycle is the measured bootstrap cost per session, each save is the measured checkpoint
  * ingestion of one Run's START, post-START gap or COMPLETE, and combat and out-of-combat are the
@@ -405,18 +430,21 @@ export function sessionEstimate(unitCosts, perSession, failures) {
       status: 'NOT_ASSESSED',
       reason: 'The native log holds no live session bootstrap.'
     }
-  const { combat, fightSaves, outOfCombatPerMinute } = unitCosts
+  const { combat, fightSaves, outOfCombatPerMinute, tokenRefresh } = unitCosts
+  const refreshes = (SESSION_MODEL.members * hours * 60) / TOKEN_LIFETIME_MINUTES
   const estimate = {
     convexCalls:
       perSession.lifecycle.calls +
       fights * fightSaves.convexCalls +
       commands * combat.convexCalls +
-      minutes * outOfCombatPerMinute.convexCalls,
+      minutes * outOfCombatPerMinute.convexCalls +
+      refreshes * tokenRefresh.convexCalls,
     convexIoBytes:
       perSession.lifecycle.ioBytes +
       fights * fightSaves.convexIoBytes +
       commands * combat.convexIoBytes +
-      minutes * outOfCombatPerMinute.convexIoBytes,
+      minutes * outOfCombatPerMinute.convexIoBytes +
+      refreshes * tokenRefresh.convexIoBytes,
     durableObjectRequests:
       commands * combat.requestsBilled + minutes * outOfCombatPerMinute.requestsBilled,
     durableObjectRowsRead: commands * combat.rowsRead + minutes * outOfCombatPerMinute.rowsRead,
@@ -566,6 +594,14 @@ export async function verifyV15Budgets(proofName) {
   const startSave = startAudit && starts > 0 ? costOfSave(startAudit, starts) : null
   const postStartSave = postStartAudit && starts > 0 ? costOfSave(postStartAudit, starts) : null
   const completeSave = saveAudit && completions > 0 ? costOfSave(saveAudit, completions) : null
+  // The refreshes the driver and browsers made while commands and minutes were measured.
+  const tokenRefresh = tokenRefreshCost(
+    (windows ?? [])
+      .filter(({ name }) => name === 'combat' || name === 'outOfCombat')
+      .flatMap(({ executions }) => executions)
+  )
+  if (windows && tokenRefresh.refreshes === 0)
+    failures.push('combat and outOfCombat: no sign-in token refresh reached Convex to price.')
   const unitCosts =
     startSave &&
     postStartSave &&
@@ -601,6 +637,7 @@ export async function verifyV15Budgets(proofName) {
             },
             outOfCombatMinutes
           ),
+          tokenRefresh,
           checkpointsByReason: Object.fromEntries(
             Object.keys({
               ...startMeter.checkpoints,
@@ -686,6 +723,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         `${name}: ${window.calls} Convex calls (${window.unToleratedCalls} outside checkpoints, authorization and sign-in)${meter}.`
       )
     }
+    const { unitCosts } = summary
+    if (unitCosts)
+      console.log(
+        `Unit costs: lifecycle ${Math.round(summary.convexPerSession.lifecycle.ioBytes)} B; START ${Math.round(unitCosts.fightSaves.start.convexIoBytes)} B; post-START ${Math.round(unitCosts.fightSaves.postStart.convexIoBytes)} B; COMPLETE ${Math.round(unitCosts.fightSaves.complete.convexIoBytes)} B; combat ${unitCosts.combat.convexIoBytes.toFixed(1)} B per command; out-of-combat ${unitCosts.outOfCombatPerMinute.convexIoBytes.toFixed(1)} B per minute; token refresh ${Math.round(unitCosts.tokenRefresh.convexIoBytes)} B each (${unitCosts.tokenRefresh.refreshes} measured).`
+      )
     console.log(
       `Session estimate: ${Math.round(summary.sessionEstimate.estimate?.convexIoBytes ?? 0)} B of Convex I/O against ${budgets.convexIoBytesPerSession} B.`
     )

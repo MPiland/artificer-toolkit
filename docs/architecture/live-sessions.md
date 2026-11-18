@@ -1096,7 +1096,14 @@ Chat checkpoints (`checkpoint:publishChat`, `POST /live-sessions/chat-checkpoint
 ingestion and land in the combat window, so they scale with commands. A COMPLETE save holds the Run's
 actors and Scene rows and the chat not yet pushed (bounded by the push window), so it does not scale
 with commands. The session estimate is `lifecycle + fights * (START save + post-START saves + COMPLETE
-save) + commands * combat + minutes * out-of-combat`; the close save is not measured. The
+save) + commands * combat + minutes * out-of-combat + members * (hours * 60 / 15) * token refresh`; the
+close save is not measured. A sign-in token refresh follows the driver's cadence, not commands or
+minutes, so the combat and out-of-combat unit costs leave Better Auth calls out. The script prices one
+refresh (the Better Auth route call and the adapter calls under it, averaged over those the combat and
+out-of-combat windows hold) and charges it once per member per 15-minute token lifetime
+(`TOKEN_LIFETIME_MINUTES`, D230; a socket's JWT lasts about 15 minutes, as stated under the socket
+admission rules above, and [ADR 0035](../adr/0035-room-authoritative-live-encounters.md) Decision 14
+has each socket re-authenticate every 15 minutes) over the session hours, for the model's 6 members (the GM and 5 players). The
 model (`SESSION_MODEL`) and its overrides (`V15_ESTIMATE_FIGHTS`, `V15_ESTIMATE_COMBAT_COMMANDS`,
 `V15_ESTIMATE_OOC_MINUTES`, `V15_ESTIMATE_SESSION_HOURS`) describe how a table plays and are not
 measured. The out-of-combat pace is likewise a user-set assumption (`V15_OOC_STEPS_PER_MINUTE`,

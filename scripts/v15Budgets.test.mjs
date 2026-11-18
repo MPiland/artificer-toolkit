@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { budgets, classOf, measuredWindows, sessionEstimate } from './v15Budgets.mjs'
+import {
+  auditWindow,
+  budgets,
+  classOf,
+  measuredWindows,
+  sessionEstimate,
+  tokenRefreshCost
+} from './v15Budgets.mjs'
 
 // The unit costs Browser journeys run 44311973758 measured for PERF-1.T7 (after PERF-1.T8 to T12).
 const measured = {
@@ -28,10 +35,17 @@ const measured = {
   },
   perSession: { lifecycle: { calls: 26.666_666_7, ioBytes: 277_959.333_3 } }
 }
+// That run priced token refreshes inside the per-command and per-minute costs above, so its unit
+// costs carry no separate refresh charge.
+const unpricedRefresh = { refreshes: 0, convexCalls: 0, convexIoBytes: 0 }
 
 const estimateOf = () => {
   const failures = []
-  const { estimate } = sessionEstimate(measured.unitCosts, measured.perSession, failures)
+  const { estimate } = sessionEstimate(
+    { ...measured.unitCosts, tokenRefresh: unpricedRefresh },
+    measured.perSession,
+    failures
+  )
   return { estimate, failures }
 }
 
@@ -111,6 +125,7 @@ describe('V15 session estimate (D209, D229)', () => {
     sessionEstimate(
       {
         ...measured.unitCosts,
+        tokenRefresh: unpricedRefresh,
         fightSaves: { convexCalls: 7, convexIoBytes: 100_000 }
       },
       measured.perSession,
@@ -136,5 +151,55 @@ describe('V15 session estimate (D209, D229)', () => {
     vi.stubEnv('V15_ESTIMATE_COMBAT_COMMANDS', '3000')
     const extra = estimateOf().estimate.convexIoBytes - base
     expect(extra).toBeCloseTo(1_000 * measured.unitCosts.combat.convexIoBytes, 0)
+  })
+})
+
+describe('V15 sign-in token refresh charge (D230)', () => {
+  const refresh = { refreshes: 10, convexCalls: 3, convexIoBytes: 5_000 }
+  const estimateWith = (tokenRefresh) =>
+    sessionEstimate({ ...measured.unitCosts, tokenRefresh }, measured.perSession, []).estimate
+
+  it('charges every member one refresh per 15-minute token lifetime over the session hours', () => {
+    const extra = estimateWith(refresh).convexIoBytes - estimateWith(unpricedRefresh).convexIoBytes
+    // 6 members x (5 hours x 60 / 15 minutes) = 120 refreshes.
+    expect(extra).toBe(120 * 5_000)
+    expect(estimateWith(refresh).convexCalls - estimateWith(unpricedRefresh).convexCalls).toBe(
+      120 * 3
+    )
+  })
+
+  it('follows the session hours, not the commands or minutes', () => {
+    const base = estimateWith(refresh).convexIoBytes
+    vi.stubEnv('V15_ESTIMATE_COMBAT_COMMANDS', '3000')
+    const withCommands = estimateWith(refresh).convexIoBytes - base
+    expect(withCommands).toBeCloseTo(1_000 * measured.unitCosts.combat.convexIoBytes, 0)
+    vi.stubEnv('V15_ESTIMATE_COMBAT_COMMANDS', '')
+    vi.stubEnv('V15_ESTIMATE_SESSION_HOURS', '4')
+    // 6 x (4 x 60 / 15) = 96 refreshes.
+    expect(estimateWith(refresh).convexIoBytes - base).toBe(-24 * 5_000)
+  })
+
+  const execution = (identifier, bytes) => ({
+    identifier,
+    error: null,
+    usageStats: { databaseIoReadBytes: bytes, databaseIoWriteBytes: 0 }
+  })
+  const log = [
+    execution('GET /api/auth/convex/token', 100),
+    execution('adapter:findOne', 400),
+    execution('GET /api/auth/convex/token', 100),
+    execution('adapter:findOne', 200),
+    execution('liveSessions/checkpoint:publishChat', 9_000),
+    execution('campaigns/deletionJobs:watchdog', 7_000)
+  ]
+
+  it('prices a refresh as the route call plus the adapter calls under it', () => {
+    expect(tokenRefreshCost(log)).toEqual({ refreshes: 2, convexCalls: 2, convexIoBytes: 400 })
+  })
+
+  it('leaves refreshes and background jobs out of a window cost', () => {
+    const audit = auditWindow({ name: 'combat', executions: log }, true, [])
+    expect(audit.calls).toBe(1)
+    expect(audit.ioBytes).toBe(9_000)
   })
 })
