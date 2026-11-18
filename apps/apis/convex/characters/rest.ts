@@ -19,16 +19,21 @@ import { activeEffectEndsOnRest } from '@artificer-toolkit/rules-runtime/charact
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { characterHitPointMaximumFraction } from '@artificer-toolkit/rules-runtime/conditionHitPointMaximum'
 import { readDefinitionRoot } from '../content/definitionStore'
-import type { QueryCtx } from '../_generated/server'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
 import { assertConvexOwnsCharacterPlay } from '../liveSessions/authorityGuard'
 
 /**
- * Reads a hit-die roll's one stored record by id. Campaign rests settle only from rolls the GM can
- * see: the caller's TABLE or To GM chat entry, or the GM's own retained roll once revealed. A personal
- * Character outside a Campaign settles from the caller's retained history.
+ * Reads a hit-die roll's one stored record by id, with the step that spends it. Campaign rests
+ * settle only from rolls the GM can see: the caller's TABLE or To GM chat entry, or the GM's own
+ * retained roll once revealed. A personal Character outside a Campaign settles from the caller's
+ * retained history.
+ *
+ * A chat entry is found by the caller's nonce for it, which a Sheet roll's entry sets to the roll's
+ * id, so the lookup needs no index of its own. A roll inside a card the rules post for an action
+ * (its nonce is not a roll id) is never rest evidence.
  */
 async function readRestRoll(
   ctx: QueryCtx,
@@ -47,15 +52,32 @@ async function readRestRoll(
       throw new CharacterSheetCommandError(
         'Campaign rest rolls must be retained for this Campaign; roll again within it.'
       )
-    return { stored: retained, record: rollRecordDtoSchema.parse(retained) }
+    return {
+      record: rollRecordDtoSchema.parse(retained),
+      consumedAt: retained.consumedAt,
+      spend: (mutation: MutationCtx, at: string) =>
+        mutation.db.patch(retained._id, { consumedAt: at })
+    }
   }
   if (campaignId === null) return null
   const entry = await ctx.db
     .query('campaignConversationEntries')
-    .withIndex('by_rollId', (q) => q.eq('roll.id', rollId))
+    .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
+      q.eq('campaignId', campaignId).eq('authorUserId', userId).eq('clientNonce', rollId)
+    )
     .unique()
-  if (!entry?.roll || entry.campaignId !== campaignId || entry.authorUserId !== userId) return null
-  return { stored: entry, record: entry.roll }
+  const stored = entry?.rolls.find(({ roll }) => roll.id === rollId)
+  if (!entry || !stored) return null
+  return {
+    record: stored.roll,
+    consumedAt: stored.consumedAt,
+    spend: (mutation: MutationCtx, at: string) =>
+      mutation.db.patch(entry._id, {
+        rolls: entry.rolls.map((candidate) =>
+          candidate === stored ? { ...candidate, consumedAt: at } : candidate
+        )
+      })
+  }
 }
 
 /** Shared preparation for the read-only preview and the completing mutation's current read set. */
@@ -82,7 +104,7 @@ export async function prepareCharacterRest(
     characterId: current.active.id,
     rollId: input.rollId,
     evidence: input.rollEvidence,
-    roll: roll && roll.stored.consumedAt === null ? roll.record : null
+    roll: roll && roll.consumedAt === null ? roll.record : null
   })
   const maximumModifier = input.resetMaximumHitPointModifier
     ? current.sheetState.adjustments.find(
@@ -144,7 +166,7 @@ export async function prepareCharacterRest(
     resetMaximumModifierId: preview.hitPoints.canResetMaximumHitPointModifier
       ? maximumModifier?.id
       : undefined,
-    roll: roll?.stored ?? null
+    roll
   }
 }
 

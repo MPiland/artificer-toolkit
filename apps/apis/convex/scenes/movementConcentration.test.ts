@@ -830,7 +830,7 @@ it('ends Concentration without a check when a movement reaction defeats the hold
     room: 'TABLE',
     limit: 100
   })
-  expect(chat.entries.map((entry) => entry.roll?.source.label ?? entry.body)).toEqual(
+  expect(chat.entries.map((entry) => entry.rolls[0]?.roll.source.label ?? entry.body)).toEqual(
     expect.arrayContaining([
       'Bite',
       'Bite: Piercing damage',

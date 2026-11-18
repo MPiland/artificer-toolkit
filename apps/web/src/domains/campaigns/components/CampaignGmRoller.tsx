@@ -57,8 +57,9 @@ export function CampaignGmRoller({
         clientNonce: crypto.randomUUID(),
         roll
       })
-      if (!entry.roll) throw new Error('The table roll did not return roll evidence.')
-      return entry.roll
+      const [posted] = entry.rolls
+      if (!posted) throw new Error('The table roll did not return roll evidence.')
+      return posted.roll
     },
     onSuccess: setRoll
   })

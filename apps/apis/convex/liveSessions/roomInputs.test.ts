@@ -681,14 +681,12 @@ describe('raw room chat metadata inputs', () => {
             kind: roll ? 'ROLL' : 'CHAT',
             mode: roll ? null : 'OOC',
             body: roll ? null : `Private historical body ${index}`,
-            roll,
-            revealedByGm: false,
+            rolls: roll ? [{ roll, revealedByGm: false, consumedAt: null }] : [],
             authorUsername: 'Room metadata author',
             characterId: null,
             characterLabel: null,
             editedAt: null,
-            unsentAt: null,
-            consumedAt: null
+            unsentAt: null
           })
           await insertConversationEntry(ctx, entry)
           if (campaignId === base.campaign.id && index === 0) rollEntryId = id

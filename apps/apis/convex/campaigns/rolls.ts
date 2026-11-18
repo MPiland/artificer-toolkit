@@ -175,7 +175,11 @@ export const execute = mutation({
       userId,
       username: actor.username,
       clientNonce,
-      content: { kind: 'ROLL', roll: record, revealedByGm: false }
+      // The nonce is the roll's id, so a rest finds the entry by it (see readRestRoll).
+      content: {
+        kind: 'ROLL',
+        rolls: [{ roll: { ...record, id: clientNonce }, revealedByGm: false }]
+      }
     })
   }
 })
@@ -276,7 +280,10 @@ export const reveal = mutation({
       input.mode === 'FULL' ? 'ROLL' : 'ROLL_NOTICE'
     )
     if (replay) {
-      if (input.mode === 'FULL' && (!replay.revealedByGm || replay.roll?.id !== retained.id))
+      if (
+        input.mode === 'FULL' &&
+        !replay.rolls.some((entry) => entry.revealedByGm && entry.roll.id === retained.id)
+      )
         throw new Error('Chat nonce was used with a different roll.')
       return presentChatEntry(ctx, replay, access.conversation, authority.campaign.contentMaturity)
     }
@@ -291,7 +298,10 @@ export const reveal = mutation({
       clientNonce: nonce,
       content:
         input.mode === 'FULL'
-          ? { kind: 'ROLL', roll: rollRecordDtoSchema.parse(retained), revealedByGm: true }
+          ? {
+              kind: 'ROLL',
+              rolls: [{ roll: rollRecordDtoSchema.parse(retained), revealedByGm: true }]
+            }
           : {
               kind: 'ROLL_NOTICE',
               creatureLabel: await readRollNoticeCreatureLabel(

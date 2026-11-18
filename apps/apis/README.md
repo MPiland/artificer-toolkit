@@ -235,8 +235,9 @@ rolls require an existing valid assigned player Character.
 `campaigns/characterSheet:executeRoll` handles assigned-Character private rolls for the current player
 or explicitly scoped GM. It shares the evaluator and caller-only history and never opens a room.
 Archived generation rejects. Campaign rest completion refuses these "Just me" rolls: HIT_DIE
-evidence must be GM-visible, so it settles from the caller's TABLE or To GM chat payload (by the
-`roll.id` payload index) or the GM's retained Private roll, and marks that record `consumedAt`.
+evidence must be GM-visible, so it settles from the caller's TABLE or To GM chat entry (found by its nonce, which is the
+roll id, then by the roll inside the entry's `rolls` list) or the GM's retained Private roll, and marks that
+roll `consumedAt`.
 The shared native evaluator/history/retention helpers replace no privacy boundary; personal `rolls`
 remains owner-only. Campaign browser rollers use these native endpoints; Encounter integration and
 remaining acceptance stay with their owning cases. See

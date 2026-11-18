@@ -1005,7 +1005,7 @@ async function initiativeOrder(room: ActionRoom) {
     cards: stored.entries
       .filter(hasCampaignEntryContent)
       .flatMap((entry) =>
-        entry.kind === 'ROLL' && entry.roll?.source.kind === 'INITIATIVE' ? [entry.roll] : []
+        entry.rolls.flatMap(({ roll }) => (roll.source.kind === 'INITIATIVE' ? [roll] : []))
       )
   }
 }

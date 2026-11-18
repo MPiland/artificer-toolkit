@@ -1099,9 +1099,8 @@ it('retains a GM private roll in the room for the GM alone and posts each reveal
   expect(notice.delta.entry).toMatchObject({
     room: 'TABLE',
     kind: 'ROLL_NOTICE',
-    roll: null,
-    body: null,
-    revealedByGm: false
+    rolls: [],
+    body: null
   })
   for (const member of [room.owner, room.stranger])
     await vi.waitFor(() => expect(repliesTo(member, noticeId)).toEqual([notice]))
@@ -1120,8 +1119,7 @@ it('retains a GM private roll in the room for the GM alone and posts each reveal
   expect(full.delta.entry).toMatchObject({
     room: 'TABLE',
     kind: 'ROLL',
-    revealedByGm: true,
-    roll: { id: rollId }
+    rolls: [{ revealedByGm: true, roll: { id: rollId } }]
   })
   await vi.waitFor(() => expect(repliesTo(room.owner, fullId)).toEqual([full]))
   const afterReveals = await spendOf()

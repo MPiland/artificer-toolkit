@@ -39,14 +39,12 @@ export async function postRulesChatMessage(
       kind: 'CHAT',
       mode: 'OOC',
       body: input.body,
-      roll: null,
-      revealedByGm: false,
+      rolls: [],
       authorUsername: ruleCheckAuthorLabel,
       characterId: null,
       characterLabel: null,
       editedAt: null,
-      unsentAt: null,
-      consumedAt: null
+      unsentAt: null
     })
   )
   const [entry] = presentChatEntries([stored], conversation, campaign.contentMaturity, [

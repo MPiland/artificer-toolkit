@@ -401,10 +401,10 @@ export async function applyCheckpointRecords(
       // Only an edit, an unsend, a GM reveal or a rest settlement may change an entry; every other
       // field is the message-time snapshot or the roll's retry evidence.
       const immutableFields = (entry: typeof previous) => {
-        const { body, editedAt, unsentAt, revealedByGm, consumedAt, ...retained } = entry
-        return entry.kind === 'CHAT'
-          ? { ...retained, revealedByGm, consumedAt }
-          : { ...retained, body, editedAt, unsentAt }
+        const { body, editedAt, unsentAt, rolls, ...retained } = entry
+        // Each roll's record is evidence; its GM reveal and rest consumption may change.
+        const evidence = { ...retained, rolls: rolls.map(({ roll }) => roll) }
+        return entry.kind === 'CHAT' ? evidence : { ...evidence, body, editedAt, unsentAt }
       }
       if (
         checksumCanonicalJson(immutableFields(previous)) !==

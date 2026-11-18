@@ -1431,9 +1431,13 @@ Session notes; new notes are `PRIVATE`. There is no GM-only notebook gate any mo
 
 `campaignConversations` (TABLE, PARTY, DIRECT), `campaignConversationMembers` (access epoch, monotonic
 `lastReadAt`), `campaignConversationEntries` (one document per entry: identity, time, `kind`, text or roll, identity snapshots,
-`clientNonce` and `consumedAt`; PERF-1.T9 merged the former header and payload so a send bills one document and
-three indexes: `by_publicId`, `by_conversationId_createdAt_id`, `by_campaignId_authorUserId_clientNonce`, plus
-`by_rollId` for rest settlement). Entries are built by `buildConversationEntry` and inserted by
+`clientNonce`; PERF-1.T9 merged the former header and payload so a send bills one document and
+three indexes: `by_publicId`, `by_conversationId_createdAt_id`, `by_campaignId_authorUserId_clientNonce`).
+A ROLL entry carries a non-empty `rolls` list (PERF-1.T11); `revealedByGm` and `consumedAt` are per roll inside it,
+and CHAT and ROLL_NOTICE entries carry an empty list. Array elements cannot be indexed, so the former `by_rollId`
+index is gone: a roll the caller posts uses its roll id as the entry's `clientNonce`, and rest finds it through
+the nonce index and then the roll inside the list. Development data written in the old shape is refreshed when
+next used (D196). Entries are built by `buildConversationEntry` and inserted by
 `insertConversationEntry` (`packages/encounter-persistence/src/`), used by Convex and the room. `conversations:open`
 is an explicit mutation; queries only read existing rooms. History is unbounded and paged (D69): `chat:list`
 reads one page through `by_conversationId_createdAt_id` (newest first, UUID cursor) and hydrates only that page.
@@ -1456,7 +1460,8 @@ Public rolls enter the TABLE (or a GM-to-player DIRECT) conversation only. Priva
 `userRollHistory` (indexed `by_userId_createdAt_id`), trimmed to the caller's latest 20 on write
 (`rollDocuments.ts`); Character-bound private rolls store `gmCampaignRoll` data. `consumedAt` marks hit-die
 evidence consumed by a rest. Scoped rest preview and completion read the caller's exact unconsumed HIT_DIE record
-from its one stored place (the TABLE or To-GM payload by `roll.id`, or the GM's retained roll). The GM can reveal
+from its one stored place (the roll inside the entry whose nonce is that `roll.id`, or the GM's retained roll).
+A roll inside a rules-posted card is never rest evidence. The GM can reveal
 a retained roll once (FULL or NOTICE). Private GM calls carry no nonce.
 
 ### Announcements

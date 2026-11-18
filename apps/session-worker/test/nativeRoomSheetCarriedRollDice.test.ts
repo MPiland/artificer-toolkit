@@ -106,11 +106,11 @@ async function playerCarrying(spell: typeof guidance | typeof glibness) {
       if (
         reply?.type !== 'COMMAND_COMMITTED' ||
         reply.delta?.scope !== 'CAMPAIGN_CHAT' ||
-        !reply.delta.entry?.roll
+        !reply.delta.entry?.rolls[0]
       )
         throw new Error(JSON.stringify(reply ?? null))
       sequence = reply.sequence
-      return reply.delta.entry.roll
+      return reply.delta.entry.rolls[0].roll
     })
   }
   return { abilityCheck }

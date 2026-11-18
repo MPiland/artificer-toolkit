@@ -245,7 +245,7 @@ export async function executeRoomCampaignChatCommand(input: {
       access,
       mode === 'FULL' ? retained.record.id : rollNoticeNonce(retained.record.id),
       mode === 'FULL'
-        ? { kind: 'ROLL', roll: retained.record, revealedByGm: true }
+        ? { kind: 'ROLL', rolls: [{ roll: retained.record, revealedByGm: true }] }
         : {
             kind: 'ROLL_NOTICE',
             creatureLabel: await readRollNoticeCreatureLabel(ctx, gmCampaignRoll.creature)
@@ -318,11 +318,9 @@ export async function executeRoomCampaignChatCommand(input: {
         character: character && { id: character.id, label: character.label }
       }
     }
-    return {
-      kind: 'ROLL' as const,
-      revealedByGm: false,
-      roll: await rollRecord(command.input.roll)
-    }
+    // The nonce is the roll's id, so a rest finds the entry by it.
+    const roll = { ...(await rollRecord(command.input.roll)), id: clientNonce }
+    return { kind: 'ROLL' as const, rolls: [{ roll, revealedByGm: false }] as const }
   })()
 
   const entry = await postEntry(access, clientNonce, content)

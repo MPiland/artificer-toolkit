@@ -592,7 +592,7 @@ export async function executeCharacterSheetCommand(
     canonicalizeRuleDocument(initial.sheetState)
   const streamVersion = initial.active.play.streamVersion + 1
   // One rest spends its roll once, wherever the roll is stored.
-  if (rest?.roll) await ctx.db.patch(rest.roll._id, { consumedAt: occurredAt })
+  if (rest?.roll) await rest.roll.spend(ctx, occurredAt)
 
   if (command.type === 'END_ACTIVE_EFFECT')
     await endCharacterActiveEffect(

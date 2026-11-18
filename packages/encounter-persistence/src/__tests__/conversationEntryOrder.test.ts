@@ -19,14 +19,12 @@ function entry(id: string, conversationIdOfEntry = conversationId) {
     kind: 'CHAT',
     mode: 'OOC',
     body: id,
-    roll: null,
-    revealedByGm: false,
+    rolls: [],
     authorUsername: 'tester',
     characterId: null,
     characterLabel: null,
     editedAt: null,
-    unsentAt: null,
-    consumedAt: null
+    unsentAt: null
   })
 }
 

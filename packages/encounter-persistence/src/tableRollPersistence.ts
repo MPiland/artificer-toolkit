@@ -36,8 +36,8 @@ export async function insertPreEvaluatedCampaignTableRoll(
   const prior = await readConversationEntryReplay(ctx, access, userId, normalizedNonce, 'ROLL')
   if (prior) {
     if (
-      prior.roll === null ||
-      checksumCanonicalJson(prior.roll) !== checksumCanonicalJson(roll) ||
+      prior.rolls.length !== 1 ||
+      checksumCanonicalJson(prior.rolls[0]!.roll) !== checksumCanonicalJson(roll) ||
       prior.authorUsername !== username ||
       prior.characterId !== null ||
       prior.characterLabel !== roll.characterLabel ||
@@ -63,14 +63,12 @@ export async function insertPreEvaluatedCampaignTableRoll(
       kind: 'ROLL',
       mode: null,
       body: null,
-      roll,
-      revealedByGm: false,
+      rolls: [{ roll, revealedByGm: false, consumedAt: null }],
       authorUsername: username,
       characterId: null,
       characterLabel: roll.characterLabel,
       editedAt: null,
-      unsentAt: null,
-      consumedAt: null
+      unsentAt: null
     })
   )
   return callbacks.presentChatEntry(stored, conversation, authority.campaign.contentMaturity)

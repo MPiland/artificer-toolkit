@@ -83,14 +83,12 @@ export async function recordConcentrationCheckRoll(
       kind: 'ROLL',
       mode: null,
       body: null,
-      roll,
-      revealedByGm: false,
+      rolls: [{ roll, revealedByGm: false, consumedAt: null }],
       authorUsername: ruleCheckAuthorLabel,
       characterId: null,
       characterLabel: roll.characterLabel,
       editedAt: null,
-      unsentAt: null,
-      consumedAt: null
+      unsentAt: null
     })
   )
   const [entry] = presentChatEntries([stored], conversation, campaign.contentMaturity, [

@@ -774,7 +774,7 @@ describe('GM-visible Campaign rest rolls', () => {
       clientNonce: crypto.randomUUID(),
       roll: hitDie
     })
-    const rolled = entry.roll!
+    const rolled = entry.rolls[0]!.roll
     const completed = await completeRest(player, scope, rolled, modifier)
     expect(completed.result).toMatchObject({
       type: 'COMPLETE_REST',
@@ -786,10 +786,44 @@ describe('GM-visible Campaign rest rolls', () => {
         .withIndex('by_publicId', (q) => q.eq('id', entry.id))
         .unique()
     )
-    expect(stored?.consumedAt).toBe(completed.historyEntry!.occurredAt)
+    expect(stored?.rolls.map(({ consumedAt }) => consumedAt)).toEqual([
+      completed.historyEntry!.occurredAt
+    ])
     await expect(
       player.caller.query(preview, { ...scope, input: rest(rolled, modifier, 3) })
     ).rejects.toThrow('authoritative roll')
+  })
+
+  it('settles a rest from the roll inside a multi-roll entry and consumes only that roll', async () => {
+    const { t, player, scope, hitDie, modifier } = await setupRest()
+    const entry = await player.caller.mutation(executeCampaignRoll, {
+      campaignId: scope.campaignId,
+      destination: 'TABLE',
+      clientNonce: crypto.randomUUID(),
+      roll: hitDie
+    })
+    const rolled = entry.rolls[0]!.roll
+    const sibling = { ...rolled, id: crypto.randomUUID() }
+    await t.run(async (ctx) => {
+      const stored = await ctx.db
+        .query('campaignConversationEntries')
+        .withIndex('by_publicId', (q) => q.eq('id', entry.id))
+        .unique()
+      await ctx.db.patch(stored!._id, {
+        rolls: [{ roll: sibling, revealedByGm: false, consumedAt: null }, ...stored!.rolls]
+      })
+    })
+    const completed = await completeRest(player, scope, rolled, modifier)
+    const stored = await t.run((ctx) =>
+      ctx.db
+        .query('campaignConversationEntries')
+        .withIndex('by_publicId', (q) => q.eq('id', entry.id))
+        .unique()
+    )
+    expect(stored?.rolls.map(({ roll, consumedAt }) => [roll.id, consumedAt])).toEqual([
+      [sibling.id, null],
+      [rolled.id, completed.historyEntry!.occurredAt]
+    ])
   })
 
   it('completes a short rest from a To GM hit-die roll that only the player and GM can read', async () => {
@@ -803,7 +837,7 @@ describe('GM-visible Campaign rest rolls', () => {
       roll: hitDie
     })
     expect(entry.room).toBe('DIRECT')
-    const completed = await completeRest(player, scope, entry.roll!, modifier)
+    const completed = await completeRest(player, scope, entry.rolls[0]!.roll, modifier)
     expect(completed.result?.type).toBe('COMPLETE_REST')
     const direct = { campaignId: campaign.id, room: 'DIRECT' as const }
     expect(

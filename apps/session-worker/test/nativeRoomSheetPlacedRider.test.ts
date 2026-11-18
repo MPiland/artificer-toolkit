@@ -156,7 +156,7 @@ describe("a die the Character adds to all its damage on the room's Sheet roll (S
         !reply.delta.entry
       )
         throw new Error(JSON.stringify(reply ?? null))
-      return reply.delta.entry.roll
+      return reply.delta.entry.rolls[0]?.roll
     })
     expect(roll?.normalizedExpression).toMatch(/\+ 1d4$/)
   })

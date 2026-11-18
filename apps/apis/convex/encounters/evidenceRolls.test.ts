@@ -246,7 +246,7 @@ describe('Action roll cards (Q14, D83)', () => {
     await checkpointLiveRoom(base.campaign.id)
     return base.t.run(async (ctx) => ({
       table: (await ctx.db.query('campaignConversationEntries').collect()).flatMap((entry) =>
-        entry.roll && wanted(entry.roll) ? [entry.roll] : []
+        entry.rolls.flatMap(({ roll }) => (wanted(roll) ? [roll] : []))
       ),
       gm: (
         await ctx.db
@@ -278,7 +278,7 @@ describe('Action roll cards (Q14, D83)', () => {
       // `rollCards` just checkpointed, so these rows are current.
       const entries = await ctx.db.query('campaignConversationEntries').collect()
       return entries
-        .filter((entry) => entry.roll?.source.kind === 'SAVING_THROW')
+        .filter((entry) => entry.rolls.some(({ roll }) => roll.source.kind === 'SAVING_THROW'))
         .map((entry) => entry.authorUserId)
     })
     expect(saveAuthors).toEqual([base.owner.userId])
@@ -458,7 +458,7 @@ describe('Roll cards of a hidden creature a player controls (ATTACK-17.5)', () =
     await checkpointLiveRoom(base.campaign.id)
     return base.t.run(async (ctx) =>
       (await ctx.db.query('campaignConversationEntries').collect()).flatMap((entry) =>
-        entry.roll ? [entry.roll] : []
+        entry.rolls.map(({ roll }) => roll)
       )
     )
   }
