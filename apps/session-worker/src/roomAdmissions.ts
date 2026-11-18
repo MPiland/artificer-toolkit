@@ -8,14 +8,15 @@ import { verifiedAccessTokenSubject } from './accessTokenSubject.js'
 import type { RoomCommandHost } from './roomCommandHost.js'
 import type { RoomMeter } from './roomMeter.js'
 import type { RoomStorageAuthority } from './roomStorageAuthority.js'
+import { activeRunHeld } from './roomOutbox.js'
 
 /** The room steps socket admission uses. */
 export type RoomAdmissionsPort = Pick<
   RoomCommandHost,
-  'authorization' | 'cache' | 'env' | 'flushOutbox' | 'presentationChanging' | 'setCache'
+  'authorization' | 'cache' | 'env' | 'flushOutbox' | 'presentationChanging' | 'setCache' | 'store'
 > & {
   readonly meter: RoomMeter
-  readonly authority: Pick<RoomStorageAuthority, 'ensure' | 'recoverIfNeeded'>
+  readonly authority: Pick<RoomStorageAuthority, 'activating' | 'ensure' | 'recoverIfNeeded'>
   cacheGeneration(): number
   ensureSceneCache(value: SocketAttachment): Promise<void>
   refreshAuthorization(): Promise<LiveSessionRoomAuthorization>
@@ -147,7 +148,15 @@ export class RoomAdmissions {
       // Warm admission (Amendment 18): an already-admitted socket's fresh token is proven locally
       // against the Convex site keys and its membership comes from the room's current lease, so it
       // costs no flush, capture or authorization read. Anything unproven takes the cold path below.
-      if (value.membershipEpoch !== null) {
+      // A new socket joins the same way while the room holds an ACTIVE Run (Amendment 34): its ticket
+      // proved membership when Convex issued it, the lease proves it still holds (one read when the
+      // lease lapsed), and the room sends the Scene and state it holds.
+      const joinsHeldRun =
+        value.membershipEpoch === null &&
+        this.port.authority.activating() !== null &&
+        this.port.cache() !== null &&
+        activeRunHeld(this.port.store)
+      if (value.membershipEpoch !== null || joinsHeldRun) {
         const subject = await verifiedAccessTokenSubject(
           accessToken,
           this.port.env.CONVEX_SITE_URL,
@@ -167,16 +176,31 @@ export class RoomAdmissions {
           if (generation !== this.#generations.get(socket)) return
           cacheGeneration = this.port.cacheGeneration()
         }
-        const authorization =
+        let authorization =
           subject === null ? null : this.port.authorization.current(value.authorityEpoch)
-        if (
-          authorization &&
-          admitsRoomMember(authorization, {
-            membershipEpoch: value.membershipEpoch,
-            role: value.role,
-            userId: value.userId
-          })
-        ) {
+        if (!authorization && joinsHeldRun && subject !== null) {
+          authorization = await this.port.refreshAuthorization()
+          if (generation !== this.#generations.get(socket)) return
+        }
+        const member = authorization?.campaign.members.find(
+          (candidate) =>
+            candidate.userId === value.userId &&
+            candidate.role === value.role &&
+            (value.membershipEpoch === null || candidate.membershipEpoch === value.membershipEpoch)
+        )
+        if (authorization && !member && joinsHeldRun) {
+          this.#closeIfCurrent(socket, generation, 'Live-session membership changed.')
+          return
+        }
+        if (member) {
+          if (joinsHeldRun)
+            await this.port.authority.ensure(
+              value,
+              accessToken,
+              member.role,
+              member.userId,
+              this.port.cache()?.scene?.id ?? null
+            )
           await this.port.ensureSceneCache(value)
           if (
             !this.port.cache() ||
@@ -184,14 +208,17 @@ export class RoomAdmissions {
             cacheGeneration !== this.port.cacheGeneration()
           )
             this.challenge(socket, generation)
-          else
-            await this.#admit(socket, value, {
+          else if (
+            (await this.#admit(socket, value, {
               deadline,
               generation,
-              membershipEpoch: value.membershipEpoch,
-              role: value.role,
-              userId: value.userId
-            })
+              membershipEpoch: member.membershipEpoch,
+              role: member.role,
+              userId: member.userId
+            })) &&
+            joinsHeldRun
+          )
+            this.port.publishInBackground()
           return
         }
       }

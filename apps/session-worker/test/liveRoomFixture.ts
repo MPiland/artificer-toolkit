@@ -13,6 +13,7 @@ import {
   liveSessionBootstrapInputSchema,
   liveSessionDrainReleaseInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
+import { liveSessionChatCheckpointInputSchema } from '@artificer-toolkit/schema/api/liveSessionChatCheckpoint'
 import { liveSessionCheckpointRequestSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import {
@@ -72,7 +73,10 @@ export function signVerifiedAccessToken(input: {
 }
 
 export function checkpointResponse(
-  body: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>
+  body: Pick<
+    ReturnType<typeof liveSessionCheckpointRequestSchema.parse>,
+    'campaignId' | 'epoch' | 'sequence' | 'checksum'
+  >
 ) {
   const now = new Date().toISOString()
   return {
@@ -335,6 +339,19 @@ export async function fixture(
         persisted = { sequence: body.sequence, checksum: body.checksum }
         return Response.json(checkpointResponse(body))
       }
+      if (pathname === '/live-sessions/chat-checkpoint') {
+        const body = liveSessionChatCheckpointInputSchema.parse(await request.json())
+        expect(body).toMatchObject({ campaignId })
+        // A chat save moves no fence: Convex keeps the head the last full checkpoint left.
+        return Response.json(
+          checkpointResponse({
+            campaignId: body.campaignId,
+            epoch: body.epoch,
+            sequence: persisted.sequence,
+            checksum: persisted.checksum
+          })
+        )
+      }
       if (pathname === ROOM_AUTHORIZATION_PATH) {
         expect(request.headers.get('authorization')).toBeNull()
         expect(await request.json()).toMatchObject({ campaignId })
@@ -398,6 +415,7 @@ export async function fixture(
         const body = liveSessionActivationInputSchema.parse(await request.json())
         expect(body).toMatchObject({ campaignId, epoch: currentAuthorityEpoch })
         const now = new Date().toISOString()
+        persisted = { sequence: 0, checksum: body.stateChecksum }
         return Response.json({
           activationFingerprint,
           campaignId,

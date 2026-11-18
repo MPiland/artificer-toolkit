@@ -15,6 +15,11 @@ export type RoomOutboxPort = Pick<
   | 'waitUntil'
 >
 
+/** Whether the room holds a Run that is still ACTIVE. */
+export function activeRunHeld(store: Pick<RoomOutboxPort['store'], 'documents'>): boolean {
+  return store.documents('encounterRuns').some((run) => run.status === 'ACTIVE')
+}
+
 /**
  * The room's publication of committed commands to Convex: one flush runs at a time, a checkpoint
  * fence waits for it, and a full chat backlog saves in the background.
@@ -108,13 +113,17 @@ export class RoomOutbox {
     const { current, campaignId } = scope
     const sent = this.port.authorization.current(current.authorityEpoch)?.revisions ?? null
     const flushScope = { campaignId, epoch: current.authorityEpoch, knownAuthorization: sent }
-    // While a Run is active a backlog save publishes only chat and rolls; the Run's own rows wait for
-    // the lifecycle save that completes it (ADR 0035 Amendment 32). It moves no fence, so nothing is acknowledged.
-    if (
-      reason === 'BACKLOG' &&
-      this.port.store.documents('encounterRuns').some((run) => run.status === 'ACTIVE')
-    ) {
-      await this.port.checkpoints.flushChat(flushScope)
+    // While a Run is active a backlog or admission save publishes only chat and rolls; the Run's own
+    // rows wait for the lifecycle save that completes it (ADR 0035 Amendments 32 and 34). It moves no
+    // fence, so nothing is acknowledged. An admission with no unsaved chat and no retained checkpoint
+    // has nothing to publish.
+    if ((reason === 'BACKLOG' || reason === 'ADMISSION') && activeRunHeld(this.port.store)) {
+      if (
+        reason === 'BACKLOG' ||
+        this.port.store.unsavedChatEntries > 0 ||
+        this.port.checkpoints.retainsCheckpoint()
+      )
+        await this.port.checkpoints.flushChat(flushScope)
       await this.port.scheduleAlarm()
       return
     }

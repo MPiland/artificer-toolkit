@@ -649,6 +649,14 @@ browser obtains current authentication and the room re-admits it warm or, failin
 recaptures product authority (see "Warm admission"). Every cold admission also renews the room's
 authorization cache and is refused when that cache does not admit the captured member.
 
+**Joining a held Run (ADR 0035 Amendment 34, current).** A first socket that joins a room that already
+holds an ACTIVE Run, has finished activation and holds its Scene cache is not captured. The room
+verifies the access token locally, takes the member and role from the ticket and requires the
+authorization lease (refreshed when stale) to list them; a removed member is closed. It flushes
+nothing first, and its `ADMISSION` background save publishes only chat while the Run is ACTIVE, so the
+Run's rows publish once, at COMPLETE. An unprovable token and every admission outside a held Run keep
+the cold path above.
+
 **Proactive re-challenge (ADR 0035 Amendment 23, current).** The room does not wait for a request to
 find an expired token. Through its single coalesced alarm it sends `AUTHENTICATION_REQUIRED` to each
 admitted socket at `Admission.deadline` minus `reauthenticationLeadMs` (60 s), including a socket
@@ -1012,7 +1020,8 @@ Campaign history and separately packed private Character history) and the Scene/
 
 Every checkpoint send names one trigger, `LIVE_SESSION_CHECKPOINT_REASONS` in
 `api/liveSessionCheckpoint`: `BACKLOG` (the unsaved chat entries reached the chat push window),
-`ADMISSION` (a socket authenticates, or a background retry after admission), `ACTIVATION` (bootstrap
+`ADMISSION` (a socket authenticates, or a background retry after admission; chat only while a Run is
+ACTIVE, like `BACKLOG`), `ACTIVATION` (bootstrap
 recovery and the first publication after activation), `RELOAD` (the room aggregate must reload from
 Convex before a command), `ACKNOWLEDGEMENT` (a command with `checkpointBeforeAcknowledgement`),
 `PRESENTATION` (before a Scene presentation commit), `DRAIN` (the final checkpoint before release) and
