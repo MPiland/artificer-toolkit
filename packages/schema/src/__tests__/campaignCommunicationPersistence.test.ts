@@ -79,7 +79,7 @@ it('projects only nonce metadata, with a fingerprint for rolls alone', () => {
     createdAt: base.createdAt,
     kind: 'ROLL',
     clientNonce: base.clientNonce,
-    rollNonceFingerprint: campaignRollNonceFingerprint(rollEntry)
+    rollNonceFingerprint: campaignRollNonceFingerprint(campaignStoredEntrySchema.parse(rollEntry))
   })
   expect(campaignStoredEntryMetadataSchema.safeParse(roll).success).toBe(true)
   const chat = projectCampaignEntryMetadata(campaignStoredEntrySchema.parse(chatEntry))
@@ -94,18 +94,17 @@ it('projects only nonce metadata, with a fingerprint for rolls alone', () => {
 })
 
 it('fingerprints the retry fields and ignores reveal and consumption', () => {
-  const fingerprint = campaignRollNonceFingerprint(rollEntry)
+  const entry = campaignStoredEntrySchema.parse(rollEntry)
+  const fingerprint = campaignRollNonceFingerprint(entry)
   expect(fingerprint).toMatch(/^[a-f0-9]{64}$/)
   expect(
-    campaignRollNonceFingerprint({ ...rollEntry, revealedByGm: true, consumedAt: base.createdAt })
+    campaignRollNonceFingerprint({ ...entry, revealedByGm: true, consumedAt: base.createdAt })
   ).toBe(fingerprint)
-  expect(campaignRollNonceFingerprint({ ...rollEntry, authorUsername: 'Other' })).not.toBe(
-    fingerprint
-  )
+  expect(campaignRollNonceFingerprint({ ...entry, authorUsername: 'Other' })).not.toBe(fingerprint)
   expect(
     campaignRollNonceFingerprint({
-      ...rollEntry,
-      roll: { ...rollEntry.roll, normalizedExpression: '2d20' }
+      ...entry,
+      roll: { ...entry.roll!, normalizedExpression: '2d20' }
     })
   ).not.toBe(fingerprint)
 })
