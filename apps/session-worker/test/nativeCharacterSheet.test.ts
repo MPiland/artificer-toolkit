@@ -49,6 +49,7 @@ import { darkvisionDefinition } from './srdSenseInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
 import { roomStub } from './roomTeardown.js'
+import { accessJwks, authSubjectOf, JWKS_PATH, signVerifiedAccessToken } from './liveRoomFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const sockets: WebSocket[] = []
@@ -148,6 +149,7 @@ async function sheetRoom(
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
+      if (pathname === JWKS_PATH) return Response.json(accessJwks)
       calls.push(pathname)
       expect(request.headers.get('x-artificer-live-session-secret')).toBe(secret)
       if (pathname === ROOM_INPUTS_PATH) {
@@ -312,7 +314,8 @@ async function sheetRoom(
     })
   })
 
-  async function connect(userId: string, role: Role) {
+  /** Opens a socket and authenticates it; the room's answer is the caller's to await. */
+  async function open(userId: string, role: Role, accessToken = accessTokens.get(userId)) {
     const ticket = await new SignJWT({
       authSubject: `auth-${userId}`,
       authorityEpoch,
@@ -343,11 +346,28 @@ async function sheetRoom(
       )
     })
     socket.accept()
-    socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: accessTokens.get(userId) }))
-    await vi.waitFor(() =>
-      expect(messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-    )
+    socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken }))
     return { messages, socket }
+  }
+
+  async function connect(userId: string, role: Role) {
+    const member = await open(userId, role)
+    await vi.waitFor(() =>
+      expect(member.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+    )
+    return member
+  }
+
+  /** A new socket for a member whose token the room verifies locally, as a reload or a network drop. */
+  async function reconnect(userId: string, role: Role) {
+    return open(
+      userId,
+      role,
+      await signVerifiedAccessToken({
+        expirationTime: issuedAt + 3_600,
+        subject: authSubjectOf(userId)
+      })
+    )
   }
 
   const gm = await connect(gmId, 'OWNER')
@@ -436,6 +456,7 @@ async function sheetRoom(
 
   return {
     calls,
+    reconnect,
     commitCharacterEdit,
     tearCharacterReads,
     holdAuthorization,
@@ -798,6 +819,51 @@ it("evicts a deleted account's player and removes its Character's actor before a
   ])
   expect(room.owner.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
   expect(room.gm.socket.readyState).toBe(WebSocket.READY_STATE_OPEN)
+})
+
+it('admits a reconnecting member during an ACTIVE Run from the room, with no Run save and no capture (ADR 0035 Amendment 33)', async () => {
+  const room = await sheetRoom()
+  const [damaged] = await room.play(
+    room.owner,
+    { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 3 },
+    crypto.randomUUID(),
+    1
+  )
+  expect(damaged?.type).toBe('COMMAND_COMMITTED')
+  const fullSavesBefore = room.checkpoints.length
+  const callsBefore = room.calls.length
+  room.owner.socket.close()
+
+  const reconnected = await room.reconnect(room.ownerId, 'PLAYER')
+  await vi.waitFor(() =>
+    expect(reconnected.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  // The room's own state reaches the new socket: the sequence already holds the damage command.
+  const sync = reconnected.messages.find((message) => message.type === 'STATE_SYNC')
+  expect(sync?.sequence).toBeGreaterThan(0)
+  expect(await room.hitPoints()).toEqual({ current: 8, streamVersion: 2 })
+  // The member is proven by the ticket and the room's lease: Convex is never asked to capture.
+  expect(room.calls.slice(callsBefore)).not.toContain('/live-sessions/capture')
+  // The admission's save is chat only: no checkpoint carries the Run's rows.
+  expect(room.checkpoints).toHaveLength(fullSavesBefore)
+})
+
+it('refuses a removed member on reconnect during an ACTIVE Run (ADR 0035 Amendment 33)', async () => {
+  const room = await sheetRoom()
+  room.commitAccountDeletion()
+  const control = (operation: object) =>
+    SELF.fetch(`https://session.test${LIVE_SESSION_CONTROL_PATH}`, {
+      body: JSON.stringify({ campaignId: room.campaignId, operation }),
+      headers: { 'content-type': 'application/json', [LIVE_SESSION_CONTROL_SECRET_HEADER]: secret },
+      method: 'POST'
+    })
+  expect((await control({ type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] })).status).toBe(200)
+  const callsBefore = room.calls.length
+
+  const refused = await room.reconnect(room.ownerId, 'PLAYER')
+  await vi.waitFor(() => expect(refused.socket.readyState).toBe(WebSocket.READY_STATE_CLOSED))
+  expect(refused.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(false)
+  expect(room.calls.slice(callsBefore)).not.toContain('/live-sessions/capture')
 })
 
 type SheetRoom = Awaited<ReturnType<typeof sheetRoom>>

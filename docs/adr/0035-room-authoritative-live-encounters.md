@@ -656,6 +656,27 @@ rows). The modeled fight crosses the push window twice, so a fight saves twice a
 Risk accepted: the COMPLETE fold must still fit its checkpoints (Amendment 31), split by bytes and
 change count. Option C (a Run-only COMPLETE) is PERF-1.T10.
 
+**Amendment 33: a cold admission during an ACTIVE Run saves chat only and trusts the room (PERF-1.T16, D230 item 1).**
+A new socket (join, reload, network drop) flushed the room's whole unsaved prefix, Run child rows
+included, to Convex through `flushOutbox('ADMISSION')`, called `capture`, and then published again in
+the background. COMPLETE read those rows back and deleted them: about 0.99 MB of the modelled V15
+session (PERF-1.T15 audit).
+
+- _Rule._ An ADMISSION save follows Amendment 32: while any Run is ACTIVE it publishes only chat and
+  roll records through the chat route and moves no fence. The Run's rows publish at COMPLETE.
+- _Admission._ A first socket (`membershipEpoch` null) that joins a room that already holds an ACTIVE Run,
+  has finished activation and holds its Scene cache is admitted from the room: the access token is
+  verified locally against the Convex JWKS (as the warm path does), the ticket (minted only after
+  `internal.liveSessions.admission.authorize`) names the member and role, and the room's authorization
+  lease (`refreshAuthorization` when stale) must still list that user with that role. A removed member is
+  refused. No flush and no `capture` run first. Every other admission (out of a Run, first admission after
+  START or a room wake, an unprovable token, a changed identity) keeps the cold path.
+- _Guarantees kept._ Scene presentation and version checks stay with the room's presentation fences
+  (`expectedPresentationVersion`, `#presentScene`), as for the warm path. Role and membership changes
+  reach the room through the lease and `#enforceAuthorization`.
+- _Accepted._ If room storage is lost mid-fight, the encounter may restart from START (Amendment 32's D90
+  window). Chat history is unaffected.
+
 ## Also decided with this ADR
 
 - **Development and tests use the local backend only (Q15 option c).** Development, automated tests, load checks and agents run against the local Docker backend. Cloud deployments are touched only for a deliberate, approved staging smoke check.

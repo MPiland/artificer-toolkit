@@ -11,7 +11,7 @@ afterEach(() => {
 })
 
 /** A real outbox and room store; only the Convex-facing checkpoint steps and the journal head are recorded. */
-async function backlogFlush(runStatus: string) {
+async function backlogFlush(runStatus: string, reason: 'ADMISSION' | 'BACKLOG' = 'BACKLOG') {
   const opened = createNodeSqliteRoomStorage()
   databases.push(opened.database)
   const store = new RoomEncounterStore(opened.storage)
@@ -56,7 +56,7 @@ async function backlogFlush(runStatus: string) {
     scheduleAlarm: async () => undefined,
     waitUntil: () => undefined
   } as unknown as RoomOutboxPort
-  await new RoomOutbox(port).flush('BACKLOG')
+  await new RoomOutbox(port).flush(reason)
   return calls
 }
 
@@ -67,5 +67,15 @@ describe('RoomOutbox backlog save', () => {
 
   it('stays a full prefix save when no Run is active', async () => {
     expect(await backlogFlush('COMPLETED')).toEqual(['flush'])
+  })
+})
+
+describe('RoomOutbox admission save', () => {
+  it('publishes only chat and rolls while a Run is active', async () => {
+    expect(await backlogFlush('ACTIVE', 'ADMISSION')).toEqual(['flushChat'])
+  })
+
+  it('stays a full prefix save when no Run is active', async () => {
+    expect(await backlogFlush('COMPLETED', 'ADMISSION')).toEqual(['flush'])
   })
 })
