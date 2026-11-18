@@ -25291,8 +25291,7 @@
             },
             {
               "id": "PERF-1.T17",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25301,7 +25300,9 @@
                 "size": 3,
                 "after": ["PERF-1.T15"]
               },
-              "text": "D230 ruling 3: room hydrate reads chat metadata only for entries that could still be replayed (after the last acknowledged checkpoint), not the Campaign's whole chat history (apps/apis/convex/liveSessions/roomInputs.ts CHAT_METADATA). Proof: hydrate I/O stays flat as prior-session chat grows."
+              "text": "D230 ruling 3: room hydrate reads chat metadata only for entries that could still be replayed (after the last acknowledged checkpoint), not the Campaign's whole chat history (apps/apis/convex/liveSessions/roomInputs.ts CHAT_METADATA). Proof: hydrate I/O stays flat as prior-session chat grows.",
+              "proof": ["apps/apis/convex/liveSessions/roomInputs.test.ts"],
+              "note": "Review 2026-11-18: accepted. Chat entries hydrate from 24 h before the epoch start (ADR 0035 Amendment 33); a resend past that window is deferred to future-enhancements Deferred edge cases."
             },
             {
               "id": "PERF-1.T18",
