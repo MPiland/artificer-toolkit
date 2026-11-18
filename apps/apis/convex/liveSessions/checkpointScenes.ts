@@ -166,8 +166,9 @@ export async function applyCheckpointScenes(
     for (const written of rows.filter((row) => row.table === 'sceneLiveEntities')) {
       const next = written.next as WithoutSystemFields<Doc<'sceneLiveEntities'>>
       const before = written.before as Doc<'sceneLiveEntities'> | null
+      // The definition entity matters only when the live row does not yet override it.
       const base =
-        next.collection === 'measurements'
+        next.collection === 'measurements' || before
           ? null
           : await ctx.db
               .query('sceneDefinitionEntities')
@@ -268,6 +269,8 @@ export async function applyCheckpointScenes(
           parseSceneLiveEntity(entity, scene.toVersion)
           if (entity.ordinal === null) break
           claimOrdinal(`entity:${entity.collection}:${entity.ordinal}`)
+          // A row keeping its own ordinal is the holder already read; nothing else can hold it.
+          if ((written.before as Doc<'sceneLiveEntities'> | null)?.ordinal === entity.ordinal) break
           const holder = await ctx.db
             .query('sceneLiveEntities')
             .withIndex('by_sceneId_collection_ordinal', (q) =>
@@ -289,12 +292,15 @@ export async function applyCheckpointScenes(
         case 'sceneFogLayers': {
           const layer = parseSceneFogLayer(written.next, scene.toVersion)
           claimOrdinal(`fog:${layer.ordinal}`)
-          const holder = await ctx.db
-            .query('sceneFogLayers')
-            .withIndex('by_sceneId_ordinal', (q) =>
-              q.eq('sceneId', scene.sceneId).eq('ordinal', layer.ordinal)
-            )
-            .unique()
+          const holder =
+            (written.before as Doc<'sceneFogLayers'> | null)?.ordinal === layer.ordinal
+              ? null
+              : await ctx.db
+                  .query('sceneFogLayers')
+                  .withIndex('by_sceneId_ordinal', (q) =>
+                    q.eq('sceneId', scene.sceneId).eq('ordinal', layer.ordinal)
+                  )
+                  .unique()
           if (
             holder &&
             !identities.has(
