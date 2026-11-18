@@ -287,28 +287,32 @@ async function chatMetadataFamilies(ctx: QueryCtx, campaignId: string, entriesFr
     .query('campaignConversations')
     .withIndex('by_campaignId_kind', (q) => q.eq('campaignId', campaignId))
     .collect()
-  const families: Array<{ table: EncounterTableName; query: ReturnType<RunTableQuery> }> = [
+  // A Convex query runs once, so each family builds a fresh one for the probe and for the page.
+  const families: Array<{ table: EncounterTableName; query: () => ReturnType<RunTableQuery> }> = [
     {
       table: 'campaignConversations',
-      query: ctx.db
-        .query('campaignConversations')
-        .withIndex('by_campaignId_kind', (q) => q.eq('campaignId', campaignId))
+      query: () =>
+        ctx.db
+          .query('campaignConversations')
+          .withIndex('by_campaignId_kind', (q) => q.eq('campaignId', campaignId))
     },
     {
       table: 'campaignConversationMembers',
-      query: ctx.db
-        .query('campaignConversationMembers')
-        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      query: () =>
+        ctx.db
+          .query('campaignConversationMembers')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
     }
   ]
   for (const { id } of conversations)
     families.push({
       table: 'campaignConversationEntries',
-      query: ctx.db
-        .query('campaignConversationEntries')
-        .withIndex('by_conversationId_createdAt_id', (q) =>
-          q.eq('conversationId', id).gte('createdAt', entriesFrom)
-        )
+      query: () =>
+        ctx.db
+          .query('campaignConversationEntries')
+          .withIndex('by_conversationId_createdAt_id', (q) =>
+            q.eq('conversationId', id).gte('createdAt', entriesFrom)
+          )
     })
   return families
 }
@@ -334,10 +338,10 @@ async function readChatMetadataPage(
   let position = scope.cursor?.position ?? 0
   if (position >= families.length) throw new Error('Room input cursor is invalid.')
   if (paginationCursor === null)
-    while (position < families.length && !(await families[position]!.query.first())) position += 1
+    while (position < families.length && !(await families[position]!.query().first())) position += 1
   const family = families[position]
   if (!family) return { kind: 'CHAT_METADATA', documents: [], continueCursor: null }
-  const page = await family.query.paginate({ ...PAGE, cursor: paginationCursor })
+  const page = await family.query().paginate({ ...PAGE, cursor: paginationCursor })
   if (!page.isDone && page.continueCursor === paginationCursor)
     throw new Error('Room input page cannot advance.')
   return {
