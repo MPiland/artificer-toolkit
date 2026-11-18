@@ -25277,8 +25277,7 @@
             },
             {
               "id": "PERF-1.T16",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "TODO",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25287,7 +25286,7 @@
                 "size": 5,
                 "after": ["PERF-1.T15"]
               },
-              "text": "D230 ruling 1: a cold admission during an ACTIVE Run saves chat only (as the mid-Run BACKLOG save, ADR 0035 Amendment 32) and the reconnecting member receives current state from the room; capture reads membership and Scene identity, not Run state. Run child rows publish at COMPLETE. Room storage loss mid-fight may restart the encounter from START (accepted, D230 ruling 2). ADR 0035 amendment."
+              "text": "D230 ruling 1: a cold admission during an ACTIVE Run saves chat only (as the mid-Run BACKLOG save, ADR 0035 Amendment 32) and the reconnecting member receives current state from the room; capture reads membership and Scene identity, not Run state. Run child rows publish at COMPLETE. Room storage loss mid-fight may restart the encounter from START (accepted, D230 ruling 2). ADR 0035 amendment. Pending the user's confirmation of D230 item 1."
             },
             {
               "id": "PERF-1.T17",
