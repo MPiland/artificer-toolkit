@@ -92,8 +92,17 @@ export async function openConversation(
  * Unread entries are the member's visible entries (at or after the access cutoff) strictly after
  * the last-read timestamp, so equal-time entries share read state. The count comes from the entry
  * index and the member row alone: send, edit, unsend and mark-read keep nothing else in step. An
- * unsent entry keeps its header as a tombstone in the log, so it counts like any other entry.
+ * unsent entry stays as a tombstone in the log, so it counts like any other entry.
  */
+export function isUnreadEntry(
+  { accessStartedAt, lastReadAt }: Doc<'campaignConversationMembers'>,
+  entry: { createdAt: string }
+) {
+  return lastReadAt !== null && lastReadAt >= accessStartedAt
+    ? entry.createdAt > lastReadAt
+    : entry.createdAt >= accessStartedAt
+}
+
 export async function countUnreadEntries(
   ctx: QueryCtx,
   conversation: Doc<'campaignConversations'>,

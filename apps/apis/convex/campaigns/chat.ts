@@ -1,5 +1,6 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
+  campaignChatUnreadCountLimit,
   campaignChatEntryDtoSchema,
   campaignChatPageDtoSchema,
   listCampaignChatEntriesInputSchema,
@@ -24,6 +25,7 @@ import {
   countUnreadEntries,
   findConversation,
   insertConversationEntry,
+  isUnreadEntry,
   openConversation,
   presentChatEntries,
   presentChatEntry,
@@ -54,10 +56,6 @@ export async function readCampaignChatPage(
   const access = await conversationAccess(ctx, authority, room)
   if (!access) throw new Error('Conversation not found.')
   const { member } = access
-  const status = {
-    lastReadAt: member.lastReadAt,
-    unreadCount: await countUnreadEntries(ctx, room, member)
-  }
   const cursor = input.cursor
     ? await ctx.db
         .query('campaignConversationEntries')
@@ -69,7 +67,12 @@ export async function readCampaignChatPage(
     input.cursor &&
     (!cursor || cursor.conversationId !== room.id || cursor.createdAt < member.accessStartedAt)
   )
-    return { entries: [], nextCursor: null, ...status }
+    return {
+      entries: [],
+      nextCursor: null,
+      lastReadAt: member.lastReadAt,
+      unreadCount: await countUnreadEntries(ctx, room, member)
+    }
   // Newest first by (createdAt, id): entries tied with the cursor's time, then strictly older ones.
   const wanted = input.limit + 1
   const tied = cursor
@@ -99,7 +102,13 @@ export async function readCampaignChatPage(
   return {
     entries: await presentChatEntries(ctx, page, room, authority.campaign.contentMaturity),
     nextCursor: found.length > input.limit ? page.at(-1)!.id : null,
-    ...status
+    lastReadAt: member.lastReadAt,
+    // Unread entries are the newest, so a newest page that already spans the count limit holds the
+    // count and the whole entries need not be read a second time.
+    unreadCount:
+      !cursor && wanted >= campaignChatUnreadCountLimit
+        ? found.filter((entry) => isUnreadEntry(member, entry)).length
+        : await countUnreadEntries(ctx, room, member)
   }
 }
 

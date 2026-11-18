@@ -558,7 +558,6 @@ describe('development Campaign fixture cleanup', () => {
       conversations: [],
       members: [],
       entries: [],
-      payloads: [],
       notes: [],
       assignments: []
     })
