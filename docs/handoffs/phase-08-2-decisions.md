@@ -2323,3 +2323,13 @@ QUALITY-15.T3v's seam trace found that Prismatic Wall's ordered layers cannot be
     - An area cast is one action: one card per author per cast, holding every target's rolls, as Foundry does with midi-qol.
     - GM reveal and rest consumption stay per roll inside a card, keeping today's behaviour.
     - The card is written once, at the end of the commit, not appended to.
+
+## D230 (2026-11-18): V15 cuts from the PERF-1.T15 audit
+
+- **Finding (PERF-1.T7, m877):** the modelled session measures 5.27 MB against the 4.3 MB gate. The Fable audit (PERF-1.T15, `local-validation/perf-audit/v15-io-audit.md`) traced 0.99 MB to cold admissions during an ACTIVE Run: a new socket (join, page reload, network drop) flushes the room's whole unsaved prefix to Convex before capture, and COMPLETE reads those Run rows back and deletes them. It also found that room hydrate reads every chat entry the Campaign has ever had to return nonce metadata, so hydrate cost grows with Campaign history.
+- **Ruling (user chose the orchestrator's recommendation):**
+  1. A reconnecting member receives the room's current state (chat and where the encounter is now) from the room. A cold admission during an ACTIVE Run saves chat only, as the mid-Run BACKLOG save does (Amendment 32); Run child rows publish at COMPLETE. Capture reads membership and Scene identity from Convex, not Run state.
+  2. If room storage is lost mid-fight (a Cloudflare storage failure), the encounter may restart from its START. Accepted as an edge case; chat history is unaffected. ADR 0035 already bounds the loss to the current fight.
+  3. Room hydrate reads chat metadata only for entries that could still be replayed (those after the last acknowledged checkpoint), never the Campaign's whole history. History stays a reader concern (chat history pages).
+  4. Also: hold reconcile and the Scene save stop re-reading rows the same save wrote or already read (Amendment 27), and `scripts/v15Budgets.mjs` charges sign-in token refreshes at a real client's cadence, not the driver's. Fights, commands and minutes do not move.
+- **Tracking:** PERF-1.T16 (1), PERF-1.T17 (3), PERF-1.T18 (4, re-reads), PERF-1.T19 (4, token cadence, and the final V15 re-measure; waits on T16 to T18). Projected 3.5 to 3.7 MB.

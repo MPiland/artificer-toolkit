@@ -25263,8 +25263,7 @@
             },
             {
               "id": "PERF-1.T15",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25273,7 +25272,64 @@
                 "size": 1,
                 "after": ["PERF-1.T7"]
               },
-              "text": "Read-only Fable cost audit of the V15 modelled session (5.27 MB vs 4.3 MB, D209/D229): per bucket (BACKLOG chat saves, COMPLETE, post-START, combat, out-of-combat, START, lifecycle) what is read and written, what is redundant, and candidate cuts with saving, user-visible effect (chat history and visibility must stay intact), recovery impact and size; flag harness artefacts. Output local-validation/perf-audit/v15-io-audit.md; cut tasks register from it with user approval of any UX trade-off."
+              "text": "Read-only Fable cost audit of the V15 modelled session (5.27 MB vs 4.3 MB, D209/D229): per bucket (BACKLOG chat saves, COMPLETE, post-START, combat, out-of-combat, START, lifecycle) what is read and written, what is redundant, and candidate cuts with saving, user-visible effect (chat history and visibility must stay intact), recovery impact and size; flag harness artefacts. Output local-validation/perf-audit/v15-io-audit.md; cut tasks register from it with user approval of any UX trade-off.",
+              "proof": "Audit local-validation/perf-audit/v15-io-audit.md (V15 44311973758 evidence): post-START 0.99 MB is cold-admission flushes; hydrate reads all Campaign chat entries; ranked cuts led to D230."
+            },
+            {
+              "id": "PERF-1.T16",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["PERF-1.T15"]
+              },
+              "text": "D230 ruling 1: a cold admission during an ACTIVE Run saves chat only (as the mid-Run BACKLOG save, ADR 0035 Amendment 32) and the reconnecting member receives current state from the room; capture reads membership and Scene identity, not Run state. Run child rows publish at COMPLETE. Room storage loss mid-fight may restart the encounter from START (accepted, D230 ruling 2). ADR 0035 amendment."
+            },
+            {
+              "id": "PERF-1.T17",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["PERF-1.T15"]
+              },
+              "text": "D230 ruling 3: room hydrate reads chat metadata only for entries that could still be replayed (after the last acknowledged checkpoint), not the Campaign's whole chat history (apps/apis/convex/liveSessions/roomInputs.ts CHAT_METADATA). Proof: hydrate I/O stays flat as prior-session chat grows."
+            },
+            {
+              "id": "PERF-1.T18",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "after": ["PERF-1.T15"]
+              },
+              "text": "D230 ruling 4: hold reconcile (characterHolds.ts) stops re-reading the Run and actors the same save wrote, and the Scene save stops re-reading the definition entity and ordinal holder for rows it already read (Amendment 27)."
+            },
+            {
+              "id": "PERF-1.T19",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "closes": ["PERF-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "after": ["PERF-1.T16", "PERF-1.T17", "PERF-1.T18"]
+              },
+              "text": "D230 ruling 4: scripts/v15Budgets.mjs charges sign-in token refreshes per member at a real client's token lifetime instead of extrapolating the driver's refreshAuth cadence per command and minute; then the final V15 run is re-measured against 4.3 MB (D209). If still over, report the figure to the user."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
