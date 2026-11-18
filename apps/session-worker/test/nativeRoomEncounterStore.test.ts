@@ -653,7 +653,16 @@ describe.each([11, 100])('room store on Durable Object SQLite, %i actors', (acto
           createdAt: '2026-09-01T00:00:00.000Z',
           clientNonce: uuid(0xa00 + ordinal),
           kind: 'CHAT',
-          rollNonceFingerprint: null
+          mode: 'OOC',
+          body: 'Hello table',
+          roll: null,
+          revealedByGm: false,
+          authorUsername: 'Author',
+          characterId: null,
+          characterLabel: null,
+          editedAt: null,
+          unsentAt: null,
+          consumedAt: null
         })
       })
     await runInDurableObject(stub, async (_instance, state) => {

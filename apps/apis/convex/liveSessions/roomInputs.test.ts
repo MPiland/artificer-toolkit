@@ -45,7 +45,8 @@ import {
 import { api } from '../_generated/api'
 import {
   campaignRollNonceFingerprint,
-  campaignStoredEntryPayloadSchema
+  campaignStoredEntrySchema,
+  projectCampaignEntryMetadata
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { insertConversationEntry } from '../campaigns/conversationDocuments'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
@@ -628,7 +629,6 @@ describe('raw room chat metadata inputs', () => {
     const stored = await base.t.run(async (ctx) => {
       const now = new Date().toISOString()
       let rollEntryId = ''
-      let rollFingerprint = ''
       for (const [campaignId, authorUserId, count] of [
         [base.campaign.id, base.owner.userId, MAX_ROOM_INPUT_PAGE_DOCUMENTS + 1],
         [other.id, base.player.userId, 1]
@@ -671,8 +671,13 @@ describe('raw room chat metadata inputs', () => {
                   }
                 }
               : null
-          const payload = campaignStoredEntryPayloadSchema.parse({
-            entryId: id,
+          const entry = campaignStoredEntrySchema.parse({
+            id,
+            campaignId,
+            conversationId,
+            authorUserId,
+            clientNonce: crypto.randomUUID(),
+            createdAt: now,
             kind: roll ? 'ROLL' : 'CHAT',
             mode: roll ? null : 'OOC',
             body: roll ? null : `Private historical body ${index}`,
@@ -685,27 +690,12 @@ describe('raw room chat metadata inputs', () => {
             unsentAt: null,
             consumedAt: null
           })
-          await insertConversationEntry(
-            ctx,
-            {
-              id,
-              campaignId,
-              conversationId,
-              authorUserId,
-              clientNonce: crypto.randomUUID(),
-              createdAt: now
-            },
-            payload
-          )
-          if (campaignId === base.campaign.id && index === 0) {
-            rollEntryId = id
-            rollFingerprint = campaignRollNonceFingerprint(payload)
-          }
+          await insertConversationEntry(ctx, entry)
+          if (campaignId === base.campaign.id && index === 0) rollEntryId = id
         }
       }
       return {
         rollEntryId,
-        rollFingerprint,
         conversations: await ctx.db
           .query('campaignConversations')
           .withIndex('by_campaignId_kind', (q) => q.eq('campaignId', base.campaign.id))
@@ -738,8 +728,7 @@ describe('raw room chat metadata inputs', () => {
     const documents = pages.flatMap((page) => page.documents)
     for (const [table, rows] of [
       ['campaignConversations', stored.conversations],
-      ['campaignConversationMembers', stored.members],
-      ['campaignConversationEntries', stored.entries]
+      ['campaignConversationMembers', stored.members]
     ] as const)
       expect(documents.filter((document) => document.table === table)).toEqual(
         rows.map(({ _id, _creationTime, ...fields }) => ({
@@ -749,19 +738,34 @@ describe('raw room chat metadata inputs', () => {
           fields
         }))
       )
+    // An entry is one stored document, but only its identity and nonce metadata reach the room.
+    expect(
+      documents.filter((document) => document.table === 'campaignConversationEntries')
+    ).toEqual(
+      stored.entries.map(({ _id, _creationTime, ...fields }) => ({
+        table: 'campaignConversationEntries',
+        id: _id,
+        creationTime: _creationTime,
+        fields: projectCampaignEntryMetadata(campaignStoredEntrySchema.parse(fields))
+      }))
+    )
     expect(
       pages.filter((page) => page.documents[0]?.table === 'campaignConversationEntries')
     ).toHaveLength(2)
-    const rollHeader = documents.find((document) => document.fields.id === stored.rollEntryId)
-    expect(rollHeader?.fields).toMatchObject({
+    const rollEntry = stored.entries.find((entry) => entry.id === stored.rollEntryId)!
+    const rollMetadata = documents.find((document) => document.fields.id === stored.rollEntryId)
+    expect(rollMetadata?.fields).toMatchObject({
       kind: 'ROLL',
-      rollNonceFingerprint: stored.rollFingerprint
+      rollNonceFingerprint: campaignRollNonceFingerprint(rollEntry)
     })
     expect(
       documents
         .filter((document) => document.fields.kind === 'CHAT')
         .every((document) => document.fields.rollNonceFingerprint === null)
     ).toBe(true)
+    expect(JSON.stringify(documents)).not.toMatch(
+      /Private historical body|Private retained roll evidence|Private roll label/
+    )
     expect(documents.every((document) => document.fields.campaignId === base.campaign.id)).toBe(
       true
     )
@@ -771,12 +775,6 @@ describe('raw room chat metadata inputs', () => {
           !Object.hasOwn(document.fields, '_id') && !Object.hasOwn(document.fields, '_creationTime')
       )
     ).toBe(true)
-    expect(JSON.stringify(documents)).not.toMatch(
-      /Private historical body|Private retained roll evidence|Private roll label/
-    )
-    expect(
-      documents.some((document) => document.table === 'campaignConversationEntryPayloads')
-    ).toBe(false)
     await expect(
       base.t.query(read, {
         ...base.request({ kind: 'CHAT_METADATA', cursor: null }),

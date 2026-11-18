@@ -52,8 +52,7 @@ import { retainUserRolls } from '../rollDocuments'
 import {
   campaignStoredConversationSchema,
   campaignStoredConversationMemberSchema,
-  campaignStoredEntryPayloadSchema,
-  createCampaignEntryHeader
+  campaignStoredEntrySchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 
 // Registered before the timer hook below: hooks after each test run in reverse, so the room closes
@@ -768,23 +767,36 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
     accessStartedAt: now,
     lastReadAt: null
   })
-  const chatPayload = campaignStoredEntryPayloadSchema.parse({
-    entryId: crypto.randomUUID(),
-    kind: 'CHAT',
-    mode: 'ROLEPLAY',
-    body: 'Retained message-time Character snapshot',
-    roll: null,
-    revealedByGm: false,
-    authorUsername: 'Player snapshot',
-    characterId: base.character.id,
-    characterLabel: 'Departing Character',
-    editedAt: null,
-    unsentAt: null,
-    consumedAt: null
-  })
-  const rollPayload = campaignStoredEntryPayloadSchema.parse({
-    ...chatPayload,
-    entryId: crypto.randomUUID(),
+  const entryFor = (fields: Record<string, unknown>, clientNonce = crypto.randomUUID()) =>
+    campaignStoredEntrySchema.parse({
+      id: crypto.randomUUID(),
+      campaignId: base.campaign.id,
+      conversationId: conversation.id,
+      authorUserId: base.owner.userId,
+      createdAt: now,
+      ...fields,
+      clientNonce
+    })
+  const chatNonce = crypto.randomUUID()
+  const chatEntry = entryFor(
+    {
+      kind: 'CHAT',
+      mode: 'ROLEPLAY',
+      body: 'Retained message-time Character snapshot',
+      roll: null,
+      revealedByGm: false,
+      authorUsername: 'Player snapshot',
+      characterId: base.character.id,
+      characterLabel: 'Departing Character',
+      editedAt: null,
+      unsentAt: null,
+      consumedAt: null
+    },
+    chatNonce
+  )
+  const rollEntry = entryFor({
+    ...chatEntry,
+    id: crypto.randomUUID(),
     kind: 'ROLL',
     mode: null,
     body: null,
@@ -809,21 +821,6 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
       }
     }
   })
-  const headerFor = (payload: typeof chatPayload, clientNonce = crypto.randomUUID()) =>
-    createCampaignEntryHeader(
-      {
-        id: payload.entryId,
-        campaignId: base.campaign.id,
-        conversationId: conversation.id,
-        authorUserId: base.owner.userId,
-        clientNonce,
-        createdAt: now
-      },
-      payload
-    )
-  const chatNonce = crypto.randomUUID()
-  const chatHeader = headerFor(chatPayload, chatNonce)
-  const rollHeader = headerFor(rollPayload)
   const create = (
     table: LiveSessionCheckpointTable,
     key: string[],
@@ -832,10 +829,8 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
   const input = frame(authority, {
     changes: [
       run.change,
-      create('campaignConversationEntryPayloads', [chatPayload.entryId], chatPayload),
-      create('campaignConversationEntryPayloads', [rollPayload.entryId], rollPayload),
-      create('campaignConversationEntries', [chatHeader.id], chatHeader),
-      create('campaignConversationEntries', [rollHeader.id], rollHeader),
+      create('campaignConversationEntries', [chatEntry.id], chatEntry),
+      create('campaignConversationEntries', [rollEntry.id], rollEntry),
       create('campaignConversationMembers', [member.conversationId, member.userId], member),
       create('campaignConversations', [conversation.id], conversation)
     ],
@@ -846,21 +841,16 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
     chat: await base.t.run(async (ctx) => ({
       conversations: await ctx.db.query('campaignConversations').collect(),
       members: await ctx.db.query('campaignConversationMembers').collect(),
-      headers: await ctx.db.query('campaignConversationEntries').collect(),
-      payloads: await ctx.db.query('campaignConversationEntryPayloads').collect()
+      entries: await ctx.db.query('campaignConversationEntries').collect()
     }))
   })
   const committed = await base.t.mutation(publish, input)
   expect(committed.status).toBe('COMMITTED')
   const after = await retained()
-  expect(after.chat.headers).toHaveLength(2)
-  expect(after.chat.headers).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining(chatHeader),
-      expect.objectContaining(rollHeader)
-    ])
+  expect(after.chat.entries).toHaveLength(2)
+  expect(after.chat.entries).toEqual(
+    expect.arrayContaining([expect.objectContaining(chatEntry), expect.objectContaining(rollEntry)])
   )
-  expect(after.chat.payloads).toHaveLength(2)
   expect((await base.t.mutation(publish, input)).status).toBe('REPLAYED')
   expect(await retained()).toEqual(after)
 
@@ -874,12 +864,12 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
   })
   const editedAt = new Date(Date.parse(now) + 1_000).toISOString()
   const editedChat = {
-    ...chatPayload,
+    ...chatEntry,
     body: 'Edited after Character departure',
     editedAt
   }
   const revealedRoll = {
-    ...rollPayload,
+    ...rollEntry,
     revealedByGm: true,
     consumedAt: editedAt
   }
@@ -888,16 +878,16 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
     frame(committed.authority, {
       changes: [
         recordChange(
-          'campaignConversationEntryPayloads',
-          [chatPayload.entryId],
-          decodeCheckpointRecord('campaignConversationEntryPayloads', chatPayload),
-          decodeCheckpointRecord('campaignConversationEntryPayloads', editedChat)
+          'campaignConversationEntries',
+          [chatEntry.id],
+          decodeCheckpointRecord('campaignConversationEntries', chatEntry),
+          decodeCheckpointRecord('campaignConversationEntries', editedChat)
         ),
         recordChange(
-          'campaignConversationEntryPayloads',
-          [rollPayload.entryId],
-          decodeCheckpointRecord('campaignConversationEntryPayloads', rollPayload),
-          decodeCheckpointRecord('campaignConversationEntryPayloads', revealedRoll)
+          'campaignConversationEntries',
+          [rollEntry.id],
+          decodeCheckpointRecord('campaignConversationEntries', rollEntry),
+          decodeCheckpointRecord('campaignConversationEntries', revealedRoll)
         ),
         recordChange(
           'campaignConversationMembers',
@@ -910,25 +900,21 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
     })
   )
   const afterEdit = await retained()
-  expect(afterEdit.chat.headers).toEqual(after.chat.headers)
   expect(afterEdit.chat.members).toEqual([])
-  for (const payload of afterEdit.chat.payloads)
-    expect(payload._id).toBe(
-      after.chat.payloads.find((prior) => prior.entryId === payload.entryId)?._id
-    )
-  expect(afterEdit.chat.payloads).toEqual(
+  for (const entry of afterEdit.chat.entries)
+    expect(entry._id).toBe(after.chat.entries.find((prior) => prior.id === entry.id)?._id)
+  expect(afterEdit.chat.entries).toEqual(
     expect.arrayContaining([
       expect.objectContaining(editedChat),
       expect.objectContaining(revealedRoll)
     ])
   )
   const nextRun = await runChange(base)
-  const newPayload = { ...chatPayload, entryId: crypto.randomUUID() }
-  const newHeader = headerFor(newPayload)
-  const nonceCollisionHeader = headerFor(newPayload, chatNonce)
+  const newEntry = entryFor({ ...chatEntry, id: crypto.randomUUID() })
+  const nonceCollisionEntry = entryFor({ ...chatEntry, id: newEntry.id }, chatNonce)
   const foreignNewConversationId = crypto.randomUUID()
   const danglingConversationId = crypto.randomUUID()
-  const secondPayload = { ...chatPayload, entryId: crypto.randomUUID() }
+  const secondEntry = entryFor({ ...chatEntry, id: crypto.randomUUID() })
   const frameNonce = crypto.randomUUID()
   const variants: [LiveSessionCheckpointRecordChange[], string][] = [
     [
@@ -960,65 +946,49 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
       'conversation is missing'
     ],
     [
-      [create('campaignConversationEntryPayloads', [newPayload.entryId], newPayload)],
-      'entry is missing'
-    ],
-    [[create('campaignConversationEntries', [newHeader.id], newHeader)], 'payload is missing'],
-    [
       [
-        create('campaignConversationEntryPayloads', [newPayload.entryId], newPayload),
-        create('campaignConversationEntries', [newHeader.id], {
-          ...newHeader,
-          kind: 'ROLL',
-          rollNonceFingerprint: 'f'.repeat(64)
+        create('campaignConversationEntries', [newEntry.id], {
+          ...newEntry,
+          conversationId: danglingConversationId
         })
       ],
-      'nonce evidence'
+      'conversation is missing'
     ],
     [
-      [
-        create('campaignConversationEntryPayloads', [newPayload.entryId], newPayload),
-        create('campaignConversationEntries', [newHeader.id], nonceCollisionHeader)
-      ],
+      [create('campaignConversationEntries', [newEntry.id], nonceCollisionEntry)],
       'nonce already exists'
     ],
     [
       [
-        create('campaignConversationEntryPayloads', [newPayload.entryId], newPayload),
-        create('campaignConversationEntryPayloads', [secondPayload.entryId], secondPayload),
+        create('campaignConversationEntries', [newEntry.id], entryFor({ ...newEntry }, frameNonce)),
         create(
           'campaignConversationEntries',
-          [newPayload.entryId],
-          headerFor(newPayload, frameNonce)
-        ),
-        create(
-          'campaignConversationEntries',
-          [secondPayload.entryId],
-          headerFor(secondPayload, frameNonce)
+          [secondEntry.id],
+          entryFor({ ...secondEntry }, frameNonce)
         )
       ],
       'nonce already exists'
     ],
     [
       [
-        create('campaignConversations', [newPayload.entryId], {
+        create('campaignConversations', [newEntry.id], {
           ...conversation,
-          id: newPayload.entryId
+          id: newEntry.id
         })
       ],
       'identity already exists'
     ],
     [
       [
-        create('campaignConversations', [newPayload.entryId], {
+        create('campaignConversations', [newEntry.id], {
           ...conversation,
-          id: newPayload.entryId,
+          id: newEntry.id,
           kind: 'PARTY',
           participantUserIds: []
         }),
-        create('campaignConversations', [secondPayload.entryId], {
+        create('campaignConversations', [secondEntry.id], {
           ...conversation,
-          id: secondPayload.entryId,
+          id: secondEntry.id,
           kind: 'PARTY',
           participantUserIds: []
         })
@@ -1026,17 +996,17 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
       'identity already exists'
     ],
     [
-      [create('campaignConversationEntries', [chatHeader.id], chatHeader)],
+      [create('campaignConversationEntries', [chatEntry.id], chatEntry)],
       'changed before publication'
     ],
     [
       [
         recordChange(
           'campaignConversationEntries',
-          [chatHeader.id],
-          decodeCheckpointRecord('campaignConversationEntries', chatHeader),
+          [chatEntry.id],
+          decodeCheckpointRecord('campaignConversationEntries', editedChat),
           decodeCheckpointRecord('campaignConversationEntries', {
-            ...chatHeader,
+            ...editedChat,
             createdAt: editedAt
           })
         )
@@ -1060,36 +1030,35 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
     [
       [
         recordChange(
-          'campaignConversationEntryPayloads',
-          [chatPayload.entryId],
-          decodeCheckpointRecord('campaignConversationEntryPayloads', editedChat),
-          decodeCheckpointRecord('campaignConversationEntryPayloads', {
+          'campaignConversationEntries',
+          [chatEntry.id],
+          decodeCheckpointRecord('campaignConversationEntries', editedChat),
+          decodeCheckpointRecord('campaignConversationEntries', {
             ...editedChat,
             characterLabel: 'Rewritten message-time Character'
           })
         )
       ],
-      'message-time snapshots are immutable'
+      'message-time snapshots'
     ],
     [
       [
         recordChange(
-          'campaignConversationEntryPayloads',
-          [rollPayload.entryId],
-          decodeCheckpointRecord('campaignConversationEntryPayloads', revealedRoll),
-          decodeCheckpointRecord('campaignConversationEntryPayloads', {
+          'campaignConversationEntries',
+          [rollEntry.id],
+          decodeCheckpointRecord('campaignConversationEntries', revealedRoll),
+          decodeCheckpointRecord('campaignConversationEntries', {
             ...revealedRoll,
             authorUsername: 'Changed roll retry evidence'
           })
         )
       ],
-      'nonce evidence'
+      'roll evidence'
     ]
   ]
   for (const [table, key, fields] of [
     ['campaignConversations', conversation.id, conversation],
-    ['campaignConversationEntries', chatHeader.id, chatHeader],
-    ['campaignConversationEntryPayloads', chatPayload.entryId, editedChat]
+    ['campaignConversationEntries', chatEntry.id, editedChat]
   ] as const)
     variants.push([
       [recordChange(table, [key], decodeCheckpointRecord(table, fields), null)],
@@ -1699,8 +1668,13 @@ it('reads a Scene and a conversation once however many records of a save name th
     stateChecksum: 'a'.repeat(64)
   })
   const entries = Array.from({ length: 3 }, (_, index) => {
-    const payload = campaignStoredEntryPayloadSchema.parse({
-      entryId: crypto.randomUUID(),
+    const stored = campaignStoredEntrySchema.parse({
+      id: crypto.randomUUID(),
+      campaignId: base.campaign.id,
+      conversationId: conversation.id,
+      authorUserId: base.other.userId,
+      clientNonce: crypto.randomUUID(),
+      createdAt: now,
       kind: 'CHAT',
       mode: 'ROLEPLAY',
       body: `Table chat ${index}`,
@@ -1713,31 +1687,12 @@ it('reads a Scene and a conversation once however many records of a save name th
       unsentAt: null,
       consumedAt: null
     })
-    const header = createCampaignEntryHeader(
-      {
-        id: payload.entryId,
-        campaignId: base.campaign.id,
-        conversationId: conversation.id,
-        authorUserId: base.other.userId,
-        clientNonce: crypto.randomUUID(),
-        createdAt: now
-      },
-      payload
+    return recordChange(
+      'campaignConversationEntries',
+      [stored.id],
+      null,
+      decodeCheckpointRecord('campaignConversationEntries', stored)
     )
-    return [
-      recordChange(
-        'campaignConversationEntryPayloads',
-        [payload.entryId],
-        null,
-        decodeCheckpointRecord('campaignConversationEntryPayloads', payload)
-      ),
-      recordChange(
-        'campaignConversationEntries',
-        [header.id],
-        null,
-        decodeCheckpointRecord('campaignConversationEntries', header)
-      )
-    ]
   })
   // COMPLETE drops every token binding (ADR 0035 Amendment 30) beside the fight's chat.
   const input = frame(authority, {
@@ -1750,7 +1705,7 @@ it('reads a Scene and a conversation once however many records of a save name th
           null
         )
       ),
-      ...entries.flat()
+      ...entries
     ],
     history: []
   })
@@ -1791,8 +1746,13 @@ it('saves chat mid-Run without a Run row, replays idempotently, refuses a stale 
     stateChecksum: 'a'.repeat(64)
   })
   const entry = (body: string) => {
-    const payload = campaignStoredEntryPayloadSchema.parse({
-      entryId: crypto.randomUUID(),
+    const stored = campaignStoredEntrySchema.parse({
+      id: crypto.randomUUID(),
+      campaignId: base.campaign.id,
+      conversationId: conversation.id,
+      authorUserId: base.other.userId,
+      clientNonce: crypto.randomUUID(),
+      createdAt: now,
       kind: 'CHAT',
       mode: 'ROLEPLAY',
       body,
@@ -1805,31 +1765,14 @@ it('saves chat mid-Run without a Run row, replays idempotently, refuses a stale 
       unsentAt: null,
       consumedAt: null
     })
-    const header = createCampaignEntryHeader(
-      {
-        id: payload.entryId,
-        campaignId: base.campaign.id,
-        conversationId: conversation.id,
-        authorUserId: base.other.userId,
-        clientNonce: crypto.randomUUID(),
-        createdAt: now
-      },
-      payload
-    )
     return {
-      payload,
+      stored,
       changes: [
         recordChange(
-          'campaignConversationEntryPayloads',
-          [payload.entryId],
-          null,
-          decodeCheckpointRecord('campaignConversationEntryPayloads', payload)
-        ),
-        recordChange(
           'campaignConversationEntries',
-          [header.id],
+          [stored.id],
           null,
-          decodeCheckpointRecord('campaignConversationEntries', header)
+          decodeCheckpointRecord('campaignConversationEntries', stored)
         )
       ]
     }
@@ -1849,10 +1792,7 @@ it('saves chat mid-Run without a Run row, replays idempotently, refuses a stale 
   expect(saved.status).toBe('COMMITTED')
   // The authority head and every Run row stay where the last full save left them.
   expect(saved.authority.persistedSequence).toBe(authority.persistedSequence)
-  expect(Object.keys(backlog.writes.byTable).sort()).toEqual([
-    'campaignConversationEntries',
-    'campaignConversationEntryPayloads'
-  ])
+  expect(Object.keys(backlog.writes.byTable).sort()).toEqual(['campaignConversationEntries'])
   expect(
     Object.keys(backlog.reads.byTable).filter((table) => table.startsWith('encounter'))
   ).toEqual([])
@@ -1869,11 +1809,11 @@ it('saves chat mid-Run without a Run row, replays idempotently, refuses a stale 
     ...chatInput,
     changes: [
       recordChange(
-        'campaignConversationEntryPayloads',
-        [first.payload.entryId],
+        'campaignConversationEntries',
+        [first.stored.id],
         null,
-        decodeCheckpointRecord('campaignConversationEntryPayloads', {
-          ...first.payload,
+        decodeCheckpointRecord('campaignConversationEntries', {
+          ...first.stored,
           body: 'A different body'
         })
       )

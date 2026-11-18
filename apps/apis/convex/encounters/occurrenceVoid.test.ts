@@ -283,13 +283,7 @@ describe('GM void command', () => {
               .eq('clientNonce', skip.command.commandId)
           )
           .unique()
-        const payload = entry
-          ? await ctx.db
-              .query('campaignConversationEntryPayloads')
-              .withIndex('by_entryId', (query) => query.eq('entryId', entry.id))
-              .unique()
-          : null
-        bodies.push(payload?.kind === 'CHAT' ? payload.body : null)
+        bodies.push(entry?.kind === 'CHAT' ? entry.body : null)
       }
       return { skips, bodies }
     })

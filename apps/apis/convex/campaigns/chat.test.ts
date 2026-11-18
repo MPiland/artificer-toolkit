@@ -19,10 +19,7 @@ import {
   sendCampaignChatEntryInputSchema,
   unsendCampaignChatEntryInputSchema
 } from '@artificer-toolkit/schema/api/campaignCommunication'
-import {
-  campaignStoredEntryPayloadSchema,
-  createCampaignEntryHeader
-} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import { campaignStoredEntrySchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, components } from '../_generated/api'
@@ -232,8 +229,8 @@ describe('native Campaign text chat', () => {
     expect(
       await t.run((ctx) =>
         ctx.db
-          .query('campaignConversationEntryPayloads')
-          .withIndex('by_entryId', (q) => q.eq('entryId', first.id))
+          .query('campaignConversationEntries')
+          .withIndex('by_publicId', (q) => q.eq('id', first.id))
           .unique()
       )
     ).toMatchObject({ body: 'fuck this', authorUsername: 'CampaignOwner' })
@@ -262,11 +259,10 @@ describe('native Campaign text chat', () => {
     const characterId = crypto.randomUUID()
     const now = new Date().toISOString()
     await t.run(async (ctx) => {
-      for (const [id, payload] of [
+      for (const [id, fields] of [
         [
           roleplayId,
           {
-            entryId: roleplayId,
             kind: 'CHAT' as const,
             mode: 'ROLEPLAY' as const,
             body: 'Retained roleplay',
@@ -283,7 +279,6 @@ describe('native Campaign text chat', () => {
         [
           rollId,
           {
-            entryId: rollId,
             kind: 'ROLL' as const,
             mode: null,
             body: null,
@@ -317,28 +312,27 @@ describe('native Campaign text chat', () => {
       ] as const) {
         await insertConversationEntry(
           ctx,
-          {
+          campaignStoredEntrySchema.parse({
+            ...fields,
             id,
             campaignId: campaign.id,
             conversationId: ooc.conversationId,
             authorUserId: other.userId,
             clientNonce: nonce(),
             createdAt: now
-          },
-          campaignStoredEntryPayloadSchema.parse(payload)
+          })
         )
       }
     })
     const snapshot = () =>
-      t.run(async (ctx) => ({
-        headers: await ctx.db
+      t.run((ctx) =>
+        ctx.db
           .query('campaignConversationEntries')
           .withIndex('by_conversationId_createdAt_id', (q) =>
             q.eq('conversationId', ooc.conversationId)
           )
-          .collect(),
-        payloads: await ctx.db.query('campaignConversationEntryPayloads').collect()
-      }))
+          .collect()
+      )
     const before = await snapshot()
     await t.run(async (ctx) => {
       const profile = await ctx.db
@@ -499,16 +493,13 @@ describe('native Campaign text chat', () => {
     const rollId = crypto.randomUUID()
     await t.run(async (ctx) => {
       const now = new Date().toISOString()
-      const identity = {
+      const stored = campaignStoredEntrySchema.parse({
         id: rollId,
         campaignId: campaign.id,
         conversationId: entry.conversationId,
         authorUserId: owner.userId,
         createdAt: now,
-        clientNonce: nonce()
-      }
-      const payload = campaignStoredEntryPayloadSchema.parse({
-        entryId: rollId,
+        clientNonce: nonce(),
         kind: 'ROLL',
         mode: null,
         body: null,
@@ -538,7 +529,7 @@ describe('native Campaign text chat', () => {
           }
         }
       })
-      await insertConversationEntry(ctx, identity, payload)
+      await insertConversationEntry(ctx, stored)
     })
     await expect(
       owner.caller.mutation(edit, { campaignId: campaign.id, entryId: rollId, body: 'no' })
@@ -643,11 +634,8 @@ describe('native Campaign text chat', () => {
     const seeded = await seedHistory(t, conversation, owner.userId, 2_000, baseTime.getTime() + 1)
     vi.setSystemTime(new Date(baseTime.getTime() + 60_000))
     const newest = await owner.caller.mutation(send, chat(campaign.id, 'TABLE', 'newest'))
-    const counts = await t.run(async (ctx) => ({
-      headers: (await ctx.db.query('campaignConversationEntries').collect()).length,
-      payloads: (await ctx.db.query('campaignConversationEntryPayloads').collect()).length
-    }))
-    expect(counts).toEqual({ headers: 2_001, payloads: 2_001 })
+    const stored = await t.run((ctx) => ctx.db.query('campaignConversationEntries').collect())
+    expect(stored).toHaveLength(2_001)
     const expected = [newest.id, ...seeded.toReversed()]
     for (const limit of [50, 100]) {
       const seen: string[] = []
@@ -842,17 +830,21 @@ describe('native Campaign text chat', () => {
       seeded.slice(950, 1_000).toReversed()
     )
     expect(rooms.result.unreadCount).toBe(campaignChatUnreadCountLimit)
-    // Send reads only the newest header (to stamp createdAt after it): no history payload is read or deleted.
+    // Send reads only the newest entry (to stamp createdAt after it) and deletes no history.
     expect(sent.reads.byTable.campaignConversationEntries?.documents).toBe(1)
-    expect(sent.reads.byTable.campaignConversationEntryPayloads).toBeUndefined()
     expect(sent.writes.byTable.delete).toBeUndefined()
+    // PERF-1.T9: a send persists the whole entry as one document (before: a header and a payload).
+    expect(sent.writes.byTable.campaignConversationEntries?.documents).toBe(1)
+    console.info(
+      'PERF-1.T9 stored entry bytes',
+      sent.writes.byTable.campaignConversationEntries?.bytes
+    )
     const page = 50
     for (const { reads } of [reader, away, older]) {
-      // One page of headers (plus the look-ahead and cursor rows) and the unread index window.
+      // One page of entries (plus the look-ahead and cursor rows) and the unread index window.
       expect(reads.byTable.campaignConversationEntries!.documents).toBeLessThanOrEqual(
         page + 2 + campaignChatUnreadCountLimit
       )
-      expect(reads.byTable.campaignConversationEntryPayloads!.documents).toBe(page)
       expect(reads.bytes).toBeLessThanOrEqual(64 * 1024)
     }
     expect(rooms.reads.byTable.campaignConversationEntries!.documents).toBe(
@@ -877,16 +869,13 @@ async function seedHistory(
     await t.run(async (ctx) => {
       for (let index = start; index < Math.min(count, start + 250); index++) {
         const id = ids[index]!
-        const identity = {
+        const stored = campaignStoredEntrySchema.parse({
           id,
           campaignId: conversation.campaignId,
           conversationId: conversation.id,
           authorUserId,
           createdAt: new Date(startMs + Math.floor(index / 3)).toISOString(),
-          clientNonce: crypto.randomUUID()
-        }
-        const payload = campaignStoredEntryPayloadSchema.parse({
-          entryId: id,
+          clientNonce: crypto.randomUUID(),
           kind: 'CHAT',
           mode: 'OOC',
           body: `Seeded message ${index} with a realistic amount of table talk in it.`,
@@ -900,11 +889,7 @@ async function seedHistory(
           consumedAt: null
         })
         // Raw rows: the product insert keeps timestamps strictly increasing, and this fixture needs ties.
-        await ctx.db.insert(
-          'campaignConversationEntries',
-          createCampaignEntryHeader(identity, payload)
-        )
-        await ctx.db.insert('campaignConversationEntryPayloads', payload)
+        await ctx.db.insert('campaignConversationEntries', stored)
       }
     })
   return ids

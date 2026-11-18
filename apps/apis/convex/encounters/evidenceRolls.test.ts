@@ -245,8 +245,8 @@ describe('Action roll cards (Q14, D83)', () => {
       (roll.source.kind === 'DAMAGE') === (kind === 'DAMAGE')
     await checkpointLiveRoom(base.campaign.id)
     return base.t.run(async (ctx) => ({
-      table: (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap(
-        (payload) => (payload.roll && wanted(payload.roll) ? [payload.roll] : [])
+      table: (await ctx.db.query('campaignConversationEntries').collect()).flatMap((entry) =>
+        entry.roll && wanted(entry.roll) ? [entry.roll] : []
       ),
       gm: (
         await ctx.db
@@ -276,12 +276,10 @@ describe('Action roll cards (Q14, D83)', () => {
     // The card is the roller's, not the player's who triggered it: the enemy's controller is the GM.
     const saveAuthors = await base.t.run(async (ctx) => {
       // `rollCards` just checkpointed, so these rows are current.
-      const payloads = await ctx.db.query('campaignConversationEntryPayloads').collect()
-      const saveIds = payloads
-        .filter((payload) => payload.roll?.source.kind === 'SAVING_THROW')
-        .map((payload) => payload.entryId)
-      const headers = await ctx.db.query('campaignConversationEntries').collect()
-      return headers.filter((header) => saveIds.includes(header.id)).map((h) => h.authorUserId)
+      const entries = await ctx.db.query('campaignConversationEntries').collect()
+      return entries
+        .filter((entry) => entry.roll?.source.kind === 'SAVING_THROW')
+        .map((entry) => entry.authorUserId)
     })
     expect(saveAuthors).toEqual([base.owner.userId])
   })
@@ -459,8 +457,8 @@ describe('Roll cards of a hidden creature a player controls (ATTACK-17.5)', () =
   async function tableRolls(base: PlayerControlFixture) {
     await checkpointLiveRoom(base.campaign.id)
     return base.t.run(async (ctx) =>
-      (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap((payload) =>
-        payload.roll ? [payload.roll] : []
+      (await ctx.db.query('campaignConversationEntries').collect()).flatMap((entry) =>
+        entry.roll ? [entry.roll] : []
       )
     )
   }

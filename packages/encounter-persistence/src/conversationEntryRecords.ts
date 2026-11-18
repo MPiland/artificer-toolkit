@@ -1,12 +1,9 @@
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import {
-  campaignStoredEntryIdentitySchema,
-  campaignStoredEntryPayloadSchema
-} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import { campaignStoredEntrySchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 
-/** The paired header and payload of one chat or roll entry, for `insertConversationEntry`. */
-export function buildConversationEntryRecords(input: {
+/** The stored document of one chat or roll entry, for `insertConversationEntry`. */
+export function buildConversationEntry(input: {
   campaignId: string
   conversationId: string
   authorUserId: string
@@ -24,16 +21,13 @@ export function buildConversationEntryRecords(input: {
     | { kind: 'ROLL_NOTICE'; creatureLabel: string | null }
 }) {
   const { content } = input
-  const identity = campaignStoredEntryIdentitySchema.parse({
+  return campaignStoredEntrySchema.parse({
     id: crypto.randomUUID(),
     campaignId: input.campaignId,
     conversationId: input.conversationId,
     authorUserId: input.authorUserId,
     clientNonce: input.clientNonce,
-    createdAt: input.createdAt
-  })
-  const payload = campaignStoredEntryPayloadSchema.parse({
-    entryId: identity.id,
+    createdAt: input.createdAt,
     kind: content.kind,
     mode: content.kind === 'CHAT' ? content.mode : null,
     body: content.kind === 'CHAT' ? content.body : null,
@@ -58,5 +52,4 @@ export function buildConversationEntryRecords(input: {
     unsentAt: null,
     consumedAt: null
   })
-  return { identity, payload }
 }

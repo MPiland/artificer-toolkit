@@ -12,6 +12,10 @@ import {
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { MAX_ROOM_INPUT_PAGE_DOCUMENTS } from '@artificer-toolkit/schema/api/liveRoomInputsBatch'
 import type { DataModel, Doc } from '../_generated/dataModel'
+import {
+  campaignStoredEntrySchema,
+  projectCampaignEntryMetadata
+} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import type { ReceiptHeaderTable } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
@@ -295,7 +299,11 @@ const CHAT_METADATA_TABLES: ReadonlyArray<{ table: EncounterTableName; query: Ru
   }
 ]
 
-/** Only access and nonce metadata hydrate; historical text and roll payloads stay in Convex. */
+/**
+ * Conversations and members hydrate whole. An entry is one document holding its text or roll, so the
+ * read bills the whole document, but only its nonce metadata leaves Convex: historical text and roll
+ * payloads never reach the room (PERF-1.T9).
+ */
 async function readChatMetadataPage(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
@@ -317,7 +325,15 @@ async function readChatMetadataPage(
     throw new Error('Room input page cannot advance.')
   return {
     kind: 'CHAT_METADATA',
-    documents: page.page.map((row) => toDocument(entry.table, row)),
+    documents: page.page.map((row) => {
+      const document = toDocument(entry.table, row)
+      return entry.table === 'campaignConversationEntries'
+        ? {
+            ...document,
+            fields: projectCampaignEntryMetadata(campaignStoredEntrySchema.parse(document.fields))
+          }
+        : document
+    }),
     continueCursor: !page.isDone
       ? { position, paginationCursor: page.continueCursor }
       : position + 1 < CHAT_METADATA_TABLES.length

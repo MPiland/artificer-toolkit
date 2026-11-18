@@ -130,7 +130,7 @@ async function campaignRows(
   const campaignConversationEntries = await rows(
     ctx.db
       .query('campaignConversationEntries')
-      .withIndex('by_campaignId_authorUserId_createdAt', (q) => q.eq('campaignId', campaignId)),
+      .withIndex('by_campaignId_authorUserId_clientNonce', (q) => q.eq('campaignId', campaignId)),
     32,
     'campaignConversationEntries'
   )
@@ -743,19 +743,6 @@ async function campaignRows(
         ),
       32,
       'campaignConversationMembers'
-    ),
-    campaignConversationEntryPayloads: await children(
-      descendants.entryIds,
-      (id) =>
-        rows(
-          ctx.db
-            .query('campaignConversationEntryPayloads')
-            .withIndex('by_entryId', (q) => q.eq('entryId', id)),
-          32,
-          'campaignConversationEntryPayloads'
-        ),
-      32,
-      'campaignConversationEntryPayloads'
     ),
     campaignInvites: await children(
       descendants.listingIds,

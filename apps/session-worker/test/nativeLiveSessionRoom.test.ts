@@ -6444,10 +6444,9 @@ it('commits a TABLE enemy roll with its table card and one D72 TABLE charge, in 
       expect(tableRoll).toMatchObject({ normalizedExpression: '2d6', characterId: null })
       const room = new RoomEncounterStore(context.storage)
       expect(room.documents('campaignConversationEntries')).toEqual([
-        expect.objectContaining({ authorUserId: base.playerId, clientNonce: commandId })
-      ])
-      expect(room.documents('campaignConversationEntryPayloads')).toEqual([
         expect.objectContaining({
+          authorUserId: base.playerId,
+          clientNonce: commandId,
           kind: 'ROLL',
           roll: expect.objectContaining({ id: tableRoll.id }),
           authorUsername: 'FixtureMember'
@@ -6518,7 +6517,7 @@ it('commits a GM evidence roll with its table card and one D72 TABLE charge, in 
       expect(room.documents('encounterEvidenceRolls')).toEqual([
         expect.objectContaining({ commandId, userId: base.userId, attempt: 1 })
       ])
-      expect(room.documents('campaignConversationEntryPayloads')).toEqual([
+      expect(room.documents('campaignConversationEntries')).toEqual([
         expect.objectContaining({ kind: 'ROLL', roll: expect.objectContaining({ id: roll?.id }) })
       ])
       expect(tableBucketTokens(context.storage, base.userId)).toEqual([

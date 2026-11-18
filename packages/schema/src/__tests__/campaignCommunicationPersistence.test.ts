@@ -1,91 +1,129 @@
 import { expect, it } from 'vitest'
 import {
-  campaignStoredEntryHeaderSchema,
-  campaignStoredEntryPayloadSchema,
-  createCampaignEntryHeader
+  campaignRollNonceFingerprint,
+  campaignRoomEntrySchema,
+  campaignStoredEntryMetadataSchema,
+  campaignStoredEntrySchema,
+  hasCampaignEntryContent,
+  projectCampaignEntryMetadata
 } from '../projections/campaignCommunicationPersistence.js'
 
-it('binds roll nonce evidence to retry fields while preserving reveal and consumption changes', () => {
-  const identity = {
-    id: '11111111-1111-4111-8111-111111111111',
-    campaignId: '22222222-2222-4222-8222-222222222222',
-    conversationId: '33333333-3333-4333-8333-333333333333',
-    authorUserId: '44444444-4444-4444-8444-444444444444',
-    clientNonce: '55555555-5555-4555-8555-555555555555',
-    createdAt: '2026-09-30T12:00:00.000Z'
-  }
-  const payload = campaignStoredEntryPayloadSchema.parse({
-    entryId: identity.id,
-    kind: 'ROLL',
-    mode: null,
-    body: null,
-    revealedByGm: false,
-    authorUsername: 'Player',
+const base = {
+  id: '11111111-1111-4111-8111-111111111111',
+  campaignId: '22222222-2222-4222-8222-222222222222',
+  conversationId: '33333333-3333-4333-8333-333333333333',
+  authorUserId: '44444444-4444-4444-8444-444444444444',
+  clientNonce: '55555555-5555-4555-8555-555555555555',
+  createdAt: '2026-09-30T12:00:00.000Z',
+  authorUsername: 'Player',
+  characterId: null,
+  characterLabel: 'Fighter',
+  editedAt: null,
+  unsentAt: null,
+  consumedAt: null
+}
+
+const rollEntry = {
+  ...base,
+  kind: 'ROLL',
+  mode: null,
+  body: null,
+  revealedByGm: false,
+  roll: {
+    id: base.clientNonce,
+    normalizedExpression: '1d20',
     characterId: null,
     characterLabel: 'Fighter',
-    editedAt: null,
-    unsentAt: null,
-    consumedAt: null,
-    roll: {
-      id: identity.clientNonce,
-      normalizedExpression: '1d20',
-      characterId: null,
-      characterLabel: 'Fighter',
-      source: { kind: 'MANUAL', label: 'Check' },
-      ruleset: { systemId: identity.campaignId, code: 'srd', version: '1' },
-      createdAt: identity.createdAt,
-      evidence: {
-        terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
-        modifier: 0,
-        mode: 'NORMAL',
-        keep: 'FIRST',
-        subtotal: 10,
-        transform: { kind: 'NONE' },
-        total: 10
-      }
+    source: { kind: 'MANUAL', label: 'Check' },
+    ruleset: { systemId: base.campaignId, code: 'srd', version: '1' },
+    createdAt: base.createdAt,
+    evidence: {
+      terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
+      modifier: 0,
+      mode: 'NORMAL',
+      keep: 'FIRST',
+      subtotal: 10,
+      transform: { kind: 'NONE' },
+      total: 10
     }
-  })
-  const header = createCampaignEntryHeader(identity, payload)
-  expect(header.kind).toBe('ROLL')
-  expect(header.rollNonceFingerprint).toMatch(/^[a-f0-9]{64}$/)
+  }
+}
+
+const chatEntry = {
+  ...base,
+  kind: 'CHAT',
+  mode: 'OOC',
+  body: 'hello',
+  roll: null,
+  revealedByGm: false
+}
+
+it('stores a roll entry and its reveal and consumption changes as one valid document', () => {
+  expect(campaignStoredEntrySchema.safeParse(rollEntry).success).toBe(true)
   expect(
-    createCampaignEntryHeader(identity, {
-      ...payload,
+    campaignStoredEntrySchema.safeParse({
+      ...rollEntry,
       revealedByGm: true,
-      consumedAt: identity.createdAt
-    }).rollNonceFingerprint
-  ).toBe(header.rollNonceFingerprint)
-  expect(
-    createCampaignEntryHeader(identity, {
-      ...payload,
-      authorUsername: 'Other player'
-    }).rollNonceFingerprint
-  ).not.toBe(header.rollNonceFingerprint)
-  expect(
-    createCampaignEntryHeader(identity, {
-      ...payload,
-      roll: { ...payload.roll!, characterLabel: 'Wizard' }
-    }).rollNonceFingerprint
-  ).not.toBe(header.rollNonceFingerprint)
-  const chat = createCampaignEntryHeader(identity, {
-    ...payload,
-    kind: 'CHAT',
-    roll: null,
-    mode: 'OOC',
-    body: 'hello'
+      consumedAt: base.createdAt
+    }).success
+  ).toBe(true)
+})
+
+it('projects only nonce metadata, with a fingerprint for rolls alone', () => {
+  const roll = projectCampaignEntryMetadata(campaignStoredEntrySchema.parse(rollEntry))
+  expect(roll).toEqual({
+    id: base.id,
+    campaignId: base.campaignId,
+    conversationId: base.conversationId,
+    authorUserId: base.authorUserId,
+    createdAt: base.createdAt,
+    kind: 'ROLL',
+    clientNonce: base.clientNonce,
+    rollNonceFingerprint: campaignRollNonceFingerprint(campaignStoredEntrySchema.parse(rollEntry))
   })
+  expect(campaignStoredEntryMetadataSchema.safeParse(roll).success).toBe(true)
+  const chat = projectCampaignEntryMetadata(campaignStoredEntrySchema.parse(chatEntry))
   expect(chat).toMatchObject({ kind: 'CHAT', rollNonceFingerprint: null })
-  expect(() =>
-    createCampaignEntryHeader({ ...identity, id: identity.campaignId }, payload)
-  ).toThrow('identity mismatch')
-  expect(() => createCampaignEntryHeader(identity, { ...payload, roll: null })).toThrow()
+  expect(JSON.stringify(chat)).not.toContain('hello')
   expect(
-    campaignStoredEntryHeaderSchema.safeParse({ ...header, rollNonceFingerprint: null }).success
+    campaignStoredEntryMetadataSchema.safeParse({ ...chat, rollNonceFingerprint: 'x' }).success
   ).toBe(false)
   expect(
-    campaignStoredEntryHeaderSchema.safeParse({
-      ...chat,
-      rollNonceFingerprint: header.rollNonceFingerprint
-    }).success
+    campaignStoredEntryMetadataSchema.safeParse({ ...roll, rollNonceFingerprint: null }).success
+  ).toBe(false)
+})
+
+it('fingerprints the retry fields and ignores reveal and consumption', () => {
+  const entry = campaignStoredEntrySchema.parse(rollEntry)
+  const fingerprint = campaignRollNonceFingerprint(entry)
+  expect(fingerprint).toMatch(/^[a-f0-9]{64}$/)
+  const spent = { ...entry, revealedByGm: true, consumedAt: base.createdAt }
+  expect(campaignRollNonceFingerprint(spent)).toBe(fingerprint)
+  expect(campaignRollNonceFingerprint({ ...entry, authorUsername: 'Other' })).not.toBe(fingerprint)
+  expect(
+    campaignRollNonceFingerprint({
+      ...entry,
+      roll: { ...entry.roll!, normalizedExpression: '2d20' }
+    })
+  ).not.toBe(fingerprint)
+})
+
+it('tells a held entry with content from hydrated metadata', () => {
+  const full = campaignStoredEntrySchema.parse(chatEntry)
+  expect(hasCampaignEntryContent(full)).toBe(true)
+  expect(hasCampaignEntryContent(projectCampaignEntryMetadata(full))).toBe(false)
+  expect(campaignRoomEntrySchema.safeParse(full).success).toBe(true)
+  expect(campaignRoomEntrySchema.safeParse(projectCampaignEntryMetadata(full)).success).toBe(true)
+  expect(campaignRoomEntrySchema.safeParse({ ...full, body: null }).success).toBe(false)
+})
+
+it('rejects entries whose kind disagrees with their roll, text or consumption', () => {
+  expect(campaignStoredEntrySchema.safeParse(chatEntry).success).toBe(true)
+  expect(campaignStoredEntrySchema.safeParse({ ...rollEntry, roll: null }).success).toBe(false)
+  expect(campaignStoredEntrySchema.safeParse({ ...chatEntry, roll: rollEntry.roll }).success).toBe(
+    false
+  )
+  expect(
+    campaignStoredEntrySchema.safeParse({ ...chatEntry, consumedAt: base.createdAt }).success
   ).toBe(false)
 })

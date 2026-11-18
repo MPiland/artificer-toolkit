@@ -33,8 +33,7 @@ export const liveSessionCheckpointKeyFields = {
   characterPlayStates: ['characterId'],
   campaignConversations: ['id'],
   campaignConversationMembers: ['conversationId', 'userId'],
-  campaignConversationEntries: ['id'],
-  campaignConversationEntryPayloads: ['entryId']
+  campaignConversationEntries: ['id']
 } as const satisfies Partial<{
   [Table in keyof EncounterStoreDocuments]: readonly (keyof EncounterStoreDocuments[Table] &
     string)[]
@@ -211,8 +210,7 @@ export type LiveSessionCheckpointRetainedRoll = z.infer<
 export const LIVE_SESSION_CHECKPOINT_CHAT_TABLES = [
   'campaignConversations',
   'campaignConversationMembers',
-  'campaignConversationEntries',
-  'campaignConversationEntryPayloads'
+  'campaignConversationEntries'
 ] as const satisfies readonly LiveSessionCheckpointTable[]
 
 export const liveSessionCheckpointRecordsSchema = lazySchema(() =>

@@ -1,9 +1,6 @@
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import {
-  campaignStoredEntryIdentitySchema,
-  campaignStoredEntryPayloadSchema
-} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import { campaignStoredEntrySchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   insertConversationEntry,
@@ -26,8 +23,7 @@ export async function insertPreEvaluatedCampaignTableRoll(
     readCampaignAccessTime(campaign: CampaignAuthority['campaign']): Promise<number>
     consumeConversationRate(userId: string): Promise<void>
     presentChatEntry(
-      header: ReturnType<typeof campaignStoredEntryIdentitySchema.parse>,
-      payload: ReturnType<typeof campaignStoredEntryPayloadSchema.parse>,
+      entry: ReturnType<typeof campaignStoredEntrySchema.parse>,
       conversation: EncounterDocument<'campaignConversations'>,
       contentMaturity: CampaignAuthority['campaign']['contentMaturity']
     ): Promise<CampaignChatEntryDto>
@@ -39,55 +35,43 @@ export async function insertPreEvaluatedCampaignTableRoll(
   const normalizedNonce = clientNonce.toLowerCase()
   const prior = await readConversationEntryReplay(ctx, access, userId, normalizedNonce, 'ROLL')
   if (prior) {
-    const { payload } = prior
     if (
-      payload.roll === null ||
-      checksumCanonicalJson(payload.roll) !== checksumCanonicalJson(roll) ||
-      payload.authorUsername !== username ||
-      payload.characterId !== null ||
-      payload.characterLabel !== roll.characterLabel ||
-      payload.mode !== null ||
-      payload.body !== null ||
-      payload.editedAt !== null ||
-      payload.unsentAt !== null
+      prior.roll === null ||
+      checksumCanonicalJson(prior.roll) !== checksumCanonicalJson(roll) ||
+      prior.authorUsername !== username ||
+      prior.characterId !== null ||
+      prior.characterLabel !== roll.characterLabel ||
+      prior.mode !== null ||
+      prior.body !== null ||
+      prior.editedAt !== null ||
+      prior.unsentAt !== null
     )
       throw new Error('Chat nonce was used with a different roll.')
-    return callbacks.presentChatEntry(
-      prior.header,
-      payload,
-      conversation,
-      authority.campaign.contentMaturity
-    )
+    return callbacks.presentChatEntry(prior, conversation, authority.campaign.contentMaturity)
   }
   const now = await callbacks.readCampaignAccessTime(authority.campaign)
   await callbacks.consumeConversationRate(userId)
-  const header = campaignStoredEntryIdentitySchema.parse({
-    id: crypto.randomUUID(),
-    campaignId: authority.campaign.id,
-    conversationId: conversation.id,
-    authorUserId: userId,
-    clientNonce: normalizedNonce,
-    createdAt: new Date(now).toISOString()
-  })
-  const payload = campaignStoredEntryPayloadSchema.parse({
-    entryId: header.id,
-    kind: 'ROLL',
-    mode: null,
-    body: null,
-    roll,
-    revealedByGm: false,
-    authorUsername: username,
-    characterId: null,
-    characterLabel: roll.characterLabel,
-    editedAt: null,
-    unsentAt: null,
-    consumedAt: null
-  })
-  const stored = await insertConversationEntry(ctx, header, payload)
-  return callbacks.presentChatEntry(
-    stored,
-    payload,
-    conversation,
-    authority.campaign.contentMaturity
+  const stored = await insertConversationEntry(
+    ctx,
+    campaignStoredEntrySchema.parse({
+      id: crypto.randomUUID(),
+      campaignId: authority.campaign.id,
+      conversationId: conversation.id,
+      authorUserId: userId,
+      clientNonce: normalizedNonce,
+      createdAt: new Date(now).toISOString(),
+      kind: 'ROLL',
+      mode: null,
+      body: null,
+      roll,
+      revealedByGm: false,
+      authorUsername: username,
+      characterId: null,
+      characterLabel: roll.characterLabel,
+      editedAt: null,
+      unsentAt: null,
+      consumedAt: null
+    })
   )
+  return callbacks.presentChatEntry(stored, conversation, authority.campaign.contentMaturity)
 }

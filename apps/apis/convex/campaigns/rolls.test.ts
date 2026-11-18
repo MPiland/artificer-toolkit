@@ -139,8 +139,7 @@ async function setup() {
   }
   const readEntries = () =>
     base.t.run(async (ctx) => ({
-      headers: await ctx.db.query('campaignConversationEntries').collect(),
-      payloads: await ctx.db.query('campaignConversationEntryPayloads').collect(),
+      entries: await ctx.db.query('campaignConversationEntries').collect(),
       history: await ctx.db.query('userRollHistory').collect()
     }))
   return {
@@ -204,8 +203,7 @@ describe('native Campaign authoritative rolls', () => {
     ).rejects.toThrow()
     await expect(t.mutation(execute, request)).rejects.toThrow()
     expect(await readState()).toEqual(before)
-    expect((await readEntries()).headers).toHaveLength(2)
-    expect((await readEntries()).payloads).toHaveLength(2)
+    expect((await readEntries()).entries).toHaveLength(2)
   })
 
   it('resolves hidden Campaign mechanics through the current Sheet and rejects forged expressions, modes, sources and rooms', async () => {
@@ -283,7 +281,7 @@ describe('native Campaign authoritative rolls', () => {
           clientNonce: crypto.randomUUID()
         })
       ).rejects.toThrow()
-    expect((await readEntries()).headers).toHaveLength(1)
+    expect((await readEntries()).entries).toHaveLength(1)
     expect(await readState()).toEqual(before)
   })
 
@@ -357,7 +355,7 @@ describe('native Campaign authoritative rolls', () => {
     const before = await readState()
     const result = await gm.caller.mutation(execute, { ...request, roll })
     expect(result.roll?.source.label).toBe(roll.source.label)
-    expect((await readEntries()).payloads[0]?.roll?.source.label).toBe(
+    expect((await readEntries()).entries[0]?.roll?.source.label).toBe(
       roll.source.label.replace('****', 'shit')
     )
     await expect(
@@ -452,7 +450,7 @@ describe('native Campaign authoritative rolls', () => {
       })
     ).rejects.toThrow(/rate|30|limit/i)
     expect(await gm.caller.mutation(execute, request)).toEqual(first)
-    expect((await readEntries()).headers).toHaveLength(30)
+    expect((await readEntries()).entries).toHaveLength(30)
     vi.setSystemTime(new Date('2026-01-01T00:01:01Z'))
     await expect(
       gm.caller.mutation(execute, {
@@ -478,7 +476,7 @@ describe('native Campaign authoritative rolls', () => {
       roll: { characterId: null, source: { label: '**** secret' } }
     })
     const before = await readEntries()
-    expect(before.payloads[0]?.roll?.source.label).toBe('shit secret')
+    expect(before.entries[0]?.roll?.source.label).toBe('shit secret')
     await player.caller.mutation(api.campaigns.conversations.open, {
       campaignId: campaign.id,
       kind: 'TABLE'
@@ -587,48 +585,32 @@ describe('native Campaign authoritative rolls', () => {
     })
     expect(freshText.body).toBe(presentedText.body)
     expect(
-      (await readEntries()).payloads.find((payload) => payload.entryId === fresh.id)?.roll?.source
-        .label
+      (await readEntries()).entries.find((entry) => entry.id === fresh.id)?.roll?.source.label
     ).toBe(sourceLabel)
-    expect(
-      (await readEntries()).payloads.find((payload) => payload.entryId === freshText.id)?.body
-    ).toBe(body)
+    expect((await readEntries()).entries.find((entry) => entry.id === freshText.id)?.body).toBe(
+      body
+    )
   })
 
-  it('keeps a mixed TABLE history past 500 entries and rolls back header and payload together', async () => {
+  it('keeps a mixed TABLE history past 500 entries and rolls back the entry write with its transaction', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
     const { t, gm, request, readEntries } = await setup()
-    const template = await gm.caller.mutation(execute, request)
-    const seed = (await readEntries()).payloads[0]!
+    await gm.caller.mutation(execute, request)
+    const seed = (await readEntries()).entries[0]!
     await t.run(async (ctx) => {
       for (let index = 0; index < 499; index++) {
         const id = `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`
-        const identity = {
-          id,
-          campaignId: request.campaignId,
-          conversationId: template.conversationId,
-          authorUserId: gm.userId,
-          createdAt: '2020-01-01T00:00:00.000Z',
-          clientNonce: crypto.randomUUID()
-        }
-        const { _id, _creationTime, ...payload } = seed
+        const { _id, _creationTime, ...entry } = seed
         void _id
         void _creationTime
-        await insertConversationEntry(
-          ctx,
-          identity,
-          index % 2 === 0
-            ? { ...payload, entryId: id }
-            : {
-                ...payload,
-                entryId: id,
-                kind: 'CHAT',
-                mode: 'OOC',
-                body: 'seed text',
-                roll: null
-              }
-        )
+        await insertConversationEntry(ctx, {
+          ...entry,
+          id,
+          createdAt: '2020-01-01T00:00:00.000Z',
+          clientNonce: crypto.randomUUID(),
+          ...(index % 2 === 0 ? {} : { kind: 'CHAT', mode: 'OOC', body: 'seed text', roll: null })
+        })
       }
     })
     const before = await readEntries()
@@ -642,18 +624,12 @@ describe('native Campaign authoritative rolls', () => {
     expect(await readEntries()).toEqual(before)
     const newest = await gm.caller.mutation(execute, next)
     const retained = await readEntries()
-    expect(retained.headers).toHaveLength(501)
-    expect(retained.payloads).toHaveLength(501)
-    expect(retained.headers.map((entry) => entry.id)).toContain(newest.id)
-    expect(retained.headers.map((entry) => entry.id)).toContain(
+    expect(retained.entries).toHaveLength(501)
+    expect(retained.entries.map((entry) => entry.id)).toContain(newest.id)
+    expect(retained.entries.map((entry) => entry.id)).toContain(
       '00000000-0000-4000-8000-000000000000'
     )
-    expect(retained.payloads.map((payload) => payload.entryId).sort()).toEqual(
-      retained.headers.map((entry) => entry.id).sort()
-    )
-    expect(new Set(retained.payloads.map((payload) => payload.kind))).toEqual(
-      new Set(['CHAT', 'ROLL'])
-    )
+    expect(new Set(retained.entries.map((entry) => entry.kind))).toEqual(new Set(['CHAT', 'ROLL']))
     expect(retained.history).toEqual([])
   })
 
@@ -697,8 +673,7 @@ describe('native Campaign authoritative rolls', () => {
     expect(records).toContainEqual(newest)
     expect(records.every((record) => record.source.label === 'shit secret')).toBe(true)
     expect(await player.caller.query(history, {})).toEqual([])
-    expect((await readEntries()).headers).toEqual([])
-    expect((await readEntries()).payloads).toEqual([])
+    expect((await readEntries()).entries).toEqual([])
     expect(await t.run((ctx) => ctx.db.query('campaignConversations').collect())).toEqual([])
     expect(await readState()).toEqual(before)
     await expect(player.caller.mutation(executePrivate, privateRequest)).rejects.toThrow()
@@ -738,7 +713,7 @@ describe('native Campaign authoritative rolls', () => {
     await join()
     await expect(caller.mutation(execute, request)).rejects.toThrow('Assigned Character not found')
     await expect(caller.mutation(executePrivate, privateRequest)).rejects.toThrow()
-    expect(await readEntries()).toEqual({ headers: [], payloads: [], history: [] })
+    expect(await readEntries()).toEqual({ entries: [], history: [] })
   })
 
   it('fails closed for removed or invalid assignment authority and archived Campaigns', async () => {
@@ -814,11 +789,7 @@ describe('native Campaign authoritative rolls', () => {
     await t.run((ctx) => ctx.db.patch(row._id, { status: 'ARCHIVED' }))
     await expect(gm.caller.mutation(execute, request)).rejects.toThrow()
     await expect(gm.caller.mutation(executePrivate, privateRequest)).rejects.toThrow()
-    expect(await readEntries()).toEqual({
-      headers: [],
-      payloads: [],
-      history: []
-    })
+    expect(await readEntries()).toEqual({ entries: [], history: [] })
   })
 })
 
@@ -877,7 +848,7 @@ describe('Campaign roll visibility', () => {
     })
     expect(await player.caller.query(history, {})).toEqual([{ ...rolled, gmCampaignRoll: null }])
     expect(await gm.caller.query(history, {})).toEqual([])
-    expect((await readEntries()).headers).toEqual([])
+    expect((await readEntries()).entries).toEqual([])
   })
 
   it('keeps a GM private roll invisible to players until the GM shows the roll once', async () => {
@@ -890,7 +861,7 @@ describe('Campaign roll visibility', () => {
     expect(await gm.caller.mutation(executePrivate, privateRequest)).toEqual(retained)
     expect(await gm.caller.query(history, {})).toEqual([retained])
     expect(await player.caller.query(history, {})).toEqual([])
-    expect((await readEntries()).headers).toEqual([])
+    expect((await readEntries()).entries).toEqual([])
     const input = { campaignId: campaign.id, rollId: retained.id, mode: 'FULL' as const }
     await expect(player.caller.mutation(reveal, input)).rejects.toThrow('Only the Campaign owner')
     await expect(t.mutation(reveal, input)).rejects.toThrow()
@@ -902,7 +873,7 @@ describe('Campaign roll visibility', () => {
       roll: { id: retained.id, evidence: retained.evidence }
     })
     expect(await gm.caller.mutation(reveal, input)).toEqual(revealed)
-    expect((await readEntries()).headers).toHaveLength(1)
+    expect((await readEntries()).entries).toHaveLength(1)
     await player.caller.mutation(api.campaigns.conversations.open, {
       campaignId: campaign.id,
       kind: 'TABLE'
@@ -944,7 +915,7 @@ describe('Campaign roll visibility', () => {
       mode: 'FULL'
     })
     expect(full).toMatchObject({ kind: 'ROLL', revealedByGm: true })
-    expect((await readEntries()).headers).toHaveLength(2)
+    expect((await readEntries()).entries).toHaveLength(2)
     await player.caller.mutation(api.campaigns.conversations.open, {
       campaignId: campaign.id,
       kind: 'TABLE'

@@ -103,8 +103,7 @@ async function setup() {
       rolls: await ctx.db.query('userRollHistory').collect(),
       rooms: await ctx.db.query('campaignConversations').collect(),
       members: await ctx.db.query('campaignConversationMembers').collect(),
-      entries: await ctx.db.query('campaignConversationEntries').collect(),
-      payloads: await ctx.db.query('campaignConversationEntryPayloads').collect()
+      entries: await ctx.db.query('campaignConversationEntries').collect()
     }))
   return {
     ...base,
@@ -346,7 +345,6 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     expect(privateState.rooms).toEqual(beforePreview.rooms)
     expect(privateState.members).toEqual(beforePreview.members)
     expect(privateState.entries).toEqual([])
-    expect(privateState.payloads).toEqual([])
     expect(await player.caller.query(api.rolls.history, {})).toEqual(personalRolls)
     await expect(
       gm.caller.query(preview, {
@@ -693,7 +691,6 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     expect(state.rolls.filter((record) => record.userId === gm.userId)).toHaveLength(20)
     expect(state.rolls.every((record) => record.source.label.includes('shit club'))).toBe(true)
     expect(state.entries).toEqual([])
-    expect(state.payloads).toEqual([])
     expect(state.rooms).toEqual([])
     expect(state.members).toEqual([])
     expect(await readState()).toEqual(before)
@@ -783,13 +780,13 @@ describe('GM-visible Campaign rest rolls', () => {
       type: 'COMPLETE_REST',
       rest: { rollEvidence: { total: rolled.evidence.total } }
     })
-    const payload = await t.run((ctx) =>
+    const stored = await t.run((ctx) =>
       ctx.db
-        .query('campaignConversationEntryPayloads')
-        .withIndex('by_entryId', (q) => q.eq('entryId', entry.id))
+        .query('campaignConversationEntries')
+        .withIndex('by_publicId', (q) => q.eq('id', entry.id))
         .unique()
     )
-    expect(payload?.consumedAt).toBe(completed.historyEntry!.occurredAt)
+    expect(stored?.consumedAt).toBe(completed.historyEntry!.occurredAt)
     await expect(
       player.caller.query(preview, { ...scope, input: rest(rolled, modifier, 3) })
     ).rejects.toThrow('authoritative roll')

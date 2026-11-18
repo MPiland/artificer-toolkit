@@ -921,10 +921,11 @@ it('commits chat and to-GM rolls in the room to their recipients, replays exact 
   await publishPending(room.stub)
   expect(room.checkpoints).not.toHaveLength(0)
   const published = room.checkpoints.flatMap(({ records }) => records.changes)
-  for (const table of ['campaignConversationEntries', 'campaignConversationEntryPayloads'])
-    expect(
-      published.filter((change) => change.table === table && change.delta !== null)
-    ).toHaveLength(2)
+  expect(
+    published.filter(
+      (change) => change.table === 'campaignConversationEntries' && change.delta !== null
+    )
+  ).toHaveLength(2)
 })
 
 // QUALITY-1.T1: the room refused such a nonce ("already sent") where Convex replays its entry.

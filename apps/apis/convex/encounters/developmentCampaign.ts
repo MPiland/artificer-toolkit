@@ -307,15 +307,7 @@ export const removeFixtureCampaign = internalMutation({
             )
             .take(21)
         ])
-        const payloads = await Promise.all(
-          entries.map((entry) =>
-            ctx.db
-              .query('campaignConversationEntryPayloads')
-              .withIndex('by_entryId', (q) => q.eq('entryId', entry.id))
-              .unique()
-          )
-        )
-        return { conversation, members, entries, payloads }
+        return { conversation, members, entries }
       })
     )
     const noteDependencies = await Promise.all(
@@ -330,7 +322,7 @@ export const removeFixtureCampaign = internalMutation({
     )
     if (
       collaboration.some(
-        ({ conversation, members, entries, payloads }) =>
+        ({ conversation, members, entries }) =>
           members.length > 2 ||
           members.some(
             (member) =>
@@ -342,8 +334,7 @@ export const removeFixtureCampaign = internalMutation({
           entries.some(
             (entry) =>
               entry.campaignId !== campaign.id || !allowedUsers.includes(entry.authorUserId)
-          ) ||
-          payloads.some((payload) => payload === null)
+          )
       ) ||
       noteDependencies.some(({ references }) => references.length) ||
       ((conversations.length || notebookSections.length) &&
@@ -378,8 +369,7 @@ export const removeFixtureCampaign = internalMutation({
     for (const overlay of overlays) await ctx.db.delete(overlay._id)
     for (const share of contentShares) await ctx.db.delete(share._id)
     for (const event of contentRemovalEvents) await ctx.db.delete(event._id)
-    for (const { entries, payloads, members, conversation } of collaboration) {
-      for (const payload of payloads) if (payload) await ctx.db.delete(payload._id)
+    for (const { entries, members, conversation } of collaboration) {
       for (const entry of entries) await ctx.db.delete(entry._id)
       for (const member of members) await ctx.db.delete(member._id)
       await ctx.db.delete(conversation._id)

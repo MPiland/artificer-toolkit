@@ -48,19 +48,16 @@ export async function removeCampaignState(ctx: MutationCtx, job: Doc<'campaignDe
       await ctx.db.delete(row._id)
       return false
     },
-    async () => {
-      const entry = await ctx.db
-        .query('campaignConversationEntries')
-        .withIndex('by_campaignId_authorUserId_createdAt', (q) => q.eq('campaignId', campaignId))
-        .first()
-      if (!entry) return true
-      const payloads = await ctx.db
-        .query('campaignConversationEntryPayloads')
-        .withIndex('by_entryId', (q) => q.eq('entryId', entry.id))
-        .take(PAGE_SIZE)
-      if (await deletePage(ctx, payloads)) await ctx.db.delete(entry._id)
-      return false
-    },
+    async () =>
+      deletePage(
+        ctx,
+        await ctx.db
+          .query('campaignConversationEntries')
+          .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
+            q.eq('campaignId', campaignId)
+          )
+          .take(PAGE_SIZE)
+      ),
     async () => {
       const conversation = await ctx.db
         .query('campaignConversations')

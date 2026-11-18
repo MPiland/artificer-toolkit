@@ -1,4 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
+import { hasCampaignEntryContent } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
@@ -993,7 +994,7 @@ async function initiativeOrder(room: ActionRoom) {
     const store = new RoomEncounterStore(context.storage)
     return {
       participants: store.documents('encounterInitiativeParticipants'),
-      payloads: store.documents('campaignConversationEntryPayloads')
+      entries: store.documents('campaignConversationEntries')
     }
   })
   return {
@@ -1001,9 +1002,11 @@ async function initiativeOrder(room: ActionRoom) {
     participants: stored.participants
       .filter(({ round }) => round === state.round)
       .sort((a, b) => (a.turnOrderOrdinal ?? 0) - (b.turnOrderOrdinal ?? 0)),
-    cards: stored.payloads.flatMap((payload) =>
-      payload.kind === 'ROLL' && payload.roll?.source.kind === 'INITIATIVE' ? [payload.roll] : []
-    )
+    cards: stored.entries
+      .filter(hasCampaignEntryContent)
+      .flatMap((entry) =>
+        entry.kind === 'ROLL' && entry.roll?.source.kind === 'INITIATIVE' ? [entry.roll] : []
+      )
   }
 }
 

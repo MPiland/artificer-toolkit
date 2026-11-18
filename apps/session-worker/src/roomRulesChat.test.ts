@@ -67,15 +67,14 @@ it('commits native rules chat with its checkpoint records and rolls back an unfi
     const posted = await store.transact(() => postRulesChatMessage(context, authority, message))
     expect(store.sequence).toBe(1)
     const [header] = store.documents('campaignConversationEntries')
-    const [payload] = store.documents('campaignConversationEntryPayloads')
     expect(header).toMatchObject({
       campaignId,
       authorUserId: ownerUserId,
       clientNonce: message.clientNonce,
       kind: 'CHAT',
-      rollNonceFingerprint: null
+      body: message.body,
+      mode: 'OOC'
     })
-    expect(payload).toMatchObject({ entryId: header!.id, body: message.body, mode: 'OOC' })
     // The posted entry is returned presented, so the room can fan it out in the same commit.
     expect(posted).toMatchObject({
       id: header!.id,
@@ -101,14 +100,12 @@ it('commits native rules chat with its checkpoint records and rolls back an unfi
     })
     expect(checkpoint.changes.map(({ table }) => table).sort()).toEqual([
       'campaignConversationEntries',
-      'campaignConversationEntryPayloads',
       'campaignConversationMembers',
       'campaignConversations'
     ])
     store = new RoomEncounterStore(storage)
     expect(store.corruption).toBeNull()
     expect(store.documents('campaignConversationEntries')).toEqual([header])
-    expect(store.documents('campaignConversationEntryPayloads')).toEqual([payload])
   } finally {
     database.close()
   }

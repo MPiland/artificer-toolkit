@@ -5,7 +5,7 @@ import {
   type CampaignConversationDto
 } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { presentChatEntries as presentStoredChatEntries } from '@artificer-toolkit/encounter-persistence/conversationPresentation'
-import type { campaignStoredEntryIdentitySchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import type { campaignStoredEntrySchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import {
   findConversation as findStoredConversation,
   conversationParticipants as readConversationParticipants,
@@ -92,8 +92,17 @@ export async function openConversation(
  * Unread entries are the member's visible entries (at or after the access cutoff) strictly after
  * the last-read timestamp, so equal-time entries share read state. The count comes from the entry
  * index and the member row alone: send, edit, unsend and mark-read keep nothing else in step. An
- * unsent entry keeps its header as a tombstone in the log, so it counts like any other entry.
+ * unsent entry stays as a tombstone in the log, so it counts like any other entry.
  */
+export function isUnreadEntry(
+  { accessStartedAt, lastReadAt }: Doc<'campaignConversationMembers'>,
+  entry: { createdAt: string }
+) {
+  return lastReadAt !== null && lastReadAt >= accessStartedAt
+    ? entry.createdAt > lastReadAt
+    : entry.createdAt >= accessStartedAt
+}
+
 export async function countUnreadEntries(
   ctx: QueryCtx,
   conversation: Doc<'campaignConversations'>,
@@ -134,7 +143,7 @@ export async function readConversationEntryReplay(
   access: Awaited<ReturnType<typeof openConversation>>,
   authorUserId: string,
   clientNonce: string,
-  kind: Doc<'campaignConversationEntryPayloads'>['kind']
+  kind: Doc<'campaignConversationEntries'>['kind']
 ) {
   return readStoredConversationEntryReplay(
     { db: createConvexEncounterStoreReader(ctx) },
@@ -145,47 +154,23 @@ export async function readConversationEntryReplay(
   )
 }
 
-export async function readEntryPayload(ctx: QueryCtx, entryId: string) {
-  const payload = await ctx.db
-    .query('campaignConversationEntryPayloads')
-    .withIndex('by_entryId', (q) => q.eq('entryId', entryId))
-    .unique()
-  if (!payload) throw new Error('Stored conversation payload is unavailable.')
-  return payload
-}
-
-/** Text and rolls write both halves of an entry together; history is kept and paged, not trimmed. */
+/** Text and rolls write one document; history is kept and paged, not trimmed. */
 export async function insertConversationEntry(
   ctx: MutationCtx,
-  identity: ReturnType<typeof campaignStoredEntryIdentitySchema.parse>,
-  payload: Omit<Doc<'campaignConversationEntryPayloads'>, '_id' | '_creationTime'>
+  entry: ReturnType<typeof campaignStoredEntrySchema.parse>
 ) {
-  return insertStoredConversationEntry({ db: createConvexEncounterStore(ctx) }, identity, payload)
+  return insertStoredConversationEntry({ db: createConvexEncounterStore(ctx) }, entry)
 }
 
-type StoredEntry = {
-  header: Pick<
-    Doc<'campaignConversationEntries'>,
-    'id' | 'campaignId' | 'conversationId' | 'authorUserId' | 'createdAt'
-  >
-  payload:
-    | Doc<'campaignConversationEntryPayloads'>
-    | Omit<Doc<'campaignConversationEntryPayloads'>, '_id' | '_creationTime'>
-}
+type StoredEntry = Omit<Doc<'campaignConversationEntries'>, '_id' | '_creationTime'>
 
 export async function presentChatEntry(
   ctx: QueryCtx,
-  entry: StoredEntry['header'],
-  payload: StoredEntry['payload'],
+  entry: StoredEntry,
   conversation: Doc<'campaignConversations'>,
   maturity: 'STANDARD' | 'MATURE'
 ): Promise<CampaignChatEntryDto> {
-  const [presented] = await presentChatEntries(
-    ctx,
-    [{ header: entry, payload }],
-    conversation,
-    maturity
-  )
+  const [presented] = await presentChatEntries(ctx, [entry], conversation, maturity)
   return presented!
 }
 
@@ -198,9 +183,9 @@ export async function presentChatEntries(
 ): Promise<CampaignChatEntryDto[]> {
   const authorUsernames = await readCampaignAuthorLabels(
     ctx,
-    entries.map(({ header, payload }) => ({
-      userId: header.authorUserId,
-      username: payload.authorUsername
+    entries.map(({ authorUserId, authorUsername }) => ({
+      userId: authorUserId,
+      username: authorUsername
     }))
   )
   return presentStoredChatEntries(entries, conversation, maturity, authorUsernames)

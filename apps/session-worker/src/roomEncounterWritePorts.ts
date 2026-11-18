@@ -98,13 +98,10 @@ export async function roomEncounterWriteTransaction(
               )
             },
             consumeConversationRate: async () => {},
-            presentChatEntry: async (header, payload, conversation, contentMaturity) => {
-              const [entry] = presentChatEntries(
-                [{ header, payload }],
-                conversation,
-                contentMaturity,
-                [payload.authorUsername]
-              )
+            presentChatEntry: async (stored, conversation, contentMaturity) => {
+              const [entry] = presentChatEntries([stored], conversation, contentMaturity, [
+                stored.authorUsername
+              ])
               return entry!
             }
           }

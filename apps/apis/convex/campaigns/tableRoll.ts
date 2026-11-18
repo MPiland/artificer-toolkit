@@ -35,8 +35,8 @@ export async function insertPreEvaluatedCampaignTableRoll(
       readCampaignAccessTime: (campaign) => readCampaignAccessTime(ctx, campaign),
       consumeConversationRate: (userId) =>
         consumeUserRateLimit(ctx, 'campaignConversation', userId),
-      presentChatEntry: (header, payload, conversation, contentMaturity) =>
-        presentChatEntry(ctx, header, payload, conversation, contentMaturity)
+      presentChatEntry: (entry, conversation, contentMaturity) =>
+        presentChatEntry(ctx, entry, conversation, contentMaturity)
     }
   )
 }
