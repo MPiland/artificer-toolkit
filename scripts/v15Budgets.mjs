@@ -28,10 +28,11 @@ const SESSION_MODEL = {
 // Save points replace the interval (ADR 0035 Amendment 25): the room saves at a Run's START and
 // COMPLETE, so a fight costs one START save and one COMPLETE save, and nothing saves while it is
 // played. The driver measures each as its own window (a START per aggregate in its preparation, the
-// COMPLETE of every aggregate in the save window), so a fight's save cost is those two per-save costs
-// added. The save at close follows the last COMPLETE and holds only what changed since; it is not
-// measured, and the backlog bound adds saves only for chat beyond the push window, which this model
-// assumes does not happen.
+// COMPLETE of every aggregate in the save window), and the saves between a START and the combat
+// window (the preparation after START) are read from the log's gap, so a fight's save cost is those
+// three per-save costs added. A mid-fight BACKLOG save publishes chat only and lands in the combat
+// window with the chat it carries. The save at close follows the last COMPLETE and holds only what
+// changed since; it is not measured.
 const perSessionFromDaily = (limit) => limit / HEADROOM / sessionsPerDay
 const perSessionFromMonthly = (limit) => limit / HEADROOM / SESSIONS_PER_MONTH
 
@@ -65,7 +66,9 @@ const windowMarkers = {
   close: 'liveSessions/developmentMeasurement:closeWindow'
 }
 // The windows in the order the driver measures them; `start` is one marker pair per aggregate.
-const windowNames = ['start', 'combat', 'save', 'outOfCombat']
+// `postStart` is not bracketed: it is what ran between a START window's close and the next marker
+// (the GM's turn advances, actor edits and token bindings before combat), whose saves are real cost.
+const windowNames = ['start', 'postStart', 'combat', 'save', 'outOfCombat']
 
 // Convex functions the room and its Worker routes call, by what they are for. The Worker reaches
 // Convex through private HTTP routes (packages/schema/src/api/liveSessionRoutePaths.ts), which log as
@@ -73,7 +76,9 @@ const windowNames = ['start', 'combat', 'save', 'outOfCombat']
 const classes = {
   checkpointIngestion: new Set([
     'POST /live-sessions/checkpoint',
-    'liveSessions/checkpoint:publish'
+    'POST /live-sessions/chat-checkpoint',
+    'liveSessions/checkpoint:publish',
+    'liveSessions/checkpoint:publishChat'
   ]),
   authRefresh: new Set([
     'POST /live-sessions/room-authorization',
@@ -124,7 +129,7 @@ const background = new Set([
 // refresh, the sign-in token refresh the driver and the browsers make, and background jobs. No
 // command does.
 const toleratedClasses = new Set(['checkpointIngestion', 'authRefresh', 'authHttp', 'background'])
-const classOf = (identifier) =>
+export const classOf = (identifier) =>
   authHttp.test(identifier)
     ? 'authHttp'
     : background.has(identifier)
@@ -164,9 +169,10 @@ function tally(executions) {
  * not the host's. The driver opens and closes one start window around each aggregate's START (the
  * aggregates prepare one after the other), then the combat window, the save window (every Run's
  * COMPLETE, the save that holds what combat left) and the out-of-combat window. The start windows
- * are returned as one.
+ * are returned as one. The post-START window is what the log holds from each start window's close to
+ * the next marker, which is where the aggregate's preparation after START saves.
  */
-function measuredWindows(executions, starts, failures) {
+export function measuredWindows(executions, starts, failures) {
   const marks = executions.flatMap((execution, index) =>
     isMarker(execution) && execution.error == null ? [{ index, marker: execution.identifier }] : []
   )
@@ -182,11 +188,16 @@ function measuredWindows(executions, starts, failures) {
     name,
     executions: executions.slice(marks[2 * i].index + 1, marks[2 * i + 1].index)
   }))
+  // Each START window's close to the next marker's open: no marker brackets it.
+  const postStart = Array.from({ length: starts }, (_, i) =>
+    executions.slice(marks[2 * i + 1].index + 1, marks[2 * i + 2].index)
+  ).flat()
   return windowNames.map((name) => ({
     name,
-    executions: windows
-      .filter((window) => window.name === name)
-      .flatMap(({ executions }) => executions)
+    executions:
+      name === 'postStart'
+        ? postStart
+        : windows.filter((window) => window.name === name).flatMap(({ executions }) => executions)
   }))
 }
 
@@ -370,13 +381,16 @@ const assumption = (name) => {
 /**
  * A session estimate from the measured unit costs, for Convex I/O and calls:
  *
- *   lifecycle + fights * (START save + COMPLETE save * scale) + commands * combat
+ *   lifecycle + fights * (START save + post-START saves + COMPLETE save) + commands * combat
  *     + minutes * out-of-combat
  *
- * where lifecycle is the measured bootstrap cost per session, each save is the measured cost of one
- * checkpoint-ingestion save, and combat and out-of-combat are the measured cost per room command and
- * per paced minute. A COMPLETE save publishes the fight's unsaved commands, so its cost is scaled by
- * the model's commands per fight over the measured ones, as if all of it grew with commands. The quantities (fights, commands, paced out-of-combat minutes, hours) are
+ * where lifecycle is the measured bootstrap cost per session, each save is the measured checkpoint
+ * ingestion of one Run's START, post-START gap or COMPLETE, and combat and out-of-combat are the
+ * measured cost per room command and per paced minute. Combat holds the chat checkpoints
+ * (`checkpoint:publishChat`), which grow with commands, so they scale with them. A COMPLETE save
+ * writes the Run's actors and Scene rows, which a fight holds however long it runs, plus the chat
+ * not yet pushed, which the push window bounds (`LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT`), so it does
+ * not scale with commands. The quantities (fights, commands, paced out-of-combat minutes, hours) are
  * assumptions about how a table plays, not measurements: they default to SESSION_MODEL, and
  * V15_ESTIMATE_FIGHTS, V15_ESTIMATE_COMBAT_COMMANDS, V15_ESTIMATE_OOC_MINUTES and
  * V15_ESTIMATE_SESSION_HOURS override them.
@@ -392,16 +406,15 @@ export function sessionEstimate(unitCosts, perSession, failures) {
       reason: 'The native log holds no live session bootstrap.'
     }
   const { combat, fightSaves, outOfCombatPerMinute } = unitCosts
-  const scale = commands / fights / fightSaves.complete.commandsPerFight
   const estimate = {
     convexCalls:
       perSession.lifecycle.calls +
-      fights * (fightSaves.start.convexCalls + fightSaves.complete.convexCalls * scale) +
+      fights * fightSaves.convexCalls +
       commands * combat.convexCalls +
       minutes * outOfCombatPerMinute.convexCalls,
     convexIoBytes:
       perSession.lifecycle.ioBytes +
-      fights * (fightSaves.start.convexIoBytes + fightSaves.complete.convexIoBytes * scale) +
+      fights * fightSaves.convexIoBytes +
       commands * combat.convexIoBytes +
       minutes * outOfCombatPerMinute.convexIoBytes,
     durableObjectRequests:
@@ -508,10 +521,11 @@ export async function verifyV15Budgets(proofName) {
         auditWindow(
           window,
           // A START also opens the room's socket and activates it, which reach Convex beside its
-          // checkpoint, so only its checkpoint ingestion is costed. The out-of-combat browsers are
-          // real clients with Convex queries of their own; only a run without them can promise that
-          // nothing but the room reached Convex.
-          window.name === 'start'
+          // checkpoint, and the gap after it holds the next aggregate's preparation, so only their
+          // checkpoint ingestion is costed. The out-of-combat browsers are real clients with Convex
+          // queries of their own; only a run without them can promise that nothing but the room
+          // reached Convex.
+          window.name === 'start' || window.name === 'postStart'
             ? false
             : window.name !== 'outOfCombat' || outOfCombat.browser === null,
           failures
@@ -522,7 +536,7 @@ export async function verifyV15Budgets(proofName) {
   const combatMeter = windowMeter(combat.meters, 'combat', failures)
   const saveMeter = windowMeter(combat.saveMeters, 'save', failures)
   const outOfCombatMeter = windowMeter(outOfCombat.meters, 'outOfCombat', failures)
-  const [startAudit, combatAudit, saveAudit, outOfCombatAudit] = audits
+  const [startAudit, postStartAudit, combatAudit, saveAudit, outOfCombatAudit] = audits
   if (combatMeter.commands === 0) failures.push('combat: the room counted no commands.')
   const startCheckpoints = sum(Object.values(startMeter.checkpoints), (row) => row.count)
   if (starts === 0 || startCheckpoints === 0)
@@ -543,16 +557,18 @@ export async function verifyV15Budgets(proofName) {
       `outOfCombat: a ${Math.round(outOfCombat.durationMs / 1000)} s paced window with no save point made ${outOfCombatCheckpoints} checkpoints and ${outOfCombatCheckpointCalls} checkpoint calls reached Convex.`
     )
 
-  // One save is one Run's START or COMPLETE: the checkpoint ingestion of its window per measured
-  // save, however many pages a checkpoint splits into.
+  // One save is one Run's START, post-START or COMPLETE: the checkpoint ingestion of its window per
+  // measured Run, however many pages a checkpoint splits into.
   const costOfSave = (audit, saves) => {
     const { calls, ioBytes: bytes } = audit.byClass.checkpointIngestion ?? { calls: 0, ioBytes: 0 }
     return { saves, convexCalls: calls / saves, convexIoBytes: bytes / saves }
   }
   const startSave = startAudit && starts > 0 ? costOfSave(startAudit, starts) : null
+  const postStartSave = postStartAudit && starts > 0 ? costOfSave(postStartAudit, starts) : null
   const completeSave = saveAudit && completions > 0 ? costOfSave(saveAudit, completions) : null
   const unitCosts =
     startSave &&
+    postStartSave &&
     completeSave &&
     combatAudit &&
     outOfCombatAudit &&
@@ -562,9 +578,12 @@ export async function verifyV15Budgets(proofName) {
       ? {
           fightSaves: {
             start: startSave,
-            complete: { ...completeSave, commandsPerFight: combatMeter.commands / completions },
-            convexCalls: startSave.convexCalls + completeSave.convexCalls,
-            convexIoBytes: startSave.convexIoBytes + completeSave.convexIoBytes
+            postStart: postStartSave,
+            complete: completeSave,
+            convexCalls:
+              startSave.convexCalls + postStartSave.convexCalls + completeSave.convexCalls,
+            convexIoBytes:
+              startSave.convexIoBytes + postStartSave.convexIoBytes + completeSave.convexIoBytes
           },
           combat: perUnit(
             {
@@ -623,6 +642,7 @@ export async function verifyV15Budgets(proofName) {
     budgets,
     windows: {
       start: { ...startAudit, meter: startMeter },
+      postStart: postStartAudit,
       combat: { ...combatAudit, meter: combatMeter },
       save: { ...saveAudit, meter: saveMeter },
       outOfCombat: { ...outOfCombatAudit, meter: outOfCombatMeter }
@@ -658,10 +678,17 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const summary = await verifyV15Budgets(proofName)
     for (const name of windowNames) {
       const window = summary.windows[name]
+      // The post-START gap is read from the log alone; no room meter brackets it.
+      const meter = window.meter
+        ? `, ${window.meter.commands} room commands, ${window.meter.requestsBilled} billed Durable Object requests, ${window.meter.rowsRead} rows read, ${window.meter.rowsWritten} written`
+        : ''
       console.log(
-        `${name}: ${window.calls} Convex calls (${window.unToleratedCalls} outside checkpoints, authorization and sign-in), ${window.meter.commands} room commands, ${window.meter.requestsBilled} billed Durable Object requests, ${window.meter.rowsRead} rows read, ${window.meter.rowsWritten} written.`
+        `${name}: ${window.calls} Convex calls (${window.unToleratedCalls} outside checkpoints, authorization and sign-in)${meter}.`
       )
     }
+    console.log(
+      `Session estimate: ${Math.round(summary.sessionEstimate.estimate?.convexIoBytes ?? 0)} B of Convex I/O against ${budgets.convexIoBytesPerSession} B.`
+    )
     console.log(
       `Largest checkpoint document: ${summary.documents.largest.maxBytes} B (${summary.documents.largest.table}). Session estimate: ${summary.sessionEstimate.status}; weekly groups that fit: ${JSON.stringify(summary.sessionEstimate.weeklyGroupsThatFit ?? null)}.`
     )

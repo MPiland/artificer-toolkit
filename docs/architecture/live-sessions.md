@@ -1056,9 +1056,14 @@ paced out-of-combat window has no save point, so it must make no checkpoint and 
 reach Convex in it (ADR 0035 Amendment 25). The script also checks the largest checkpoint document
 against the Convex document limit with Q16 headroom, and the Convex I/O and Durable Object use per
 session against Q16's allowances. It reports unit costs (per combat command, per save, per out-of-combat
-minute, per checkpoint reason). A save is one Run's START or COMPLETE, counted from the aggregates the
-driver measured, not from checkpoint pages. The session estimate is `lifecycle + fights * (START save +
-COMPLETE save) + commands * combat + minutes * out-of-combat`; the close save is not measured. The
+minute, per checkpoint reason). A save is one Run's START, post-START or COMPLETE, counted from the
+aggregates the driver measured, not from checkpoint pages; the post-START saves are the checkpoint
+ingestion the log holds between a START window's close and the next marker (the preparation after START).
+Chat checkpoints (`checkpoint:publishChat`, `POST /live-sessions/chat-checkpoint`) count as checkpoint
+ingestion and land in the combat window, so they scale with commands. A COMPLETE save holds the Run's
+actors and Scene rows and the chat not yet pushed (bounded by the push window), so it does not scale
+with commands. The session estimate is `lifecycle + fights * (START save + post-START saves + COMPLETE
+save) + commands * combat + minutes * out-of-combat`; the close save is not measured. The
 model (`SESSION_MODEL`) and its overrides (`V15_ESTIMATE_FIGHTS`, `V15_ESTIMATE_COMBAT_COMMANDS`,
 `V15_ESTIMATE_OOC_MINUTES`, `V15_ESTIMATE_SESSION_HOURS`) describe how a table plays and are not
 measured. The out-of-combat pace is likewise a user-set assumption (`V15_OOC_STEPS_PER_MINUTE`,
