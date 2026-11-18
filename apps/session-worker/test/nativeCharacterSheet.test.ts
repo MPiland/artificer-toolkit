@@ -828,7 +828,7 @@ it("evicts a deleted account's player and removes its Character's actor before a
   expect(room.gm.socket.readyState).toBe(WebSocket.READY_STATE_OPEN)
 })
 
-it('admits a reconnecting member during an ACTIVE Run from the room, with no Run save and no capture (ADR 0035 Amendment 33)', async () => {
+it('admits a reconnecting member during an ACTIVE Run from the room, with no Run save and no capture (ADR 0035 Amendment 34)', async () => {
   const room = await sheetRoom()
   const [damaged] = await room.play(
     room.owner,
@@ -855,7 +855,7 @@ it('admits a reconnecting member during an ACTIVE Run from the room, with no Run
   expect(room.checkpoints).toHaveLength(fullSavesBefore)
 })
 
-it('refuses a removed member on reconnect during an ACTIVE Run (ADR 0035 Amendment 33)', async () => {
+it('refuses a removed member on reconnect during an ACTIVE Run (ADR 0035 Amendment 34)', async () => {
   const room = await sheetRoom()
   room.commitStrangerRemoval()
   const control = (operation: object) =>

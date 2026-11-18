@@ -31,6 +31,13 @@ export const liveRoomAuthorityRevisionsSchema = lazySchema(() =>
 const MAX_ROOM_INPUT_CHARACTERS = 128
 
 /**
+ * How far before its epoch's start the room reads chat entry headers, which it needs only to answer
+ * a resent command ID (the nonce) without posting twice. History older than this is a reader
+ * concern, so a hydrate never grows with the Campaign's history (ADR 0035 Amendment 33).
+ */
+export const LIVE_ROOM_CHAT_NONCE_WINDOW_MS = 24 * 60 * 60 * 1_000
+
+/**
  * Where a paged read resumes: the position in the read's fixed order (a Run table, or a Character
  * in the request's list) and that position's Convex pagination cursor. `null` starts at the first.
  */

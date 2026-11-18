@@ -148,7 +148,7 @@ export class RoomAdmissions {
       // Warm admission (Amendment 18): an already-admitted socket's fresh token is proven locally
       // against the Convex site keys and its membership comes from the room's current lease, so it
       // costs no flush, capture or authorization read. Anything unproven takes the cold path below.
-      // A new socket joins the same way while the room holds an ACTIVE Run (Amendment 33): its ticket
+      // A new socket joins the same way while the room holds an ACTIVE Run (Amendment 34): its ticket
       // proved membership when Convex issued it, the lease proves it still holds (one read when the
       // lease lapsed), and the room sends the Scene and state it holds.
       const joinsHeldRun =

@@ -656,7 +656,30 @@ rows). The modeled fight crosses the push window twice, so a fight saves twice a
 Risk accepted: the COMPLETE fold must still fit its checkpoints (Amendment 31), split by bytes and
 change count. Option C (a Run-only COMPLETE) is PERF-1.T10.
 
-**Amendment 33: a cold admission during an ACTIVE Run saves chat only and trusts the room (PERF-1.T16, D230 item 1).**
+**Amendment 33: room hydrate reads chat headers only from a resend window (PERF-1.T17, D230 item 3).**
+Hydrate paged every `campaignConversationEntries` row of the Campaign to return nonce metadata, so its
+cost grew with Campaign history (about 12 MB after ten sessions in the V15 audit). History is a reader
+concern, not a room input.
+
+- _Rule._ The `CHAT_METADATA` scope reads each conversation's entries from
+  `authority.createdAt - LIVE_ROOM_CHAT_NONCE_WINDOW_MS` (24 hours, `packages/schema`
+  `liveRoomInputs.ts`) through the existing `by_conversationId_createdAt_id` index. Conversations and
+  members are bounded by membership, not history, and stay whole. No index or persisted field changes.
+- _Why that anchor._ Convex holds no durable "last acknowledged checkpoint": the authority row is
+  deleted at release and replaced at storage recovery. The epoch start is stable for every page of one
+  hydrate, so cursors stay valid, and a 24 hour lookback covers chat that leads a storage-loss rebuild
+  (Amendment 32), an in-epoch rehydrate and a resend across a room release (idle release is 5 minutes).
+- _Dedupe._ A command ID is the entry's client nonce. The journal receipts cover the current epoch and
+  the hydrated headers cover the window before it, so a resend inside the window is replayed or refused
+  as before ("Stored conversation payload is unavailable." for a header-only hit).
+- _Residual._ A client that stays offline past the window while holding a committed but unacknowledged
+  chat command, then resends it, is a miss and posts again; Convex then rejects the duplicate nonce at
+  checkpoint ("Checkpoint conversation nonce already exists"). The window makes that require a day
+  offline; a future refinement is to carry the epoch in `STATE_SYNC` so the client drops pending chat
+  commands across epochs. Reader history is unchanged: entries older than the window stay in Convex and
+  are served by the chat reader.
+
+**Amendment 34: a cold admission during an ACTIVE Run saves chat only and trusts the room (PERF-1.T16, D230 item 1).**
 A new socket (join, reload, network drop) flushed the room's whole unsaved prefix, Run child rows
 included, to Convex through `flushOutbox('ADMISSION')`, called `capture`, and then published again in
 the background. COMPLETE read those rows back and deleted them: about 0.99 MB of the modelled V15
