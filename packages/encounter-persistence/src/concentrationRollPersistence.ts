@@ -1,9 +1,6 @@
 import { ruleCheckAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
-import {
-  campaignStoredEntryIdentitySchema,
-  campaignStoredEntryPayloadSchema
-} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import { campaignStoredEntrySchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { concentrationCheckRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { readActiveCampaignMembers } from './campaignMemberships.js'
 import { insertConversationEntry, openConversation } from './conversationPersistence.js'
@@ -71,38 +68,33 @@ export async function recordConcentrationCheckRoll(
     )
     .unique()
   if (prior) return null
-  const entryId = crypto.randomUUID()
   const members = await readActiveCampaignMembers(ctx.db.query('campaignMemberships'), campaign)
-  const header = campaignStoredEntryIdentitySchema.parse({
-    id: entryId,
-    campaignId: campaign.id,
-    conversationId: conversation.id,
-    authorUserId,
-    clientNonce: roll.id,
-    createdAt: new Date(
-      Math.max(Date.now(), ...members.map((member) => Date.parse(member.accessStartedAt)))
-    ).toISOString()
-  })
-  const payload = campaignStoredEntryPayloadSchema.parse({
-    entryId: header.id,
-    kind: 'ROLL',
-    mode: null,
-    body: null,
-    roll,
-    revealedByGm: false,
-    authorUsername: ruleCheckAuthorLabel,
-    characterId: null,
-    characterLabel: roll.characterLabel,
-    editedAt: null,
-    unsentAt: null,
-    consumedAt: null
-  })
-  const stored = await insertConversationEntry(ctx, header, payload)
-  const [entry] = presentChatEntries(
-    [{ header: stored, payload }],
-    conversation,
-    campaign.contentMaturity,
-    [ruleCheckAuthorLabel]
+  const stored = await insertConversationEntry(
+    ctx,
+    campaignStoredEntrySchema.parse({
+      id: crypto.randomUUID(),
+      campaignId: campaign.id,
+      conversationId: conversation.id,
+      authorUserId,
+      clientNonce: roll.id,
+      createdAt: new Date(
+        Math.max(Date.now(), ...members.map((member) => Date.parse(member.accessStartedAt)))
+      ).toISOString(),
+      kind: 'ROLL',
+      mode: null,
+      body: null,
+      roll,
+      revealedByGm: false,
+      authorUsername: ruleCheckAuthorLabel,
+      characterId: null,
+      characterLabel: roll.characterLabel,
+      editedAt: null,
+      unsentAt: null,
+      consumedAt: null
+    })
   )
+  const [entry] = presentChatEntries([stored], conversation, campaign.contentMaturity, [
+    ruleCheckAuthorLabel
+  ])
   return entry!
 }

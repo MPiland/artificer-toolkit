@@ -1,4 +1,4 @@
-import { buildConversationEntryRecords } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
+import { buildConversationEntry } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
 import {
   openConversation,
   insertConversationEntry,
@@ -188,24 +188,23 @@ export async function executeRoomCampaignChatCommand(input: {
   const postEntry = async (
     access: Awaited<ReturnType<typeof openConversation>>,
     clientNonce: string,
-    content: Parameters<typeof buildConversationEntryRecords>[0]['content']
+    content: Parameters<typeof buildConversationEntry>[0]['content']
   ) => {
-    const { identity, payload } = buildConversationEntryRecords({
-      campaignId,
-      conversationId: access.conversation.id,
-      authorUserId: userId,
-      clientNonce,
-      createdAt,
-      username,
-      content
-    })
-    const stored = await insertConversationEntry(ctx, identity, payload)
-    const [entry] = presentChatEntries(
-      [{ header: stored, payload }],
-      access.conversation,
-      campaign.contentMaturity,
-      [username]
+    const stored = await insertConversationEntry(
+      ctx,
+      buildConversationEntry({
+        campaignId,
+        conversationId: access.conversation.id,
+        authorUserId: userId,
+        clientNonce,
+        createdAt,
+        username,
+        content
+      })
     )
+    const [entry] = presentChatEntries([stored], access.conversation, campaign.contentMaturity, [
+      username
+    ])
     return entry!
   }
 

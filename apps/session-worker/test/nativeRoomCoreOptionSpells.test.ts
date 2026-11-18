@@ -993,7 +993,7 @@ async function initiativeOrder(room: ActionRoom) {
     const store = new RoomEncounterStore(context.storage)
     return {
       participants: store.documents('encounterInitiativeParticipants'),
-      payloads: store.documents('campaignConversationEntryPayloads')
+      entries: store.documents('campaignConversationEntries')
     }
   })
   return {
@@ -1001,8 +1001,8 @@ async function initiativeOrder(room: ActionRoom) {
     participants: stored.participants
       .filter(({ round }) => round === state.round)
       .sort((a, b) => (a.turnOrderOrdinal ?? 0) - (b.turnOrderOrdinal ?? 0)),
-    cards: stored.payloads.flatMap((payload) =>
-      payload.kind === 'ROLL' && payload.roll?.source.kind === 'INITIATIVE' ? [payload.roll] : []
+    cards: stored.entries.flatMap((entry) =>
+      entry.kind === 'ROLL' && entry.roll?.source.kind === 'INITIATIVE' ? [entry.roll] : []
     )
   }
 }

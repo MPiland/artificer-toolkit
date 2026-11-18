@@ -78,9 +78,9 @@ async function projectionFor(base: Fixture, caller: RoomCaller) {
 async function ruleCheckRolls(base: Fixture) {
   await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => ({
-    table: (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap((payload) =>
-      payload.roll?.ruleCheck?.kind === 'CONCENTRATION'
-        ? [{ ...payload.roll, ruleCheck: payload.roll.ruleCheck }]
+    table: (await ctx.db.query('campaignConversationEntries').collect()).flatMap((entry) =>
+      entry.roll?.ruleCheck?.kind === 'CONCENTRATION'
+        ? [{ ...entry.roll, ruleCheck: entry.roll.ruleCheck }]
         : []
     ),
     gm: (

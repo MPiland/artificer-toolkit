@@ -11,7 +11,7 @@ import {
   type ListCampaignChatEntriesInput,
   type SendCampaignChatEntryInput
 } from '@artificer-toolkit/schema/api/campaignCommunication'
-import { buildConversationEntryRecords } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
+import { buildConversationEntry } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
@@ -28,7 +28,6 @@ import {
   presentChatEntries,
   presentChatEntry,
   readConversationEntryReplay,
-  readEntryPayload,
   readCampaignAccessTime
 } from './conversationDocuments'
 import { consumeUserRateLimit } from '../lib/rateLimits'
@@ -93,20 +92,13 @@ export async function readCampaignChatPage(
           .order('desc')
           .take(wanted - tied.length)
       : []
-  const headers = [...tied, ...older]
-  if (headers.some((header) => header.campaignId !== room.campaignId))
+  const found = [...tied, ...older]
+  if (found.some((entry) => entry.campaignId !== room.campaignId))
     throw new Error('Stored conversation history mismatch.')
-  const page = headers.slice(0, input.limit)
+  const page = found.slice(0, input.limit)
   return {
-    entries: await presentChatEntries(
-      ctx,
-      await Promise.all(
-        page.map(async (header) => ({ header, payload: await readEntryPayload(ctx, header.id) }))
-      ),
-      room,
-      authority.campaign.contentMaturity
-    ),
-    nextCursor: headers.length > input.limit ? page.at(-1)!.id : null,
+    entries: await presentChatEntries(ctx, page, room, authority.campaign.contentMaturity),
+    nextCursor: found.length > input.limit ? page.at(-1)!.id : null,
     ...status
   }
 }
@@ -144,14 +136,7 @@ export async function postCampaignChatEntry(
   const { conversation } = access
   const clientNonce = input.clientNonce.toLowerCase()
   const prior = await readConversationEntryReplay(ctx, access, userId, clientNonce, 'CHAT')
-  if (prior)
-    return presentChatEntry(
-      ctx,
-      prior.header,
-      prior.payload,
-      conversation,
-      authority.campaign.contentMaturity
-    )
+  if (prior) return presentChatEntry(ctx, prior, conversation, authority.campaign.contentMaturity)
   const now = await readCampaignAccessTime(ctx, authority.campaign)
   await consumeUserRateLimit(ctx, 'campaignConversation', userId)
   const character =
@@ -164,17 +149,19 @@ export async function postCampaignChatEntry(
   )
     throw new Error('Assigned Character is unavailable.')
   requireCampaignAuthorUsername(username)
-  const { identity: header, payload } = buildConversationEntryRecords({
-    campaignId: authority.campaign.id,
-    conversationId: conversation.id,
-    authorUserId: userId,
-    clientNonce,
-    createdAt: new Date(now).toISOString(),
-    username,
-    content: { kind: 'CHAT', mode: input.mode, body: input.body, character }
-  })
-  const stored = await insertConversationEntry(ctx, header, payload)
-  return presentChatEntry(ctx, stored, payload, conversation, authority.campaign.contentMaturity)
+  const stored = await insertConversationEntry(
+    ctx,
+    buildConversationEntry({
+      campaignId: authority.campaign.id,
+      conversationId: conversation.id,
+      authorUserId: userId,
+      clientNonce,
+      createdAt: new Date(now).toISOString(),
+      username,
+      content: { kind: 'CHAT', mode: input.mode, body: input.body, character }
+    })
+  )
+  return presentChatEntry(ctx, stored, conversation, authority.campaign.contentMaturity)
 }
 
 async function mutableChatEntry(
@@ -185,24 +172,23 @@ async function mutableChatEntry(
 ) {
   const authority = await requireCampaignAuthority(ctx, campaignId, userId)
   if (authority.campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-  const header = await ctx.db
+  const entry = await ctx.db
     .query('campaignConversationEntries')
     .withIndex('by_publicId', (q) => q.eq('id', entryId.toLowerCase()))
     .unique()
-  if (!header || header.campaignId !== authority.campaign.id || header.authorUserId !== userId)
+  if (!entry || entry.campaignId !== authority.campaign.id || entry.authorUserId !== userId)
     throw new Error('Chat entry not found.')
   const conversation = await ctx.db
     .query('campaignConversations')
-    .withIndex('by_publicId', (q) => q.eq('id', header.conversationId))
+    .withIndex('by_publicId', (q) => q.eq('id', entry.conversationId))
     .unique()
   if (!conversation) throw new Error('Conversation not found.')
   const access = await conversationAccess(ctx, authority, conversation)
-  if (!access || header.createdAt < access.member.accessStartedAt)
+  if (!access || entry.createdAt < access.member.accessStartedAt)
     throw new Error('Chat entry not found.')
-  const payload = await readEntryPayload(ctx, header.id)
-  if (payload.kind !== 'CHAT' || payload.unsentAt !== null)
+  if (entry.kind !== 'CHAT' || entry.unsentAt !== null)
     throw new Error('Chat entry cannot be changed.')
-  return { authority, header, payload, conversation }
+  return { authority, entry, conversation }
 }
 
 export const edit = mutation({
@@ -211,20 +197,19 @@ export const edit = mutation({
   handler: async (ctx, args): Promise<CampaignChatEntryDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = editCampaignChatEntryInputSchema.parse(args)
-    const { authority, header, payload, conversation } = await mutableChatEntry(
+    const { authority, entry, conversation } = await mutableChatEntry(
       ctx,
       input.campaignId,
       input.entryId,
       userId
     )
-    if (Date.now() - Date.parse(header.createdAt) > 15 * 60_000)
+    if (Date.now() - Date.parse(entry.createdAt) > 15 * 60_000)
       throw new Error('Chat entries can only be edited for 15 minutes.')
     const patch = { body: input.body, editedAt: new Date().toISOString() }
-    await ctx.db.patch(payload._id, patch)
+    await ctx.db.patch(entry._id, patch)
     return presentChatEntry(
       ctx,
-      header,
-      { ...payload, ...patch },
+      { ...entry, ...patch },
       conversation,
       authority.campaign.contentMaturity
     )
@@ -237,20 +222,19 @@ export const unsend = mutation({
   handler: async (ctx, args): Promise<CampaignChatEntryDto> => {
     const { userId } = await requireIdentity(ctx)
     const input = unsendCampaignChatEntryInputSchema.parse(args)
-    const { authority, header, payload, conversation } = await mutableChatEntry(
+    const { authority, entry, conversation } = await mutableChatEntry(
       ctx,
       input.campaignId,
       input.entryId,
       userId
     )
-    if (Date.now() - Date.parse(header.createdAt) > 5 * 60_000)
+    if (Date.now() - Date.parse(entry.createdAt) > 5 * 60_000)
       throw new Error('Chat entries can only be unsent for 5 minutes.')
     const patch = { body: null, unsentAt: new Date().toISOString() }
-    await ctx.db.patch(payload._id, patch)
+    await ctx.db.patch(entry._id, patch)
     return presentChatEntry(
       ctx,
-      header,
-      { ...payload, ...patch },
+      { ...entry, ...patch },
       conversation,
       authority.campaign.contentMaturity
     )

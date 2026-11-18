@@ -45,7 +45,7 @@ import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/json
 import {
   campaignStoredConversationSchema,
   campaignStoredConversationMemberSchema,
-  campaignStoredEntryHeaderSchema
+  campaignStoredEntrySchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { ruleCapabilityReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleState'
@@ -981,7 +981,6 @@ describe('room inputs (ADR 0035 S2)', () => {
   describe('chat metadata hydration', () => {
     const conversationId = uuid(0x710)
     const nonce = uuid(0x711)
-    const fingerprint = sha256Hex('retained native table-roll nonce evidence')
     const timestamp = '2026-09-29T00:00:00.000Z'
     function metadata(): LiveRoomInputsDocument[] {
       return [
@@ -1013,21 +1012,30 @@ describe('room inputs (ADR 0035 S2)', () => {
           table: 'campaignConversationEntries',
           id: 'chat:header',
           creationTime: 0,
-          fields: campaignStoredEntryHeaderSchema.parse({
+          fields: campaignStoredEntrySchema.parse({
             id: uuid(0x712),
             campaignId: CAMPAIGN,
             conversationId,
             authorUserId: uuid(4),
             createdAt: timestamp,
             clientNonce: nonce,
-            kind: 'ROLL',
-            rollNonceFingerprint: fingerprint
+            kind: 'CHAT',
+            mode: 'OOC',
+            body: 'Historical table talk',
+            roll: null,
+            revealedByGm: false,
+            authorUsername: 'Author',
+            characterId: null,
+            characterLabel: null,
+            editedAt: null,
+            unsentAt: null,
+            consumedAt: null
           })
         }
       ]
     }
 
-    it('hydrates paged nonce headers and reads their native index after SQLite eviction without historical payloads', async () => {
+    it('hydrates paged entries and reads their native nonce index after SQLite eviction', async () => {
       const convex = open([])
       convex.state.chatMetadata = metadata()
       await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })
@@ -1035,7 +1043,7 @@ describe('room inputs (ADR 0035 S2)', () => {
       expect(count(convex.reads, 'CHAT_METADATA')).toBe(1)
       expect(convex.store.documents('campaignConversations')).toHaveLength(1)
       expect(convex.store.documents('campaignConversationMembers')).toHaveLength(1)
-      expect(convex.store.documents('campaignConversationEntryPayloads')).toEqual([])
+      expect(convex.store.documents('campaignConversationEntries')).toHaveLength(1)
       expect(convex.store.records('ROOM_INPUT').map(({ key }) => key)).not.toContain(
         'CHAT_METADATA'
       )
@@ -1043,16 +1051,13 @@ describe('room inputs (ADR 0035 S2)', () => {
       convex.reads.length = 0
       convex.loads.length = 0
       const restarted = new RoomEncounterStore(convex.storage)
-      const header = await restarted.store
+      const entry = await restarted.store
         .query('campaignConversationEntries')
         .withIndex('by_campaignId_authorUserId_clientNonce', (query) =>
           query.eq('campaignId', CAMPAIGN).eq('authorUserId', uuid(4)).eq('clientNonce', nonce)
         )
         .unique()
-      expect(header).toMatchObject({ id: uuid(0x712), rollNonceFingerprint: fingerprint })
-      expect(header).not.toHaveProperty('roll')
-      expect(header).not.toHaveProperty('body')
-      expect(restarted.documents('campaignConversationEntryPayloads')).toEqual([])
+      expect(entry).toMatchObject({ id: uuid(0x712), body: 'Historical table talk' })
       expect(restarted.checksum).toBe(checksum)
       expect(convex.reads).toEqual([])
       expect(convex.loads).toEqual([])
@@ -1082,7 +1087,7 @@ describe('room inputs (ADR 0035 S2)', () => {
       const rows = metadata()
       switch (corruption) {
         case 'unknown table':
-          rows[2]!.table = 'campaignConversationEntryPayloads'
+          rows[2]!.table = 'campaignNotebookSections'
           break
         case 'mixed Campaign':
           rows[2]!.fields.campaignId = uuid(0x799)
@@ -1113,7 +1118,7 @@ describe('room inputs (ADR 0035 S2)', () => {
           })
           break
         case 'invalid header schema':
-          rows[2]!.fields.rollNonceFingerprint = null
+          rows[2]!.fields.kind = 'ROLL'
           break
       }
       convex.state.chatMetadata = rows

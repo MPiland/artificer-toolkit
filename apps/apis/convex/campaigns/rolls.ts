@@ -12,7 +12,7 @@ import {
   rollRecordDtoSchema,
   type RollHistoryEntryDto
 } from '@artificer-toolkit/schema/api/rolls'
-import { buildConversationEntryRecords } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
+import { buildConversationEntry } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
 import {
   readRollNoticeCreatureLabel,
   readRollRevealRefusal,
@@ -104,7 +104,7 @@ async function insertRollEntry(
     username: string
     clientNonce: string
     content: Extract<
-      Parameters<typeof buildConversationEntryRecords>[0]['content'],
+      Parameters<typeof buildConversationEntry>[0]['content'],
       { kind: 'ROLL' | 'ROLL_NOTICE' }
     >
   }
@@ -112,23 +112,19 @@ async function insertRollEntry(
   const { authority, access } = entry
   const now = await readCampaignAccessTime(ctx, authority.campaign)
   await consumeUserRateLimit(ctx, 'campaignConversation', entry.userId)
-  const { identity: header, payload } = buildConversationEntryRecords({
-    campaignId: authority.campaign.id,
-    conversationId: access.conversation.id,
-    authorUserId: entry.userId,
-    clientNonce: entry.clientNonce,
-    createdAt: new Date(now).toISOString(),
-    username: entry.username,
-    content: entry.content
-  })
-  const stored = await insertConversationEntry(ctx, header, payload)
-  return presentChatEntry(
+  const stored = await insertConversationEntry(
     ctx,
-    stored,
-    payload,
-    access.conversation,
-    authority.campaign.contentMaturity
+    buildConversationEntry({
+      campaignId: authority.campaign.id,
+      conversationId: access.conversation.id,
+      authorUserId: entry.userId,
+      clientNonce: entry.clientNonce,
+      createdAt: new Date(now).toISOString(),
+      username: entry.username,
+      content: entry.content
+    })
   )
+  return presentChatEntry(ctx, stored, access.conversation, authority.campaign.contentMaturity)
 }
 
 export { insertPreEvaluatedCampaignTableRoll } from './tableRoll'
@@ -164,13 +160,7 @@ export const execute = mutation({
     const clientNonce = input.clientNonce.toLowerCase()
     const replay = await readConversationEntryReplay(ctx, access, userId, clientNonce, 'ROLL')
     if (replay)
-      return presentChatEntry(
-        ctx,
-        replay.header,
-        replay.payload,
-        access.conversation,
-        authority.campaign.contentMaturity
-      )
+      return presentChatEntry(ctx, replay, access.conversation, authority.campaign.contentMaturity)
     requireCampaignAuthorUsername(actor.username)
     const { record } = await evaluateCampaignRoll(
       ctx,
@@ -286,18 +276,9 @@ export const reveal = mutation({
       input.mode === 'FULL' ? 'ROLL' : 'ROLL_NOTICE'
     )
     if (replay) {
-      if (
-        input.mode === 'FULL' &&
-        (!replay.payload.revealedByGm || replay.payload.roll?.id !== retained.id)
-      )
+      if (input.mode === 'FULL' && (!replay.revealedByGm || replay.roll?.id !== retained.id))
         throw new Error('Chat nonce was used with a different roll.')
-      return presentChatEntry(
-        ctx,
-        replay.header,
-        replay.payload,
-        access.conversation,
-        authority.campaign.contentMaturity
-      )
+      return presentChatEntry(ctx, replay, access.conversation, authority.campaign.contentMaturity)
     }
     const refusal = readRollRevealRefusal(gmCampaignRoll, input.mode)
     if (refusal) throw new Error(refusal)

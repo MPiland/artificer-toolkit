@@ -53,18 +53,29 @@ const response = (
   io: NO_CHECKPOINT_IO
 })
 
+const chatEntry = (ordinal: number) => ({
+  id: uuid(0x900 + ordinal),
+  campaignId: CAMPAIGN,
+  conversationId: uuid(0x800),
+  authorUserId: uuid(0x801),
+  createdAt: '2026-09-01T00:00:00.000Z',
+  clientNonce: uuid(0xa00 + ordinal),
+  kind: 'CHAT' as const,
+  mode: 'OOC' as const,
+  body: 'Hello table',
+  roll: null,
+  revealedByGm: false,
+  authorUsername: 'Author',
+  characterId: null,
+  characterLabel: null,
+  editedAt: null,
+  unsentAt: null,
+  consumedAt: null
+})
+
 const chat = (room: RoomEncounterStore, ordinal: number) =>
   room.transact(async () => {
-    await room.store.insert('campaignConversationEntries', {
-      id: uuid(0x900 + ordinal),
-      campaignId: CAMPAIGN,
-      conversationId: uuid(0x800),
-      authorUserId: uuid(0x801),
-      createdAt: '2026-09-01T00:00:00.000Z',
-      clientNonce: uuid(0xa00 + ordinal),
-      kind: 'CHAT',
-      rollNonceFingerprint: null
-    })
+    await room.store.insert('campaignConversationEntries', chatEntry(ordinal))
   })
 
 const roll = (ordinal: number) => ({
@@ -273,16 +284,7 @@ describe('mid-Run chat save (ADR 0035 Amendment 32)', () => {
           table: 'campaignConversationEntries',
           id: 'convex:chat:1',
           creationTime: 1_790_000_000_000,
-          fields: {
-            id: uuid(0x901),
-            campaignId: CAMPAIGN,
-            conversationId: uuid(0x800),
-            authorUserId: uuid(0x801),
-            createdAt: '2026-09-01T00:00:00.000Z',
-            clientNonce: uuid(0xa01),
-            kind: 'CHAT',
-            rollNonceFingerprint: null
-          }
+          fields: chatEntry(1)
         }
       ]
     })

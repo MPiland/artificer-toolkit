@@ -123,13 +123,7 @@ it('settles a bound move, its answer and a GM skip through the room, naming who 
       )
       .unique()
   )
-  const payload = await value.base.t.run((ctx) =>
-    ctx.db
-      .query('campaignConversationEntryPayloads')
-      .withIndex('by_entryId', (q) => q.eq('entryId', chat!.id))
-      .unique()
-  )
-  expect(payload).toMatchObject({ kind: 'CHAT', body: MOVEMENT_DECISION_SKIPPED_MESSAGE })
+  expect(chat).toMatchObject({ kind: 'CHAT', body: MOVEMENT_DECISION_SKIPPED_MESSAGE })
   // The decision read model records who settled each decision, for the player's drawer (D39).
   const settlement = (decision: { occurrenceId: string; occurrenceVersion: number }) =>
     value.player.caller.query(decisionSettlement, {

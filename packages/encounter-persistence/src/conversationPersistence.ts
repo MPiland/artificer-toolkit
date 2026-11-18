@@ -2,9 +2,7 @@ import type { CampaignConversationDto } from '@artificer-toolkit/schema/api/camp
 import {
   campaignStoredConversationSchema,
   campaignStoredConversationMemberSchema,
-  createCampaignEntryHeader,
-  type campaignStoredEntryIdentitySchema,
-  type campaignStoredEntryPayloadSchema
+  type campaignStoredEntrySchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import type { CampaignAuthority } from './ports.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
@@ -155,9 +153,9 @@ export async function readConversationEntryReplay(
   { conversation, member }: NonNullable<Awaited<ReturnType<typeof conversationAccess>>>,
   authorUserId: string,
   clientNonce: string,
-  kind: EncounterDocument<'campaignConversationEntryPayloads'>['kind']
+  kind: EncounterDocument<'campaignConversationEntries'>['kind']
 ) {
-  const header = await ctx.db
+  const entry = await ctx.db
     .query('campaignConversationEntries')
     .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
       q
@@ -166,45 +164,38 @@ export async function readConversationEntryReplay(
         .eq('clientNonce', clientNonce)
     )
     .unique()
-  if (!header) return null
-  if (header.conversationId !== conversation.id)
+  if (!entry) return null
+  if (entry.conversationId !== conversation.id)
     throw new Error('Chat nonce was used in another conversation.')
-  if (header.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
-  const payload = await ctx.db
-    .query('campaignConversationEntryPayloads')
-    .withIndex('by_entryId', (q) => q.eq('entryId', header.id))
-    .unique()
-  if (!payload) throw new Error('Stored conversation payload is unavailable.')
-  if (payload.kind !== kind) throw new Error('Chat nonce was used for a different entry kind.')
-  return { header, payload }
+  if (entry.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
+  if (entry.kind !== kind) throw new Error('Chat nonce was used for a different entry kind.')
+  return entry
 }
 
 /**
- * Text and rolls write both halves of an entry together in the caller's transaction. Entries read
- * back by (createdAt, id), so an entry is stamped at least 1 ms after the conversation's newest one:
+ * Text and rolls write one document in the caller's transaction. Entries read back by
+ * (createdAt, id), so an entry is stamped at least 1 ms after the conversation's newest one:
  * same-millisecond writers keep insertion order instead of falling to the random id. Returns the
- * stamped identity; present that, not the proposed one.
+ * stamped entry; present that, not the proposed one.
  */
 export async function insertConversationEntry(
   ctx: EncounterWriteContext,
-  identity: ReturnType<typeof campaignStoredEntryIdentitySchema.parse>,
-  payload: ReturnType<typeof campaignStoredEntryPayloadSchema.parse>
+  entry: ReturnType<typeof campaignStoredEntrySchema.parse>
 ) {
   const newest = await ctx.db
     .query('campaignConversationEntries')
     .withIndex('by_conversationId_createdAt_id', (q) =>
-      q.eq('conversationId', identity.conversationId)
+      q.eq('conversationId', entry.conversationId)
     )
     .order('desc')
     .first()
   const stamped = {
-    ...identity,
+    ...entry,
     createdAt:
-      newest && newest.createdAt >= identity.createdAt
+      newest && newest.createdAt >= entry.createdAt
         ? new Date(Date.parse(newest.createdAt) + 1).toISOString()
-        : identity.createdAt
+        : entry.createdAt
   }
-  await ctx.db.insert('campaignConversationEntries', createCampaignEntryHeader(stamped, payload))
-  await ctx.db.insert('campaignConversationEntryPayloads', payload)
+  await ctx.db.insert('campaignConversationEntries', stamped)
   return stamped
 }

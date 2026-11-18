@@ -2285,8 +2285,8 @@ describe('Assisted soft enforcement', () => {
 
     await checkpointLiveRoom(base.campaign.id)
     const cards = await base.t.run(async (ctx) => ({
-      table: (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap(
-        (payload) => (payload.roll?.ruleCheck?.kind === 'D20_MODE_ADJUSTED' ? [payload.roll] : [])
+      table: (await ctx.db.query('campaignConversationEntries').collect()).flatMap((entry) =>
+        entry.roll?.ruleCheck?.kind === 'D20_MODE_ADJUSTED' ? [entry.roll] : []
       ),
       gm: (
         await ctx.db

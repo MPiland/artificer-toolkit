@@ -45,10 +45,7 @@ import { applyCheckpointPrivateRolls } from './checkpointPrivateRolls'
 import { reconcileCharacterHolds } from './characterHolds'
 import {
   campaignStoredConversationSchema,
-  campaignStoredEntryHeaderSchema,
-  campaignStoredEntryIdentitySchema,
-  campaignStoredEntryPayloadSchema,
-  createCampaignEntryHeader
+  campaignStoredEntrySchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 
 interface CheckpointIndexRange extends IndexRange {
@@ -269,15 +266,10 @@ export async function applyCheckpointRecords(
     if (owner && assignment && owner !== assignment.userId)
       throw new Error('Checkpoint Character owner does not match.')
   }
-  // Every entry and payload of a save names the same few conversations; Convex bills each re-read.
+  // Every entry of a save names the same few conversations; Convex bills each re-read.
   const storedConversationRecords = new Map<string, Record<string, JsonValue> | null>()
-  const readConversationRecord = async (
-    table:
-      | 'campaignConversations'
-      | 'campaignConversationEntries'
-      | 'campaignConversationEntryPayloads',
-    id: string
-  ) => {
+  const readConversationRecord = async (id: string) => {
+    const table = 'campaignConversations'
     const identity = `${table}:${canonicalizeJson([id])}`
     if (nextRows.has(identity)) return nextRows.get(identity) ?? null
     if (storedConversationRecords.has(identity))
@@ -292,40 +284,12 @@ export async function applyCheckpointRecords(
     return record
   }
   const requireConversation = async (id: string) => {
-    const record = await readConversationRecord('campaignConversations', id)
+    const record = await readConversationRecord(id)
     if (!record) throw new Error('Checkpoint conversation is missing.')
     const conversation = campaignStoredConversationSchema.parse(record)
     if (conversation.campaignId !== frame.campaignId)
       throw new Error('Checkpoint conversation belongs to another Campaign.')
     return conversation
-  }
-  const requireConversationEntry = async (id: string) => {
-    const record = await readConversationRecord('campaignConversationEntries', id)
-    if (!record) throw new Error('Checkpoint conversation entry is missing.')
-    const header = campaignStoredEntryHeaderSchema.parse(record)
-    if (header.campaignId !== frame.campaignId)
-      throw new Error('Checkpoint conversation entry belongs to another Campaign.')
-    await requireConversation(header.conversationId)
-    return header
-  }
-  const validateConversationPayload = async (id: string) => {
-    const header = await requireConversationEntry(id)
-    const record = await readConversationRecord('campaignConversationEntryPayloads', id)
-    if (!record) throw new Error('Checkpoint conversation payload is missing.')
-    const payload = campaignStoredEntryPayloadSchema.parse(record)
-    const identity = campaignStoredEntryIdentitySchema.parse({
-      id: header.id,
-      campaignId: header.campaignId,
-      conversationId: header.conversationId,
-      authorUserId: header.authorUserId,
-      createdAt: header.createdAt,
-      clientNonce: header.clientNonce
-    })
-    if (
-      checksumCanonicalJson(header) !==
-      checksumCanonicalJson(createCampaignEntryHeader(identity, payload))
-    )
-      throw new Error('Checkpoint conversation nonce evidence does not match its payload.')
   }
   // A save's Scene binding and every token binding name the same Scene.
   const checkedScenes = new Set<string>()
@@ -336,10 +300,8 @@ export async function applyCheckpointRecords(
     else if (typeof value.encounterId === 'string') await requireEncounter(value.encounterId)
     if (table === 'campaignConversationMembers' || table === 'campaignConversationEntries')
       await requireConversation(String(value.conversationId))
-    if (table === 'campaignConversationEntryPayloads')
-      await requireConversationEntry(String(value.entryId))
     // A message-time Character snapshot may survive assignment departure.
-    if (table !== 'campaignConversationEntryPayloads' && typeof value.characterId === 'string')
+    if (table !== 'campaignConversationEntries' && typeof value.characterId === 'string')
       await requireCharacter(
         value.characterId,
         typeof value.userId === 'string' ? value.userId : undefined
@@ -386,15 +348,15 @@ export async function applyCheckpointRecords(
       newConversationKeys.add(key)
     }
     if (!row && next && change.table === 'campaignConversationEntries') {
-      const header = campaignStoredEntryHeaderSchema.parse(next)
-      const key = canonicalizeJson([header.campaignId, header.authorUserId, header.clientNonce])
+      const entry = campaignStoredEntrySchema.parse(next)
+      const key = canonicalizeJson([entry.campaignId, entry.authorUserId, entry.clientNonce])
       const prior = await ctx.db
         .query('campaignConversationEntries')
         .withIndex('by_campaignId_authorUserId_clientNonce', (q) =>
           q
-            .eq('campaignId', header.campaignId)
-            .eq('authorUserId', header.authorUserId)
-            .eq('clientNonce', header.clientNonce)
+            .eq('campaignId', entry.campaignId)
+            .eq('authorUserId', entry.authorUserId)
+            .eq('clientNonce', entry.clientNonce)
         )
         .unique()
       if (prior || newEntryNonceKeys.has(key))
@@ -404,18 +366,10 @@ export async function applyCheckpointRecords(
     if (
       row &&
       !next &&
-      [
-        'campaignConversations',
-        'campaignConversationEntries',
-        'campaignConversationEntryPayloads'
-      ].includes(change.table)
+      ['campaignConversations', 'campaignConversationEntries'].includes(change.table)
     )
       throw new Error('Checkpoint cannot delete retained conversation history.')
-    if (
-      row &&
-      next &&
-      (change.table === 'campaignConversations' || change.table === 'campaignConversationEntries')
-    ) {
+    if (row && next && change.table === 'campaignConversations') {
       const { _id, _creationTime, ...fields } = row
       if (
         checksumCanonicalJson(fields) !==
@@ -423,23 +377,41 @@ export async function applyCheckpointRecords(
       )
         throw new Error('Checkpoint conversation identity and nonce headers are immutable.')
     }
-    if (row && next && change.table === 'campaignConversationEntryPayloads') {
+    if (row && next && change.table === 'campaignConversationEntries') {
       const { _id, _creationTime, ...fields } = row
-      const previous = campaignStoredEntryPayloadSchema.parse(fields)
-      if (previous.kind !== next.kind)
-        throw new Error('Checkpoint conversation payload kind cannot change.')
+      const previous = campaignStoredEntrySchema.parse(fields)
+      const changed = campaignStoredEntrySchema.parse(next)
       if (
-        previous.kind === 'CHAT' &&
-        (['mode', 'authorUsername', 'characterLabel', 'revealedByGm', 'consumedAt'] as const).some(
-          (field) => previous[field] !== next[field]
-        )
+        (
+          [
+            'id',
+            'campaignId',
+            'conversationId',
+            'authorUserId',
+            'createdAt',
+            'clientNonce'
+          ] as const
+        ).some((field) => previous[field] !== changed[field])
       )
-        throw new Error('Checkpoint CHAT message-time snapshots are immutable.')
+        throw new Error('Checkpoint conversation identity and nonce headers are immutable.')
+      if (previous.kind !== changed.kind)
+        throw new Error('Checkpoint conversation payload kind cannot change.')
+      // Only an edit, an unsend, a GM reveal or a rest settlement may change an entry; every other
+      // field is the message-time snapshot or the roll's retry evidence.
+      const immutableFields = (entry: typeof previous) => {
+        const { body, editedAt, unsentAt, revealedByGm, consumedAt, ...retained } = entry
+        return entry.kind === 'CHAT'
+          ? { ...retained, revealedByGm, consumedAt }
+          : { ...retained, body, editedAt, unsentAt }
+      }
+      if (
+        checksumCanonicalJson(immutableFields(previous)) !==
+        checksumCanonicalJson(immutableFields(changed))
+      )
+        throw new Error('Checkpoint message-time snapshots and roll evidence are immutable.')
     }
     if (next && change.table === 'campaignConversationEntries')
-      await validateConversationPayload(String(next.id))
-    if (next && change.table === 'campaignConversationEntryPayloads')
-      await validateConversationPayload(String(next.entryId))
+      await requireConversation(campaignStoredEntrySchema.parse(next).conversationId)
   }
   const ledgers = new Map<string, LiveSessionCheckpointRecords['history']>()
   for (const entry of records.history) {

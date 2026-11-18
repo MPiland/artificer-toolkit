@@ -295,7 +295,7 @@ const CHAT_METADATA_TABLES: ReadonlyArray<{ table: EncounterTableName; query: Ru
   }
 ]
 
-/** Only access and nonce metadata hydrate; historical text and roll payloads stay in Convex. */
+/** Conversations, members and entries hydrate whole: an entry is one document (PERF-1.T9). */
 async function readChatMetadataPage(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,

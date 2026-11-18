@@ -3,7 +3,6 @@ import { campaignAnnouncementDtoSchema } from '../api/campaignAnnouncements.js'
 import { campaignChatEntryDtoSchema } from '../api/campaignCommunication.js'
 import { timestampSchema, uuidSchema } from '../api/campaignContractSchemas.js'
 import { projectionChecksumSchema } from './identity.js'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 export const campaignStoredConversationSchema = lazySchema(() =>
   z
@@ -43,39 +42,19 @@ export const campaignStoredAnnouncementSchema = lazySchema(() =>
   })
 )
 
-// Counts and retention read only these compact rows, not 500 message/roll payloads per room.
-export const campaignStoredEntryIdentitySchema = lazySchema(() =>
-  z.extend(
-    z.pick(campaignChatEntryDtoSchema, {
-      id: true,
-      campaignId: true,
-      conversationId: true,
-      authorUserId: true,
-      createdAt: true
-    }),
-    { clientNonce: uuidSchema }
-  )
-)
-
-/** Compact nonce evidence is read without loading old roll/message bodies. */
-export const campaignStoredEntryHeaderSchema = lazySchema(() =>
-  z
-    .extend(campaignStoredEntryIdentitySchema, {
-      kind: campaignChatEntryDtoSchema.shape.kind,
-      rollNonceFingerprint: z.nullable(projectionChecksumSchema)
-    })
-    .check(
-      z.superRefine((header, context) => {
-        if ((header.kind === 'ROLL') !== (header.rollNonceFingerprint !== null))
-          context.addIssue({ code: 'custom', message: 'Invalid Campaign chat nonce evidence.' })
-      })
-    )
-)
-
-export const campaignStoredEntryPayloadSchema = lazySchema(() =>
+/**
+ * One chat or roll entry as one document (D229 step 2): each stored row bills its own index rows, so
+ * identity, text or roll, and snapshots persist together under three indexes.
+ */
+export const campaignStoredEntrySchema = lazySchema(() =>
   z
     .extend(
       z.pick(campaignChatEntryDtoSchema, {
+        id: true,
+        campaignId: true,
+        conversationId: true,
+        authorUserId: true,
+        createdAt: true,
         kind: true,
         mode: true,
         body: true,
@@ -88,7 +67,7 @@ export const campaignStoredEntryPayloadSchema = lazySchema(() =>
         unsentAt: true
       }),
       // Set once when rest settlement spends this roll; never part of the chat presentation.
-      { entryId: uuidSchema, consumedAt: z.nullable(timestampSchema) }
+      { clientNonce: uuidSchema, consumedAt: z.nullable(timestampSchema) }
     )
     .check(
       z.superRefine((entry, context) => {
@@ -110,40 +89,7 @@ export const campaignStoredEntryPayloadSchema = lazySchema(() =>
                   entry.characterId === null &&
                   !entry.revealedByGm &&
                   entry.consumedAt === null)
-        if (!valid)
-          context.addIssue({ code: 'custom', message: 'Invalid Campaign chat entry payload.' })
+        if (!valid) context.addIssue({ code: 'custom', message: 'Invalid Campaign chat entry.' })
       })
     )
 )
-
-/** Exactly the fields the existing table-roll retry compares; reveal/consumption do not alter reuse. */
-export function campaignRollNonceFingerprint(
-  payload: z.infer<typeof campaignStoredEntryPayloadSchema>
-): string {
-  return checksumCanonicalJson({
-    kind: payload.kind,
-    roll: payload.roll,
-    authorUsername: payload.authorUsername,
-    characterId: payload.characterId,
-    characterLabel: payload.characterLabel,
-    mode: payload.mode,
-    body: payload.body,
-    editedAt: payload.editedAt,
-    unsentAt: payload.unsentAt
-  })
-}
-
-/** Header and payload identity and nonce evidence are committed together by each host. */
-export function createCampaignEntryHeader(
-  identity: z.infer<typeof campaignStoredEntryIdentitySchema>,
-  payload: z.infer<typeof campaignStoredEntryPayloadSchema>
-): z.infer<typeof campaignStoredEntryHeaderSchema> {
-  const validated = campaignStoredEntryPayloadSchema.parse(payload)
-  if (validated.entryId !== identity.id)
-    throw new Error('Stored conversation payload identity mismatch.')
-  return campaignStoredEntryHeaderSchema.parse({
-    ...identity,
-    kind: validated.kind,
-    rollNonceFingerprint: validated.kind === 'ROLL' ? campaignRollNonceFingerprint(validated) : null
-  })
-}

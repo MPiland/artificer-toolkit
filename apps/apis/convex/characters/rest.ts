@@ -50,17 +50,12 @@ async function readRestRoll(
     return { stored: retained, record: rollRecordDtoSchema.parse(retained) }
   }
   if (campaignId === null) return null
-  const payload = await ctx.db
-    .query('campaignConversationEntryPayloads')
+  const entry = await ctx.db
+    .query('campaignConversationEntries')
     .withIndex('by_rollId', (q) => q.eq('roll.id', rollId))
     .unique()
-  if (!payload?.roll) return null
-  const header = await ctx.db
-    .query('campaignConversationEntries')
-    .withIndex('by_publicId', (q) => q.eq('id', payload.entryId))
-    .unique()
-  if (!header || header.campaignId !== campaignId || header.authorUserId !== userId) return null
-  return { stored: payload, record: payload.roll }
+  if (!entry?.roll || entry.campaignId !== campaignId || entry.authorUserId !== userId) return null
+  return { stored: entry, record: entry.roll }
 }
 
 /** Shared preparation for the read-only preview and the completing mutation's current read set. */

@@ -64,8 +64,8 @@ export async function lookupRoomEncounterReplay(
   const rollCardId = row.rollCardId
   const card = rollCardId
     ? await store.store
-        .query('campaignConversationEntryPayloads')
-        .withIndex('by_entryId', (q) => q.eq('entryId', rollCardId))
+        .query('campaignConversationEntries')
+        .withIndex('by_publicId', (q) => q.eq('id', rollCardId))
         .unique()
     : null
   return {

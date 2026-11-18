@@ -177,7 +177,7 @@ const sortedRecords = (records: Iterable<RoomRecord>) =>
 
 const CHAT_ENTRY_TABLE = 'campaignConversationEntries' satisfies EncounterTableName
 
-/** New chat entries and roll cards (D69): one header insert each. */
+/** New chat entries and roll cards (D69): one entry insert each. */
 const countChatEntries = (writes: readonly RoomWrite[]) =>
   writes.filter((write) => write.op === 'INSERT' && write.table === CHAT_ENTRY_TABLE).length
 

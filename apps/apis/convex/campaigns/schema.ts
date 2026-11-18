@@ -50,8 +50,7 @@ import {
   campaignStoredAnnouncementSchema,
   campaignStoredConversationSchema,
   campaignStoredConversationMemberSchema,
-  campaignStoredEntryHeaderSchema,
-  campaignStoredEntryPayloadSchema
+  campaignStoredEntrySchema
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 
 export const campaignTables = {
@@ -288,15 +287,10 @@ export const campaignTables = {
   )
     .index('by_conversationId_userId', ['conversationId', 'userId'])
     .index('by_campaignId', ['campaignId']),
-  campaignConversationEntries: defineTable(zodToConvexFields(campaignStoredEntryHeaderSchema.shape))
+  campaignConversationEntries: defineTable(zodToConvexFields(campaignStoredEntrySchema.shape))
     .index('by_publicId', ['id'])
     .index('by_conversationId_createdAt_id', ['conversationId', 'createdAt', 'id'])
     .index('by_campaignId_authorUserId_clientNonce', ['campaignId', 'authorUserId', 'clientNonce'])
-    .index('by_campaignId_authorUserId_createdAt', ['campaignId', 'authorUserId', 'createdAt']),
-  campaignConversationEntryPayloads: defineTable(
-    zodToConvexFields(campaignStoredEntryPayloadSchema.shape)
-  )
-    .index('by_entryId', ['entryId'])
     .index('by_rollId', ['roll.id']),
   campaignAnnouncements: defineTable(zodToConvexFields(campaignStoredAnnouncementSchema.shape))
     .index('by_campaignId_publicId', ['campaignId', 'announcementPublicId'])

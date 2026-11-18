@@ -537,7 +537,6 @@ describe('development Campaign fixture cleanup', () => {
         conversations: await ctx.db.query('campaignConversations').collect(),
         members: await ctx.db.query('campaignConversationMembers').collect(),
         entries: await ctx.db.query('campaignConversationEntries').collect(),
-        payloads: await ctx.db.query('campaignConversationEntryPayloads').collect(),
         notes: await ctx.db.query('campaignNotebookSections').collect(),
         assignments: await ctx.db.query('campaignCharacterAssignments').collect()
       }))

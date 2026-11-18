@@ -304,7 +304,6 @@ describe('reserved native Campaign lifecycle proof', () => {
       campaignPlaySettings: [expect.objectContaining({ campaignId: base.campaign.id })],
       sceneFogChunks: [],
       sceneDefinitionEntities: [],
-      campaignConversationEntryPayloads: [],
       campaignCurrencyDenominations: [],
       campaignClockRecoveries: [],
       campaignClockRecoveryPrompts: [],

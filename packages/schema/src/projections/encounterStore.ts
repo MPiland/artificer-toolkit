@@ -40,8 +40,7 @@ import {
 import {
   campaignStoredConversationSchema,
   campaignStoredConversationMemberSchema,
-  campaignStoredEntryHeaderSchema,
-  campaignStoredEntryPayloadSchema
+  campaignStoredEntrySchema
 } from './campaignCommunicationPersistence.js'
 
 /**
@@ -80,8 +79,7 @@ export const encounterStoreSchemas = {
   characterCommandReceipts: characterStoredCommandReceiptSchema,
   campaignConversations: campaignStoredConversationSchema,
   campaignConversationMembers: campaignStoredConversationMemberSchema,
-  campaignConversationEntries: campaignStoredEntryHeaderSchema,
-  campaignConversationEntryPayloads: campaignStoredEntryPayloadSchema
+  campaignConversationEntries: campaignStoredEntrySchema
 }
 
 export type EncounterStoreDocuments = {
@@ -258,10 +256,8 @@ export const encounterStoreIndexes = {
   campaignConversationEntries: {
     by_publicId: ['id'],
     by_conversationId_createdAt_id: ['conversationId', 'createdAt', 'id'],
-    by_campaignId_authorUserId_clientNonce: ['campaignId', 'authorUserId', 'clientNonce'],
-    by_campaignId_authorUserId_createdAt: ['campaignId', 'authorUserId', 'createdAt']
-  },
-  campaignConversationEntryPayloads: { by_entryId: ['entryId'] }
+    by_campaignId_authorUserId_clientNonce: ['campaignId', 'authorUserId', 'clientNonce']
+  }
 } as const satisfies {
   [Table in keyof EncounterStoreDocuments]: Record<
     string,
