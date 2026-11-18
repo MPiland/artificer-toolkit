@@ -78,7 +78,7 @@ export type LiveSessionCharacterSheetPush = Extract<
   { type: 'CHARACTER_SHEET' }
 >
 
-type LiveSessionEncounterSessionPush = Extract<
+export type LiveSessionEncounterSessionPush = Extract<
   LiveSessionWebSocketServerMessageDto,
   { type: 'ENCOUNTER_SESSION' }
 >['session']
@@ -101,7 +101,7 @@ export class LiveSessionReadRejectedError extends Error {
   }
 }
 
-interface LiveSessionDurableState {
+export interface LiveSessionDurableState {
   commandReady: boolean
   recipientState: LiveSessionRecipientStateDto | null
   sequence: number | null
@@ -151,7 +151,7 @@ type SceneFogStagingMessage = Extract<
   { type: 'SCENE_FOG_APPEND' | 'SCENE_FOG_BEGIN' }
 >
 
-interface LiveSessionConnectionOptions {
+export interface LiveSessionConnectionOptions {
   createSocket?: (url: string, protocols: string[]) => LiveSessionSocket
   getAccessToken: () => Promise<string>
   getTicket: () => Promise<LiveSessionTicketDto>
