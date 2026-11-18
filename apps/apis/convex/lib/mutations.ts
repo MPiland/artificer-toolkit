@@ -127,11 +127,10 @@ function trackedHandler(handler: (ctx: MutationCtx, ...args: never) => unknown) 
   })
 }
 
-type DocumentScopeSelector = ScopeSelector<TableNames>
-
 /** Tables with a trigger other than a scene-vision refresh (live-room notices, Sheet stores, counters). */
 const effectTables = new Set<TableNames>()
-const sceneVisionSelectors = new Map<TableNames, DocumentScopeSelector[]>()
+/** Keyed by table, so a table's selectors only ever see that table's documents. */
+const sceneVisionSelectors = new Map<TableNames, ScopeSelector<never>[]>()
 
 function registerEffect<TableName extends TableNames>(
   tableName: TableName,
@@ -161,9 +160,7 @@ function registerScope<TableName extends TableNames>(
   tableName: TableName,
   selectScope: ScopeSelector<TableName>
 ) {
-  // The registry is keyed by table name, so a table's selectors only ever see that table's documents.
-  const selector = selectScope as unknown as DocumentScopeSelector
-  sceneVisionSelectors.set(tableName, [...(sceneVisionSelectors.get(tableName) ?? []), selector])
+  sceneVisionSelectors.set(tableName, [...(sceneVisionSelectors.get(tableName) ?? []), selectScope])
   triggers.register(tableName, async (ctx, change) => {
     for (const scope of await selectScopes<TableName>(
       ctx,
@@ -521,17 +518,14 @@ export function withBatchedSceneVisionTracking(rawCtx: MutationCtx) {
     untracked: rawCtx,
     db: (table: TableNames) => (effectTables.has(table) ? ctx.db : rawCtx.db),
     /** Records a write made through `db(table)`; a table with effect triggers tracked it itself. */
-    async changed(
-      table: TableNames,
-      oldDoc: Doc<TableNames> | null,
-      newDoc: Doc<TableNames> | null
+    async changed<TableName extends TableNames>(
+      table: TableName,
+      oldDoc: Doc<TableName> | null,
+      newDoc: Doc<TableName> | null
     ) {
       if (effectTables.has(table)) return
-      for (const scope of await selectScopes(triggerCtx, sceneVisionSelectors.get(table) ?? [], [
-        oldDoc,
-        newDoc
-      ]))
-        touch(scope)
+      const selectors = (sceneVisionSelectors.get(table) ?? []) as ScopeSelector<TableName>[]
+      for (const scope of await selectScopes(triggerCtx, selectors, [oldDoc, newDoc])) touch(scope)
     },
     /** Rows of this Campaign's Runs were written untracked. */
     touchPlay: (campaignId: string) => touch(playScope(campaignId)),
