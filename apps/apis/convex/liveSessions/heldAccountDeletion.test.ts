@@ -131,7 +131,7 @@ describe('account deletion with a Character held by a live room', () => {
       ).entries.filter((entry) => entry.authorUserId === player.userId)
     const readTimeline = () => readRoomTimeline(gm.caller, campaign.id)
     const chatBefore = await readChat()
-    expect(chatBefore.some((entry) => entry.roll !== null)).toBe(true)
+    expect(chatBefore.some((entry) => entry.rolls.length > 0)).toBe(true)
     expect(chatBefore.some((entry) => entry.body === 'Held table chat')).toBe(true)
     expect(await readTimeline()).toContainEqual(
       expect.objectContaining({ commandType: 'RESOLVE_ACTION', actorUserId: player.userId })

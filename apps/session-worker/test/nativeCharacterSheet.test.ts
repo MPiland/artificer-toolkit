@@ -994,7 +994,7 @@ it('accepts queued test rolls in a local development room and rolls its next dic
     const [reply] = repliesTo(room.owner, rollId)
     if (reply?.type !== 'COMMAND_COMMITTED' || reply.delta?.scope !== 'CAMPAIGN_CHAT')
       throw new Error(JSON.stringify(reply))
-    const rolled = reply.delta.entry?.roll
+    const rolled = reply.delta.entry?.rolls[0]?.roll
     if (!rolled) throw new Error('The roll entry carries no roll.')
     totals.push(rolled.evidence.total)
     expect(rolled.evidence.terms[0]?.rolls).toEqual([draw + 1])
