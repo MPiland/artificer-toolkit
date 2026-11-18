@@ -1,4 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
+import { hasCampaignEntryContent } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import {
   projectNativeActionPending,
   readNativeActionPending
@@ -246,6 +247,7 @@ export function readRoomRollCards(stub: RoomStub) {
     const room = new RoomEncounterStore(context.storage)
     const table = room
       .documents('campaignConversationEntries')
+      .filter(hasCampaignEntryContent)
       .flatMap((entry) =>
         entry.kind === 'ROLL' && entry.roll
           ? [{ audience: 'TABLE' as const, roll: entry.roll }]
@@ -277,6 +279,7 @@ export function readRoomChatBodies(stub: RoomStub) {
   return runInDurableObject(stub, async (_instance, context) =>
     new RoomEncounterStore(context.storage)
       .documents('campaignConversationEntries')
+      .filter(hasCampaignEntryContent)
       .flatMap((entry) => (entry.kind === 'CHAT' && entry.body ? [entry.body] : []))
   )
 }

@@ -1,4 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
+import { hasCampaignEntryContent } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
@@ -1001,9 +1002,11 @@ async function initiativeOrder(room: ActionRoom) {
     participants: stored.participants
       .filter(({ round }) => round === state.round)
       .sort((a, b) => (a.turnOrderOrdinal ?? 0) - (b.turnOrderOrdinal ?? 0)),
-    cards: stored.entries.flatMap((entry) =>
-      entry.kind === 'ROLL' && entry.roll?.source.kind === 'INITIATIVE' ? [entry.roll] : []
-    )
+    cards: stored.entries
+      .filter(hasCampaignEntryContent)
+      .flatMap((entry) =>
+        entry.kind === 'ROLL' && entry.roll?.source.kind === 'INITIATIVE' ? [entry.roll] : []
+      )
   }
 }
 
