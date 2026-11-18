@@ -139,7 +139,8 @@ it('fingerprints the retry fields and ignores reveal and consumption', () => {
 
 it('fingerprints every roll of a list, in order', () => {
   const entry = campaignStoredEntrySchema.parse(rollEntry)
-  const second = { ...entry.rolls[0]!, roll: { ...rollRecord, id: base.id } }
+  const first = entry.rolls[0]!
+  const second = { ...first, roll: { ...first.roll, id: base.id } }
   const pair = { ...entry, rolls: [entry.rolls[0]!, second] }
   const fingerprint = campaignRollNonceFingerprint(pair)
   expect(fingerprint).not.toBe(campaignRollNonceFingerprint(entry))
