@@ -915,7 +915,10 @@ call is one subrequest however many query pages it spans. A page is at most 1024
 - `CAMPAIGN_CLOCK` (D151): the Campaign clock's absolute minute now, or `null` without a clock. It is
   derived at read time from the running clock, so it carries no revisions and the room never caches it; a
   Run's START reads it only when a Character holds a carried-over effect.
-- `CHAT_METADATA`: conversations, members and entry headers, excluding text and roll bodies.
+- `CHAT_METADATA`: conversations, members and entry headers, excluding text and roll bodies. Entry
+  headers are read only from `LIVE_ROOM_CHAT_NONCE_WINDOW_MS` (24 hours) before the epoch's start, so
+  hydrate I/O does not grow with Campaign history; older chat stays in Convex for the reader. A resend
+  of a command older than the window is not recognised (ADR 0035 Amendment 33).
 - `SCENE`: the five native Scene families (`sceneLiveStates`, `sceneLiveEntities`, `sceneFogLayers`,
   `sceneFogSaves`, `sceneFogChunks`) behind immutable definition, presentation and Scene-version pins. A page
   with changed pins is left for the next batch so the Worker retries the whole read. Scene command receipts
