@@ -608,6 +608,62 @@ it('reconciles Character holds only when a hold input changes', async () => {
   expect(await readHolds(base)).toEqual([])
 })
 
+it('reconciles holds from the Run and actors the same save wrote, reading none back (V15 I/O)', async () => {
+  const base = await setupCharacterRun()
+  let authority = await activate(base)
+  // START writes the Run and every actor it lists, so the holds read nothing.
+  const touchedActors = await base.t.run((ctx) =>
+    Promise.all(
+      base.run.actors.map(async (actor) => {
+        const row = await ctx.db
+          .query('encounterRunActors')
+          .withIndex('by_encounterId_id', (q) =>
+            q.eq('encounterId', base.run.id).eq('id', actor.id)
+          )
+          .unique()
+        if (!row) throw new Error('Missing fixture actor row.')
+        const { _id, _creationTime, ...stored } = row
+        const state = readStoredRunActor(row)
+        const nextState = {
+          ...state,
+          updatedAt: new Date(Date.parse(state.updatedAt) + 1).toISOString()
+        }
+        return recordChange(
+          'encounterRunActors',
+          [row.encounterId, row.id],
+          decodeCheckpointRecord('encounterRunActors', stored),
+          decodeCheckpointRecord('encounterRunActors', {
+            ...stored,
+            stateJson: canonicalizeJson(nextState),
+            stateChecksum: checksumCanonicalJson(runActorPlayState(nextState))
+          })
+        )
+      })
+    )
+  )
+  const started = await publishNext(base, authority, [
+    await runStatusChange(base, 'ACTIVE'),
+    ...touchedActors
+  ])
+  authority = started.authority
+  expect(started.io.sections.holds).toMatchObject({ documentsRead: 0, documentsWritten: 1 })
+  expect(await readHolds(base)).toMatchObject([
+    { characterId: base.character.id, encounterId: base.run.id, epoch: authority.epoch }
+  ])
+  // COMPLETE reads the Run once, for its checksum fence; the holds do not read it again.
+  const totals = createDatabaseIoTotals()
+  const input = frame(authority, {
+    changes: [await runStatusChange(base, 'COMPLETED')],
+    history: []
+  })
+  const completed = await base.t.run((ctx) =>
+    publishCheckpoint({ ...ctx, db: countDatabaseIo(ctx.db, totals) }, input)
+  )
+  expect(completed.status).toBe('COMMITTED')
+  expect(totals.reads.byTable.encounterRuns?.documents).toBe(1)
+  expect(await readHolds(base)).toEqual([])
+})
+
 it('drops holds when the Run completes or the Character actor is removed', async () => {
   const completed = await setupCharacterRun()
   let authority = await activate(completed)

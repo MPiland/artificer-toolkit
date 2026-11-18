@@ -1,3 +1,4 @@
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { liveCharacterHoldSchema } from '@artificer-toolkit/schema/projections/liveCharacterHold'
 import type { Doc } from '../_generated/dataModel'
@@ -5,11 +6,18 @@ import type { MutationCtx } from '../_generated/server'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { settleDepartedCharacters } from '../campaigns/characterDeparture'
 
+/** Documents the calling transaction wrote, keyed by Run, so reconciling does not read them back. */
+interface WrittenRunRows {
+  runs: ReadonlyMap<string, Doc<'encounterRuns'>>
+  actors: ReadonlyMap<string, readonly Doc<'encounterRunActors'>[]>
+}
+
 /** The unfrozen Characters of the given Runs that are ACTIVE, with the Run each one fights in. */
 export async function readFightingCharacters(
   ctx: MutationCtx,
   campaignId: string,
-  runs: ReadonlyArray<Doc<'encounterRuns'> | null>
+  runs: ReadonlyArray<Doc<'encounterRuns'> | null>,
+  writtenActors?: WrittenRunRows['actors']
 ) {
   const fighting: Array<{ characterId: string; encounterId: string }> = []
   const context = { db: createConvexEncounterStoreReader(ctx) }
@@ -18,19 +26,30 @@ export async function readFightingCharacters(
     const state = readRunState(row)
     if (state.campaignId !== campaignId) throw new Error('Character hold Run scope mismatch.')
     if (state.status !== 'ACTIVE') continue
-    for (const actor of await readRunActors(context, state))
+    const written = writtenActors?.get(state.id)
+    // Written actors are the whole Run only when they are exactly its actors; otherwise read them.
+    const actors =
+      written?.length === state.actorIds.length &&
+      written.every(({ id }) => state.actorIds.includes(id))
+        ? written.map(readStoredRunActor)
+        : await readRunActors(context, state)
+    for (const actor of actors)
       if (actor.kind === 'CHARACTER' && !actor.frozenState)
         fighting.push({ characterId: actor.sourceId, encounterId: state.id })
   }
   return fighting
 }
 
-/** Activation covers current active Runs; checkpoints reconcile only the Runs they changed. */
+/**
+ * Activation covers current active Runs; checkpoints reconcile only the Runs they changed, and pass
+ * the Run and actor documents their save wrote (ADR 0035 Amendment 27).
+ */
 export async function reconcileCharacterHolds(
   ctx: MutationCtx,
   campaignId: string,
   epoch: string,
-  encounterIds?: ReadonlySet<string>
+  encounterIds?: ReadonlySet<string>,
+  written?: WrittenRunRows
 ) {
   const prior = await ctx.db
     .query('liveCharacterHolds')
@@ -38,11 +57,13 @@ export async function reconcileCharacterHolds(
     .collect()
   const runs = encounterIds
     ? await Promise.all(
-        [...encounterIds].map((id) =>
-          ctx.db
-            .query('encounterRuns')
-            .withIndex('by_publicId', (q) => q.eq('id', id))
-            .unique()
+        [...encounterIds].map(
+          (id) =>
+            written?.runs.get(id) ??
+            ctx.db
+              .query('encounterRuns')
+              .withIndex('by_publicId', (q) => q.eq('id', id))
+              .unique()
         )
       )
     : await ctx.db
@@ -52,7 +73,12 @@ export async function reconcileCharacterHolds(
         )
         .collect()
   const expected = new Map<string, ReturnType<typeof liveCharacterHoldSchema.parse>>()
-  for (const { characterId, encounterId } of await readFightingCharacters(ctx, campaignId, runs)) {
+  for (const { characterId, encounterId } of await readFightingCharacters(
+    ctx,
+    campaignId,
+    runs,
+    written?.actors
+  )) {
     const hold = liveCharacterHoldSchema.parse({ characterId, campaignId, encounterId, epoch })
     expected.set(`${hold.encounterId}:${hold.characterId}`, hold)
   }

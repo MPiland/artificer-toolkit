@@ -468,6 +468,8 @@ export async function applyCheckpointRecords(
   await io.mark('records')
   const pendingOccurrences = new Set<string>()
   const completedRuns: string[] = []
+  const writtenRuns = new Map<string, Doc<'encounterRuns'>>()
+  const writtenActors = new Map<string, Doc<'encounterRunActors'>[]>()
   const newConcentrationCasters: { encounterId: string; casterCharacterIds: string[] }[] = []
   for (const [identity, change] of changes) {
     const previous = currentRows.get(identity)
@@ -480,6 +482,7 @@ export async function applyCheckpointRecords(
       case 'encounterRuns': {
         const run = row as Doc<'encounterRuns'>
         readRunState(run)
+        writtenRuns.set(run.id, run)
         const known = new Set(
           (previous as Doc<'encounterRuns'> | null | undefined)?.concentrationCasterCharacterIds
         )
@@ -513,6 +516,10 @@ export async function applyCheckpointRecords(
       case 'encounterRunActors': {
         const actor = row as Doc<'encounterRunActors'>
         const state = readStoredRunActor(actor)
+        writtenActors.set(state.encounterId, [
+          ...(writtenActors.get(state.encounterId) ?? []),
+          actor
+        ])
         // The room reconciles departures itself (D74); an open Run never names a departed
         // controller or an unfrozen Character the Campaign no longer assigns.
         if ((await requireEncounter(state.encounterId)).status !== 'COMPLETED') {
@@ -606,7 +613,11 @@ export async function applyCheckpointRecords(
   await io.mark('history')
   await applyCheckpointPrivateRolls(ctx, frame, records.retainedRolls)
   await io.mark('privateRolls')
-  if (heldRuns.size) await reconcileCharacterHolds(ctx, frame.campaignId, frame.epoch, heldRuns)
+  if (heldRuns.size)
+    await reconcileCharacterHolds(ctx, frame.campaignId, frame.epoch, heldRuns, {
+      runs: writtenRuns,
+      actors: writtenActors
+    })
   await io.mark('holds')
   await tracking.flush()
   if (!known || !before) return { characters: [] }
