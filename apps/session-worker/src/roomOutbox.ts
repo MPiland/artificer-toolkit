@@ -115,9 +115,10 @@ export class RoomOutbox {
     const flushScope = { campaignId, epoch: current.authorityEpoch, knownAuthorization: sent }
     // While a Run is active a backlog or admission save publishes only chat and rolls; the Run's own
     // rows wait for the lifecycle save that completes it (ADR 0035 Amendments 32 and 33). It moves no
-    // fence, so nothing is acknowledged.
+    // fence, so nothing is acknowledged. An admission with no unsaved chat has nothing to publish.
     if ((reason === 'BACKLOG' || reason === 'ADMISSION') && activeRunHeld(this.port.store)) {
-      await this.port.checkpoints.flushChat(flushScope)
+      if (reason === 'BACKLOG' || this.port.store.unsavedChatEntries > 0)
+        await this.port.checkpoints.flushChat(flushScope)
       await this.port.scheduleAlarm()
       return
     }

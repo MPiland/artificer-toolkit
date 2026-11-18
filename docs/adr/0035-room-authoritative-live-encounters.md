@@ -663,7 +663,8 @@ the background. COMPLETE read those rows back and deleted them: about 0.99 MB of
 session (PERF-1.T15 audit).
 
 - _Rule._ An ADMISSION save follows Amendment 32: while any Run is ACTIVE it publishes only chat and
-  roll records through the chat route and moves no fence. The Run's rows publish at COMPLETE.
+  roll records through the chat route and moves no fence; with no unsaved chat it sends nothing. The
+  Run's rows publish at COMPLETE.
 - _Admission._ A first socket (`membershipEpoch` null) that joins a room that already holds an ACTIVE Run,
   has finished activation and holds its Scene cache is admitted from the room: the access token is
   verified locally against the Convex JWKS (as the warm path does), the ticket (minted only after

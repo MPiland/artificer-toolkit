@@ -11,7 +11,11 @@ afterEach(() => {
 })
 
 /** A real outbox and room store; only the Convex-facing checkpoint steps and the journal head are recorded. */
-async function backlogFlush(runStatus: string, reason: 'ADMISSION' | 'BACKLOG' = 'BACKLOG') {
+async function backlogFlush(
+  runStatus: string,
+  reason: 'ADMISSION' | 'BACKLOG' = 'BACKLOG',
+  withChat = false
+) {
   const opened = createNodeSqliteRoomStorage()
   databases.push(opened.database)
   const store = new RoomEncounterStore(opened.storage)
@@ -26,6 +30,26 @@ async function backlogFlush(runStatus: string, reason: 'ADMISSION' | 'BACKLOG' =
     records
   })
   await command(store, 1)
+  if (withChat)
+    await store.transact(async () => {
+      await store.store.insert('campaignConversationEntries', {
+        id: uuid(0x901),
+        campaignId: uuid(2),
+        conversationId: uuid(0x800),
+        authorUserId: uuid(0x801),
+        createdAt: '2026-09-01T00:00:00.000Z',
+        clientNonce: uuid(0xa01),
+        kind: 'CHAT',
+        mode: 'OOC',
+        body: 'Hello table',
+        rolls: [],
+        authorUsername: 'Author',
+        characterId: null,
+        characterLabel: null,
+        editedAt: null,
+        unsentAt: null
+      })
+    })
   const calls: string[] = []
   const port = {
     store,
@@ -72,7 +96,11 @@ describe('RoomOutbox backlog save', () => {
 
 describe('RoomOutbox admission save', () => {
   it('publishes only chat and rolls while a Run is active', async () => {
-    expect(await backlogFlush('ACTIVE', 'ADMISSION')).toEqual(['flushChat'])
+    expect(await backlogFlush('ACTIVE', 'ADMISSION', true)).toEqual(['flushChat'])
+  })
+
+  it('publishes nothing while a Run is active and no chat is unsaved', async () => {
+    expect(await backlogFlush('ACTIVE', 'ADMISSION')).toEqual([])
   })
 
   it('stays a full prefix save when no Run is active', async () => {

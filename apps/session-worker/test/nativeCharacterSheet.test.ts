@@ -427,6 +427,11 @@ async function sheetRoom(
     characterDeleted = true
   }
 
+  /** Convex commits a member's removal from the Campaign; they hold no Character, so the Run is untouched. */
+  function commitStrangerRemoval() {
+    members = everyone.filter(({ userId }) => userId !== strangerId)
+  }
+
   /** Convex commits the Character's unassignment; the member stays in the Campaign. */
   function commitUnassignment() {
     assignments = []
@@ -474,6 +479,8 @@ async function sheetRoom(
     checkpoints,
     chatCheckpoints,
     commitAccountDeletion,
+    commitStrangerRemoval,
+    strangerId,
     commitUnassignment,
     ...inputs
   }
@@ -850,7 +857,7 @@ it('admits a reconnecting member during an ACTIVE Run from the room, with no Run
 
 it('refuses a removed member on reconnect during an ACTIVE Run (ADR 0035 Amendment 33)', async () => {
   const room = await sheetRoom()
-  room.commitAccountDeletion()
+  room.commitStrangerRemoval()
   const control = (operation: object) =>
     SELF.fetch(`https://session.test${LIVE_SESSION_CONTROL_PATH}`, {
       body: JSON.stringify({ campaignId: room.campaignId, operation }),
@@ -860,7 +867,7 @@ it('refuses a removed member on reconnect during an ACTIVE Run (ADR 0035 Amendme
   expect((await control({ type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] })).status).toBe(200)
   const callsBefore = room.calls.length
 
-  const refused = await room.reconnect(room.ownerId, 'PLAYER')
+  const refused = await room.reconnect(room.strangerId, 'PLAYER')
   await vi.waitFor(() => expect(refused.socket.readyState).toBe(WebSocket.READY_STATE_CLOSED))
   expect(refused.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(false)
   expect(room.calls.slice(callsBefore)).not.toContain('/live-sessions/capture')
