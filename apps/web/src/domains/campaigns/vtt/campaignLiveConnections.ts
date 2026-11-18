@@ -14,13 +14,13 @@ import {
 } from './liveSessionClient'
 
 /** What one caller reads from the shared connection; the room feeds are the union of every caller's. */
-export interface LiveSessionFollow {
+interface LiveSessionFollow {
   campaignSummary: boolean
   encounterSession: { timeline: boolean } | null
 }
 
 /** One caller's event handlers; a callback runs only while that caller follows its feed. */
-export type LiveSessionListener = Omit<
+type LiveSessionListener = Omit<
   LiveSessionConnectionOptions,
   'createSocket' | 'getAccessToken' | 'getTicket' | 'url'
 >
