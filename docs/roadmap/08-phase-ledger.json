@@ -25305,8 +25305,7 @@
             },
             {
               "id": "PERF-1.T18",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "status": "DONE",
               "closes": ["PERF-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -25315,7 +25314,11 @@
                 "size": 2,
                 "after": ["PERF-1.T15"]
               },
-              "text": "D230 ruling 4: hold reconcile (characterHolds.ts) stops re-reading the Run and actors the same save wrote, and the Scene save stops re-reading the definition entity and ordinal holder for rows it already read (Amendment 27)."
+              "text": "D230 ruling 4: hold reconcile (characterHolds.ts) stops re-reading the Run and actors the same save wrote, and the Scene save stops re-reading the definition entity and ordinal holder for rows it already read (Amendment 27).",
+              "proof": [
+                "apps/apis/convex/liveSessions/checkpoint.test.ts",
+                "apps/apis/convex/liveSessions/checkpointScenes.test.ts"
+              ]
             },
             {
               "id": "PERF-1.T19",

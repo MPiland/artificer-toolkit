@@ -34,7 +34,9 @@ import {
   publishEmptyScene,
   publishScene
 } from '../../tests/fixtures/sceneDefinitions'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { api } from '../_generated/api'
+import { publishCheckpoint } from './checkpoint'
 import type { Doc } from '../_generated/dataModel'
 import { parseFogLayer, parseFogSave, readFogChunk } from '../scenes/fogDocuments'
 import { parseLiveEntity, readLiveSceneForUser } from '../scenes/liveDocuments'
@@ -489,6 +491,61 @@ it('merges existing head, token and fog rows only when their canonical previous 
       await readFogChunk(ctx, parsedLayer.chunks[0]!, base.scene.sceneId, parsedLayer)
     ).toEqual(base.chunk)
     expect(await ctx.db.query('sceneFogSaves').take(100)).toHaveLength(1)
+  })
+})
+
+it('reads neither the definition entity nor the ordinal holder of rows it already read (V15 I/O)', async () => {
+  const base = await fixture()
+  const first = await base.t.mutation(
+    publish,
+    frame(base.authority, { changes: [], history: [], scenes: [base.publication] })
+  )
+  const changes = await base.t.run(async (ctx) => {
+    const head = await ctx.db.query('sceneLiveStates').unique()
+    const entity = await ctx.db.query('sceneLiveEntities').unique()
+    const fogLayer = await ctx.db.query('sceneFogLayers').unique()
+    if (!head || !entity || !fogLayer || !entity.value || entity.value.collection !== 'tokens')
+      throw new Error('Missing I/O fixture.')
+    const { checksum: _entityChecksum, ...entityFields } = content(entity)
+    const nextEntity = canonicalJsonRecordSchema.parse({
+      ...entityFields,
+      version: 2,
+      value: { collection: 'tokens', entity: { ...entity.value.entity, hidden: true } }
+    })
+    const { checksum: _layerChecksum, ...layerFields } = content(fogLayer)
+    const nextLayer = { ...layerFields, version: 2 }
+    return [
+      change('sceneLiveStates', { ...content(head), version: 2 }, content(head)),
+      change(
+        'sceneLiveEntities',
+        { ...nextEntity, checksum: checksumCanonicalJson(nextEntity) },
+        content(entity)
+      ),
+      change(
+        'sceneFogLayers',
+        { ...nextLayer, checksum: checksumCanonicalJson(nextLayer) },
+        content(fogLayer)
+      )
+    ]
+  })
+  const input = frame(first.authority, {
+    changes: [],
+    history: [],
+    scenes: [{ ...base.publication, fromVersion: 1, toVersion: 2, changes }]
+  })
+  const totals = createDatabaseIoTotals()
+  const published = await base.t.run((ctx) =>
+    publishCheckpoint({ ...ctx, db: countDatabaseIo(ctx.db, totals) }, input)
+  )
+  expect(published.status).toBe('COMMITTED')
+  // Each row is read once, for its checksum fence; the definition entity is not read at all.
+  expect(totals.reads.byTable.sceneDefinitionEntities).toBeUndefined()
+  expect(totals.reads.byTable.sceneLiveEntities?.documents).toBe(1)
+  expect(totals.reads.byTable.sceneFogLayers?.documents).toBe(1)
+  await base.t.run(async (ctx) => {
+    const entity = await ctx.db.query('sceneLiveEntities').unique()
+    if (!entity) throw new Error('Missing merged entity.')
+    expect(parseLiveEntity(entity, 2)).toMatchObject({ value: { entity: { hidden: true } } })
   })
 })
 
