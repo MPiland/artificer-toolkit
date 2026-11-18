@@ -994,7 +994,7 @@ it('accepts queued test rolls in a local development room and rolls its next dic
     const [reply] = repliesTo(room.owner, rollId)
     if (reply?.type !== 'COMMAND_COMMITTED' || reply.delta?.scope !== 'CAMPAIGN_CHAT')
       throw new Error(JSON.stringify(reply))
-    const rolled = reply.delta.entry?.roll
+    const rolled = reply.delta.entry?.rolls[0]?.roll
     if (!rolled) throw new Error('The roll entry carries no roll.')
     totals.push(rolled.evidence.total)
     expect(rolled.evidence.terms[0]?.rolls).toEqual([draw + 1])
@@ -1099,9 +1099,8 @@ it('retains a GM private roll in the room for the GM alone and posts each reveal
   expect(notice.delta.entry).toMatchObject({
     room: 'TABLE',
     kind: 'ROLL_NOTICE',
-    roll: null,
-    body: null,
-    revealedByGm: false
+    rolls: [],
+    body: null
   })
   for (const member of [room.owner, room.stranger])
     await vi.waitFor(() => expect(repliesTo(member, noticeId)).toEqual([notice]))
@@ -1120,8 +1119,7 @@ it('retains a GM private roll in the room for the GM alone and posts each reveal
   expect(full.delta.entry).toMatchObject({
     room: 'TABLE',
     kind: 'ROLL',
-    revealedByGm: true,
-    roll: { id: rollId }
+    rolls: [{ revealedByGm: true, roll: { id: rollId } }]
   })
   await vi.waitFor(() => expect(repliesTo(room.owner, fullId)).toEqual([full]))
   const afterReveals = await spendOf()

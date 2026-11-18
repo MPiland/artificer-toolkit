@@ -266,14 +266,12 @@ describe('native Campaign text chat', () => {
             kind: 'CHAT' as const,
             mode: 'ROLEPLAY' as const,
             body: 'Retained roleplay',
-            roll: null,
-            revealedByGm: false,
+            rolls: [],
             authorUsername: 'CampaignPlayer',
             characterId,
             characterLabel: 'Retained Ranger',
             editedAt: null,
-            unsentAt: null,
-            consumedAt: null
+            unsentAt: null
           }
         ],
         [
@@ -282,31 +280,35 @@ describe('native Campaign text chat', () => {
             kind: 'ROLL' as const,
             mode: null,
             body: null,
-            revealedByGm: false,
             authorUsername: 'CampaignPlayer',
             characterId,
             characterLabel: 'Retained Ranger',
             editedAt: null,
             unsentAt: null,
-            consumedAt: null,
-            roll: {
-              id: rollId,
-              normalizedExpression: '1d20',
-              characterId,
-              characterLabel: 'Retained Ranger',
-              source: { kind: 'MANUAL' as const, label: 'Retained attack' },
-              ruleset: { systemId: 'srd', code: 'srd', version: '1' },
-              createdAt: now,
-              evidence: {
-                terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
-                modifier: 0,
-                mode: 'NORMAL' as const,
-                keep: 'FIRST' as const,
-                subtotal: 10,
-                transform: { kind: 'NONE' as const },
-                total: 10
+            rolls: [
+              {
+                revealedByGm: false,
+                consumedAt: null,
+                roll: {
+                  id: rollId,
+                  normalizedExpression: '1d20',
+                  characterId,
+                  characterLabel: 'Retained Ranger',
+                  source: { kind: 'MANUAL' as const, label: 'Retained attack' },
+                  ruleset: { systemId: 'srd', code: 'srd', version: '1' },
+                  createdAt: now,
+                  evidence: {
+                    terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
+                    modifier: 0,
+                    mode: 'NORMAL' as const,
+                    keep: 'FIRST' as const,
+                    subtotal: 10,
+                    transform: { kind: 'NONE' as const },
+                    total: 10
+                  }
+                }
               }
-            }
+            ]
           }
         ]
       ] as const) {
@@ -505,29 +507,33 @@ describe('native Campaign text chat', () => {
         body: null,
         editedAt: null,
         unsentAt: null,
-        consumedAt: null,
-        revealedByGm: false,
         authorUsername: 'CampaignOwner',
         characterId: null,
         characterLabel: null,
-        roll: {
-          id: rollId,
-          normalizedExpression: '1d20',
-          characterId: null,
-          characterLabel: '',
-          source: { kind: 'MANUAL', label: 'Test' },
-          ruleset: { systemId: 'srd', code: 'srd', version: '1' },
-          createdAt: now,
-          evidence: {
-            terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
-            modifier: 0,
-            mode: 'NORMAL',
-            keep: 'FIRST',
-            subtotal: 10,
-            transform: { kind: 'NONE' },
-            total: 10
+        rolls: [
+          {
+            revealedByGm: false,
+            consumedAt: null,
+            roll: {
+              id: rollId,
+              normalizedExpression: '1d20',
+              characterId: null,
+              characterLabel: '',
+              source: { kind: 'MANUAL', label: 'Test' },
+              ruleset: { systemId: 'srd', code: 'srd', version: '1' },
+              createdAt: now,
+              evidence: {
+                terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
+                modifier: 0,
+                mode: 'NORMAL',
+                keep: 'FIRST',
+                subtotal: 10,
+                transform: { kind: 'NONE' },
+                total: 10
+              }
+            }
           }
-        }
+        ]
       })
       await insertConversationEntry(ctx, stored)
     })
@@ -879,14 +885,12 @@ async function seedHistory(
           kind: 'CHAT',
           mode: 'OOC',
           body: `Seeded message ${index} with a realistic amount of table talk in it.`,
-          roll: null,
-          revealedByGm: false,
+          rolls: [],
           authorUsername: 'CampaignOwner',
           characterId: null,
           characterLabel: null,
           editedAt: null,
-          unsentAt: null,
-          consumedAt: null
+          unsentAt: null
         })
         // Raw rows: the product insert keeps timestamps strictly increasing, and this fixture needs ties.
         await ctx.db.insert('campaignConversationEntries', stored)

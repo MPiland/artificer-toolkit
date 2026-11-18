@@ -290,8 +290,7 @@ export const campaignTables = {
   campaignConversationEntries: defineTable(zodToConvexFields(campaignStoredEntrySchema.shape))
     .index('by_publicId', ['id'])
     .index('by_conversationId_createdAt_id', ['conversationId', 'createdAt', 'id'])
-    .index('by_campaignId_authorUserId_clientNonce', ['campaignId', 'authorUserId', 'clientNonce'])
-    .index('by_rollId', ['roll.id']),
+    .index('by_campaignId_authorUserId_clientNonce', ['campaignId', 'authorUserId', 'clientNonce']),
   campaignAnnouncements: defineTable(zodToConvexFields(campaignStoredAnnouncementSchema.shape))
     .index('by_campaignId_publicId', ['campaignId', 'announcementPublicId'])
     .index('by_campaignId_commandId', ['campaignId', 'commandId'])

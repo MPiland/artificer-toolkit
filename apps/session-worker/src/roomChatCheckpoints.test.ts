@@ -63,14 +63,12 @@ const chatEntry = (ordinal: number) => ({
   kind: 'CHAT' as const,
   mode: 'OOC' as const,
   body: 'Hello table',
-  roll: null,
-  revealedByGm: false,
+  rolls: [],
   authorUsername: 'Author',
   characterId: null,
   characterLabel: null,
   editedAt: null,
-  unsentAt: null,
-  consumedAt: null
+  unsentAt: null
 })
 
 const chat = (room: RoomEncounterStore, ordinal: number) =>

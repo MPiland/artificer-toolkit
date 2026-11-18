@@ -181,17 +181,21 @@ describe('native Campaign authoritative rolls', () => {
         body: null,
         mode: null,
         characterId: character.id,
-        roll: {
-          characterId: character.id,
-          characterLabel: character.label,
-          source: { kind: 'MANUAL', label: 'Manual roll' },
-          ruleset: {
-            systemId: srdSystemRecord.id,
-            code: srdSystemRecord.rulesetCode,
-            version: srdSystemRecord.rulesetVersion
-          },
-          evidence: { total: 12, terms: [{ rolls: [10] }] }
-        }
+        rolls: [
+          {
+            roll: {
+              characterId: character.id,
+              characterLabel: character.label,
+              source: { kind: 'MANUAL', label: 'Manual roll' },
+              ruleset: {
+                systemId: srdSystemRecord.id,
+                code: srdSystemRecord.rulesetCode,
+                version: srdSystemRecord.rulesetVersion
+              },
+              evidence: { total: 12, terms: [{ rolls: [10] }] }
+            }
+          }
+        ]
       })
     }
     expect(second.authorUsername).toBe('CampaignGM')
@@ -255,7 +259,7 @@ describe('native Campaign authoritative rolls', () => {
     }
     const before = await readState()
     const rolled = await player.caller.mutation(execute, command)
-    expect(rolled.roll?.evidence.modifier).toBe(5)
+    expect(rolled.rolls[0]?.roll.evidence.modifier).toBe(5)
     expect(JSON.stringify(rolled)).not.toContain('SECRET-ROLL-CAUSE')
     expect(JSON.stringify(rolled)).not.toContain(state.adjustments[0]!.id)
     for (const roll of [
@@ -354,8 +358,8 @@ describe('native Campaign authoritative rolls', () => {
     }
     const before = await readState()
     const result = await gm.caller.mutation(execute, { ...request, roll })
-    expect(result.roll?.source.label).toBe(roll.source.label)
-    expect((await readEntries()).entries[0]?.roll?.source.label).toBe(
+    expect(result.rolls[0]?.roll.source.label).toBe(roll.source.label)
+    expect((await readEntries()).entries[0]?.rolls[0]?.roll.source.label).toBe(
       roll.source.label.replace('****', 'shit')
     )
     await expect(
@@ -473,10 +477,10 @@ describe('native Campaign authoritative rolls', () => {
     const rolled = await gm.caller.mutation(execute, command)
     expect(rolled).toMatchObject({
       characterId: null,
-      roll: { characterId: null, source: { label: '**** secret' } }
+      rolls: [{ roll: { characterId: null, source: { label: '**** secret' } } }]
     })
     const before = await readEntries()
-    expect(before.entries[0]?.roll?.source.label).toBe('shit secret')
+    expect(before.entries[0]?.rolls[0]?.roll.source.label).toBe('shit secret')
     await player.caller.mutation(api.campaigns.conversations.open, {
       campaignId: campaign.id,
       kind: 'TABLE'
@@ -557,7 +561,7 @@ describe('native Campaign authoritative rolls', () => {
       clientNonce: crypto.randomUUID()
     })
     expect(text.body).toHaveLength(2000)
-    expect(manual.roll?.source.label).toHaveLength(80)
+    expect(manual.rolls[0]?.roll.source.label).toHaveLength(80)
     expect(assigned.characterLabel).toHaveLength(100)
     const stored = await readEntries()
     await t.run((ctx) => ctx.db.patch(campaignRow._id, { contentMaturity: 'STANDARD' }))
@@ -567,7 +571,9 @@ describe('native Campaign authoritative rolls', () => {
     const presentedManual = page.entries.find((entry) => entry.id === manual.id)!
     const presentedCharacter = page.entries.find((entry) => entry.id === assigned.id)!
     expect(presentedText.body).toBe(`${'**** '.repeat(499)}word`.slice(0, 2000))
-    expect(presentedManual.roll?.source.label).toBe(`${'**** '.repeat(19)}word`.slice(0, 80).trim())
+    expect(presentedManual.rolls[0]?.roll.source.label).toBe(
+      `${'**** '.repeat(19)}word`.slice(0, 80).trim()
+    )
     expect(presentedCharacter.characterLabel).toBe(`${'**** '.repeat(24)}word`.slice(0, 100).trim())
     expect(await gm.caller.mutation(execute, ownerRequest)).toEqual(presentedManual)
     expect(await readEntries()).toEqual(stored)
@@ -575,7 +581,7 @@ describe('native Campaign authoritative rolls', () => {
       ...ownerRequest,
       clientNonce: crypto.randomUUID()
     })
-    expect(fresh.roll?.source.label).toBe(presentedManual.roll?.source.label)
+    expect(fresh.rolls[0]?.roll.source.label).toBe(presentedManual.rolls[0]?.roll.source.label)
     const freshText = await gm.caller.mutation(send, {
       campaignId: campaign.id,
       room: 'TABLE',
@@ -585,7 +591,8 @@ describe('native Campaign authoritative rolls', () => {
     })
     expect(freshText.body).toBe(presentedText.body)
     expect(
-      (await readEntries()).entries.find((entry) => entry.id === fresh.id)?.roll?.source.label
+      (await readEntries()).entries.find((entry) => entry.id === fresh.id)?.rolls[0]?.roll.source
+        .label
     ).toBe(sourceLabel)
     expect((await readEntries()).entries.find((entry) => entry.id === freshText.id)?.body).toBe(
       body
@@ -609,7 +616,7 @@ describe('native Campaign authoritative rolls', () => {
           id,
           createdAt: '2020-01-01T00:00:00.000Z',
           clientNonce: crypto.randomUUID(),
-          ...(index % 2 === 0 ? {} : { kind: 'CHAT', mode: 'OOC', body: 'seed text', roll: null })
+          ...(index % 2 === 0 ? {} : { kind: 'CHAT', mode: 'OOC', body: 'seed text', rolls: [] })
         })
       }
     })
@@ -799,13 +806,21 @@ describe('Campaign roll visibility', () => {
     const party = await createPartyPlayer(t, campaign)
     await party.join()
     const table = await player.caller.mutation(execute, request)
-    expect(table).toMatchObject({ room: 'TABLE', kind: 'ROLL', revealedByGm: false })
+    expect(table).toMatchObject({
+      room: 'TABLE',
+      kind: 'ROLL',
+      rolls: [{ revealedByGm: false }]
+    })
     const toGm = await player.caller.mutation(execute, {
       ...request,
       destination: 'GM',
       clientNonce: crypto.randomUUID()
     })
-    expect(toGm).toMatchObject({ room: 'DIRECT', kind: 'ROLL', revealedByGm: false })
+    expect(toGm).toMatchObject({
+      room: 'DIRECT',
+      kind: 'ROLL',
+      rolls: [{ revealedByGm: false }]
+    })
     const direct = { campaignId: campaign.id, room: 'DIRECT' as const }
     expect(
       (await gm.caller.query(list, { ...direct, directUserId: player.userId })).entries
@@ -869,8 +884,7 @@ describe('Campaign roll visibility', () => {
     expect(revealed).toMatchObject({
       room: 'TABLE',
       kind: 'ROLL',
-      revealedByGm: true,
-      roll: { id: retained.id, evidence: retained.evidence }
+      rolls: [{ revealedByGm: true, roll: { id: retained.id, evidence: retained.evidence } }]
     })
     expect(await gm.caller.mutation(reveal, input)).toEqual(revealed)
     expect((await readEntries()).entries).toHaveLength(1)
@@ -900,9 +914,8 @@ describe('Campaign roll visibility', () => {
     expect(notice).toMatchObject({
       room: 'TABLE',
       kind: 'ROLL_NOTICE',
-      roll: null,
+      rolls: [],
       body: null,
-      revealedByGm: false,
       characterLabel: null
     })
     expect(JSON.stringify(notice)).not.toContain(retained.id)
@@ -914,7 +927,7 @@ describe('Campaign roll visibility', () => {
       rollId: retained.id,
       mode: 'FULL'
     })
-    expect(full).toMatchObject({ kind: 'ROLL', revealedByGm: true })
+    expect(full).toMatchObject({ kind: 'ROLL', rolls: [{ revealedByGm: true }] })
     expect((await readEntries()).entries).toHaveLength(2)
     await player.caller.mutation(api.campaigns.conversations.open, {
       campaignId: campaign.id,

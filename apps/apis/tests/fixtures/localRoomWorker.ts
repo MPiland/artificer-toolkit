@@ -545,7 +545,7 @@ export async function readRoomRollCards(caller: RoomCaller, campaignId: string) 
     room: 'TABLE',
     limit: 100
   })
-  return page.entries.flatMap((entry) => (entry.roll ? [entry.roll] : [])).reverse()
+  return page.entries.flatMap((entry) => entry.rolls.map(({ roll }) => roll)).reverse()
 }
 
 /** The real room's answer to this member's `ENCOUNTER_READ`; its refusal rejects. */

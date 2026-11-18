@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Menu, Text } from '@mantine/core'
+import { ActionIcon, Button, Group, Menu, Stack, Text } from '@mantine/core'
 import { MoreHorizontal } from 'lucide-react'
 import type { ComponentProps, RefObject } from 'react'
 import clsx from 'clsx'
@@ -194,7 +194,6 @@ export function CampaignChatHistory({
                     <Text c='dimmed' size='xs'>
                       {formatChatTime(entry.createdAt)}
                       {entry.editedAt ? ' · edited' : ''}
-                      {entry.revealedByGm ? ' · Revealed by GM' : ''}
                     </Text>
                     {entry.authorUserId === currentUserId &&
                     !entry.unsentAt &&
@@ -230,16 +229,29 @@ export function CampaignChatHistory({
                       ? `${entry.characterLabel} made a roll`
                       : 'The GM made a roll'}
                   </Text>
-                ) : entry.kind === 'ROLL' && entry.roll?.ruleCheck ? (
-                  <CampaignRuleCheckRoll
-                    evidence={entry.roll.evidence}
-                    ruleCheck={entry.roll.ruleCheck}
-                  />
-                ) : entry.kind === 'ROLL' && entry.roll ? (
-                  <Text>
-                    Rolled {entry.roll.normalizedExpression}:{' '}
-                    <strong>{entry.roll.evidence.total}</strong>
-                  </Text>
+                ) : entry.kind === 'ROLL' ? (
+                  <Stack gap='xs'>
+                    {entry.rolls.map(({ roll, revealedByGm }) => (
+                      <div key={roll.id}>
+                        {roll.ruleCheck ? (
+                          <CampaignRuleCheckRoll
+                            evidence={roll.evidence}
+                            ruleCheck={roll.ruleCheck}
+                          />
+                        ) : (
+                          <Text>
+                            Rolled {roll.normalizedExpression}:{' '}
+                            <strong>{roll.evidence.total}</strong>
+                          </Text>
+                        )}
+                        {revealedByGm ? (
+                          <Text c='dimmed' size='xs'>
+                            Revealed by GM
+                          </Text>
+                        ) : null}
+                      </div>
+                    ))}
+                  </Stack>
                 ) : (
                   <Text style={{ whiteSpace: 'pre-wrap' }}>{entry.body}</Text>
                 )}

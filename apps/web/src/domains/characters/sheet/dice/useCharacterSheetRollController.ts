@@ -65,8 +65,9 @@ export function useCharacterSheetRollController(
           clientNonce: crypto.randomUUID(),
           roll
         })
-        if (!entry.roll) throw new Error('The Campaign roll did not return roll evidence.')
-        return entry.roll
+        const [posted] = entry.rolls
+        if (!posted) throw new Error('The Campaign roll did not return roll evidence.')
+        return posted.roll
       }
       if (!isGm) return executeCampaignPrivateRoll({ campaignId, ...roll })
       return executeGmPrivateRoll({ campaignId, clientNonce: crypto.randomUUID(), roll })

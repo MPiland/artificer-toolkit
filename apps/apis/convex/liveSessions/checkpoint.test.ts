@@ -783,14 +783,12 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
       kind: 'CHAT',
       mode: 'ROLEPLAY',
       body: 'Retained message-time Character snapshot',
-      roll: null,
-      revealedByGm: false,
+      rolls: [],
       authorUsername: 'Player snapshot',
       characterId: base.character.id,
       characterLabel: 'Departing Character',
       editedAt: null,
-      unsentAt: null,
-      consumedAt: null
+      unsentAt: null
     },
     chatNonce
   )
@@ -802,24 +800,30 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
     body: null,
     characterId: null,
     characterLabel: null,
-    roll: {
-      id: crypto.randomUUID(),
-      normalizedExpression: '1d20',
-      characterId: null,
-      characterLabel: '',
-      source: { kind: 'MANUAL', label: 'Checkpoint roll' },
-      ruleset: { systemId: 'srd', code: 'srd', version: '1' },
-      createdAt: now,
-      evidence: {
-        terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
-        modifier: 0,
-        mode: 'NORMAL',
-        keep: 'FIRST',
-        subtotal: 10,
-        transform: { kind: 'NONE' },
-        total: 10
+    rolls: [
+      {
+        revealedByGm: false,
+        consumedAt: null,
+        roll: {
+          id: crypto.randomUUID(),
+          normalizedExpression: '1d20',
+          characterId: null,
+          characterLabel: '',
+          source: { kind: 'MANUAL', label: 'Checkpoint roll' },
+          ruleset: { systemId: 'srd', code: 'srd', version: '1' },
+          createdAt: now,
+          evidence: {
+            terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
+            modifier: 0,
+            mode: 'NORMAL',
+            keep: 'FIRST',
+            subtotal: 10,
+            transform: { kind: 'NONE' },
+            total: 10
+          }
+        }
       }
-    }
+    ]
   })
   const create = (
     table: LiveSessionCheckpointTable,
@@ -870,8 +874,11 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
   }
   const revealedRoll = {
     ...rollEntry,
-    revealedByGm: true,
-    consumedAt: editedAt
+    rolls: rollEntry.rolls.map((stored) => ({
+      ...stored,
+      revealedByGm: true,
+      consumedAt: editedAt
+    }))
   }
   const edited = await base.t.mutation(
     publish,
@@ -1678,14 +1685,12 @@ it('reads a Scene and a conversation once however many records of a save name th
       kind: 'CHAT',
       mode: 'ROLEPLAY',
       body: `Table chat ${index}`,
-      roll: null,
-      revealedByGm: false,
+      rolls: [],
       authorUsername: 'GM',
       characterId: null,
       characterLabel: null,
       editedAt: null,
-      unsentAt: null,
-      consumedAt: null
+      unsentAt: null
     })
     return recordChange(
       'campaignConversationEntries',
@@ -1756,14 +1761,12 @@ it('saves chat mid-Run without a Run row, replays idempotently, refuses a stale 
       kind: 'CHAT',
       mode: 'ROLEPLAY',
       body,
-      roll: null,
-      revealedByGm: false,
+      rolls: [],
       authorUsername: 'GM',
       characterId: null,
       characterLabel: null,
       editedAt: null,
-      unsentAt: null,
-      consumedAt: null
+      unsentAt: null
     })
     return {
       stored,

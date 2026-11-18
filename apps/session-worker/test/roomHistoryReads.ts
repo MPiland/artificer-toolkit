@@ -248,11 +248,7 @@ export function readRoomRollCards(stub: RoomStub) {
     const table = room
       .documents('campaignConversationEntries')
       .filter(hasCampaignEntryContent)
-      .flatMap((entry) =>
-        entry.kind === 'ROLL' && entry.roll
-          ? [{ audience: 'TABLE' as const, roll: entry.roll }]
-          : []
-      )
+      .flatMap((entry) => entry.rolls.map(({ roll }) => ({ audience: 'TABLE' as const, roll })))
     const privateRolls = room
       .records(ROOM_PRIVATE_ROLL)
       .map((record) => liveSessionCheckpointRetainedRollSchema.parse(JSON.parse(record.json)))

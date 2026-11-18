@@ -1,6 +1,9 @@
 import { z, lazySchema } from '../zod.js'
 import { campaignAnnouncementDtoSchema } from '../api/campaignAnnouncements.js'
-import { campaignChatEntryDtoSchema } from '../api/campaignCommunication.js'
+import {
+  campaignChatEntryDtoSchema,
+  campaignChatRollDtoSchema
+} from '../api/campaignCommunication.js'
 import { timestampSchema, uuidSchema } from '../api/campaignContractSchemas.js'
 import { projectionChecksumSchema } from './identity.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -44,8 +47,16 @@ export const campaignStoredAnnouncementSchema = lazySchema(() =>
 )
 
 /**
+ * One roll of a stored ROLL entry. `consumedAt` is set once when rest settlement spends this roll
+ * and is never part of the chat presentation.
+ */
+export const campaignStoredRollSchema = lazySchema(() =>
+  z.extend(campaignChatRollDtoSchema, { consumedAt: z.nullable(timestampSchema) })
+)
+
+/**
  * One chat or roll entry as one document (D229 step 2): each stored row bills its own index rows, so
- * identity, text or roll, and snapshots persist together under three indexes.
+ * identity, text or rolls, and snapshots persist together under three indexes.
  */
 export const campaignStoredEntrySchema = lazySchema(() =>
   z
@@ -59,24 +70,19 @@ export const campaignStoredEntrySchema = lazySchema(() =>
         kind: true,
         mode: true,
         body: true,
-        roll: true,
-        revealedByGm: true,
         authorUsername: true,
         characterId: true,
         characterLabel: true,
         editedAt: true,
         unsentAt: true
       }),
-      // Set once when rest settlement spends this roll; never part of the chat presentation.
-      { clientNonce: uuidSchema, consumedAt: z.nullable(timestampSchema) }
+      { clientNonce: uuidSchema, rolls: z.array(campaignStoredRollSchema) }
     )
     .check(
       z.superRefine((entry, context) => {
         const valid =
           entry.kind === 'CHAT'
-            ? entry.roll === null &&
-              !entry.revealedByGm &&
-              entry.consumedAt === null &&
+            ? entry.rolls.length === 0 &&
               entry.mode !== null &&
               (entry.unsentAt === null) === (entry.body !== null)
             : entry.mode === null &&
@@ -84,12 +90,9 @@ export const campaignStoredEntrySchema = lazySchema(() =>
               entry.editedAt === null &&
               entry.unsentAt === null &&
               (entry.kind === 'ROLL'
-                ? entry.roll !== null
+                ? entry.rolls.length > 0
                 : // A "roll notice" carries no result, only the creature's name when visible.
-                  entry.roll === null &&
-                  entry.characterId === null &&
-                  !entry.revealedByGm &&
-                  entry.consumedAt === null)
+                  entry.rolls.length === 0 && entry.characterId === null)
         if (!valid) context.addIssue({ code: 'custom', message: 'Invalid Campaign chat entry.' })
       })
     )
@@ -126,12 +129,15 @@ export const campaignRoomEntrySchema = lazySchema(() =>
   z.union([campaignStoredEntrySchema, campaignStoredEntryMetadataSchema])
 )
 
-/** Exactly the fields the table-roll retry compares; reveal and consumption do not alter reuse. */
+/**
+ * Exactly the fields the table-roll retry compares: every roll record in order, not their reveal
+ * or consumption, which do not alter reuse.
+ */
 export function campaignRollNonceFingerprint(
   entry: Pick<
     z.infer<typeof campaignStoredEntrySchema>,
     | 'kind'
-    | 'roll'
+    | 'rolls'
     | 'authorUsername'
     | 'characterId'
     | 'characterLabel'
@@ -143,7 +149,7 @@ export function campaignRollNonceFingerprint(
 ): string {
   return checksumCanonicalJson({
     kind: entry.kind,
-    roll: entry.roll,
+    rolls: entry.rolls.map(({ roll }) => roll),
     authorUsername: entry.authorUsername,
     characterId: entry.characterId,
     characterLabel: entry.characterLabel,
@@ -174,5 +180,5 @@ export function projectCampaignEntryMetadata(
 export function hasCampaignEntryContent<Entry extends z.infer<typeof campaignRoomEntrySchema>>(
   entry: Entry
 ): entry is Extract<Entry, z.infer<typeof campaignStoredEntrySchema>> {
-  return 'roll' in entry
+  return 'rolls' in entry
 }

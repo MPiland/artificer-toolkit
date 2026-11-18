@@ -17,8 +17,7 @@ const entry = campaignChatEntryDtoSchema.parse({
   kind: 'CHAT',
   mode: 'ROLEPLAY',
   body: 'The history remains.',
-  roll: null,
-  revealedByGm: false,
+  rolls: [],
   authorUserId: '48c98265-8507-4c77-bf99-1585a4a46274',
   authorUsername: 'Deleted user',
   characterId: '5c6f2647-8a8e-4e8e-8a9e-19f9554bf79c',
@@ -67,36 +66,41 @@ describe('CampaignChatHistory', () => {
       authorUsername: ruleCheckAuthorLabel,
       characterId: null,
       characterLabel: 'Mira',
-      roll: {
-        id: '0c0b0a09-0807-4605-8403-020100fffefd',
-        normalizedExpression: '1d20+3',
-        evidence: {
-          terms: [{ count: 1, die: 20, rolls: [6], subtotal: 6 }],
-          modifier: 3,
-          mode: 'NORMAL',
-          keep: 'FIRST',
-          subtotal: 9,
-          transform: { kind: 'NONE' },
-          total: 9
-        },
-        characterId: null,
-        characterLabel: 'Mira',
-        source: { kind: 'SAVING_THROW', label: 'Concentration' },
-        ruleset: { systemId: 'system', code: 'dnd5e', version: '2014' },
-        createdAt: '2026-09-18T12:00:00.000Z',
-        ruleCheck: {
-          kind: 'CONCENTRATION',
-          actorId: '5c6f2647-8a8e-4e8e-8a9e-19f9554bf79c',
-          actorLabel: 'Mira',
-          damage: { amount: 12, typeLabel: 'Fire' },
-          sourceLabel: 'Fire Bolt',
-          dc: 10,
-          faces: [6],
-          modifier: 3,
-          total: 9,
-          outcome: 'LOST'
+      rolls: [
+        {
+          revealedByGm: false,
+          roll: {
+            id: '0c0b0a09-0807-4605-8403-020100fffefd',
+            normalizedExpression: '1d20+3',
+            evidence: {
+              terms: [{ count: 1, die: 20, rolls: [6], subtotal: 6 }],
+              modifier: 3,
+              mode: 'NORMAL',
+              keep: 'FIRST',
+              subtotal: 9,
+              transform: { kind: 'NONE' },
+              total: 9
+            },
+            characterId: null,
+            characterLabel: 'Mira',
+            source: { kind: 'SAVING_THROW', label: 'Concentration' },
+            ruleset: { systemId: 'system', code: 'dnd5e', version: '2014' },
+            createdAt: '2026-09-18T12:00:00.000Z',
+            ruleCheck: {
+              kind: 'CONCENTRATION',
+              actorId: '5c6f2647-8a8e-4e8e-8a9e-19f9554bf79c',
+              actorLabel: 'Mira',
+              damage: { amount: 12, typeLabel: 'Fire' },
+              sourceLabel: 'Fire Bolt',
+              dc: 10,
+              faces: [6],
+              modifier: 3,
+              total: 9,
+              outcome: 'LOST'
+            }
+          }
         }
-      }
+      ]
     })
     render(
       <MantineProvider>
@@ -138,25 +142,30 @@ describe('CampaignChatHistory', () => {
       authorUsername: ruleCheckAuthorLabel,
       characterId: null,
       characterLabel: 'Mira',
-      roll: {
-        id: '0c0b0a09-0807-4605-8403-020100fffefe',
-        normalizedExpression: '1d20+2',
-        evidence: {
-          terms: [{ count: 1, die: 20, rolls: [20], subtotal: 20 }],
-          modifier: 2,
-          mode: 'NORMAL',
-          keep: 'FIRST',
-          subtotal: 22,
-          transform: { kind: 'NONE' },
-          total: 22
-        },
-        characterId: null,
-        characterLabel: 'Mira',
-        source: { kind: 'SAVING_THROW', label: 'Acid Spray save' },
-        ruleset: { systemId: 'system', code: 'dnd5e', version: '2014' },
-        createdAt: '2026-09-18T12:00:00.000Z',
-        ruleCheck: { kind: 'SAVE_AUTO_FAIL', labels: ['Paralyzed'] }
-      }
+      rolls: [
+        {
+          revealedByGm: false,
+          roll: {
+            id: '0c0b0a09-0807-4605-8403-020100fffefe',
+            normalizedExpression: '1d20+2',
+            evidence: {
+              terms: [{ count: 1, die: 20, rolls: [20], subtotal: 20 }],
+              modifier: 2,
+              mode: 'NORMAL',
+              keep: 'FIRST',
+              subtotal: 22,
+              transform: { kind: 'NONE' },
+              total: 22
+            },
+            characterId: null,
+            characterLabel: 'Mira',
+            source: { kind: 'SAVING_THROW', label: 'Acid Spray save' },
+            ruleset: { systemId: 'system', code: 'dnd5e', version: '2014' },
+            createdAt: '2026-09-18T12:00:00.000Z',
+            ruleCheck: { kind: 'SAVE_AUTO_FAIL', labels: ['Paralyzed'] }
+          }
+        }
+      ]
     })
     render(
       <MantineProvider>
@@ -191,7 +200,7 @@ describe('CampaignChatHistory', () => {
       kind: 'ROLL',
       mode: null,
       body: null,
-      roll: cancelledAdvantageRoll()
+      rolls: [{ revealedByGm: false, roll: cancelledAdvantageRoll() }]
     })
     render(
       <MantineProvider>
@@ -219,6 +228,64 @@ describe('CampaignChatHistory', () => {
 
     expect(screen.getByText(/7 kept, 16 cancelled/)).toBeInTheDocument()
     expect(screen.getByText(/Advantage cancelled: the target can sense you/)).toBeInTheDocument()
+  })
+
+  it('renders every roll of a multi-roll entry and marks only the revealed one', () => {
+    const rollOf = (id: string, expression: string, total: number) => ({
+      id,
+      normalizedExpression: expression,
+      evidence: {
+        terms: [{ count: 1, die: 20, rolls: [total], subtotal: total }],
+        modifier: 0,
+        mode: 'NORMAL' as const,
+        keep: 'FIRST' as const,
+        subtotal: total,
+        transform: { kind: 'NONE' as const },
+        total
+      },
+      characterId: null,
+      characterLabel: 'Mira',
+      source: { kind: 'MANUAL' as const, label: 'Manual' },
+      ruleset: { systemId: 'system', code: 'dnd5e', version: '2014' },
+      createdAt: '2026-09-18T12:00:00.000Z'
+    })
+    const multi = campaignChatEntryDtoSchema.parse({
+      ...entry,
+      kind: 'ROLL',
+      mode: null,
+      body: null,
+      rolls: [
+        { revealedByGm: false, roll: rollOf('0c0b0a09-0807-4605-8403-020100fffe01', '1d20', 11) },
+        { revealedByGm: true, roll: rollOf('0c0b0a09-0807-4605-8403-020100fffe02', '2d20', 23) }
+      ]
+    })
+    render(
+      <MantineProvider>
+        <CampaignChatHistory
+          chatLog={{ current: null }}
+          conversationLabel='Table'
+          currentUserId='different-user'
+          directUserId={undefined}
+          encounterEntries={undefined}
+          entries={[multi]}
+          hasNextPage={false}
+          isHistoryLoading={false}
+          isLoadingOlderMessages={false}
+          isPrivateRollsError={false}
+          isPrivateRollsPending={false}
+          privateRolls={undefined}
+          rollView={null}
+          room='TABLE'
+          onEntryAction={vi.fn()}
+          onLoadOlderMessages={vi.fn()}
+          onRevealRoll={vi.fn()}
+        />
+      </MantineProvider>
+    )
+
+    expect(screen.getByText(/Rolled 1d20:/)).toBeInTheDocument()
+    expect(screen.getByText(/Rolled 2d20:/)).toBeInTheDocument()
+    expect(screen.getAllByText('Revealed by GM')).toHaveLength(1)
   })
 
   it('shows a ROLL_NOTICE as a notice with no result, naming the creature when present', () => {

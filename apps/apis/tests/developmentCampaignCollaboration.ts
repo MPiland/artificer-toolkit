@@ -48,7 +48,7 @@ export async function verifyCampaignCollaboration(input: {
         privateRollId ??= privateHistory[0]!.id
         assert.equal(privateHistory[0]!.id, privateRollId)
         assert.deepEqual(await player.client.query(api.rolls.history, {}), [])
-        const rolls = table.entries.flatMap((entry) => (entry.roll ? [entry.roll] : []))
+        const rolls = table.entries.flatMap((entry) => entry.rolls.map(({ roll }) => roll))
         assert.ok(rolls.every((roll) => roll.id !== privateRollId))
         assert.equal(rolls.length, stage === 'gm-private-rolled' ? 0 : 1)
       } else if (stage.startsWith('notebook-')) {

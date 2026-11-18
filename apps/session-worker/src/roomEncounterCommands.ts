@@ -370,8 +370,8 @@ export async function executeRoomEncounterCommand(input: {
       commandFingerprint: roomEncounterCommandFingerprint(command),
       version: projection.version,
       rollCardId:
-        written.postedChatEntries.find(
-          (entry) => entry.roll !== null && entry.roll.id === rawResult.roll?.id
+        written.postedChatEntries.find((entry) =>
+          entry.rolls.some(({ roll }) => roll.id === rawResult.roll?.id)
         )?.id ?? null
     })
   // Only commands that change Convex-owned holds wait for Convex (ADR 0035 Amendment 17): START and

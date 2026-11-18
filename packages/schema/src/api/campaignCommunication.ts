@@ -97,6 +97,10 @@ export const deletedCampaignAuthorLabel = 'Deleted user'
 export const ruleCheckAuthorLabel = 'Rules'
 /** The chat line the table sees when the GM skips a pending movement decision (D26). */
 export const MOVEMENT_DECISION_SKIPPED_MESSAGE = 'The GM skipped this decision.'
+/** One roll of a ROLL card; the GM reveals a roll, never the card (D229 step 4). */
+export const campaignChatRollDtoSchema = lazySchema(() =>
+  z.strictObject({ roll: rollRecordDtoSchema, revealedByGm: z.boolean() })
+)
 export const campaignChatEntryDtoSchema = lazySchema(() =>
   z.strictObject({
     id: uuidSchema,
@@ -106,8 +110,8 @@ export const campaignChatEntryDtoSchema = lazySchema(() =>
     kind: campaignChatEntryKindDtoSchema,
     mode: z.nullable(campaignChatModeDtoSchema),
     body: z.nullable(z.string().check(z.maxLength(2000))),
-    roll: z.nullable(rollRecordDtoSchema),
-    revealedByGm: z.boolean(),
+    /** Non-empty for a ROLL entry, empty for every other kind. */
+    rolls: z.array(campaignChatRollDtoSchema),
     authorUserId: uuidSchema,
     authorUsername: campaignAuthorLabelSchema,
     characterId: z.nullable(uuidSchema),
@@ -346,6 +350,7 @@ export const campaignChatPageDtoSchema = lazySchema(() =>
 export type CampaignRealtimeEnvelopeDto = z.infer<typeof campaignRealtimeEnvelopeDtoSchema>
 export type CampaignConversationDto = z.infer<typeof campaignConversationDtoSchema>
 export type CampaignChatEntryDto = z.infer<typeof campaignChatEntryDtoSchema>
+export type CampaignChatRollDto = z.infer<typeof campaignChatRollDtoSchema>
 export type SendCampaignChatEntryInput = z.input<typeof sendCampaignChatEntryInputSchema>
 export type ExecuteCampaignRollInput = z.input<typeof executeCampaignRollInputSchema>
 export type ExecuteCampaignPrivateRollInput = z.input<typeof executeCampaignPrivateRollInputSchema>

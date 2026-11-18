@@ -1,5 +1,7 @@
-import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
-import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type {
+  CampaignChatEntryDto,
+  CampaignChatRollDto
+} from '@artificer-toolkit/schema/api/campaignCommunication'
 import { campaignStoredEntrySchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 
 /** The stored document of one chat or roll entry, for `insertConversationEntry`. */
@@ -17,10 +19,12 @@ export function buildConversationEntry(input: {
         body: string
         character: { id: string; label: string } | null
       }
-    | { kind: 'ROLL'; roll: RollRecordDto; revealedByGm: boolean }
+    | { kind: 'ROLL'; rolls: readonly [CampaignChatRollDto, ...CampaignChatRollDto[]] }
     | { kind: 'ROLL_NOTICE'; creatureLabel: string | null }
 }) {
   const { content } = input
+  // The card is attributed to its first roll's creature.
+  const lead = content.kind === 'ROLL' ? content.rolls[0].roll : null
   return campaignStoredEntrySchema.parse({
     id: crypto.randomUUID(),
     campaignId: input.campaignId,
@@ -31,25 +35,20 @@ export function buildConversationEntry(input: {
     kind: content.kind,
     mode: content.kind === 'CHAT' ? content.mode : null,
     body: content.kind === 'CHAT' ? content.body : null,
-    roll: content.kind === 'ROLL' ? content.roll : null,
-    revealedByGm: content.kind === 'ROLL' && content.revealedByGm,
+    rolls:
+      content.kind === 'ROLL' ? content.rolls.map((entry) => ({ ...entry, consumedAt: null })) : [],
     authorUsername: input.username,
     characterId:
-      content.kind === 'CHAT'
-        ? (content.character?.id ?? null)
-        : content.kind === 'ROLL'
-          ? content.roll.characterId
-          : null,
+      content.kind === 'CHAT' ? (content.character?.id ?? null) : (lead?.characterId ?? null),
     characterLabel:
       content.kind === 'CHAT'
         ? (content.character?.label ?? null)
         : content.kind === 'ROLL_NOTICE'
           ? content.creatureLabel
-          : content.roll.characterId === null
-            ? null
-            : content.roll.characterLabel,
+          : lead && lead.characterId !== null
+            ? lead.characterLabel
+            : null,
     editedAt: null,
-    unsentAt: null,
-    consumedAt: null
+    unsentAt: null
   })
 }
