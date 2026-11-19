@@ -4,7 +4,7 @@
 > **Update when:** the Worker configuration, deploy workflow, secrets, hostnames or rollback path changes.
 > **Verification:** `apps/web/wrangler.jsonc`, `.github/workflows/deploy-web.yml`, and the local proof in the [D65 record](../validation/phase-08-2/d65-cloudflare-web-hosting-2026-09-28.md).
 
-The web app is the Worker `artificer-web` (staging: `artificer-web-staging`). It serves SSR, server
+The web app is the Worker `artificer-web-production` (staging: `artificer-web-staging`). It serves SSR, server
 functions and the `/api/auth` proxy; hashed assets are Workers Static Assets and never invoke it.
 
 ## Rendering policy (D75)
