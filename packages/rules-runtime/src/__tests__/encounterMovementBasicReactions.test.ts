@@ -173,7 +173,8 @@ describe('the System opportunity attack as a movement reaction (D231)', () => {
   })
 
   it('is not made by a defeated creature, nor with a Legendary Action Feature', () => {
-    expect(sources({ actors: [{ ...wolf, defeated: true }] })).toEqual([])
+    const defeatedWolf = srdCreatureActor({ id: WOLF_ID, creature: wolfCreature, defeated: true })
+    expect(sources({ actors: [defeatedWolf] })).toEqual([])
     expect(sources({ actors: [wolf], legendaryFeatureIds: [bite.id] })).toEqual([])
   })
 
