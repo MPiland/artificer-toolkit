@@ -8274,7 +8274,7 @@
         {
           "id": "MOVE-1",
           "title": "Move tokens and see every client converge",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/apis/convex/scenes/spatialCommit.test.ts",
             "apps/apis/convex/liveSessions/encounterMovementAdmission.test.ts",
@@ -8305,10 +8305,11 @@
             },
             {
               "text": "Movement reactions, Passage continuation, stopped-path fog and GM undo pass in the browser.",
-              "status": "DONE",
+              "status": "IN_PROGRESS",
               "proof": ["browser suite passage-browser-23", "browser suite movement-browser-29"],
               "origin": ["V07.2"],
-              "id": "MOVE-1.2"
+              "id": "MOVE-1.2",
+              "note": "Reopened 2026-11-18 (D231): the proofs used fixtures that patch weapon attacks into reactions; real SRD data offers no opportunity attack. Closes again with MOVE-1.T1b real-SRD proofs."
             },
             {
               "text": "Peers converge, and reconnect, reload and current departure refusal pass with exact cleanup.",
@@ -8355,7 +8356,41 @@
               "origin": ["V07.5"],
               "id": "MOVE-1.5"
             }
-          ]
+          ],
+          "tasks": [
+            {
+              "id": "MOVE-1.T1a",
+              "status": "IN_PROGRESS",
+              "closes": ["MOVE-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Publish the reaction eligibility and choice graphs in the SRD catalogue and charge every movement-reaction child as REACTION (inert for real actors until T1b).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "MOVE-1.T1b",
+              "status": "TODO",
+              "closes": ["MOVE-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 5,
+                "after": ["MOVE-1.T1a"]
+              },
+              "text": "D231: author the SRD opportunity-attack basic reaction (REACTION cost, weaponAttack pairing, MOVEMENT binding), offer it as each melee attack the reactor has, prove a Level 1 Fighter and the SRD Wolf are offered it and not after Disengage on real SRD data, drop the redundant Bite fixture patch, and restore the guide text."
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 8,
+            "rr": 5,
+            "size": 8
+          }
         },
         {
           "id": "MOVE-2",
@@ -29951,7 +29986,7 @@
                 "finalSource": true
               },
               "text": "Release-candidate walkthrough: step through each guide statement on the review data from RELEASE-8 in the running build (Browser pane against local web), correct mismatches, record the checked build identity. Agent drives the browser; owner's judgment on tone is optional.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted. 2026-11-18 part 1 merged m882: Still in progress block corrected from merged code (11 claims); the in-app walk of the remaining ~100 statements runs from the main checkout (worktrees lack the local env files). Part 2 merged m883: GM-side app walk, 7 PASS, 6 CORRECTED, 0 BUG. Part 3 walks the player side and a live Encounter. Part 3 merged m884: Encounter and Sheet walk, 6 PASS, 2 CORRECTED, 1 BUG (T4), 3 CODE-ONLY. Still unwalked (opportunity attacks, doors, legendary actions, reveals, undo refusals, fog/walls/hidden tokens, reconnect and room close, spells in play): walk them on the release candidate before alpha invites, as RELEASE-7.3 requires.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted. 2026-11-18 part 1 merged m882: Still in progress block corrected from merged code (11 claims); the in-app walk of the remaining ~100 statements runs from the main checkout (worktrees lack the local env files). Part 2 merged m883: GM-side app walk, 7 PASS, 6 CORRECTED, 0 BUG. Part 3 walks the player side and a live Encounter. Part 3 merged m884: Encounter and Sheet walk, 6 PASS, 2 CORRECTED, 1 BUG (T4), 3 CODE-ONLY. Still unwalked (opportunity attacks, doors, legendary actions, reveals, undo refusals, fog/walls/hidden tokens, reconnect and room close, spells in play): walk them on the release candidate before alpha invites, as RELEASE-7.3 requires. Part 4 merged m886: every guide statement is PASS, CORRECTED, CODE-ONLY or a recorded BUG; found production SRD data authors no opportunity attack (MOVE-1.T1, D231). Guide restores that text when MOVE-1.T1b lands.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {

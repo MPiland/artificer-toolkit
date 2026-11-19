@@ -2,7 +2,7 @@
 
 A plain-language guide to the live table for alpha players and GMs. It describes what the app does today, checked against the code and its tests. Where a feature is not finished, a note says so instead of guessing.
 
-> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. Progress: the Spells section's former "Still in progress" items were rechecked against merged code and tests at phase-branch commit `7082947b2` (see [the walkthrough note](../validation/release-7-t3-walkthrough-2026-11-18.md)); the rest was walked against the running local build as the GM, with player-only and live-play statements checked against code (see the same note for what could not be exercised). A third pass walked a live Encounter as the GM and as a player at commit `b8e9da14a`; the note's Part 3 lists what was exercised and what is still unverified. The [known gaps](#known-gaps) and [how to send feedback](#sending-feedback) are at the end.
+> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. Progress: the Spells section's former "Still in progress" items were rechecked against merged code and tests at phase-branch commit `7082947b2` (see [the walkthrough note](../validation/release-7-t3-walkthrough-2026-11-18.md)); the rest was walked against the running local build as the GM, with player-only and live-play statements checked against code (see the same note for what could not be exercised). A third pass walked a live Encounter as the GM and as a player at commit `b8e9da14a`. A fourth pass (Part 4 of the note) settled the opportunity attack question, walked a live Encounter again as the GM at commit `cea1f424b`, and checked doors, reveals, undo, fog, walls, reconnect, Concentration and the known gaps against code and tests. The [known gaps](#known-gaps) and [how to send feedback](#sending-feedback) are at the end.
 
 ## Words used in this guide
 
@@ -56,9 +56,10 @@ Optional Campaign settings (frozen into each Encounter): **ammunition tracking**
 - The movement readout shows "used / budget ft". In Assisted mode a yellow "N ft over" appears when you exceed it. **Movement is advisory: the app does not stop you.** Dash adds to the budget.
 - Diagonal steps count 5, 10, 5 feet. Difficult terrain multiplies the cost of what you cross.
 - The app refuses a move that crosses a blocking wall, ends inside a hostile creature's space, leaves the map, or touches a locked token.
-- Leaving an enemy's reach pauses your move on a **Pending decision**: the enemy's controller chooses **Use reaction** or **Decline reaction** (opportunity attack). Some moves (Overrun, Tumble) pause for a contest with **Decline passage**. While a movement decision is open, token moves, undo and door changes are blocked ("Waiting on a movement decision.").
+- **Opportunity attacks are not offered in this build.** Leaving an enemy's reach does not pause your move, because no Character or monster in the SRD data has an opportunity attack to offer ([known gaps](#combat)). The GM rules it by hand. Some moves (Overrun, Tumble) pause for a contest with **Decline passage**.
+- While a movement or reaction decision is open, token moves, undo and door changes are blocked ("Waiting on a movement decision." or "Waiting on a reaction decision."). Any other open decision, such as an initiative roll or declaration, also refuses a token move, with the general message "The table change could not be saved." Answer the decision first.
 - Pushes and pulls caused by effects do not provoke opportunity attacks.
-- Anyone can open or close a door; only the GM can lock one.
+- Anyone can open or close a door; only the GM can lock or unlock one (a player cannot open a locked door).
 
 ### Turns, attacks and saves (Assisted)
 
@@ -83,7 +84,7 @@ Optional Campaign settings (frozen into each Encounter): **ammunition tracking**
 
 ### Reactions
 
-- A reaction prompt appears when a creature that can react is hit by an attack (Shield, Uncanny Dodge, Deflect Missiles), takes damage (Absorb Elements), sees a spell cast (Counterspell), or is left by a moving creature (opportunity attack).
+- A reaction prompt appears when a creature that can react is hit by an attack (Shield, Uncanny Dodge, Deflect Missiles), takes damage (Absorb Elements), or sees a spell cast (Counterspell). Leaving a creature's reach does not raise one yet (see [Moving tokens](#moving-tokens)).
 - The reacting creature's controller answers **Use** or **Decline** (the GM for monsters; the GM can answer for anyone). The attacker's player cannot answer for someone else.
 - Until the prompt is answered, the hit or cast is held and nothing is applied. A prompt declines itself after the Campaign's **Reaction time (seconds)** (default 5, from 3 to 15), and at once if the player is marked away. The GM can also skip it.
 - You get one reaction per round. Dead, unconscious and incapacitated creatures are not offered one.
@@ -101,7 +102,7 @@ On your Sheet, the **Manual roll** panel (the dice button at the bottom left) ha
 - In **Live maps**, upload a map (JPEG, PNG or WebP, up to 25 MiB, 8192 pixels per side and 64 megapixels), name it, choose Square or Gridless, calibrate the grid with **Calibrate on map** and set the cell size and unit (Feet, Meters or Squares).
 - Only you can present a Scene. Choose it from **Present a scene**. Only you can add, change or remove tokens and walls, and edit fog.
 - **Show to players** is separate: it shows an image to players without presenting a Scene.
-- Wall types: wall, door, window and one-way block movement; terrain only slows it. Fog is optional per Scene (off, shared by the party, or per player). Tokens you mark hidden are not sent to players.
+- Wall types: wall, door, window and one-way. Each is set to block movement, light or both (a door only while closed, a one-way barrier in one direction); terrain only slows movement. Fog is optional per Scene (off, shared by the party, or per player). Tokens you mark hidden are not sent to players.
 
 ### Running an Encounter
 
@@ -109,7 +110,7 @@ On your Sheet, the **Manual roll** panel (the dice button at the bottom left) ha
 - **Initiative**: you can roll or enter it for anyone. In Manual mode **Start encounter** stays disabled until every combatant has initiative. A player may roll or enter initiative once for a Character they control; a second attempt, or someone else's Character, is refused. Once the order is set, only you change it, including the tie-break order. Ties go to the higher Dexterity score; if equal, you choose the order. A Speed Factor initiative variant is also available.
 - **Turn controls**: Current turn, Previous turn, Next turn and **Players away** are in the turn order panel, on the tabletop and on the session page. **Undo last action** and **Complete encounter** are in the **Encounter actions** menu on the session page.
 - Non-Character creatures have a **Roll initiative** button and an Initiative number field.
-- **Opportunity attacks, legendary windows and Legendary Resistance** prompt the creature's controller, which for monsters is you.
+- **Legendary windows and Legendary Resistance** prompt the creature's controller, which for monsters is you. Opportunity attacks are not offered yet.
 - **Skip decision** (on a movement choice) or **Void decision** (on any other pending decision): cancels a paused action and treats declinable choices as declined. It is refused for decisions play cannot continue without (initiative, saves, Recharge, legendary dice, dice during a move). Turn advance waits for an Initiative declaration under Speed Factor.
 - Remove a creature from a pending area from the pending area prompt.
 
@@ -162,6 +163,7 @@ These are things you may run into. None is a surprise bug: the team knows about 
 
 ### Combat
 
+- **No opportunity attacks.** The rules engine can offer one, but the SRD Characters and monsters carry no opportunity attack, so nothing prompts when a creature leaves reach. The GM rules it by hand. Disengage and Flyby still mark a move as safe.
 - **Manual mode gives no reminders.** In Manual mode the app does not hint that an opportunity attack, ongoing damage or a Concentration check is due.
 - **Hands and components are not checked.** A caster holding a sword and shield can still cast a spell with somatic or material components, and free object interactions are not counted.
 - **Hitting cover is not a rule here.** A ranged attack that misses only because of cover simply misses.
@@ -177,7 +179,6 @@ These are things you may run into. None is a surprise bug: the team knows about 
 - **Dice are spent on the first matching roll.** Guidance and Resistance cannot be saved for later or applied to initiative.
 - **Metamagic, Monk and Warlock gaps.** Wizard Overchannel is a GM ruling (see [Spells](#spells)). Open Hand pushes exactly 15 feet; the GM moves the token back if the Monk wants less.
 - **Spell-slot recovery is not limited by the app.** Arcane Recovery and Natural Recovery are not restricted to a short rest, so keep to the rule yourselves.
-- **Magic Weapon does not start Concentration** until its source data is corrected; track it by hand.
 
 ## Sending feedback
 
