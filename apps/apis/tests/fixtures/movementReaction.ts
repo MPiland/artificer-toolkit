@@ -28,10 +28,16 @@ import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-d
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import {
-  srdMovementReactionChoiceDefinition,
-  srdOpportunityReactionEligibilityDefinition
-} from '@artificer-toolkit/rules-runtime/testing/srdMovementReactionPolicy'
+  conditionTypeId,
+  damageTypeId
+} from '@artificer-toolkit/source-data/srd/equipment/shared.js'
+import {
+  SRD_MOVEMENT_REACTION_DEFINITIONS,
+  SRD_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID
+} from '@artificer-toolkit/source-data/srd/movementReaction.js'
+import { srdOpportunityReactionEligibilityDefinition } from '@artificer-toolkit/rules-runtime/testing/srdMovementReactionPolicy'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from './characters'
 import { reactionBinding } from './reactionBinding'
@@ -58,20 +64,165 @@ const createRun = makeFunctionReference<
   EncounterGmProjectionDto
 >('encounters/runs:create')
 
-const reactionCreature = {
-  ...srdWolf,
-  features: srdWolf.features?.map((feature) => ({
-    ...feature,
-    effects: feature.effects?.map((effect) => ({
-      ...effect,
-      invocation: {
-        ...effect.invocation,
-        triggerCode: 'MELEE_WEAPON_ATTACK' as const,
-        activation: { code: 'REACTION' as const, amount: 1 },
-        reactionTrigger: reactionBinding
+/** A saving throw the authored reaction forces in place of its attack, failed for its damage alone. */
+interface AuthoredReactionSave {
+  damageDice: boolean
+  stopOnFailedSave: boolean
+  maintenanceDefinitionId: string | null
+}
+
+/**
+ * A test-authored Bite taken as a movement reaction, for what the SRD opportunity attack does not
+ * take: an AUTOMATIC selection, a chosen perception requirement, or a saving throw in place of the
+ * attack.
+ */
+function authoredReactionBite(input: {
+  eligibilityDefinitionId: string
+  perceptionRequirement: 'SEE' | null
+  save: AuthoredReactionSave | null
+}): NonNullable<CreatureAuthored['features']>[number] {
+  const damage = {
+    id: crypto.randomUUID(),
+    effectKind: 'DAMAGE' as const,
+    damageTypeId: damageTypeId('PIERCING'),
+    scalingKind: 'NONE' as const,
+    ...(input.save && !input.save.damageDice
+      ? { valueKind: 'FIXED' as const, amount: 1, bonuses: [] }
+      : {
+          valueKind: 'DICE' as const,
+          diceConfig: '2d4',
+          bonuses: [
+            {
+              id: crypto.randomUUID(),
+              bonusKind: 'ABILITY_BONUS' as const,
+              ability: 'DEXTERITY' as const,
+              order: 1
+            }
+          ]
+        })
+  }
+  const path = (
+    order: number,
+    pathCode: 'ON_HIT' | 'ON_SAVE_FAIL',
+    outcome: typeof damage | { id: string; effectKind: 'CONDITION'; conditionId: string }
+  ) => ({
+    id: crypto.randomUUID(),
+    order,
+    pathCode,
+    groupType: 'SINGLE' as const,
+    originKind: 'SOURCE' as const,
+    selectionKind: 'FIXED' as const,
+    resultBlock: {
+      id: crypto.randomUUID(),
+      resultKind: 'SINGLE' as const,
+      outcomes: [outcome],
+      ...(input.save?.maintenanceDefinitionId
+        ? {
+            maintenanceDefinitionId: input.save.maintenanceDefinitionId,
+            duration: { id: crypto.randomUUID(), durationKind: 'ROUND' as const, amount: 3 },
+            lifecycle: { recurringKind: 'START_OF_TURN' as const }
+          }
+        : {})
+    }
+  })
+  return {
+    id: crypto.randomUUID(),
+    label: 'Bite',
+    description: 'A bite taken as a reaction to a creature leaving reach.',
+    order: 1,
+    ...(input.save
+      ? {}
+      : {
+          rollDefinitions: [
+            {
+              id: crypto.randomUUID(),
+              label: 'Bite attack',
+              kind: 'ATTACK' as const,
+              expression: { count: 1, die: 20, modifier: 4 },
+              rollMode: 'NORMAL' as const,
+              chargeCost: null,
+              order: 1
+            }
+          ]
+        }),
+    effects: [
+      {
+        id: crypto.randomUUID(),
+        order: 1,
+        invocation: {
+          kind: 'ACTION' as const,
+          activation: { code: 'REACTION' as const, amount: 1 },
+          range: {
+            id: crypto.randomUUID(),
+            rangeKind: 'DISTANCE' as const,
+            amount: 5,
+            unit: 'FEET' as const
+          },
+          targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const },
+          ...(input.save
+            ? {
+                triggerCode: 'SAVING_THROW' as const,
+                savingThrow: {
+                  id: crypto.randomUUID(),
+                  dcMethod: 'FIXED_DC' as const,
+                  baseDc: 30,
+                  abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
+                }
+              }
+            : { triggerCode: 'MELEE_WEAPON_ATTACK' as const }),
+          reactionTrigger: {
+            ...reactionBinding,
+            eligibilityDefinitionId: input.eligibilityDefinitionId,
+            perceptionRequirement: input.perceptionRequirement,
+            movementInterruption: input.save?.stopOnFailedSave
+              ? { kind: 'STOP' as const, whenResultPath: 'ON_SAVE_FAIL' as const }
+              : null
+          }
+        },
+        paths: input.save
+          ? [path(1, 'ON_SAVE_FAIL', damage)]
+          : [
+              path(1, 'ON_HIT', damage),
+              path(2, 'ON_HIT', {
+                id: crypto.randomUUID(),
+                effectKind: 'CONDITION',
+                conditionId: conditionTypeId('PRONE')
+              })
+            ]
       }
-    }))
-  }))
+    ]
+  }
+}
+
+/** A Creature with the Wolf's statistics whose only Feature is a test-authored reaction Bite. */
+function authoredReactionCreature(bite: Parameters<typeof authoredReactionBite>[0]) {
+  return creatureAuthoredDtoSchema.parse({
+    ...srdWolf,
+    id: crypto.randomUUID(),
+    label: 'Reaction Wolf',
+    features: [authoredReactionBite(bite)]
+  })
+}
+
+/** The SRD leave-reach eligibility graph authored again under its own ID, settling without a choice. */
+function authoredAutomaticEligibilityDefinition() {
+  const srd = srdOpportunityReactionEligibilityDefinition()
+  const id = crypto.randomUUID()
+  const outputs: Record<string, (typeof srd.definition.outputs)[string]> = {
+    ...structuredClone(srd.definition.outputs),
+    selectionPolicy: { kind: 'LITERAL', value: 'AUTOMATIC' }
+  }
+  delete outputs.choiceDefinitionId
+  const document = { ...structuredClone(srd.definition), id, outputs }
+  return {
+    id,
+    definitionFamilyKey: srd.definitionFamilyKey,
+    label: 'Automatic movement reaction eligibility',
+    description:
+      'A leave-reach reaction eligibility graph whose eligible reaction is taken at once.',
+    document: jsonValueSchema.parse(document),
+    checksum: checksumRuleDocument(document)
+  }
 }
 
 const legendaryResistanceFeature = adultBlackDragon.features?.find((feature) =>
@@ -81,10 +232,10 @@ if (!legendaryResistanceFeature)
   throw new Error('The native movement fixture requires SRD Legendary Resistance.')
 
 const legendaryTargetCreature = creatureAuthoredDtoSchema.parse({
-  ...reactionCreature,
+  ...srdWolf,
   id: crypto.randomUUID(),
   features: [
-    ...(reactionCreature.features ?? []),
+    ...(srdWolf.features ?? []),
     {
       ...structuredClone(legendaryResistanceFeature),
       id: crypto.randomUUID(),
@@ -99,54 +250,11 @@ const legendaryTargetCreature = creatureAuthoredDtoSchema.parse({
   ]
 })
 
-export function reactionInput(input: {
-  encounterId: string
-  expectedEncounterVersion: number
-  movingActorId: string
-  reactorActorId: string
-  occurrenceId: string
-}) {
-  const reactorTokenId = crypto.randomUUID()
-  const movingTokenId = crypto.randomUUID()
-  const perceptionContacts: Array<{ reactorActorId: string; movingActorId: string }> = []
-  const tokens = [
-    { id: reactorTokenId, position: { x: 50, y: 50 }, width: 100, height: 100 },
-    { id: movingTokenId, position: { x: 150, y: 50 }, width: 100, height: 100 }
-  ]
-  return {
-    encounterId: input.encounterId,
-    expectedEncounterVersion: input.expectedEncounterVersion,
-    grid: {
-      kind: 'SQUARE' as const,
-      origin: { x: 0, y: 0 },
-      cellSize: 100,
-      distancePerCell: 5,
-      diagonalPolicy: 'EQUAL' as const,
-      unit: 'FEET' as const
-    },
-    movementKind: 'VOLUNTARY' as const,
-    movingTokenId,
-    occurrenceId: input.occurrenceId,
-    path: [
-      { x: 150, y: 50 },
-      { x: 350, y: 50 }
-    ],
-    actorIdByTokenId: new Map([
-      [reactorTokenId, input.reactorActorId],
-      [movingTokenId, input.movingActorId]
-    ]),
-    tokens,
-    // Scene-owned perception is not integrated into this bounded native proof.
-    resolvePerception: async (contact: {
-      candidate: { reactorActorId: string; movingActorId: string }
-    }) => {
-      perceptionContacts.push(contact.candidate)
-      return true
-    },
-    perceptionContacts: () => perceptionContacts
-  }
-}
-
+/**
+ * An Assisted Run on the reactor's turn: reactors FRIENDLY and a HOSTILE mover. A CHOICE reactor
+ * answers a move with the SRD opportunity attack, which requires sight; `perceptionRequirement`
+ * sets only a test-authored reaction's. `qualifiedDamageDefenses` are the Creature mover's.
+ */
 export async function setupCreatureReactionRun(
   perceptionRequirement: 'SEE' | null = null,
   withAttackRoll = false,
@@ -177,225 +285,65 @@ export async function setupCreatureReactionRun(
       )
     })
   }
-  const opportunity = srdOpportunityReactionEligibilityDefinition()
-  const withSelectionPolicy = (
-    definition: typeof opportunity.definition,
-    policy: 'AUTOMATIC' | 'CHOICE'
-  ) => {
-    const value = structuredClone(definition)
-    if (policy !== 'AUTOMATIC') return value
-    const outputs: Record<string, (typeof definition.outputs)[string]> = {
-      ...value.outputs
-    }
-    delete outputs.choiceDefinitionId
-    outputs.selectionPolicy = { kind: 'LITERAL', value: 'AUTOMATIC' }
-    value.outputs = outputs
-    return value
-  }
-  const opportunityDefinition = withSelectionPolicy(opportunity.definition, selectionPolicy)
-  const publishedOpportunity =
-    selectionPolicy === 'AUTOMATIC'
+  const save: AuthoredReactionSave | null =
+    legendarySaveTarget || maintenanceDefinitionId
       ? {
-          ...opportunity,
-          definition: opportunityDefinition,
-          checksum: checksumRuleDocument(opportunityDefinition)
+          damageDice: typeof legendarySaveTarget === 'object' && !maintenanceDefinitionId,
+          stopOnFailedSave,
+          maintenanceDefinitionId
         }
-      : opportunity
-  const additionalOpportunityId = crypto.randomUUID()
-  const additionalOpportunityDefinition = {
-    ...withSelectionPolicy(opportunity.definition, additionalSelectionPolicy),
-    id: additionalOpportunityId
-  }
-  const publishedAdditionalOpportunity = {
-    ...opportunity,
-    id: additionalOpportunityId,
-    definition: additionalOpportunityDefinition,
-    checksum: checksumRuleDocument(additionalOpportunityDefinition)
-  }
+      : null
+  const automaticEligibility = authoredAutomaticEligibilityDefinition()
+  // A CHOICE reactor answers with the SRD opportunity attack made with the SRD Wolf's own Bite; the
+  // SRD does not take the rest, so they hold a test-authored reaction.
+  const reactorCreature = (policy: 'AUTOMATIC' | 'CHOICE') =>
+    policy === 'CHOICE' && !save
+      ? srdWolf
+      : authoredReactionCreature({
+          eligibilityDefinitionId:
+            policy === 'AUTOMATIC'
+              ? automaticEligibility.id
+              : SRD_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID,
+          perceptionRequirement,
+          save
+        })
+  const reactionCreature = reactorCreature(selectionPolicy)
+  const additionalCreature = additionalReactor ? reactorCreature(additionalSelectionPolicy) : null
+  const moverCreature = legendarySaveTarget
+    ? legendaryTargetCreature
+    : withAttackRoll
+      ? authored.qualifiedDamageDefenses
+        ? creatureAuthoredDtoSchema.parse({
+            ...srdWolf,
+            id: crypto.randomUUID(),
+            qualifiedDamageDefenses: authored.qualifiedDamageDefenses
+          })
+        : srdWolf
+      : null
   const definitions = [
     ...SRD_RULE_STATE_DEFINITIONS,
-    ...(legendarySaveTarget
-      ? SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS.map((definition) => ({
-          ...definition,
-          document: jsonValueSchema.parse(definition.document)
-        }))
-      : []),
-    ...[
-      publishedOpportunity,
-      ...(additionalReactor ? [publishedAdditionalOpportunity] : []),
-      srdMovementReactionChoiceDefinition()
-    ].map((published) => ({
-      id: published.id,
-      definitionFamilyKey: published.definitionFamilyKey,
-      label: 'Native movement reaction fixture',
-      description: 'Current D&D movement reaction policy fixture.',
-      document: jsonValueSchema.parse(published.definition),
-      checksum: published.checksum
-    }))
-  ]
+    ...(legendarySaveTarget ? SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS : []),
+    ...SRD_MOVEMENT_REACTION_DEFINITIONS,
+    automaticEligibility,
+    ...([reactionCreature, additionalCreature].includes(srdWolf)
+      ? SRD_BASIC_ACTION_DEFINITIONS
+      : [])
+  ].map((definition) => ({ ...definition, document: jsonValueSchema.parse(definition.document) }))
   for (const batch of sourceImportBatches(definitions))
     await base.t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions: batch
     })
-  const creature = creatureAuthoredDtoSchema.parse({
-    ...reactionCreature,
-    ...(authored.qualifiedDamageDefenses
-      ? { qualifiedDamageDefenses: authored.qualifiedDamageDefenses }
-      : {}),
-    features: reactionCreature.features?.map((feature) => ({
-      ...feature,
-      ...(withAttackRoll && !maintenanceDefinitionId && feature.label === 'Bite'
-        ? {
-            rollDefinitions: [
-              {
-                id: '00000000-0000-4000-8000-000000000095',
-                label: 'Bite attack',
-                kind: 'ATTACK' as const,
-                expression: { count: 1, die: 20, modifier: 4 },
-                rollMode: 'NORMAL' as const,
-                chargeCost: null,
-                order: 1
-              }
-            ]
-          }
-        : {}),
-      effects: feature.effects?.map((effect) => {
-        const paths =
-          (legendarySaveTarget || maintenanceDefinitionId) && feature.label === 'Bite'
-            ? effect.paths
-                ?.filter(
-                  (path) =>
-                    'resultBlock' in path &&
-                    path.resultBlock.outcomes.some((outcome) => outcome.effectKind === 'DAMAGE')
-                )
-                .slice(0, 1)
-                .map((path) =>
-                  'resultBlock' in path
-                    ? {
-                        ...path,
-                        pathCode: 'ON_SAVE_FAIL' as const,
-                        resultBlock: {
-                          ...path.resultBlock,
-                          outcomes: path.resultBlock.outcomes.map((outcome) =>
-                            outcome.effectKind === 'DAMAGE' &&
-                            (maintenanceDefinitionId || typeof legendarySaveTarget !== 'object')
-                              ? {
-                                  ...outcome,
-                                  valueKind: 'FIXED' as const,
-                                  scalingKind: 'NONE' as const,
-                                  bonuses: [],
-                                  amount: 1
-                                }
-                              : outcome
-                          )
-                        }
-                      }
-                    : path
-                )
-            : effect.paths
-        return {
-          ...effect,
-          paths: (maintenanceDefinitionId && feature.label === 'Bite'
-            ? paths
-                ?.filter(
-                  (path) =>
-                    'resultBlock' in path &&
-                    path.resultBlock.outcomes.some((outcome) => outcome.effectKind === 'DAMAGE')
-                )
-                .slice(0, 1)
-            : paths
-          )?.map((path) =>
-            maintenanceDefinitionId && feature.label === 'Bite' && 'resultBlock' in path
-              ? {
-                  ...path,
-                  resultBlock: {
-                    ...path.resultBlock,
-                    id: crypto.randomUUID(),
-                    maintenanceDefinitionId,
-                    duration: {
-                      id: crypto.randomUUID(),
-                      durationKind: 'ROUND' as const,
-                      amount: 3
-                    },
-                    lifecycle: { recurringKind: 'START_OF_TURN' as const }
-                  }
-                }
-              : path
-          ),
-          invocation: {
-            ...effect.invocation,
-            ...((legendarySaveTarget || maintenanceDefinitionId) && feature.label === 'Bite'
-              ? {
-                  triggerCode: 'SAVING_THROW' as const,
-                  savingThrow: {
-                    id: crypto.randomUUID(),
-                    dcMethod: 'FIXED_DC' as const,
-                    baseDc: 30,
-                    abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
-                  }
-                }
-              : {}),
-            reactionTrigger: {
-              ...reactionBinding,
-              perceptionRequirement,
-              movementInterruption: stopOnFailedSave
-                ? { kind: 'STOP' as const, whenResultPath: 'ON_SAVE_FAIL' as const }
-                : null
-            }
-          }
-        }
-      })
-    }))
-  })
-  const additionalCreature = {
-    ...creature,
-    id: crypto.randomUUID(),
-    features: creature.features.map((feature) => ({
-      ...feature,
-      effects: feature.effects?.map((effect) => ({
-        ...effect,
-        invocation:
-          'reactionTrigger' in effect.invocation && effect.invocation.reactionTrigger
-            ? {
-                ...effect.invocation,
-                reactionTrigger: {
-                  ...effect.invocation.reactionTrigger,
-                  eligibilityDefinitionId: additionalOpportunityId
-                }
-              }
-            : effect.invocation
-      }))
-    }))
-  }
+  const subjects = new Map(
+    [reactionCreature, moverCreature, additionalCreature]
+      .filter((creature) => creature !== null)
+      .map((creature) => [creature.id, creature])
+  )
   await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [
-      importedSubject({
-        ...creature,
-        subjectKind: 'CREATURE',
-        document: creature
-      }),
-      ...(legendarySaveTarget
-        ? [
-            importedSubject({
-              ...adultBlackDragon,
-              ...legendaryTargetCreature,
-              subjectKind: 'CREATURE',
-              document: legendaryTargetCreature
-            })
-          ]
-        : []),
-      ...(additionalReactor
-        ? [
-            importedSubject({
-              ...additionalCreature,
-              subjectKind: 'CREATURE',
-              document: additionalCreature
-            })
-          ]
-        : [])
-    ]
+    subjects: [...subjects.values()].map((creature) =>
+      importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })
+    )
   })
   let campaign = await base.owner.caller.mutation(createCampaign, {
     name: 'Native movement reaction fixture',
@@ -417,12 +365,12 @@ export async function setupCreatureReactionRun(
     commandId: crypto.randomUUID(),
     enemies: [
       { kind: 'CREATURE', sourceId: reactionCreature.id },
-      ...(legendarySaveTarget
-        ? [{ kind: 'CREATURE' as const, sourceId: legendaryTargetCreature.id }]
-        : withAttackRoll
-          ? [{ kind: 'CREATURE' as const, sourceId: reactionCreature.id }]
-          : [{ kind: 'CUSTOM' as const, label: 'Mover', maxHitPoints: 10 }]),
-      ...(additionalReactor ? [{ kind: 'CREATURE' as const, sourceId: additionalCreature.id }] : [])
+      moverCreature
+        ? { kind: 'CREATURE' as const, sourceId: moverCreature.id }
+        : { kind: 'CUSTOM' as const, label: 'Mover', maxHitPoints: 10 },
+      ...(additionalCreature
+        ? [{ kind: 'CREATURE' as const, sourceId: additionalCreature.id }]
+        : [])
     ]
   })
   const run = await base.owner.caller.mutation(createRun, {
@@ -430,22 +378,23 @@ export async function setupCreatureReactionRun(
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  const creatures = run.actors.filter((actor) => actor.kind === 'CREATURE')
-  const primaryCreatures = creatures.filter((actor) => actor.sourceId === reactionCreature.id)
-  const reactor = primaryCreatures[0]
-  const mover = legendarySaveTarget
-    ? creatures.find((actor) => actor.id !== reactor?.id)
-    : withAttackRoll
-      ? primaryCreatures[1]
-      : run.actors.find((actor) => actor.kind === 'CUSTOM')
-  const additionalReactorActor = additionalReactor
-    ? (creatures.find(
-        (actor) =>
-          actor.sourceId === additionalCreature.id &&
-          actor.id !== reactor?.id &&
-          actor.id !== mover?.id
-      ) ?? null)
-    : null
+  // Creatures of one source are interchangeable, so each role takes the next unclaimed one.
+  const claimed = new Set<string>()
+  const claim = (sourceId: string) => {
+    const actor = run.actors.find(
+      (candidate) =>
+        candidate.kind === 'CREATURE' &&
+        candidate.sourceId === sourceId &&
+        !claimed.has(candidate.id)
+    )
+    if (actor) claimed.add(actor.id)
+    return actor
+  }
+  const reactor = claim(reactionCreature.id)
+  const mover = moverCreature
+    ? claim(moverCreature.id)
+    : run.actors.find((actor) => actor.kind === 'CUSTOM')
+  const additionalReactorActor = additionalCreature ? (claim(additionalCreature.id) ?? null) : null
   if (!reactor || !mover || (additionalReactor && !additionalReactorActor))
     throw new Error('Missing native movement reaction actors.')
   await base.t.run(async (ctx) => {
