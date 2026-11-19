@@ -29951,7 +29951,23 @@
                 "finalSource": true
               },
               "text": "Release-candidate walkthrough: step through each guide statement on the review data from RELEASE-8 in the running build (Browser pane against local web), correct mismatches, record the checked build identity. Agent drives the browser; owner's judgment on tone is optional.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted. 2026-11-18 part 1 merged m882: Still in progress block corrected from merged code (11 claims); the in-app walk of the remaining ~100 statements runs from the main checkout (worktrees lack the local env files). Part 2 merged m883: GM-side app walk, 7 PASS, 6 CORRECTED, 0 BUG. Part 3 walks the player side and a live Encounter.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted. 2026-11-18 part 1 merged m882: Still in progress block corrected from merged code (11 claims); the in-app walk of the remaining ~100 statements runs from the main checkout (worktrees lack the local env files). Part 2 merged m883: GM-side app walk, 7 PASS, 6 CORRECTED, 0 BUG. Part 3 walks the player side and a live Encounter. Part 3 merged m884: Encounter and Sheet walk, 6 PASS, 2 CORRECTED, 1 BUG (T4), 3 CODE-ONLY. Still unwalked (opportunity attacks, doors, legendary actions, reveals, undo refusals, fog/walls/hidden tokens, reconnect and room close, spells in play): walk them on the release candidate before alpha invites, as RELEASE-7.3 requires.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "RELEASE-7.T4",
+              "status": "IN_PROGRESS",
+              "closes": ["RELEASE-7.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 1,
+                "size": 3,
+                "after": ["RELEASE-7.T2", "RELEASE-8.T1"],
+                "finalSource": true
+              },
+              "text": "Initiative declaration dropdowns open above the decision drawer",
+              "note": "Bug from the T3 part 3 walk: the Primary/Bonus action selects in InitiativeDeclarationControls portal below the drawer (zIndex 410), so the list looks empty to the mouse. Fix follows the file pattern (comboboxProps withinPortal false) with a regression test.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
