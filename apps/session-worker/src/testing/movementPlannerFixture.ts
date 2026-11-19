@@ -1,15 +1,12 @@
 import type { EncounterMaintainedEffectDescriptorDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import {
-  createDnd5eReactionChoiceDefinition,
   DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
-  createDnd5eOpportunityReactionEligibilityDefinition,
   DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import {
   createSrdRulesRuntime,
   creatureFeature,
-  currentSrdDefinition,
   srdDefinitions,
   testUuid
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
@@ -229,21 +226,6 @@ export const legendaryWolf: CreatureAuthored = (() => {
     features: [...(plainWolf.features ?? []), resistance]
   }
 })()
-
-/** The policy definitions a movement reaction names; the SRD reusable set does not publish them. */
-export const reactionPolicyDefinitions = [
-  createDnd5eOpportunityReactionEligibilityDefinition(),
-  createDnd5eReactionChoiceDefinition()
-].map((published) =>
-  currentSrdDefinition({
-    id: published.id,
-    definitionFamilyKey: published.definitionFamilyKey,
-    label: 'Movement reaction policy',
-    description: 'Current D&D movement reaction policy.',
-    document: published.definition,
-    checksum: published.checksum
-  })
-)
 
 /**
  * The Encounter-store input of a spatial effect (see `buildSpatialDamageEffect`) lasting 3 ticks,

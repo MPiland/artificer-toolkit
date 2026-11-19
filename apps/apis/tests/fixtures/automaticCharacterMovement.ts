@@ -9,10 +9,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { srdWolf as wolf } from './srdCreatures'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import {
-  createDnd5eMovementReactionEligibilityDefinition,
-  createDnd5eReactionChoiceDefinition
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+import { createDnd5eMovementReactionEligibilityDefinition } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+import { srdMovementReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime/testing/srdMovementReactionPolicy'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { importedSubject, importSeededSubjects } from './publication'
@@ -139,7 +137,7 @@ export async function setupAutomaticCharacterMovement(
     additionalCharacter = character
   }
   const definitions = policies.map((policy) => eligibility(policy, crypto.randomUUID()))
-  const choice = createDnd5eReactionChoiceDefinition()
+  const choice = srdMovementReactionChoiceDefinition()
   for (const batch of sourceImportBatches([
     ...SRD_RULE_STATE_DEFINITIONS,
     ...[...definitions, choice].map((published) => ({

@@ -71,7 +71,10 @@ export async function evaluateNativeLiveActionEconomy(input: {
    * use (`useKey`); any other spends its own allowance (`activation`, Frenzy's Bonus Action).
    */
   weaponAttackOffer?: GrantedAttackCharge | null
-  /** The allowance a reaction's option was offered under, spent in place of the activation's own. */
+  /**
+   * The allowance a movement reaction's option was offered under, spent in place of the activation's
+   * own. Whatever the source's activation, the child it runs is charged as one reaction.
+   */
   offeredAllowanceDefinitionId?: string | null
   /**
    * The current actor that commands this attack (DELEGATED_ATTACK, D156), its facts and its active
@@ -92,7 +95,11 @@ export async function evaluateNativeLiveActionEconomy(input: {
     prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.candidate.mechanicFacts.invocation
       : prepared.source.capability.mechanicFacts.invocation
-  const { activation } = invocation
+  // A movement reaction's child is a reaction whatever the source's own activation, as a delegated
+  // attack is: an Action attack answering a move opens no Attack action.
+  const activation = input.offeredAllowanceDefinitionId
+    ? { code: 'REACTION' as const, amount: 1 }
+    : invocation.activation
   const equipment =
     prepared.source.kind === 'CHARACTER_ACTION' ? prepared.source.candidate.equipment : null
   if (!activation) throw new Error('The selected action activation is not normalized.')

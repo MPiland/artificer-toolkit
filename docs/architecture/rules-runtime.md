@@ -2270,6 +2270,15 @@ reach is the first point outside that reach, and the move's offer is what proved
 carried and are open for QUALITY-18.T3: a movement reaction that uses up a single-use item, and the blanket
 single-target policy (`requireReactionTargetPolicy`); the action host applies its general rules to both.
 
+MOVE-1.T1a charges every movement reaction child as one reaction (current). `evaluateNativeLiveActionEconomy`
+replaces the source's own activation with `REACTION` 1 whenever the child carries an offered allowance, as the
+delegated-attack path does, so an Action attack answering a move spends the offered allowance and never opens
+or continues its holder's Attack action. Every movement source discovered today is already `REACTION`-activated,
+so the rule changes no current charge. The SRD publishes the leave-reach eligibility graph and the reaction
+choice graph it names as `rules-runtime-graph` reusable definitions (`source-data/src/srd/movementReaction.ts`,
+in `SRD_REUSABLE_DEFINITIONS`), equal to `createDnd5eMovementReactionEligibilityDefinition` at
+`BEFORE_LEAVE_REACH` and `createReactionChoiceDefinition` under their fixed ids. No SRD actor binds them yet.
+
 QUALITY-18.T2b2 moves the reaction itself to a child (current). A member's `OPTION` on a move's choice never
 reaches the movement evaluator, which refuses it: the room records the child and runs it as the reactor's own
 action (persistence.md, "A Scene move as the parent"), and the child's decoy and attack dice salt from the

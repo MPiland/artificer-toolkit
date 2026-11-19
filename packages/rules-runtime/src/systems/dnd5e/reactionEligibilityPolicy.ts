@@ -13,7 +13,6 @@ import type {
   MovementReactionEligibilityAdapter,
   MovementReactionEligibilityFacts
 } from '../../movementReactionEligibilityService.js'
-import { createReactionChoiceDefinition } from '../../reactionChoiceDefinition.js'
 import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { requireResolvedRuleCapabilityStateIntegrity } from '../../ruleCapabilityStateService.js'
 import {
@@ -350,19 +349,5 @@ export function createDnd5eMovementReactionEligibilityDefinition(input: {
     definitionFamilyKey: definition.definitionFamilyKey,
     checksum: checksumRuleDocument(definition),
     definition
-  })
-}
-
-export function createDnd5eOpportunityReactionEligibilityDefinition() {
-  return createDnd5eMovementReactionEligibilityDefinition({
-    definitionId: DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID,
-    stage: 'BEFORE_LEAVE_REACH'
-  })
-}
-
-export function createDnd5eReactionChoiceDefinition() {
-  return createReactionChoiceDefinition({
-    definitionId: DND5E_MOVEMENT_REACTION_CHOICE_DEFINITION_ID,
-    gameSystemId: DND5E_SYSTEM_ID
   })
 }
