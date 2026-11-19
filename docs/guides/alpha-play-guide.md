@@ -2,7 +2,7 @@
 
 A plain-language guide to the live table for alpha players and GMs. It describes what the app does today, checked against the code and its tests. Where a feature is not finished, a note says so instead of guessing.
 
-> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. Progress: the Spells section's former "Still in progress" items were rechecked against merged code and tests at phase-branch commit `7082947b2` (see [the walkthrough note](../validation/release-7-t3-walkthrough-2026-11-18.md)); the rest was walked against the running local build as the GM, with player-only and live-play statements checked against code (see the same note for what could not be exercised). The [known gaps](#known-gaps) and [how to send feedback](#sending-feedback) are at the end.
+> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. Progress: the Spells section's former "Still in progress" items were rechecked against merged code and tests at phase-branch commit `7082947b2` (see [the walkthrough note](../validation/release-7-t3-walkthrough-2026-11-18.md)); the rest was walked against the running local build as the GM, with player-only and live-play statements checked against code (see the same note for what could not be exercised). A third pass walked a live Encounter as the GM and as a player at commit `b8e9da14a`; the note's Part 3 lists what was exercised and what is still unverified. The [known gaps](#known-gaps) and [how to send feedback](#sending-feedback) are at the end.
 
 ## Words used in this guide
 
@@ -92,7 +92,7 @@ Optional Campaign settings (frozen into each Encounter): **ammunition tracking**
 
 ### Roll visibility (players)
 
-When you roll you choose where the result goes: **Table** (everyone, the default), **To GM**, or **Just me**. Rolls that change your Character's state (such as spending hit dice on a short rest) never go to "Just me". You never see the GM's private rolls.
+On your Sheet, the **Manual roll** panel (the dice button at the bottom left) has a **Roll to** control: **Table** (everyone, the default), **To GM**, or **Just me**. Rolls that change your Character's state (such as spending hit dice on a short rest) never go to "Just me". You never see the GM's private rolls.
 
 ## For GMs
 
@@ -110,7 +110,7 @@ When you roll you choose where the result goes: **Table** (everyone, the default
 - **Turn controls**: Current turn, Previous turn, Next turn and **Players away** are in the turn order panel, on the tabletop and on the session page. **Undo last action** and **Complete encounter** are in the **Encounter actions** menu on the session page.
 - Non-Character creatures have a **Roll initiative** button and an Initiative number field.
 - **Opportunity attacks, legendary windows and Legendary Resistance** prompt the creature's controller, which for monsters is you.
-- **Skip decision**: cancels a paused action and treats declinable choices as declined. It is refused for decisions play cannot continue without (initiative, saves, Recharge, legendary dice, dice during a move).
+- **Skip decision** (on a movement choice) or **Void decision** (on any other pending decision): cancels a paused action and treats declinable choices as declined. It is refused for decisions play cannot continue without (initiative, saves, Recharge, legendary dice, dice during a move). Turn advance waits for an Initiative declaration under Speed Factor.
 - Remove a creature from a pending area from the pending area prompt.
 
 ### Public and Private rolls
