@@ -827,6 +827,7 @@ A multi-creature Conjure spell makes one token per creature, each with its own h
 
 - Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.
 - A plane model, so planar banishment (Divine Word's return of extraplanar creatures, and similar effects) can run instead of being description-only (SPELLS-4.T2i ruling, 2026-10-20).
+- Test hygiene after MOVE-1.T1c: four apis fixtures still patch SRD weapon attacks into reactions to test reaction effects. They are `movementReactionEffects.ts`, `automaticCharacterMovement.ts`, `encounterAction.ts` and `movementReactionCharacterEffects.ts`, all in `apps/apis/tests/fixtures/`. Rebuild each on the real SRD opportunity attack or a test-authored Creature, as `movementReaction.ts` now does.
 
 ### Adventure Module Packages
 
