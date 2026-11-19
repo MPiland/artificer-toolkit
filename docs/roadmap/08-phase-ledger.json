@@ -8360,7 +8360,7 @@
           "tasks": [
             {
               "id": "MOVE-1.T1a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["MOVE-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -8369,11 +8369,15 @@
                 "size": 3
               },
               "text": "Publish the reaction eligibility and choice graphs in the SRD catalogue and charge every movement-reaction child as REACTION (inert for real actors until T1b).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "proof": [
+                "apps/session-worker/test/nativeMovementReactionChildCharge.test.ts",
+                "packages/rules-runtime/src/__tests__/srdMovementReactionDefinitions.test.ts"
+              ],
+              "note": "Merged m887: SRD catalogue publishes the reaction eligibility and choice graphs; movement-reaction children charge REACTION; the Dnd5e policy factories in reactionEligibilityPolicy.ts are gone."
             },
             {
               "id": "MOVE-1.T1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["MOVE-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -8382,7 +8386,8 @@
                 "size": 5,
                 "after": ["MOVE-1.T1a"]
               },
-              "text": "D231: author the SRD opportunity-attack basic reaction (REACTION cost, weaponAttack pairing, MOVEMENT binding), offer it as each melee attack the reactor has, prove a Level 1 Fighter and the SRD Wolf are offered it and not after Disengage on real SRD data, drop the redundant Bite fixture patch, and restore the guide text."
+              "text": "D231: author the SRD opportunity-attack basic reaction (REACTION cost, weaponAttack pairing, MOVEMENT binding), offer it as each melee attack the reactor has, prove a Level 1 Fighter and the SRD Wolf are offered it and not after Disengage on real SRD data, drop the redundant Bite fixture patch, and restore the guide text.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ],
           "wsjf": {
