@@ -8377,7 +8377,7 @@
             },
             {
               "id": "MOVE-1.T1b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["MOVE-1.2"],
               "wsjf": {
                 "bv": 8,
@@ -8386,7 +8386,26 @@
                 "size": 5,
                 "after": ["MOVE-1.T1a"]
               },
-              "text": "D231: author the SRD opportunity-attack basic reaction (REACTION cost, weaponAttack pairing, MOVEMENT binding), offer it as each melee attack the reactor has, prove a Level 1 Fighter and the SRD Wolf are offered it and not after Disengage on real SRD data, drop the redundant Bite fixture patch, and restore the guide text.",
+              "text": "D231: author the SRD opportunity-attack basic reaction (REACTION cost, weaponAttack pairing, MOVEMENT binding), offer it as each melee attack the reactor has, prove a Level 1 Fighter and the SRD Wolf are offered it and not after Disengage on real SRD data and restore the guide text.",
+              "proof": [
+                "apps/session-worker/test/nativeMovementOpportunityAttack.test.ts",
+                "apps/session-worker/test/nativeMovementPlanning.test.ts",
+                "apps/session-worker/test/nativeRoomHideAction.test.ts"
+              ],
+              "note": "Merged m888: one SRD opportunity-attack basic action (REACTION, weaponAttack pairing, MOVEMENT binding) offered with each equipped melee weapon, the unarmed strike, and each Creature melee attack Feature; real-SRD proofs for a Level 1 Fighter and the SRD Wolf, Disengage included. Fixed two bugs found on the way: Undo after a move held for a let-go opportunity attack returned an internal UNAVAILABLE (now REVERT_UNAVAILABLE), and a paused move through a creature overcharged movement (31.43 ft for a 30 ft walk). Bite fixture patch removal moved to MOVE-1.T1c."
+            },
+            {
+              "id": "MOVE-1.T1c",
+              "status": "IN_PROGRESS",
+              "closes": ["MOVE-1.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": ["MOVE-1.T1b"]
+              },
+              "text": "Remove the weapon-to-reaction patching from the apis movement-reaction fixtures so every apis movement-reaction proof runs on the real SRD opportunity attack.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ],
