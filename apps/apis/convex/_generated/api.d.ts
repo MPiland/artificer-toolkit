@@ -42426,7 +42426,8 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
+                  actionCost:
+                    "ACTION" | "ATTACK" | "BONUS_ACTION" | "REACTION" | "FREE";
                   effects: Array<{
                     grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
@@ -72274,7 +72275,8 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
+                  actionCost:
+                    "ACTION" | "ATTACK" | "BONUS_ACTION" | "REACTION" | "FREE";
                   effects: Array<{
                     grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
@@ -102131,7 +102133,8 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
+                  actionCost:
+                    "ACTION" | "ATTACK" | "BONUS_ACTION" | "REACTION" | "FREE";
                   effects: Array<{
                     grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
@@ -131979,7 +131982,8 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
+                  actionCost:
+                    "ACTION" | "ATTACK" | "BONUS_ACTION" | "REACTION" | "FREE";
                   effects: Array<{
                     grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
@@ -161862,7 +161866,8 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
+                  actionCost:
+                    "ACTION" | "ATTACK" | "BONUS_ACTION" | "REACTION" | "FREE";
                   effects: Array<{
                     grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
@@ -191710,7 +191715,8 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
+                  actionCost:
+                    "ACTION" | "ATTACK" | "BONUS_ACTION" | "REACTION" | "FREE";
                   effects: Array<{
                     grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
@@ -221395,7 +221401,8 @@ export declare const api: {
                 schemaVersion: 1;
               }
             | {
-                actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
+                actionCost:
+                  "ACTION" | "ATTACK" | "BONUS_ACTION" | "REACTION" | "FREE";
                 effects: Array<{
                   grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                   grip?: "ONE_HANDED" | "TWO_HANDED";
@@ -251108,7 +251115,8 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
+                  actionCost:
+                    "ACTION" | "ATTACK" | "BONUS_ACTION" | "REACTION" | "FREE";
                   effects: Array<{
                     grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
@@ -280956,7 +280964,8 @@ export declare const api: {
                   schemaVersion: 1;
                 }
               | {
-                  actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
+                  actionCost:
+                    "ACTION" | "ATTACK" | "BONUS_ACTION" | "REACTION" | "FREE";
                   effects: Array<{
                     grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
