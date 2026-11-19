@@ -3,7 +3,7 @@
   // the session Worker so a web deploy or rollback never touches the live room. Deploys run only
   // through the manual workflow; see docs/runbooks/web-worker-hosting.md.
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "artificer-web",
+  "name": "artificer-web-production",
   "main": "src/server.ts",
   "compatibility_date": "2026-09-26",
   "compatibility_flags": ["nodejs_compat"],
@@ -20,6 +20,12 @@
   "env": {
     "staging": {
       "name": "artificer-web-staging",
+      "routes": [
+        {
+          "pattern": "staging.artificertoolkit.app",
+          "custom_domain": true
+        }
+      ],
       "workers_dev": false,
       "preview_urls": false,
       "secrets": {

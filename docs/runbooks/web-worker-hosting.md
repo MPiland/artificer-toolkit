@@ -4,7 +4,7 @@
 > **Update when:** the Worker configuration, deploy workflow, secrets, hostnames or rollback path changes.
 > **Verification:** `apps/web/wrangler.jsonc`, `.github/workflows/deploy-web.yml`, and the local proof in the [D65 record](../validation/phase-08-2/d65-cloudflare-web-hosting-2026-09-28.md).
 
-The web app is the Worker `artificer-web` (staging: `artificer-web-staging`). It serves SSR, server
+The web app is the Worker `artificer-web-production` (staging: `artificer-web-staging`). It serves SSR, server
 functions and the `/api/auth` proxy; hashed assets are Workers Static Assets and never invoke it.
 
 ## Rendering policy (D75)
@@ -60,8 +60,9 @@ Agents never run these steps; each cloud step needs the user's explicit approval
    apex are separate hostnames; redirect the non-canonical one with a redirect rule.
 5. **Origins that name the web app.** Set the Convex deployment's `SITE_URL` to the web hostname
    (Better Auth trusts only that origin; agents never touch cloud Convex, ADR 0035). Set the session
-   Worker's `LIVE_SESSION_ALLOWED_ORIGINS` for that environment to the same origin; the staging value
-   is no longer in `apps/session-worker/wrangler.jsonc` because it named a Netlify preview.
+   Worker's `LIVE_SESSION_ALLOWED_ORIGINS` for that environment to the same origin. Staging's web
+   hostname is `staging.artificertoolkit.app`: it is the web Worker's staging custom domain and the
+   session Worker's staging `LIVE_SESSION_ALLOWED_ORIGINS`, both in `wrangler.jsonc`.
 6. **Bot protection.** Enable the free Bot Fight Mode (or WAF rules) on the web hostname and choose
    the daily-limit fail mode (Q20). The 100,000-request daily pool is shared with the live room.
 

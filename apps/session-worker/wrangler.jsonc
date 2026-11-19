@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "artificer-live-session",
+  "name": "artificer-live-session-production",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-15",
   "keep_vars": true,
@@ -21,7 +21,7 @@
   "r2_buckets": [
     {
       "binding": "CONTENT_SNAPSHOTS",
-      "bucket_name": "artificer-content-snapshots"
+      "bucket_name": "artificer-content-snapshots-production"
     }
   ],
   "exports": {
@@ -33,6 +33,9 @@
   "env": {
     "staging": {
       "name": "artificer-live-session-staging",
+      "vars": {
+        "LIVE_SESSION_ALLOWED_ORIGINS": "https://staging.artificertoolkit.app"
+      },
       "routes": [
         {
           "pattern": "tabletop-staging.artificertoolkit.app",

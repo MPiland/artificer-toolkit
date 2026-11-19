@@ -42,7 +42,7 @@ yarn validate:pre-staging:local
 
 ### Deployment configuration
 
-The web app is its own Cloudflare Worker, `artificer-web` (ADR
+The web app is its own Cloudflare Worker, `artificer-web-production` (ADR
 [0037](../../docs/adr/0037-web-app-on-cloudflare-workers.md)). `@cloudflare/vite-plugin` builds the
 client into Workers Static Assets and `src/server.ts` into the Worker, which serves SSR, server
 functions and the same-origin `/api/auth/*` proxy. It is separate from the session Worker. Product

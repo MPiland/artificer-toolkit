@@ -25,7 +25,7 @@ small, with conditions C1–C6 on CPU, headers, Sentry and the client IP.
 
 ## Decision
 
-1. **Host.** The web app is its own Worker, `artificer-web` (`artificer-web-staging` for staging), in
+1. **Host.** The web app is its own Worker, `artificer-web-production` (`artificer-web-staging` for staging), in
    the same account and zone as the session Worker but never merged with it: a web deploy or
    rollback must not touch the live room, and a Worker cannot roll back across a Durable Object
    change. It needs no bindings.
