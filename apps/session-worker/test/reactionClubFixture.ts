@@ -47,3 +47,19 @@ export function reactionWeapon(damageTypeCode: string): EquipmentAuthored {
 
 /** A Club the Fighter attacks with as an opportunity attack, taken as a Reaction when a creature leaves its reach. */
 export const reactionClub = reactionWeapon('BLUDGEONING')
+
+/**
+ * The offered reaction that attacks with `weapon`. The Fighter also makes the System's opportunity
+ * attack with its unarmed strike (D231), so the decision offers more than the weapon.
+ */
+export function weaponReactionOption<TOption extends { actionId: string }>(
+  timeline: readonly { group: { options: readonly TOption[] } }[],
+  weapon: EquipmentAuthored
+): TOption {
+  const [attack] = weapon.effects ?? []
+  const option = timeline
+    .flatMap(({ group }) => group.options)
+    .find(({ actionId }) => attack !== undefined && actionId.endsWith(attack.id))
+  if (!option) throw new Error(`No reaction attacks with the ${weapon.label}.`)
+  return option
+}

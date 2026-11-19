@@ -163,6 +163,10 @@ function characterInverseAt(expectedStreamVersion: number): CharacterInverse {
 const REVERT_SCAN_LIMIT = 16
 const RECEIPT_SCAN_LIMIT = REVERT_SCAN_LIMIT * 4
 
+/** Why undo refuses an action whose answers are followed by another decision's. */
+const LATER_DECISION_LIMIT =
+  'Another decision changed the Encounter after this action; adjust manually.'
+
 /** Why undo can't bring back a Concentration an action ended, named for the GM. */
 const CONCENTRATION_END_LIMIT: Record<ConcentrationEndReason, string> = {
   INCAPACITATED: 'lost Concentration to incapacitation',
@@ -247,6 +251,7 @@ export async function revertLastEncounterAction(
     revertUnavailable('The last action was already undone.')
   const scope = { run, state, campaign, input, fingerprint, userId }
   // Only the check's own answers follow its action: its d20, a d20 window's choice, its outcome dice.
+  // Any other answer settled a later decision, such as a move held for its reactions (D231).
   const requireCheckAnswerScan = (checkOccurrenceId: string | null) => {
     if (
       recent
@@ -257,7 +262,7 @@ export async function revertLastEncounterAction(
             answer.ruleOccurrenceId !== checkOccurrenceId
         )
     )
-      throw new Error('Stored Encounter command scan is invalid.')
+      revertUnavailable(LATER_DECISION_LIMIT)
   }
   if (root?.commandType === 'ESCAPE') {
     const outputs = await readCheckReceiptOutputs(ctx, {
@@ -981,7 +986,7 @@ function planRevertRoot({
     } else if (outputs.outcome === 'APPLIED') cleaving.push(outputs)
   }
   if ([...laterOccurrenceIds].some((occurrenceId) => !childOccurrenceIds.has(occurrenceId)))
-    revertUnavailable('Another decision changed the Encounter after this action; adjust manually.')
+    revertUnavailable(LATER_DECISION_LIMIT)
   if (!batch && !areaRoot && !lostRoot && !unsupported.size)
     throw new Error('Stored Encounter action receipt is missing.')
   // An area's creatures undo in reverse of the order they were applied; the root's sealed ids say which.

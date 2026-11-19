@@ -442,12 +442,22 @@ export const ATTACK_TRIGGER_CODES: ReadonlySet<string> = new Set([
   >[])
 ])
 
-function isWeaponAttack(effect: { invocation: EffectInvocationAuthored }) {
+function isActionOf(
+  triggerCodes: readonly string[],
+  effect: { invocation: EffectInvocationAuthored }
+) {
   return (
     effect.invocation.kind !== invocationKindSchema._zod.def.entries.PASSIVE &&
-    weaponAttackTriggerCodes.includes(effect.invocation.triggerCode)
+    triggerCodes.includes(effect.invocation.triggerCode)
   )
 }
+
+function isWeaponAttack(effect: { invocation: EffectInvocationAuthored }) {
+  return isActionOf(weaponAttackTriggerCodes, effect)
+}
+
+/** An unarmed strike is made with no weapon, but a System reaction may still pair with it (D231). */
+const pairedAttackTriggerCodes: readonly string[] = [...weaponAttackTriggerCodes, 'UNARMED_ATTACK']
 
 /** What an action casts: the level it is cast at, which Counterspell's higher-level check reads (D136). */
 const featureSpellCastDtoSchema = lazySchema(() =>
@@ -526,7 +536,7 @@ export const featureEffectDtoSchema = lazySchema(() =>
               path: ['spellCast'],
               message: 'A granted spell names its own level when cast, so the action names none.'
             })
-          if (effect.weaponAttack !== undefined && !isWeaponAttack(effect))
+          if (effect.weaponAttack !== undefined && !isActionOf(pairedAttackTriggerCodes, effect))
             context.addIssue({
               code: 'custom',
               path: ['weaponAttack'],

@@ -77,6 +77,7 @@ export async function prepareNativeLiveMovement(
         system,
         spells,
         definitions,
+        basicReactions: captured.facts.basicReactions.entries,
         userId,
         campaignOwnerUserId: captured.facts.campaignOwnerUserId
       }),

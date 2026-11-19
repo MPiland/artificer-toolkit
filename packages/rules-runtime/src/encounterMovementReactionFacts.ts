@@ -1,14 +1,42 @@
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import { encounterActorCannotAttack } from './encounterActorBody.js'
 import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
-import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
+import type { EncounterBasicActionEntry } from './encounterBasicActionCapabilityDiscovery.js'
+import { requireEncounterBasicActionDefinition } from './encounterBasicActions.js'
+import { encounterLegendaryActionFeatureIds } from './encounterActionSources.js'
+import type {
+  EncounterMovementBasicReactions,
+  EncounterMovementReactionCharacterSource
+} from './encounterMovementReactionSources.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { movementReactionEligibilityCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
+
+/**
+ * The basic reactions the Run's System names for movement (D231). As in the turn's basic-action
+ * catalogue, only a published entry is offered: one the System has not published offers nothing.
+ */
+export async function readEncounterMovementBasicReactions(input: {
+  gameSystemId: string
+  readCurrentDefinition: (definitionId: string) => Promise<ReusableDefinitionCurrentDto | null>
+}): Promise<readonly EncounterBasicActionEntry[]> {
+  // A System without movement reaction policy names no basic reactions.
+  const ids =
+    movementReactionEligibilityCapabilityRegistry.find(input.gameSystemId)
+      ?.basicReactionDefinitionIds ?? []
+  const published = await Promise.all(ids.map((id) => input.readCurrentDefinition(id)))
+  return published
+    .filter((current) => current !== null)
+    .map((current) =>
+      requireEncounterBasicActionDefinition({ gameSystemId: input.gameSystemId }, current)
+    )
+}
 
 /** Builds reaction discovery facts from an already-authorized Run and target cohort. */
 export function buildEncounterMovementReactionFacts<
@@ -22,6 +50,8 @@ export function buildEncounterMovementReactionFacts<
   /** The Run's pinned Spells (D163). */
   spells: ReadonlyMap<string, CompiledSpell>
   definitions: CurrentReusableDefinitionSource
+  /** The System's movement basic reactions, read by `readEncounterMovementBasicReactions`. */
+  basicReactions: readonly EncounterBasicActionEntry[]
 }) {
   const { state, targets, system } = input
   if (state.automationMode === 'MANUAL')
@@ -71,6 +101,14 @@ export function buildEncounterMovementReactionFacts<
           })
         : []
     ),
+    basicReactions: {
+      entries: input.basicReactions,
+      legendaryFeatureIds: new Set(
+        actors.flatMap((actor) =>
+          actor.kind === 'CREATURE' ? [...encounterLegendaryActionFeatureIds(actor)] : []
+        )
+      )
+    } satisfies EncounterMovementBasicReactions,
     definitions: input.definitions,
     lockRelationship: async (pair: { reactorActorId: string; movingActorId: string }) => {
       const reactor = actors.find((actor) => actor.id === pair.reactorActorId)

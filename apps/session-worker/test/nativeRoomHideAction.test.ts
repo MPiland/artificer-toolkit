@@ -90,21 +90,29 @@ const sightWall = { ...wall, blocksMovement: false }
  * A Wolf hider with Stealth +5, acting first, beside three friendly Wolves of differing Perception.
  * `walled` puts a wall of the Scene between the hider and the two Wolves further away;
  * `playerHider` makes the hider a player's creature and the Sharp Wolf another player's; `rolls` feeds the room's own dice;
- * `definitions` adds published definitions to the System's; `autoRoll` rolls the d20 for the roller.
+ * `definitions` adds published definitions to the System's; `autoRoll` rolls the d20 for the roller;
+ * `neutralHider` makes the hider no one's enemy, so walking out of a Wolf's reach draws no
+ * opportunity attack (D231).
  */
 function hideRoom(
   options: {
     walled?: boolean | 'SIGHT_ONLY'
     playerHider?: boolean
+    neutralHider?: boolean
     rolls?: number[]
     definitions?: ReturnType<typeof currentSrdDefinition>[]
     seed?: Parameters<typeof actionRoom>[0]['seed']
     autoRoll?: boolean
   } = {}
 ) {
-  const hider = withCheckTotals(srdCreatureActor({ id: HIDER_ID, creature: bite }), {
-    [SRD_STEALTH_SKILL_ID]: 5
-  })
+  const hider = withCheckTotals(
+    srdCreatureActor({
+      id: HIDER_ID,
+      creature: bite,
+      ...(options.neutralHider ? { disposition: 'NEUTRAL' as const } : {})
+    }),
+    { [SRD_STEALTH_SKILL_ID]: 5 }
+  )
   return actionRoom({
     ...(options.autoRoll ? { autoRoll: 'BOTH' as const } : {}),
     ...(options.walled
@@ -174,6 +182,21 @@ async function hide(
   await answerD20(fixture, face, addedFaces)
 }
 
+/**
+ * The hider's walk leaves the reach of the Sharp Wolf beside it, which sees it and so may make an
+ * opportunity attack (D231); it lets the attack go and the walk ends where it was aimed.
+ */
+async function declineSharpOpportunityAttack(fixture: Fixture) {
+  const pending = await fixture.room.room.pending()
+  if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
+    throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
+  expect(pending.context.reactionTimeline.map((entry) => entry.group.reactorActorId)).toEqual([
+    SHARP_ID
+  ])
+  const declined = await fixture.room.room.respond({ kind: 'DECLINE' })
+  expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+}
+
 /** The Run's stored concealments, with the observers each hides its holder from. */
 async function concealments(fixture: Fixture) {
   const { activeEffects } = await readRoomHistory(fixture.room.room.base.stub)
@@ -198,13 +221,17 @@ async function concealmentOutputs(fixture: Fixture) {
   })
 }
 
-async function revertLast(fixture: Fixture) {
-  const undone = await fixture.room.send({
+async function revertLastAnswer(fixture: Fixture) {
+  return fixture.room.send({
     type: 'REVERT_LAST_ACTION',
     encounterId: fixture.room.room.encounterId,
     commandId: crypto.randomUUID(),
     expectedVersion: await fixture.room.version()
   })
+}
+
+async function revertLast(fixture: Fixture) {
+  const undone = await revertLastAnswer(fixture)
   expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
 }
 
@@ -325,7 +352,7 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
   })
 
   it('ends the concealment when a token move prunes its last observers, and refuses to undo the Hide', async () => {
-    const fixture = await hideRoom({ walled: 'SIGHT_ONLY' })
+    const fixture = await hideRoom({ walled: 'SIGHT_ONLY', neutralHider: true })
     await hide(fixture, 20, true)
     expect(await concealments(fixture)).toMatchObject([{ observers: [KEEN_ID, ALERT_ID].sort() }])
 
@@ -341,15 +368,33 @@ describe('Hide, a System basic action with a per-observer check, in the room', (
     expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
     expect(await concealments(fixture)).toEqual([])
 
-    const refused = await fixture.room.send({
-      type: 'REVERT_LAST_ACTION',
-      encounterId: fixture.room.room.encounterId,
-      commandId: crypto.randomUUID(),
-      expectedVersion: await fixture.room.version()
-    })
+    const refused = await revertLastAnswer(fixture)
     expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
     expect(refused).toMatchObject({ reason: 'REVERT_UNAVAILABLE' })
     expect(await concealments(fixture)).toEqual([])
+  })
+
+  it('refuses to undo the Hide once a later move held for an opportunity attack it was let go (D231)', async () => {
+    const fixture = await hideRoom({ walled: 'SIGHT_ONLY' })
+    await hide(fixture, 20, true)
+    const hidden = await concealments(fixture)
+    expect(hidden).toMatchObject([{ observers: [KEEN_ID, ALERT_ID].sort() }])
+
+    // Stepping away from the Sharp Wolf, still behind the wall, keeps the concealment.
+    const moved = await fixture.room.room.move(
+      [
+        { x: 150, y: 150 },
+        { x: 150, y: 300 }
+      ],
+      await fixture.room.version()
+    )
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+    await declineSharpOpportunityAttack(fixture)
+
+    const refused = await revertLastAnswer(fixture)
+    expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
+    expect(refused).toMatchObject({ reason: 'REVERT_UNAVAILABLE' })
+    expect(await concealments(fixture)).toEqual(hidden)
   })
 })
 
@@ -624,7 +669,7 @@ describe('hiding again, in the room', () => {
   })
 
   it('hides anew after a token move ended the concealment, and undoes only that Hide', async () => {
-    const fixture = await hideRoom({ walled: 'SIGHT_ONLY' })
+    const fixture = await hideRoom({ walled: 'SIGHT_ONLY', neutralHider: true })
     await hide(fixture, 20, true)
     // Crossing the wall brings the hider into plain sight of both observers it was hidden from.
     const moved = await fixture.room.room.move(

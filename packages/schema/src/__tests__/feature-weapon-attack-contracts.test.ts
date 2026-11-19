@@ -59,6 +59,11 @@ describe('Feature effect weaponAttack (SPELLS-31.T5s, D156)', () => {
     ])
   })
 
+  it('accepts it on an unarmed strike, which a System reaction pairs with (D231)', () => {
+    expect(issues(effect('UNARMED_ATTACK', { weaponAttack: {} }))).toEqual([])
+    expect(issues(effect('MELEE_SPELL_ATTACK', { weaponAttack: {} }))).toHaveLength(1)
+  })
+
   it('refuses a grip beside it, since each weapon brings its own', () => {
     expect(issues(effect('MELEE_WEAPON_ATTACK', { weaponAttack: {}, grip: 'ONE_HANDED' }))).toEqual(
       [

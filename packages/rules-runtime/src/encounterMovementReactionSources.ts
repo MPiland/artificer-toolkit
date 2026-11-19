@@ -5,8 +5,10 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { reactionTriggerBindingDtoSchema } from '@artificer-toolkit/schema/shared/reaction'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt'
 
+import type { EncounterBasicActionEntry } from './encounterBasicActionCapabilityDiscovery.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
 import type { MovementReactionEligibilitySource } from './movementReactionEligibilityService.js'
 import { discoverMovementReactionCapabilities } from './movementReactionCapabilityDiscovery.js'
@@ -204,12 +206,125 @@ function featureSources(input: {
   )
 }
 
+/**
+ * The System's basic reactions a move can provoke (D231), such as the opportunity attack. Each
+ * MOVEMENT-bound Effect is made with one of the reactor's own Action attacks of its trigger, which
+ * brings its own reach and outcomes, as a Feature attack made with the wielded weapons does.
+ */
+export interface EncounterMovementBasicReactions {
+  entries: readonly EncounterBasicActionEntry[]
+  /** Creature Features taken only in a Legendary Action window; no reaction is made with them. */
+  legendaryFeatureIds: ReadonlySet<string>
+}
+
+function basicReactionBindings(entries: readonly EncounterBasicActionEntry[]) {
+  return entries.flatMap(({ document }) => {
+    if (document.restrictions !== null)
+      throw new Error('A movement basic reaction cannot restrict its holders.')
+    return document.effects.flatMap((effect) => {
+      const trigger =
+        effect.invocation.kind === 'ACTION' ? effect.invocation.reactionTrigger : undefined
+      if (!trigger || !effect.weaponAttack) return []
+      const binding = reactionTriggerBindingDtoSchema.parse(trigger)
+      return binding.kind === 'MOVEMENT'
+        ? [{ triggerCode: effect.invocation.triggerCode, binding }]
+        : []
+    })
+  })
+}
+
+/** Whether an action is an Action attack of this trigger that no reaction trigger binds. */
+function pairsWith(
+  invocation: CharacterActionCandidate['mechanicFacts']['invocation'],
+  triggerCode: string
+) {
+  return (
+    invocation.triggerCode === triggerCode &&
+    invocation.activation?.code === 'ACTION' &&
+    !invocation.reactionTrigger
+  )
+}
+
+function basicReactionSources(input: {
+  basicReactions: EncounterMovementBasicReactions
+  encounter: EncounterMovementReactionEncounter
+  lockedCharacters: ReadonlyMap<string, EncounterMovementReactionCharacterSource>
+  encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  tokens: readonly Pick<SceneToken, 'id'>[]
+  actorIdByTokenId: ReadonlyMap<string, string>
+}): EncounterMovementReactionSource[] {
+  return basicReactionBindings(input.basicReactions.entries).flatMap(({ triggerCode, binding }) => [
+    ...input.encounter.actors.flatMap((actor): EncounterMovementReactionSource[] => {
+      if (actor.kind !== 'CHARACTER') return []
+      const locked = input.lockedCharacters.get(actor.sourceId ?? '')
+      if (!locked) throw new Error('Encounter Character reaction source was not locked.')
+      const entriesByActionId = new Map(
+        locked.mechanics.compiledActionEntryPoints.map((entry) => [entry.actionId, entry])
+      )
+      // Made with a wielded weapon or the unarmed strike: an equipped item's own attack.
+      return locked.mechanics.rulePolicyInput.actionCandidates.flatMap((candidate) => {
+        const entry = entriesByActionId.get(candidate.actionId)
+        if (
+          candidate.mechanicsOwner.kind !== 'EQUIPMENT' ||
+          !candidate.equipment?.equipped ||
+          !pairsWith(candidate.mechanicFacts.invocation, triggerCode) ||
+          entry?.kind !== 'CHARACTER_ACTION' ||
+          entry.compilation.kind !== 'COMPILED' ||
+          !entry.targetPolicy
+        )
+          return []
+        const compiled = entry as CompiledCharacterActionEntry
+        return reactorTokens(input.tokens, input.actorIdByTokenId, actor.id).map((token) => ({
+          reactorActorId: actor.id,
+          reactorTokenId: token.id,
+          range: compiled.targetPolicy!.range,
+          source: {
+            binding,
+            capability: { actionId: candidate.actionId, gameSystemId: locked.systemId }
+          },
+          action: {
+            kind: 'CHARACTER_ACTION' as const,
+            actorId: actor.id,
+            characterId: locked.id,
+            characterStreamVersion: locked.streamVersion,
+            candidate,
+            entry: compiled
+          }
+        }))
+      })
+    }),
+    ...input.encounterFeatureCapabilities.flatMap(
+      (capability): EncounterMovementReactionSource[] => {
+        const actor = input.encounter.actors.find(({ id }) => id === capability.encounterActorId)
+        if (
+          actor?.kind !== 'CREATURE' ||
+          actor.defeated ||
+          input.basicReactions.legendaryFeatureIds.has(capability.ownerFeatureId) ||
+          !pairsWith(capability.mechanicFacts.invocation, triggerCode)
+        )
+          return []
+        return reactorTokens(input.tokens, input.actorIdByTokenId, actor.id).map((token) => ({
+          reactorActorId: actor.id,
+          reactorTokenId: token.id,
+          range: capability.compiledEffect.invocation.range,
+          source: {
+            binding,
+            capability: { actionId: capability.actionId, gameSystemId: capability.gameSystemId }
+          },
+          action: { kind: 'ENCOUNTER_FEATURE', actorId: actor.id, capability }
+        }))
+      }
+    )
+  ])
+}
+
 export function discoverEncounterMovementReactionSources(input: {
   encounter: EncounterMovementReactionEncounter
   actorIdByTokenId: ReadonlyMap<string, string>
   tokens: readonly Pick<SceneToken, 'id'>[]
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionCharacterSource>
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  basicReactions: EncounterMovementBasicReactions
 }): readonly EncounterMovementReactionSource[] {
   const sources: EncounterMovementReactionSource[] = []
   for (const actor of [...input.encounter.actors].sort((left, right) =>
@@ -234,7 +349,8 @@ export function discoverEncounterMovementReactionSources(input: {
       encounter: input.encounter,
       tokens: input.tokens,
       actorIdByTokenId: input.actorIdByTokenId
-    })
+    }),
+    ...basicReactionSources(input)
   )
   return sources.sort(
     (left, right) =>

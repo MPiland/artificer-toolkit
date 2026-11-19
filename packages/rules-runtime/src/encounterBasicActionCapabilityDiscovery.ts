@@ -99,7 +99,7 @@ export async function readEncounterBasicActionEntries(input: {
 
 /**
  * The authored basic actions an actor can take: every ACTION-invoked Effect of the catalogue's
- * authored entries, compiled like a Feature's. Each carries its document's restrictions; deciding
+ * authored entries that no reaction trigger binds, compiled like a Feature's. Each carries its document's restrictions; deciding
  * whether the actor meets them is `encounterBasicActionAdmission`, applied by the offering
  * and the resolution, not here.
  */
@@ -114,7 +114,8 @@ export function discoverEncounterBasicActions(input: {
   const unavailable: EncounterBasicActionUnavailable[] = []
   for (const { definition, document } of input.entries) {
     for (const effect of document.effects) {
-      if (effect.invocation.kind !== 'ACTION') continue
+      // A reaction-bound Effect is offered on its trigger, never taken from the turn (D231).
+      if (effect.invocation.kind !== 'ACTION' || effect.invocation.reactionTrigger) continue
       const actionId = encounterBasicActionId(input.actorId, definition.id, effect.id)
       try {
         const compiledEffect = compileEffect(effect)

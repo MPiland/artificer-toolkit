@@ -29,7 +29,14 @@ describe('basic-action catalogue contracts (Q11)', () => {
     expect(parse({})).toBe(true)
     expect(parse({ mechanics: [] })).toBe(false)
     expect(parse({ check: null })).toBe(false)
-    expect(parse({ actionCost: 'REACTION' })).toBe(false)
+    expect(parse({ actionCost: 'LEGENDARY' })).toBe(false)
+  })
+
+  it('accepts a reaction cost for a System basic reaction (D231)', () => {
+    expect(
+      basicActionReusableDefinitionDocumentDtoSchema.safeParse({ ...dodge, actionCost: 'REACTION' })
+        .success
+    ).toBe(true)
   })
 
   it('accepts a cost of one attack of the Attack action (D152)', () => {

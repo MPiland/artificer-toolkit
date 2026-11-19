@@ -2277,7 +2277,20 @@ or continues its holder's Attack action. Every movement source discovered today 
 so the rule changes no current charge. The SRD publishes the leave-reach eligibility graph and the reaction
 choice graph it names as `rules-runtime-graph` reusable definitions (`source-data/src/srd/movementReaction.ts`,
 in `SRD_REUSABLE_DEFINITIONS`), equal to `createDnd5eMovementReactionEligibilityDefinition` at
-`BEFORE_LEAVE_REACH` and `createReactionChoiceDefinition` under their fixed ids. No SRD actor binds them yet.
+`BEFORE_LEAVE_REACH` and `createReactionChoiceDefinition` under their fixed ids.
+
+MOVE-1.T1b binds them through one System basic reaction (D231, current). The SRD's Opportunity Attack basic
+action (`SRD_BASIC_ACTION_IDS.OPPORTUNITY_ATTACK`, `actionCost` `REACTION`) authors a `MELEE_WEAPON_ATTACK` and an
+`UNARMED_ATTACK` effect, each a `weaponAttack` pairing with the `MOVEMENT` `BEFORE_LEAVE_REACH` binding to the
+leave-reach graph. The System adapter names it (`basicReactionDefinitionIds`, the D&D policy's
+`DND5E_OPPORTUNITY_ATTACK_DEFINITION_ID`); `readEncounterMovementBasicReactions` reads it and the movement facts
+carry it as `basicReactions`. `discoverEncounterMovementReactionSources` pairs each such effect with every
+`ACTION`-activated attack of the same trigger code the reactor has and that carries no reaction trigger of its
+own: a Character's attacks from equipped `EQUIPMENT` (its natural weapon is always equipped), ranged by the
+compiled entry's `targetPolicy`, and a Creature's attack Features, ranged by their own invocation, skipping a
+defeated Creature and Legendary Action Features. Each pairing is offered as that attack under the System's
+binding, and T1a's charge spends the reaction. The turn's basic actions skip any effect bound to a reaction
+trigger, so the Opportunity Attack is never offered on a turn. Nothing names a creature or weapon.
 
 QUALITY-18.T2b2 moves the reaction itself to a child (current). A member's `OPTION` on a move's choice never
 reaches the movement evaluator, which refuses it: the room records the child and runs it as the reactor's own

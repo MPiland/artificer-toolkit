@@ -37,8 +37,11 @@ async function discover(definitionIds: readonly string[]) {
 }
 
 describe('authored basic action compilation', () => {
-  it('compiles every authored SRD entry as a BASIC_ACTION capability of the actor', async () => {
-    const authored = SRD_BASIC_ACTION_DEFINITIONS.filter(({ document }) => document.effects.length)
+  it('compiles every authored SRD turn entry as a BASIC_ACTION capability of the actor', async () => {
+    // A REACTION entry is offered on its trigger, never in the turn (D231).
+    const authored = SRD_BASIC_ACTION_DEFINITIONS.filter(
+      ({ document }) => document.effects.length && document.actionCost !== 'REACTION'
+    )
     const { available, unavailable } = await discover(authored.map(({ id }) => id))
     expect(unavailable).toEqual([])
     expect(available.map(({ definitionId }) => definitionId).sort()).toEqual(

@@ -43,6 +43,8 @@ export interface EvaluatedMovementReactionCandidate<
 export interface MovementReactionEligibilityAdapter {
   gameSystemId: string
   requiredCapabilityDefinitionIds: readonly string[]
+  /** The System's published basic reactions a move can provoke (D231): the opportunity attack. */
+  basicReactionDefinitionIds: readonly string[]
   evaluate(input: {
     runtime: RulesRuntimeService
     occurrenceId: string

@@ -12,7 +12,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { reactionWeapon } from './reactionClubFixture.js'
+import { reactionWeapon, weaponReactionOption } from './reactionClubFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -42,6 +42,7 @@ const aversionWolf: CreatureAuthored = {
 
 /** The Wolf walks out of the Fighter's reach; the Fighter's opportunity attack hits for `damageTypeCode`. */
 async function opportunityAttack(damageTypeCode: string) {
+  const weapon = reactionWeapon(damageTypeCode)
   const room = await movementRoom({
     actors: [
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
@@ -50,7 +51,7 @@ async function opportunityAttack(damageTypeCode: string) {
     moverActorId: WOLF_ID,
     positions: { [FIGHTER_ACTOR_ID]: { x: 50, y: 150 }, [WOLF_ID]: WOLF_START },
     autoRoll: 'BOTH',
-    characterEquipment: [reactionWeapon(damageTypeCode)],
+    characterEquipment: [weapon],
     rolls: [18],
     fallbackRoll: 0
   })
@@ -59,8 +60,7 @@ async function opportunityAttack(damageTypeCode: string) {
   const pending = await room.pending()
   if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
     throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
-  const option = pending.context.reactionTimeline[0]?.group.options[0]
-  if (!option) throw new Error('The reaction decision offers no option.')
+  const option = weaponReactionOption(pending.context.reactionTimeline, weapon)
   const used = await room.respond({ kind: 'OPTION', optionId: option.optionId })
   expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
   return (await readRoomHistory(room.base.stub)).activeEffects

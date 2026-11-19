@@ -35,7 +35,11 @@ afterEach(() => {
 
 type Room = Awaited<ReturnType<typeof oilRoom>>
 
-/** The player's Character carries the SRD oil and pours it; the Wolf stands away from the oil. */
+/**
+ * The player's Character carries the SRD oil and pours it; the Wolf stands away from the oil. The
+ * Wolf is no enemy of the Character, so its walks out of the Character's reach draw no
+ * opportunity attack (D231).
+ */
 function oilRoom() {
   return actionRoom({
     actors: [
@@ -43,7 +47,7 @@ function oilRoom() {
         ...characterActor({ id: POURER_ACTOR_ID, characterId: POURER_ID }),
         snapshot: { kind: 'CHARACTER' as const, id: POURER_ID, systemId: srdSystemRecord.id }
       },
-      srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
     ],
     positions: { [WOLF_ID]: OUTSIDE_THE_OIL },
     characterEquipment: [oilFlask],

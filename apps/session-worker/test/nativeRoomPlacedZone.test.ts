@@ -88,7 +88,12 @@ const selfHealWolf: CreatureAuthored = {
   )
 }
 
-const walkerActor = srdCreatureActor({ id: WALKER_ID, creature: selfHealWolf })
+/** Not the spreader's enemy, so its walks out of the spreader's reach draw no opportunity attack (D231). */
+const walkerActor = srdCreatureActor({
+  id: WALKER_ID,
+  creature: selfHealWolf,
+  disposition: 'FRIENDLY'
+})
 
 /**
  * The Character who holds the Caltrops acts first; the Wolf waits at the far side of the field. The

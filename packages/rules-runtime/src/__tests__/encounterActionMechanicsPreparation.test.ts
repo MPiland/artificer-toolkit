@@ -191,7 +191,8 @@ describe('encounter action discovery: attack rolls', () => {
         requireCurrent: async () => {
           throw new Error('No reusable definitions are read.')
         }
-      }
+      },
+      basicReactions: []
     })
     expect(
       reactionFacts.encounterFeatureCapabilities.map((capability) => capability.encounterActorId)
@@ -222,7 +223,8 @@ describe('encounter action discovery: attack rolls', () => {
         requireCurrent: async () => {
           throw new Error('No reusable definitions are read.')
         }
-      }
+      },
+      basicReactions: []
     })
     expect(
       reactionFacts.encounterFeatureCapabilities.map((capability) => capability.encounterActorId)

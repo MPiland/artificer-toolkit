@@ -617,9 +617,14 @@ describe('a mover whose passage grants let it through (SPELLS-33.T6k1)', () => {
 
     const answer = await room.move([MOVER_START, { x: 550, y: 150 }])
 
-    expect(answer).toMatchObject({
-      type: 'COMMAND_COMMITTED',
-      delta: { result: { delta: { kind: 'TOKEN_MOVED', position: { x: 550, y: 150 } } } }
+    expect(answer).toMatchObject({ type: 'COMMAND_COMMITTED' })
+    // No passage contest: the only pause is the Wolf's opportunity attack as the Ghost leaves its
+    // reach (D231), which it lets go.
+    const { reactionTimeline } = await reactionDecision(room)
+    expect(reactionTimeline.map((entry) => entry.group.reactorActorId)).toEqual([BLOCKER_ID])
+    await room.respond({ kind: 'DECLINE' })
+    expect(await resolvedReceipt(room, 'RESOLVE_RULE_OCCURRENCE')).toMatchObject({
+      result: { terminalPosition: { x: 550, y: 150 } }
     })
     expect(await room.pending()).toBeNull()
     // 20 ft walked; the footprints overlap while the Ghost's centre is between x=250 and x=450,
