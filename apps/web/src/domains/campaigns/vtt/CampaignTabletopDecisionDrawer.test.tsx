@@ -262,6 +262,35 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
     )
   })
 
+  it('renders every option list inside the drawer so it is not hidden behind it', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={adjudicatedPending}
+        submitting={false}
+        onResolve={vi.fn(async () => resolved())}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    const drawer = await screen.findByRole('dialog')
+    await user.click(within(drawer).getByRole('combobox', { name: 'Primary action' }))
+    await user.click(within(drawer).getByRole('option', { name: 'GM adjudication' }))
+    expect(within(drawer).getByRole('combobox', { name: 'Primary action' })).toHaveValue(
+      'GM adjudication'
+    )
+
+    for (const name of ['Actor size', 'Action factors']) {
+      await user.click(within(drawer).getByRole('combobox', { name }))
+      expect(within(drawer).getAllByRole('option').length).toBeGreaterThan(0)
+    }
+  })
+
   it('submits closed GM adjudication inputs and remains disabled while reconnecting', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn(async () => resolved())
