@@ -40,8 +40,9 @@ It stays a tool for the user's local review data and for reproducing a CI failur
 Performance (`vtt-load`, `v15-workload`) only records numbers here, as D210 says, and gates on staging
 (PERF-2). `v15-workload` is not in the CI proof list, so run it with
 `gh workflow run browser-journeys.yml --ref ci/<rc> -f proof=v15-workload`; the proof runner
-(`scripts/runLocalConvexProof.ps1`) sets `V15_BROWSER_PROOF=1`. The RC's CI evidence record is
-[release-candidate-2026-11-17](../validation/release-candidate-2026-11-17.md).
+(`scripts/runLocalConvexProof.ps1`) sets `V15_BROWSER_PROOF=1`. The current RC's CI evidence record is
+[release-candidate-2026-11-18](../validation/release-candidate-2026-11-18.md). The latest V15 figures
+are in the earlier [release-candidate-2026-11-17](../validation/release-candidate-2026-11-17.md) record.
 
 1. Apply only the reviewed, explicitly approved local removal packets. Retain their before archives,
    manifests, hashes, native exit codes, and complete logs. Local deletion does not authorize deleting
