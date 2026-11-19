@@ -29956,7 +29956,7 @@
             },
             {
               "id": "RELEASE-7.T4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELEASE-7.3"],
               "wsjf": {
                 "bv": 5,
@@ -29967,8 +29967,10 @@
                 "finalSource": true
               },
               "text": "Initiative declaration dropdowns open above the decision drawer",
-              "note": "Bug from the T3 part 3 walk: the Primary/Bonus action selects in InitiativeDeclarationControls portal below the drawer (zIndex 410), so the list looks empty to the mouse. Fix follows the file pattern (comboboxProps withinPortal false) with a regression test.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Bug from the T3 part 3 walk: the Primary/Bonus action selects in InitiativeDeclarationControls portal below the drawer (zIndex 410), so the list looks empty to the mouse. Fix follows the file pattern (comboboxProps withinPortal false) with a regression test. Merged m885 (Tests 44429272273, Browser journeys 44429272358; red proof RED).",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.test.tsx"
+              ]
             }
           ]
         },
