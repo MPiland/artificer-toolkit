@@ -29,9 +29,9 @@ import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/v
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
-  createDnd5eReactionChoiceDefinition,
-  createDnd5eOpportunityReactionEligibilityDefinition
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+  srdMovementReactionChoiceDefinition,
+  srdOpportunityReactionEligibilityDefinition
+} from '@artificer-toolkit/rules-runtime/testing/srdMovementReactionPolicy'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from './characters'
 import { reactionBinding } from './reactionBinding'
@@ -177,7 +177,7 @@ export async function setupCreatureReactionRun(
       )
     })
   }
-  const opportunity = createDnd5eOpportunityReactionEligibilityDefinition()
+  const opportunity = srdOpportunityReactionEligibilityDefinition()
   const withSelectionPolicy = (
     definition: typeof opportunity.definition,
     policy: 'AUTOMATIC' | 'CHOICE'
@@ -223,7 +223,7 @@ export async function setupCreatureReactionRun(
     ...[
       publishedOpportunity,
       ...(additionalReactor ? [publishedAdditionalOpportunity] : []),
-      createDnd5eReactionChoiceDefinition()
+      srdMovementReactionChoiceDefinition()
     ].map((published) => ({
       id: published.id,
       definitionFamilyKey: published.definitionFamilyKey,

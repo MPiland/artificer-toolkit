@@ -15,10 +15,8 @@ import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/c
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import {
-  createDnd5eReactionChoiceDefinition,
-  createDnd5eMovementReactionEligibilityDefinition
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+import { createDnd5eMovementReactionEligibilityDefinition } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+import { srdMovementReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime/testing/srdMovementReactionPolicy'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import {
@@ -106,7 +104,7 @@ async function setup() {
     definition.outputs = outputs
     return { ...published, id, definition: { ...definition, id } }
   })
-  const choice = createDnd5eReactionChoiceDefinition()
+  const choice = srdMovementReactionChoiceDefinition()
   for (const batch of sourceImportBatches([
     ...SRD_RULE_STATE_DEFINITIONS,
     ...[...eligibilityDefinitions, choice].map((entry) => ({

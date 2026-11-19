@@ -54,7 +54,6 @@ import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import {
   concentrationDescriptor,
-  reactionPolicyDefinitions,
   spatialDamageEffect
 } from '../src/testing/movementPlannerFixture.js'
 import type { CharacterPlayOverrides } from '../src/testing/characterPageFixture.js'
@@ -680,7 +679,6 @@ export async function movementRoom(config: MovementRoomConfig) {
   }
   const definitions = [
     ...SRD_REUSABLE_DEFINITIONS.map(currentSrdDefinition),
-    ...reactionPolicyDefinitions,
     ...(config.definitions ?? [])
   ].map((definition) =>
     liveRoomDefinitionSchema.parse({ id: definition.id, sourceKind: 'PLATFORM', definition })

@@ -21,10 +21,8 @@ import {
   SRD_DND5E_SPEED_FACTOR_INITIATIVE_GRAPH
 } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import {
-  createDnd5eReactionChoiceDefinition,
-  createDnd5eMovementReactionEligibilityDefinition
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+import { createDnd5eMovementReactionEligibilityDefinition } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
+import { srdMovementReactionChoiceDefinition } from '@artificer-toolkit/rules-runtime/testing/srdMovementReactionPolicy'
 import type { z } from 'zod'
 
 type InitiativePolicyInput = Pick<
@@ -216,7 +214,7 @@ function createMovementReactionDefinitions(): {
   definitions: SourceImportDefinitionsInput['definitions']
   eligibilityDefinitionId: string
 } {
-  const choiceTemplate = createDnd5eReactionChoiceDefinition()
+  const choiceTemplate = srdMovementReactionChoiceDefinition()
   const choiceDefinition = ruleGraphDefinitionDtoSchema.parse({
     ...choiceTemplate.definition,
     id: crypto.randomUUID()
