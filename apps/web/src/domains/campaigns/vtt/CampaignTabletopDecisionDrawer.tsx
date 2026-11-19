@@ -49,6 +49,9 @@ import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityTog
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CampaignTabletopEvidenceRollRow } from './CampaignTabletopEvidenceRollRow'
 
+/** The Drawer sits above the portal layer, so an option list must render inside it to stay visible. */
+const COMBOBOX_IN_DRAWER = { withinPortal: false }
+
 export function CampaignTabletopDecisionDrawer({
   aim = NO_AREA_AIM,
   canVoid,
@@ -634,6 +637,7 @@ function DamageRollWindowControls({
   return (
     <Stack gap='xs'>
       <MultiSelect
+        comboboxProps={COMBOBOX_IN_DRAWER}
         data={pending.dice.map((die, index) => ({
           value: die.requestId,
           label: `Die ${index + 1}: ${die.value} on d${die.faces}`
@@ -715,7 +719,7 @@ function ContestCheckControls({
     <Stack gap='sm'>
       {pending.checks.length > 1 ? (
         <Select
-          comboboxProps={{ withinPortal: false }}
+          comboboxProps={COMBOBOX_IN_DRAWER}
           data={pending.checks.map((entry) => ({
             value: entry.checkDefinitionId,
             label: entry.label
@@ -953,7 +957,7 @@ function LegendaryActionControls({
   return (
     <Stack gap='sm'>
       <Select
-        comboboxProps={{ withinPortal: false }}
+        comboboxProps={COMBOBOX_IN_DRAWER}
         data={pending.options.map((entry) => ({
           value: entry.optionId,
           label: `${entry.label} · ${entry.featureCost === 1 ? '1 action' : `${entry.featureCost} actions`}`
@@ -969,7 +973,7 @@ function LegendaryActionControls({
       />
       {option && targetIds.length > 1 ? (
         <Select
-          comboboxProps={{ withinPortal: false }}
+          comboboxProps={COMBOBOX_IN_DRAWER}
           data={targetIds.map((actorId) => ({
             value: actorId,
             label: actors.find((actor) => actor.id === actorId)?.label ?? 'Hidden combatant'
@@ -1081,6 +1085,7 @@ function InitiativeDeclarationControls({
   return (
     <Stack gap='sm'>
       <Select
+        comboboxProps={COMBOBOX_IN_DRAWER}
         data={pending.primaryOptions.map((option) => ({
           value: option.optionId,
           label: option.label
@@ -1092,6 +1097,7 @@ function InitiativeDeclarationControls({
       />
       <Select
         clearable
+        comboboxProps={COMBOBOX_IN_DRAWER}
         data={pending.bonusOptions.map((option) => ({
           value: option.optionId,
           label: option.label
@@ -1108,6 +1114,7 @@ function InitiativeDeclarationControls({
             if (field.kind === 'SELECT') {
               return (
                 <Select
+                  comboboxProps={COMBOBOX_IN_DRAWER}
                   data={field.options}
                   disabled={disabled}
                   key={field.key}
@@ -1122,6 +1129,7 @@ function InitiativeDeclarationControls({
             if (field.kind === 'MULTI_SELECT') {
               return (
                 <MultiSelect
+                  comboboxProps={COMBOBOX_IN_DRAWER}
                   data={field.options}
                   disabled={disabled}
                   key={field.key}
