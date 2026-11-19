@@ -103,17 +103,22 @@ export function nativeLiveDefinitions(
   ) => Promise<LiveSessionEncounterRulesResponse>,
   state: Pick<EncounterRunState, 'gameSystemId'>
 ) {
+  /** The current definition, or null when the System has not published it. */
+  async function readCurrent(definitionId: string) {
+    const response = await capture({ kind: 'DEFINITION', definitionId })
+    if (response.kind !== 'DEFINITION') throw new Error('Movement definition is unavailable.')
+    const { definition } = response
+    if (!definition) return null
+    if (definition.id !== definitionId || definition.gameSystemId !== state.gameSystemId)
+      throw new Error('Movement definition is unavailable.')
+    return definition
+  }
   return {
+    readCurrent,
     requireCurrent: async (definitionId: string) => {
-      const response = await capture({ kind: 'DEFINITION', definitionId })
-      if (
-        response.kind !== 'DEFINITION' ||
-        !response.definition ||
-        response.definition.id !== definitionId ||
-        response.definition.gameSystemId !== state.gameSystemId
-      )
-        throw new Error('Movement definition is unavailable.')
-      return response.definition
+      const definition = await readCurrent(definitionId)
+      if (!definition) throw new Error('Movement definition is unavailable.')
+      return definition
     }
   }
 }
@@ -467,7 +472,7 @@ export async function readNativeLiveMovementInputs(input: {
             definitions,
             basicReactions: await readEncounterMovementBasicReactions({
               gameSystemId: state.gameSystemId,
-              definitions
+              readCurrentDefinition: definitions.readCurrent
             })
           }),
           runtime: capturedRuntime

@@ -218,8 +218,11 @@ export function preparedMovementCost(input: {
       tokens: mover.tokens,
       dragDoublesCost: mover.dragDoublesCost ?? false
     })
+  // A prefix ending mid-cell rounds its distance up while its zone multiplier averages only the
+  // stretch it walks, so it can cost more than the whole walk; no prefix is charged beyond it.
+  const whole = measureScenePathMovementCost(input.grid, input.scene, input.path, zoneMultiplier)
   const walked = (path: readonly Point[]) =>
-    measureScenePathMovementCost(input.grid, input.scene, path, zoneMultiplier)
+    Math.min(measureScenePathMovementCost(input.grid, input.scene, path, zoneMultiplier), whole)
   const toEnd = preparedMovementSegment({ ...input, startDistance: 0 }).path
   const toStart =
     input.startDistance > 0 ? walked(sliceMovementPath(input.path, 0, input.startDistance)) : 0

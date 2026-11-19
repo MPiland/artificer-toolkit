@@ -123,7 +123,8 @@ function endOfTurnCaltrops(): EquipmentAuthored {
 /**
  * The Character spreads the caltrops (by default acting at the end of a creature's turn) at the
  * field point, under the Wolf unless it stands at `wolfAt`; `autoRoll` is off when a test answers
- * the dice.
+ * the dice. The Wolf is no enemy of the Character, so its walks out of the Character's reach draw
+ * no opportunity attack (D231).
  */
 function fieldRoom(
   autoRoll?: Parameters<typeof actionRoom>[0]['autoRoll'],
@@ -131,7 +132,10 @@ function fieldRoom(
   wolfAt = FIELD_POINT
 ) {
   return actionRoom({
-    actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
+    actors: [
+      casterActor,
+      srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
+    ],
     positions: { [WOLF_ID]: wolfAt },
     characterEquipment: [caltrops],
     characterAction: (action) => action.label === caltrops.label,

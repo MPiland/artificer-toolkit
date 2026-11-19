@@ -1,6 +1,7 @@
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
@@ -17,23 +18,24 @@ import type { MovementTarget } from './encounterMovementTargets.js'
 import { movementReactionEligibilityCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 
-/** The published basic reactions the Run's System names for movement (D231). */
+/**
+ * The basic reactions the Run's System names for movement (D231). As in the turn's basic-action
+ * catalogue, only a published entry is offered: one the System has not published offers nothing.
+ */
 export async function readEncounterMovementBasicReactions(input: {
   gameSystemId: string
-  definitions: CurrentReusableDefinitionSource
+  readCurrentDefinition: (definitionId: string) => Promise<ReusableDefinitionCurrentDto | null>
 }): Promise<readonly EncounterBasicActionEntry[]> {
   // A System without movement reaction policy names no basic reactions.
   const ids =
     movementReactionEligibilityCapabilityRegistry.find(input.gameSystemId)
       ?.basicReactionDefinitionIds ?? []
-  return Promise.all(
-    ids.map(async (id) =>
-      requireEncounterBasicActionDefinition(
-        { gameSystemId: input.gameSystemId },
-        await input.definitions.requireCurrent(id)
-      )
+  const published = await Promise.all(ids.map((id) => input.readCurrentDefinition(id)))
+  return published
+    .filter((current) => current !== null)
+    .map((current) =>
+      requireEncounterBasicActionDefinition({ gameSystemId: input.gameSystemId }, current)
     )
-  )
 }
 
 /** Builds reaction discovery facts from an already-authorized Run and target cohort. */

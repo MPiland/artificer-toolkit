@@ -43,7 +43,7 @@ const conditionDefinitionIds = SRD_CONDITION_TYPES.map((condition) => condition.
 const abilityDefinitions = SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
 const basicReactionEntries = await readEncounterMovementBasicReactions({
   gameSystemId: SRD_SYSTEM_ID,
-  definitions: srdDefinitions
+  readCurrentDefinition: (definitionId) => srdDefinitions.requireCurrent(definitionId)
 })
 
 const wolfCreature = srdByLabel(SRD.creatures, 'Wolf')
@@ -180,6 +180,14 @@ describe('the System opportunity attack as a movement reaction (D231)', () => {
 
   it('offers nothing when the System names no basic reaction', () => {
     expect(sources({ actors: [wolf, fighterActor], entries: [] })).toEqual([])
+  })
+
+  it('reads none the System has not published, as the turn’s catalogue offers none', async () => {
+    const unpublished = await readEncounterMovementBasicReactions({
+      gameSystemId: SRD_SYSTEM_ID,
+      readCurrentDefinition: async () => null
+    })
+    expect(unpublished).toEqual([])
   })
 
   it('is never offered from the turn as a basic action', () => {

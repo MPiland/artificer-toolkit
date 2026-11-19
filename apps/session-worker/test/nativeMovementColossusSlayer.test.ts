@@ -14,7 +14,7 @@ import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { reactionClub } from './reactionClubFixture.js'
+import { reactionClub, weaponReactionOption } from './reactionClubFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -85,8 +85,7 @@ async function wolfHitPointsLostToOpportunityAttack(currentHitPoints: number) {
   const pending = await room.pending()
   if (pending?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
     throw new Error(`Expected a reaction decision, got ${pending?.context.kind}.`)
-  const option = pending.context.reactionTimeline[0]?.group.options[0]
-  if (!option) throw new Error('The reaction decision offers no option.')
+  const option = weaponReactionOption(pending.context.reactionTimeline, reactionClub)
   const used = await room.respond({ kind: 'OPTION', optionId: option.optionId })
   expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
   const records = await runInDurableObject(room.base.stub, async (_instance, context) =>
