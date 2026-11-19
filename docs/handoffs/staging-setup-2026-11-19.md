@@ -33,15 +33,16 @@ environment secrets and the owner's password manager, never here.
 5. Web Worker: `deploy-web.yml` added to `main` (`71eb707de`) so GitHub lists it; deployed by run
    44579685302 from `codex/phase-08-2-convex-cutover`.
 
+6. `AUTH_PROXY_SECRET` replaced with a value of at least 64 characters (the minimum in
+   `apps/apis/convex/lib/authProxyContext.ts`; the first value was 44) in Convex and on the web Worker.
+   The dashboard saved the Worker secret as an undeployed version, so it was deployed with
+   `wrangler versions deploy 864506a3-0e72-4ddb-9abb-6bcada2bd8d5@100% --name artificer-web-staging`.
+   `/`, `/sign-in` and `/api/auth/get-session` (through the proxy to Convex) then answered 200.
+
 ## Open
 
-1. **Blocker:** the web app answers 500 with `AUTH_PROXY_SECRET must be configured securely.` The value
-   is shorter than the 64 characters `apps/apis/convex/lib/authProxyContext.ts` requires. The owner
-   generates a 64-byte value, sets it in Convex and with
-   `yarn workspace @artificer-toolkit/web exec wrangler secret put AUTH_PROXY_SECRET --env staging`.
-   No redeploy is needed.
-2. Pin `JWKS` to the deployment's signing keys (runbook: managed deployments pin them).
-3. Decide `PUBLIC_SIGN_UP_ENABLED` and `LIBRARY_IMPORT_ENABLED` for staging.
-4. Session Worker admission preflight, Resend delivery, the managed smoke (`scripts/managedSmoke.mjs`)
+1. Pin `JWKS` to the deployment's signing keys (runbook: managed deployments pin them).
+2. Decide `PUBLIC_SIGN_UP_ENABLED` and `LIBRARY_IMPORT_ENABLED` for staging.
+3. Session Worker admission preflight, Resend delivery, the managed smoke (`scripts/managedSmoke.mjs`)
    with the SSR CPU export, V15, and gates C3 (Sentry) and C4 (forged `CF-Connecting-IP`).
-5. Revoke the 30-day Convex deploy key once staging is done.
+4. Revoke the 30-day Convex deploy key once staging is done.
