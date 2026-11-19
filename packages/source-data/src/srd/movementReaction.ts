@@ -5,7 +5,8 @@ import { SRD_SYSTEM_ID } from './vocabulary.js'
 
 const GRAPH_FAMILY = 'rules-runtime-graph' as const
 
-const SRD_DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_GRAPH_DEFINITION_ID =
+/** The leave-reach eligibility graph the opportunity attack binds (D231). */
+export const SRD_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000d1'
 const SRD_DND5E_MOVEMENT_REACTION_CHOICE_GRAPH_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000d3'
@@ -17,7 +18,7 @@ function fact(factKey: string) {
 /** Whether a creature leaving reach may be answered by a reaction, and which allowance it spends. */
 const opportunityEligibilityGraph = ruleGraphDefinitionDtoSchema.parse({
   schemaVersion: 1,
-  id: SRD_DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_GRAPH_DEFINITION_ID,
+  id: SRD_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID,
   gameSystemId: SRD_SYSTEM_ID,
   definitionFamilyKey: GRAPH_FAMILY,
   nodes: [

@@ -5,8 +5,13 @@ import { authoredNestedCollectionSchema } from './authoredLimits.js'
 import { facetDtoSchema } from './facet.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
-/** The allowance a basic action spends; a free one spends none. */
-export const basicActionCostDtoSchema = lazySchema(() => z.enum(['ACTION', 'ATTACK', 'BONUS_ACTION', 'FREE']))
+/**
+ * The allowance a basic action spends; a free one spends none. A reaction is offered on its
+ * trigger, never in the turn list (D231).
+ */
+export const basicActionCostDtoSchema = lazySchema(() =>
+  z.enum(['ACTION', 'ATTACK', 'BONUS_ACTION', 'REACTION', 'FREE'])
+)
 
 /**
  * One System-authored basic combat action (Q11): the System names it and writes its rules text.

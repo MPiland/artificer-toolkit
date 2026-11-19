@@ -25,6 +25,8 @@ export const DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000d1'
 export const DND5E_MOVEMENT_REACTION_CHOICE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d3'
 export const DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d4'
+/** The opportunity attack, a System basic reaction to a creature leaving reach (D231). */
+export const DND5E_OPPORTUNITY_ATTACK_DEFINITION_ID = '00000000-0000-4000-8000-000000000b0d'
 const DND5E_MOVEMENT_REACTION_ELIGIBILITY_OPERATION_KEY = 'dnd5e.movement-reaction-eligibility'
 
 const DND5E_REACTION_STAGE_FACT_KEY = 'dnd5e.reaction-stage'
@@ -237,6 +239,7 @@ export const dnd5eMovementReactionEligibilityAdapter: MovementReactionEligibilit
     DND5E_FREE_REACTION_ALLOWANCE_DEFINITION_ID,
     DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID
   ].sort(),
+  basicReactionDefinitionIds: [DND5E_OPPORTUNITY_ATTACK_DEFINITION_ID],
   async evaluate(input) {
     const { facts, allowances } = dnd5eMovementReactionEligibilityFacts({
       stage: input.candidate.stage,

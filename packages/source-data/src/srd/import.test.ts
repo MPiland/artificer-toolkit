@@ -95,7 +95,9 @@ describe('canonical Convex import preparation', () => {
       'Use an Object': ['ACTION', ['MANUAL_ADJUDICATION']],
       'First Aid': ['ACTION', ['STABILIZE']],
       Grapple: ['ATTACK', ['ACTOR_RELATIONSHIP']],
-      Shove: ['ATTACK', ['CONDITION', 'FORCED_MOVEMENT', 'FORCED_MOVEMENT']]
+      Shove: ['ATTACK', ['CONDITION', 'FORCED_MOVEMENT', 'FORCED_MOVEMENT']],
+      // Made with the reactor's own melee attacks, so it authors no outcomes of its own (D231).
+      'Opportunity Attack': ['REACTION', []]
     })
     expect(catalogue.map((definition) => definition.id).sort()).toEqual(
       Object.values(SRD_BASIC_ACTION_IDS).sort()

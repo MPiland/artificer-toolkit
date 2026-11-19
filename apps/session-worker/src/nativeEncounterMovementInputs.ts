@@ -19,7 +19,10 @@ import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-ru
 import { encounterGrantsEnabledDomain } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { encounterTokenOccupiesSpace } from '@artificer-toolkit/rules-runtime/encounterActorBody'
-import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
+import {
+  buildEncounterMovementReactionFacts,
+  readEncounterMovementBasicReactions
+} from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
 import { encounterMovementDrag } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
@@ -461,7 +464,11 @@ export async function readNativeLiveMovementInputs(input: {
             targets,
             system,
             spells,
-            definitions
+            definitions,
+            basicReactions: await readEncounterMovementBasicReactions({
+              gameSystemId: state.gameSystemId,
+              definitions
+            })
           }),
           runtime: capturedRuntime
         }

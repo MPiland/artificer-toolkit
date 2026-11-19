@@ -28,6 +28,7 @@ import { evaluateEncounterMovementReactionContacts } from './encounterMovementRe
 import { resolveEncounterMovementReactionRuleStates } from './encounterMovementReactionRuleState.js'
 import {
   discoverEncounterMovementReactionSources,
+  type EncounterMovementBasicReactions,
   type EncounterMovementReactionActionSource,
   type EncounterMovementReactionCharacterSource,
   type EncounterMovementReactionEncounter,
@@ -52,6 +53,7 @@ export async function discoverEncounterMovementReactionChoices(input: {
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionCharacterSource>
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  basicReactions: EncounterMovementBasicReactions
   definitions: CurrentReusableDefinitionSource
   runtime?: RulesRuntimeService
   lockRelationship(input: {
@@ -67,7 +69,8 @@ export async function discoverEncounterMovementReactionChoices(input: {
     actorIdByTokenId: input.actorIdByTokenId,
     tokens: input.tokens,
     lockedCharacters: input.lockedCharacters,
-    encounterFeatureCapabilities: input.encounterFeatureCapabilities
+    encounterFeatureCapabilities: input.encounterFeatureCapabilities,
+    basicReactions: input.basicReactions
   })
   const contacts = collectEncounterMovementReactionContacts({
     grid: input.grid,
@@ -118,6 +121,7 @@ export async function revalidateEncounterMovementReactionOption(input: {
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionCharacterSource>
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  basicReactions: EncounterMovementBasicReactions
   definitions: CurrentReusableDefinitionSource
   runtime: RulesRuntimeService
   lockRelationship(input: {
@@ -133,7 +137,8 @@ export async function revalidateEncounterMovementReactionOption(input: {
     actorIdByTokenId: input.actorIdByTokenId,
     tokens: input.tokens,
     lockedCharacters: input.lockedCharacters,
-    encounterFeatureCapabilities: input.encounterFeatureCapabilities
+    encounterFeatureCapabilities: input.encounterFeatureCapabilities,
+    basicReactions: input.basicReactions
   })
   const matching = sources.filter(
     (source) =>

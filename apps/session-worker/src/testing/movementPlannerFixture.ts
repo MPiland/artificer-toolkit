@@ -28,7 +28,10 @@ const srdWolf = (() => {
   return record
 })()
 
-/** A plain SRD Wolf: nothing it carries reacts to movement. */
+/**
+ * A plain SRD Wolf: no reaction is authored on it, but it makes the System's opportunity attack with
+ * its Bite (D231) at a hostile creature that leaves its reach.
+ */
 export const plainWolf: CreatureAuthored = srdWolf
 
 /** An SRD Wolf whose Bite is an opportunity attack, ending the mover's walk where it hits when `stopOnHit`. */

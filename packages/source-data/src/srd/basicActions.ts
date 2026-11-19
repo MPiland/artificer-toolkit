@@ -18,6 +18,7 @@ import { DND5E_SHOVE_ASIDE_DEFINITION_ID } from '@artificer-toolkit/schema/share
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
+import { SRD_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID } from './movementReaction.js'
 import {
   SRD_ACROBATICS_SKILL_ID,
   SRD_ATHLETICS_SKILL_ID,
@@ -43,7 +44,8 @@ export const SRD_BASIC_ACTION_IDS = {
   FIRST_AID: '00000000-0000-4000-8000-000000000b09',
   ROUSE: '00000000-0000-4000-8000-000000000b0a',
   GRAPPLE: '00000000-0000-4000-8000-000000000b0b',
-  SHOVE: '00000000-0000-4000-8000-000000000b0c'
+  SHOVE: '00000000-0000-4000-8000-000000000b0c',
+  OPPORTUNITY_ATTACK: '00000000-0000-4000-8000-000000000b0d'
 } as const
 
 /** Deterministic ids of an authored basic action's nested rows, derived from the entry's id. */
@@ -59,7 +61,7 @@ function defineBasicAction(input: {
   label: string
   rulesText: string
   effects: unknown[]
-  actionCost?: 'ACTION' | 'ATTACK'
+  actionCost?: 'ACTION' | 'ATTACK' | 'REACTION'
   restrictions?: unknown
 }) {
   const document = basicActionReusableDefinitionDocumentDtoSchema.parse({
@@ -563,6 +565,38 @@ function shoveEffect(actionId: string) {
 }
 
 /**
+ * The opportunity attack (D231): a reaction, when a creature the reactor can see leaves its reach,
+ * made with one of the reactor's own melee attacks of this trigger. It authors no reach or outcomes
+ * of its own; each attack brings its reach and outcomes, as a Feature's weapon attack does.
+ */
+function opportunityAttackEffect(
+  triggerCode: typeof TRIGGER.MELEE_WEAPON_ATTACK | typeof TRIGGER.UNARMED_ATTACK,
+  index: number
+) {
+  const actionId = SRD_BASIC_ACTION_IDS.OPPORTUNITY_ATTACK
+  return {
+    id: basicActionChildId(actionId, 0x210, index),
+    order: index,
+    invocation: {
+      kind: 'ACTION' as const,
+      triggerCode,
+      activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+      reactionTrigger: {
+        kind: 'MOVEMENT' as const,
+        stage: 'BEFORE_LEAVE_REACH' as const,
+        perceptionRequirement: 'SEE' as const,
+        eligibilityDefinitionId: SRD_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID,
+        movementInterruption: null
+      },
+      range: { id: basicActionChildId(actionId, 0x211, index), rangeKind: RANGE_KIND.SPECIAL },
+      targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
+    },
+    weaponAttack: {},
+    paths: []
+  }
+}
+
+/**
  * The SRD System's basic combat actions. Names and rules text are authored System data. Dash,
  * Disengage, Dodge, Help, Hide, Search and First Aid are authored effects; Ready and Use an Object
  * spend the Action and leave the result to the GM.
@@ -727,5 +761,16 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
       "In place of one attack of the Attack action, you try to shove a creature within your reach that is no more than one size larger than you, either to knock it prone or to push it away from you. Make a Strength (Athletics) check contested by the target's Strength (Athletics) or Dexterity (Acrobatics) check, the target choosing. If you win, you either knock the target prone or push it 5 feet away from you.",
     actionCost: 'ATTACK',
     effects: [shoveEffect(SRD_BASIC_ACTION_IDS.SHOVE)]
+  }),
+  defineBasicAction({
+    id: SRD_BASIC_ACTION_IDS.OPPORTUNITY_ATTACK,
+    label: 'Opportunity Attack',
+    rulesText:
+      'When a creature you can see moves out of your reach, you can use your reaction to make one melee attack against it, just before it leaves your reach.',
+    actionCost: 'REACTION',
+    effects: [
+      opportunityAttackEffect(TRIGGER.MELEE_WEAPON_ATTACK, 1),
+      opportunityAttackEffect(TRIGGER.UNARMED_ATTACK, 2)
+    ]
   })
 ]
