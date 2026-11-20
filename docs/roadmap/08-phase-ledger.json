@@ -29828,7 +29828,16 @@
             },
             {
               "id": "RELEASE-3.T5",
-              "status": "TODO",
+              "status": "DONE",
+              "mergedAt": "2026-11-20",
+              "proof": [
+                "apps/apis/convex/authJwks.test.ts (replaced; RED before: /convex/jwks 429): default remote JWKS URL, 150 /convex/jwks reads all 200 with no rate-limit row, /convex/token and sign-in limits still 429",
+                "apps/web/src/server/auth/convex.server.test.ts: one /convex/token mint per request shared by the session read and SSR client (RED before)",
+                "scripts/validatePreStagingLocal.test.mjs: no signing-key stage (RED before); static JWKS wiring removed from Convex, scripts, workflows and docs",
+                "Root cause from published @convex-dev/better-auth 0.12.6 and better-auth 1.6.33 source (repo patch touches email-otp only): Convex-originated JWKS reads carry no proxy context and shared one <ip>|/convex/jwks bucket",
+                "Green on b9d50fa03: Tests 44774258979, Browser journeys 44774259072 (default remote JWKS served 200); Live 44767102650 on cc05aeea8 (later commits apps/web only); merged by hand (workflow changes, m891)"
+              ],
+              "note": "initialToken handoff dropped: it serializes the JWT into SSR output, which authenticatedSession.ts forbids; a page view mints 2 tokens (was about 3). The /convex/token 600/10s rule stays until fresh CI peaks justify lowering it.",
               "closes": ["RELEASE-3.1"],
               "wsjf": {
                 "bv": 5,
