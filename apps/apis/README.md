@@ -564,7 +564,7 @@ discovery and then `/api/auth/convex/jwks` on every token validation, without ca
 carry no signed proxy context, so `createAuth` keys them on Convex's own request-metadata IP and they
 would all share one `<ip>|/convex/jwks` rate-limit bucket. `betterAuth/options.ts` therefore exempts
 `/convex/jwks` (public key data only; limiting it could only fail validation reads) and keeps every
-other limit: `/convex/token` at 200 per 10 s per IP, sign-in and credential paths at Better Auth's
+other limit: `/convex/token` at 600 per 10 s per IP, sign-in and credential paths at Better Auth's
 defaults. A page view mints one token: the SSR token is passed to `ConvexBetterAuthProvider` as
 `initialToken` (`ConvexAuthBoundary`), and the server mints once per request (`requestToken` in
 `convex.server.ts`). Each environment keeps its own signing keys.

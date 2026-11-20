@@ -273,7 +273,7 @@ describe('Convex auth SSR boundary', () => {
   })
 
   it('mints one token per request for the session read, the SSR client and the browser handoff', async () => {
-    mocks.tokenFetch.mockResolvedValue(Response.json({ token: 'request-jwt' }))
+    mocks.tokenFetch.mockImplementation(async () => Response.json({ token: 'request-jwt' }))
     mocks.query.mockResolvedValue({
       user: null,
       isSuperAdmin: false,

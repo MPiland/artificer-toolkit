@@ -26,10 +26,10 @@ export function createAuthAdapterOptions(
       // page view mints one token (the SSR token is handed to the provider as `initialToken`), and
       // one IP can be a household, an office NAT or a CI shard. Measured CI peaks, taken when a page
       // view minted about 3: 51 mints in one journey, 187 across an 11-minute shard, so about 17 and
-      // 62 now. 200 per 10s keeps more than 3x that headroom and caps one IP at an average of 20
-      // mints per second.
+      // 62 now. The limit stays at 600 per 10s, the value sized from those peaks: one mint per view
+      // only widens the headroom, and lowering it needs fresh CI measurements first.
       customRules: {
-        '/convex/token': { window: 10, max: 200 },
+        '/convex/token': { window: 10, max: 600 },
         // Convex fetches this on every token validation, with no proxy context and so no client IP of
         // its own: all of those fetches would share one bucket. It serves public key data only, so
         // it is exempt. Limiting it could only fail validation reads, never protect anything.
