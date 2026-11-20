@@ -39,14 +39,14 @@ it('validates tokens against the default remote JWKS, which no rate limit can ex
     }
     return t.action(handle)
   }
-  const rateLimitKeys = async () => {
+  const rateLimitKeys = async (): Promise<string[]> => {
     const rows = await t.run((ctx) =>
       ctx.runQuery(components.betterAuth.adapter.findMany, {
         model: 'rateLimit',
         paginationOpts: { cursor: null, numItems: 50 }
       })
     )
-    return rows.page.map((row: { key?: unknown }) => String(row.key))
+    return (rows.page as { key?: unknown }[]).map((row) => String(row.key))
   }
 
   // Convex's own fetches carry no proxy context, so they all key on one IP. Far more than the
