@@ -46,8 +46,16 @@ export function getRouter(user: AuthSessionUserDto | null = null) {
       loadInitialToken: () =>
         typeof document === 'undefined' ? loadInitialTokenFn() : Promise.resolve(null)
     } satisfies AppRouterContext,
-    InnerWrap: ({ children }) => (
-      <ConvexAuthBoundary client={convex.convexClient}>{children}</ConvexAuthBoundary>
+    // Wrap sits outside the router context and mounts first: the root `beforeLoad` reads through
+    // this client, which waits for the provider to set auth. The server-minted token is read from
+    // the router state, which is loaded before the server render and restored before hydration.
+    Wrap: ({ children }) => (
+      <ConvexAuthBoundary
+        client={convex.convexClient}
+        initialToken={router.state.matches[0]?.context.initialToken}
+      >
+        {children}
+      </ConvexAuthBoundary>
     ),
     defaultPreload: 'intent',
     defaultErrorComponent: RouteErrorState,
