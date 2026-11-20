@@ -9,11 +9,3 @@ export const loadCurrentSessionFn = createServerFn({ method: 'GET' }).handler(
     return loadConvexSession(getRequest(), requestToken)
   }
 )
-
-/** The token the server already minted for this request, handed to the browser as `initialToken`. */
-export const loadInitialTokenFn = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<string | null> => {
-    setResponseHeader('Cache-Control', 'private, no-store')
-    return requestToken(getRequest())
-  }
-)

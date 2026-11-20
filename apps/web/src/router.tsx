@@ -5,9 +5,11 @@ import { getGlobalStartContext } from '@tanstack/react-start'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { ConvexQueryClient } from '@convex-dev/react-query'
-import { ConvexAuthBoundary } from '#app/auth/ConvexAuthBoundary'
+import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react'
+import { betterAuthClient } from '#app/auth/betterAuthClient'
+import { AuthSessionGate } from '#app/auth/AuthSessionGate'
 import { api } from '@artificer-toolkit/apis/convex/api'
-import { loadCurrentSessionFn, loadInitialTokenFn } from '#app/server/auth/sessionFn'
+import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
 import type { AppRouterContext } from './routerContext'
 import { isRecord } from '#app/forms/utils/valueGuards'
@@ -42,20 +44,13 @@ export function getRouter(user: AuthSessionUserDto | null = null) {
       loadCurrentSession: () =>
         typeof document === 'undefined'
           ? loadCurrentSessionFn()
-          : convex.convexClient.query(api.account.session, {}),
-      loadInitialToken: () =>
-        typeof document === 'undefined' ? loadInitialTokenFn() : Promise.resolve(null)
+          : convex.convexClient.query(api.account.session, {})
     } satisfies AppRouterContext,
-    // Wrap sits outside the router context and mounts first: the root `beforeLoad` reads through
-    // this client, which waits for the provider to set auth. The server-minted token is read from
-    // the router state, which is loaded before the server render and restored before hydration.
     Wrap: ({ children }) => (
-      <ConvexAuthBoundary
-        client={convex.convexClient}
-        initialToken={router.state.matches[0]?.context.initialToken}
-      >
+      <ConvexBetterAuthProvider client={convex.convexClient} authClient={betterAuthClient}>
+        <AuthSessionGate />
         {children}
-      </ConvexAuthBoundary>
+      </ConvexBetterAuthProvider>
     ),
     defaultPreload: 'intent',
     defaultErrorComponent: RouteErrorState,

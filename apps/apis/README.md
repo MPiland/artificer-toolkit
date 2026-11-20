@@ -565,9 +565,10 @@ carry no signed proxy context, so `createAuth` keys them on Convex's own request
 would all share one `<ip>|/convex/jwks` rate-limit bucket. `betterAuth/options.ts` therefore exempts
 `/convex/jwks` (public key data only; limiting it could only fail validation reads) and keeps every
 other limit: `/convex/token` at 600 per 10 s per IP, sign-in and credential paths at Better Auth's
-defaults. A page view mints one token: the SSR token is passed to `ConvexBetterAuthProvider` as
-`initialToken` (`ConvexAuthBoundary`), and the server mints once per request (`requestToken` in
-`convex.server.ts`). Each environment keeps its own signing keys.
+defaults. A page view mints two tokens: the server mints once per request for the session read and the SSR
+client (`requestToken` in `convex.server.ts`), and the browser mints its own. The server token is not
+handed to the browser, because the signed-in reload proof requires that no backend JWT appears in
+the SSR output. Each environment keeps its own signing keys.
 
 For a selected development deployment on Windows, pipe a dotenv assignment rather
 than a bare secret: `"AUTH_PROXY_SECRET=$env:AUTH_PROXY_SECRET" | yarn convex env set --force`.

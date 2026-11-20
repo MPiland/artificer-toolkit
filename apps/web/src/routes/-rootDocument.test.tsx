@@ -50,30 +50,3 @@ it('reads browser route authority from its shared native client without an HTTP 
   expect(loadCurrentSessionFn).not.toHaveBeenCalled()
   expect(router.state.matches[0]?.context).toMatchObject(snapshot)
 })
-
-it('exposes the server-minted token as route context for the browser provider', async () => {
-  const snapshot = {
-    user: null,
-    featureFlags: { publicSignUpEnabled: true, libraryImportEnabled: false },
-    isSuperAdmin: false
-  }
-  const loadInitialToken = vi.fn().mockResolvedValue('request-minted-jwt')
-  const index = createRoute({ getParentRoute: () => Route, path: '/', component: () => null })
-  const router = createRouter({
-    routeTree: Route.addChildren([index]),
-    history: createMemoryHistory({ initialEntries: ['/'] }),
-    context: {
-      queryClient: new QueryClient(),
-      user: null,
-      loadCurrentSession: vi.fn().mockResolvedValue(snapshot),
-      loadInitialToken
-    },
-    isServer: true
-  })
-  await router.load()
-  expect(loadInitialToken).toHaveBeenCalledOnce()
-  expect(router.state.matches[0]?.context).toMatchObject({
-    ...snapshot,
-    initialToken: 'request-minted-jwt'
-  })
-})

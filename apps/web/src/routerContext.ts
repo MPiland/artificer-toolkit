@@ -7,8 +7,6 @@ export interface AppRouterContext {
   isSuperAdmin?: boolean
   nonce?: string
   loadCurrentSession?: () => Promise<AuthSessionSnapshotDto>
-  /** Server only: the token minted for this request, which seeds the browser's provider. */
-  loadInitialToken?: () => Promise<string | null>
   queryClient: QueryClient
   user: AuthSessionUserDto | null
 }

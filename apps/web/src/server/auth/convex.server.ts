@@ -117,9 +117,9 @@ async function mintToken(request: Request): Promise<string | null> {
 const requestTokens = new WeakMap<Request, Promise<string | null>>()
 
 /**
- * `mintToken` once per incoming request. The session read, the SSR loaders and the `initialToken`
- * handoff to the browser all share it, so a page view costs one `/convex/token` request on the
- * server. A rejection stays cached: a failed exchange is never retried anonymously.
+ * `mintToken` once per incoming request. The session read and the SSR loaders share it, so a
+ * page view costs one `/convex/token` request on the server. The token is never serialized into
+ * the page, so the browser mints its own. A rejection stays cached: a failed exchange is never retried anonymously.
  */
 export function requestToken(request: Request) {
   let token = requestTokens.get(request)
