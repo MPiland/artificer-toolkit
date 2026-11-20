@@ -181,7 +181,7 @@ jobs:
       # The lifecycle's post-browser audit: no proof may leave the canonical SRD source changed.
       - name: Reaudit the SRD source after the proofs
         if: ${{ !cancelled() }}
-        run: node scripts/liveBackendValidation.mjs --steps=audit --log-dir=browser-journey-logs/live-backend-post --secrets-file="$RUNNER_TEMP/throwaway-secrets"
+        run: node scripts/liveBackendValidation.mjs --steps=audit --log-dir=browser-journey-logs/live-backend-post
       - name: Evidence holds no generated secret
         if: always()
         env:

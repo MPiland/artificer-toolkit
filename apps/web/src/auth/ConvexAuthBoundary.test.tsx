@@ -32,7 +32,7 @@ it.each([
     history: createMemoryHistory({ initialEntries: ['/'] }),
     context: { queryClient: new QueryClient() },
     isServer: true,
-    Wrap: ({ children }) => (
+    InnerWrap: ({ children }) => (
       <ConvexAuthBoundary client={{} as ConvexReactClient}>{children}</ConvexAuthBoundary>
     )
   })

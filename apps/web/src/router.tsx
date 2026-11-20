@@ -46,7 +46,7 @@ export function getRouter(user: AuthSessionUserDto | null = null) {
       loadInitialToken: () =>
         typeof document === 'undefined' ? loadInitialTokenFn() : Promise.resolve(null)
     } satisfies AppRouterContext,
-    Wrap: ({ children }) => (
+    InnerWrap: ({ children }) => (
       <ConvexAuthBoundary client={convex.convexClient}>{children}</ConvexAuthBoundary>
     ),
     defaultPreload: 'intent',
