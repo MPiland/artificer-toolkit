@@ -41,7 +41,8 @@ environment secrets and the owner's password manager, never here.
 
 ## Open
 
-1. Pin `JWKS` to the deployment's signing keys (runbook: managed deployments pin them).
+1. `JWKS` stays empty (D232: default remote JWKS, no pinned keys). RELEASE-3.T5 removes the variable and fixes
+   the rate-limit setup before the checks below.
 2. Decide `PUBLIC_SIGN_UP_ENABLED` and `LIBRARY_IMPORT_ENABLED` for staging.
 3. Session Worker admission preflight, Resend delivery, the managed smoke (`scripts/managedSmoke.mjs`)
    with the SSR CPU export, V15, and gates C3 (Sentry) and C4 (forged `CF-Connecting-IP`).

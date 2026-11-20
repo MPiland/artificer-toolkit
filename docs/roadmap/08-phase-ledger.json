@@ -29778,7 +29778,13 @@
                 "tc": 8,
                 "rr": 8,
                 "size": 5,
-                "after": ["RELEASE-3.T1", "RELEASE-8.T2", "RELEASE-3.T4", "PLATFORM-27.T1"],
+                "after": [
+                  "RELEASE-3.T1",
+                  "RELEASE-8.T2",
+                  "RELEASE-3.T4",
+                  "PLATFORM-27.T1",
+                  "RELEASE-3.T5"
+                ],
                 "finalSource": true
               },
               "text": "With the user's explicit authorization naming exact targets, run the promotion: deploy web Worker via the manual workflow, Worker and Convex staging deploy, verify managed env/secrets/R2/CORS/Resend/admission, run the bounded R09 smoke and managed V15 workload including cold-isolate signed-in SSR CPU, remove fixtures through the product, record manifest and rollback ids. Correctness failures go back to local.",
@@ -29819,6 +29825,20 @@
                 "Green on fb97c0309: Tests 42443383793, Browser journeys 42443383775; merged (m655, merge-slice run 42444582369, merge 812ac1f7c)"
               ],
               "note": "Reduced path (user confirmed staging was never deployed or seeded, 2026-11-07): no local rehearsal for an empty target; later promotions follow the readiness record procedure."
+            },
+            {
+              "id": "RELEASE-3.T5",
+              "status": "TODO",
+              "closes": ["RELEASE-3.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RELEASE-3.T4"],
+                "finalSource": true
+              },
+              "text": "D232 default remote JWKS: (1) confirm by local reproduction which rate-limit key Convex's own JWKS fetches land on; (2) pass the SSR-minted Convex token to ConvexBetterAuthProvider as initialToken so a page view mints no redundant client tokens, and remove extra mints the trace finds; (3) give /convex/jwks an explicit Better Auth rate-limit rule so validation reads cannot exhaust a shared bucket; (4) remove the static JWKS wiring (auth.config.ts, betterAuth/options.ts, runbooks, CI --fresh handling) so no JWKS env var exists; (5) re-tune or remove the /convex/token 600/10s custom rule against the new mint count. Proofs: real-code tests for each rule, and a two-user multi-tab journey on the default path with no 429 and no exhausted rate-limit write."
             }
           ]
         },
