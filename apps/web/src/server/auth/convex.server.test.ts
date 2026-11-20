@@ -242,7 +242,11 @@ describe('Convex auth SSR boundary', () => {
 
       mocks.query.mockClear()
       mocks.tokenFetch.mockRejectedValue(new Error('Verification failed'))
-      await expect(loadConvexSession(request)).rejects.toThrow('Verification failed')
+      // A new request mints again; the same request would reuse its first token.
+      const nextRequest = edgeRequest('https://app.example/home', {
+        headers: { [header]: header === 'cookie' ? 'session=test' : 'Bearer supplied-token' }
+      })
+      await expect(loadConvexSession(nextRequest)).rejects.toThrow('Verification failed')
       expect(mocks.query).not.toHaveBeenCalled()
     }
   )
@@ -282,7 +286,7 @@ describe('Convex auth SSR boundary', () => {
     const request = edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
     const other = edgeRequest('https://app.example/home', { headers: { cookie: 'session=other' } })
     await Promise.all([
-      loadConvexSession(request, requestToken),
+      loadConvexSession(request),
       createAuthenticatedConvexClient(request),
       requestToken(request)
     ])

@@ -119,7 +119,8 @@ const requestTokens = new WeakMap<Request, Promise<string | null>>()
 /**
  * `mintToken` once per incoming request. The session read and the SSR loaders share it, so a
  * page view costs one `/convex/token` request on the server. The token is never serialized into
- * the page, so the browser mints its own. A rejection stays cached: a failed exchange is never retried anonymously.
+ * the page, so the browser mints its own. A rejection stays cached: a failed exchange is never
+ * retried anonymously.
  */
 export function requestToken(request: Request) {
   let token = requestTokens.get(request)
@@ -130,21 +131,14 @@ export function requestToken(request: Request) {
   return token
 }
 
-export async function createAuthenticatedConvexClient(
-  request: Request,
-  getToken: (request: Request) => Promise<string | null> = requestToken
-) {
+export async function createAuthenticatedConvexClient(request: Request) {
   const client = new ConvexHttpClient(connection().convexUrl)
-  const token = await getToken(request)
+  const token = await requestToken(request)
   if (token) client.setAuth(token)
   return client
 }
 
-/** Reads the session snapshot; `getToken` defaults to a fresh mint, `requestToken` shares the request's. */
-export async function loadConvexSession(
-  request: Request,
-  getToken: (request: Request) => Promise<string | null> = mintToken
-) {
-  const client = await createAuthenticatedConvexClient(request, getToken)
+export async function loadConvexSession(request: Request) {
+  const client = await createAuthenticatedConvexClient(request)
   return authSessionSnapshotDtoSchema.parse(await client.query(api.account.session, {}))
 }
