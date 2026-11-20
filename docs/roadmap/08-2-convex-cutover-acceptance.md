@@ -113,7 +113,7 @@ pagination is bound to the GM selector. These earlier slices preceded V02 accept
 V02 and V06 are ACCEPTED at LOCAL_E2E. Browser-26 passes native Scene authoring, independent
 GM/player hydration, live edits, private-token exclusion, actual JWT expiry/renewal, bidirectional
 native Worker previews, offline recovery, reload and departed-player refusal. Exact fixture/account
-and physical R2 cleanup pass. Static JWKS retains the existing signing identity and all rate limits;
+and physical R2 cleanup pass. Static JWKS (since removed, D232) retained the existing signing identity and all rate limits;
 the full managed journey has no JWKS fetches or limiter failures. Runtime/generated source matches
 the activation. Consolidated evidence: `.codex/validation/phase82-scene-live-acceptance-20260913/acceptance.md`.
 That earlier packet advanced decision-audience and stale-receipt coverage. V12 is now accepted as recorded above. V14's

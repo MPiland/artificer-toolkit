@@ -1372,7 +1372,6 @@ module-load budget. Public functions keep generated Convex argument validators.
 | Web/Convex runtime  | `CONVEX_SITE_URL`                 | Convex HTTP Actions origin used by server and local tooling                      |
 | Convex auth         | `SITE_URL`                        | Canonical application origin for Better Auth                                     |
 | Convex auth         | `BETTER_AUTH_SECRET`              | Better Auth signing secret                                                       |
-| Convex auth         | `JWKS`                            | Optional deployment-specific static key set                                      |
 | Convex live session | `LIVE_SESSION_TICKET_SECRET`      | At least 32-byte ticket-signing secret shared only with the Worker               |
 | Convex live session | `LIVE_SESSION_WORKER_SECRET`      | At least 32-byte secret for Worker-to-Convex routes and Convex-to-Worker control |
 | Convex live session | `LIVE_SESSION_WORKER_URL`         | Worker origin that room eviction, closure and invalidation control calls reach   |

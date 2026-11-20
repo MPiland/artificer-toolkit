@@ -90,7 +90,7 @@ jobs:
           STEPS: ${{ inputs.steps }}
         run: |
           # --steps only when the dispatch input is set; the script owns the default step list.
-          args=(--container=convex-live --fresh --log-dir=live-backend-logs)
+          args=(--container=convex-live --log-dir=live-backend-logs)
           if [ -n "$STEPS" ]; then args+=(--steps="$STEPS"); fi
           node scripts/liveBackendValidation.mjs "${args[@]}"
       - name: Generated files match the commit

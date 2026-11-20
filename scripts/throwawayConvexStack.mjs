@@ -70,11 +70,10 @@ if (convex(['env', 'list'], 'pipe').trim()) {
   throw new Error('The deployment already has env; this script provisions only a fresh container.')
 }
 // What the local Docker deployment holds (apps/apis/README.md, docs/runbooks/phase-8-2-release.md).
-// JWKS is empty to select the database-backed signing keys; the container reaches the host Worker
-// through host.docker.internal and serves the R2 substitute and email sink itself.
+// The container reaches the host Worker through host.docker.internal and serves the R2 substitute
+// and email sink itself.
 const deploymentEnvironment = {
   ...secrets,
-  JWKS: '',
   LIVE_SESSION_WORKER_URL: 'http://host.docker.internal:8787',
   LOCAL_EMAIL_SINK_URL: 'http://127.0.0.1:8025/email',
   LOCAL_R2_ENDPOINT: 'http://127.0.0.1:8026',

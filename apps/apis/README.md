@@ -557,15 +557,18 @@ metadata before Better Auth runs, because Better Auth applies its rate limit bef
 `onRequest` hooks; a caller's own value is always overwritten. A request with no valid client IP
 is refused with 503 and logged, so Better Auth never falls back to one shared per-path bucket.
 
-The optional server-only Convex `JWKS` variable enables the integration's static-key mode in both
-`auth.config.ts` and the Better Auth Convex plugin. Convex then verifies JWTs from embedded public
-keys without HTTP key fetches; the public-key endpoint and credential endpoints retain their rate
-limits. Initialize it from that deployment's currently published Better Auth key set, preserving key
-IDs and encrypted private-key material. The value is a secret: keep it out of browser variables,
-source files and logs. Existing tokens remain valid when the same keys are retained. Future rotations
-must update the configured key set and preserve verification keys for unexpired tokens. Removing
-`JWKS` and redeploying both configurations restores database-backed keys; initial configuration
-does not rotate or delete the stored keys. Each environment keeps its own signing keys.
+Token verification uses the integration's default remote JWKS (D232; the static `JWKS` variable of
+the 2026-09-13 decision is retired, and no `JWKS` variable exists or is read). Better Auth creates and
+rotates the signing keys in its database, so the owner never manages keys. Convex fetches OIDC
+discovery and then `/api/auth/convex/jwks` on every token validation, without caching. Those fetches
+carry no signed proxy context, so `createAuth` keys them on Convex's own request-metadata IP and they
+would all share one `<ip>|/convex/jwks` rate-limit bucket. `betterAuth/options.ts` therefore exempts
+`/convex/jwks` (public key data only; limiting it could only fail validation reads) and keeps every
+other limit: `/convex/token` at 600 per 10 s per IP, sign-in and credential paths at Better Auth's
+defaults. A page view mints two tokens: the server mints once per request for the session read and the SSR
+client (`requestToken` in `convex.server.ts`), and the browser mints its own. The server token is not
+handed to the browser, because the signed-in reload proof requires that no backend JWT appears in
+the SSR output. Each environment keeps its own signing keys.
 
 For a selected development deployment on Windows, pipe a dotenv assignment rather
 than a bare secret: `"AUTH_PROXY_SECRET=$env:AUTH_PROXY_SECRET" | yarn convex env set --force`.
@@ -1110,15 +1113,13 @@ container locally and against an ephemeral container of the same image in CI
 source of the digest). The script takes the URL from one constant, checks `/instance_name`, and passes
 the URL and key as explicit CLI arguments. A fresh container needs `INSTANCE_NAME`,
 `CONVEX_CLOUD_ORIGIN` and `CONVEX_SITE_ORIGIN` set (the origins become the built-in `CONVEX_URL` and
-`CONVEX_SITE_URL`) and the script's `--fresh` flag, which runs the `env` step first (`JWKS` empty).
+`CONVEX_SITE_URL`). The auth config needs no other env.
 No admin key is stored: scripts generate one per run with
 `docker exec phase82-convex-local-linux ./generate_admin_key.sh` and never write or print it. The
 ignored `local-validation/local-convex/local.application.env` holds the local application environment
-without an admin key. On a fresh backend, set `JWKS` to an empty value to select the existing database-backed signing
-keys until a deployment-specific static key set is configured. Browser journey stacks pin theirs
-with the CI-only `signing-keys` step of `scripts/liveBackendValidation.mjs`: with database-backed keys
-the backend verifies each token by fetching `/api/auth/convex/jwks` from itself, which took up to 40%
-of a proof's compute (RELIABILITY-21.T26). The local container keeps the empty value. Official codegen and its TypeScript
+without an admin key. Every stack, browser journey stacks included, verifies tokens by fetching
+`/api/auth/convex/jwks` from the backend itself (D232). That fetch was up to 40% of a proof's compute
+(RELIABILITY-21.T26); PERF-2 measures it on staging. Official codegen and its TypeScript
 check pass there. Keep test-only helpers under `tests/fixtures`; non-test-named files under `convex/`
 are deployment entrypoints. The Scene preparation validator reuses only its accepted movement
 branches so module loading remains within the unmodified 64 MB limit.

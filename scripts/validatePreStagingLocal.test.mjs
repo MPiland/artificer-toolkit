@@ -123,10 +123,9 @@ describe('lifecycle package tests', () => {
 })
 
 describe('lifecycle signing keys', () => {
-  it('pins JWKS after the reset and before the push that evaluates the auth config', () => {
+  it('has no signing-key stage: token verification uses the default remote JWKS (D232)', () => {
     const names = lifecycle.stages.map(({ name }) => name)
-    const pin = names.indexOf('convex-signing-keys')
-    expect(pin).toBe(names.indexOf('convex-reset') + 1)
-    expect(pin).toBe(names.indexOf('convex-codegen') - 1)
+    expect(names).not.toContain('convex-signing-keys')
+    expect(names.indexOf('convex-codegen')).toBe(names.indexOf('convex-reset') + 1)
   })
 })

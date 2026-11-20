@@ -501,7 +501,9 @@ exclusion, actual JWT renewal, bidirectional previews, offline recovery, reload 
 HTTP 404 with no new Worker admission. Unexpected browser diagnostics and legacy requests are empty;
 exact fixture/account cleanup and physical media deletion pass. Managed log review found eight
 exhausted Better Auth rate-limit writes, all on public JWKS key reads. The local HTTP reproduction
-confirms those reads write a shared counter. The selected correction uses supported static JWKS
+confirms those reads write a shared counter. (SUPERSEDED by D232, 2026-11-19: the static `JWKS`
+variable is removed, the default remote JWKS is used, `/convex/jwks` is exempt from the limiter and
+a page view mints one token. The rest of this entry is historical.) The selected correction uses supported static JWKS
 while preserving all rate limits. Local HTTP proof verifies existing/new JWTs and retained public-key
 and sign-in throttling. The user approved copying the exact currently published key into the secret
 JWKS setting on the same personal-development deployment. The guarded copy and activation completed

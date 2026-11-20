@@ -2,19 +2,14 @@
 // self-hosted Convex backend container at http://127.0.0.1:3210: the local Docker backend by default, or an ephemeral container on a GitHub
 // runner (.github/workflows/live-backend.yml). Stops at the first failing step; with --log-dir each
 // step's log and duration are written there. The admin key never reaches a log or a file.
-//   node scripts/liveBackendValidation.mjs [--container=<name>] [--fresh]
+//   node scripts/liveBackendValidation.mjs [--container=<name>]
 //     [--steps=manifest,codegen,deploy,schemaCost,seed,replace,reseed,audit] [--log-dir=<dir>]
-// --fresh is for a just-started ephemeral container: it first sets the deployment env the auth config
-// needs. It is refused for the local container, which keeps its own. The opt-in `snapshots` step
-// waits until every Content snapshot the seed marked is built, for browser proofs on a fresh stack.
-// The opt-in `signing-keys` step, CI only, pins the deployment's signing keys into JWKS as a managed
-// deployment does, so token verification stops fetching them from the backend's own HTTP actions.
-// The pre-staging lifecycle pins the local deployment in its own convex-signing-keys stage.
-// --secrets-file appends what that step generates to a throwaway stack's secret list.
+// The opt-in `snapshots` step waits until every Content snapshot the seed marked is built, for
+// browser proofs on a fresh stack.
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createWriteStream } from 'node:fs'
-import { appendFile, mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
 import { finished } from 'node:stream/promises'
@@ -26,7 +21,6 @@ import {
   convexDeployArguments,
   generateAdminKey,
   localConvex,
-  readSigningKeysJwks,
   yarnSpawn
 } from './convexSelfHosted.mjs'
 
@@ -44,32 +38,19 @@ const defaultSteps = [
 
 const options = {
   container: localConvex.container,
-  fresh: false,
   logDir: undefined,
-  secretsFile: undefined,
   steps: defaultSteps
 }
 for (const argument of process.argv.slice(2)) {
-  const match = /^--(container|steps|log-dir|secrets-file)=(.+)$/u.exec(argument)
-  if (argument === '--fresh') options.fresh = true
-  else if (match?.[1] === 'container') options.container = match[2]
+  const match = /^--(container|steps|log-dir)=(.+)$/u.exec(argument)
+  if (match?.[1] === 'container') options.container = match[2]
   else if (match?.[1] === 'steps') options.steps = match[2].split(',')
   else if (match?.[1] === 'log-dir') options.logDir = resolve(match[2])
-  else if (match?.[1] === 'secrets-file') options.secretsFile = resolve(match[2])
   else throw new Error(`Unknown or malformed argument: ${argument}`)
 }
 for (const name of options.steps) {
-  if (!defaultSteps.includes(name) && name !== 'snapshots' && name !== 'signing-keys')
+  if (!defaultSteps.includes(name) && name !== 'snapshots')
     throw new Error(`Unknown step: "${name}".`)
-}
-// The ephemeral container takes the local container's name, so the runner is what tells them apart.
-if (options.steps.includes('signing-keys') && process.env.GITHUB_ACTIONS !== 'true') {
-  throw new Error('signing-keys would change the local deployment env; it is for CI stacks.')
-}
-if (options.fresh && options.container === localConvex.container) {
-  throw new Error(
-    '--fresh would reset the local container deployment env; it is for an ephemeral container.'
-  )
 }
 
 await assertConvexInstance(localConvex.url, localConvex.instance)
@@ -92,8 +73,6 @@ const convex = (...args) => [
 // Each step is a list of Yarn commands run from the repository root.
 const allSteps = {
   manifest: [['workspace', '@artificer-toolkit/apis', 'generate:srd:manifest']],
-  // auth.config.ts needs JWKS before any push; an empty value selects the database-backed signing keys.
-  env: [convex('env', 'set', 'JWKS', '')],
   codegen: [convex('codegen', '--typecheck', 'disable')],
   deploy: [[...convexDeployArguments, ...convexCliArguments(localConvex.url, adminKey)]],
   // The first schema parses after the deploy, so their cold cost is what the probe reports.
@@ -119,27 +98,7 @@ const allSteps = {
   ],
   reseed: [convex('run', 'content/seed:seed')],
   audit: [convex('run', 'content/seed:audit')],
-  snapshots: awaitSnapshotBuilds,
-  'signing-keys': pinSigningKeys
-}
-
-// Database-backed keys make the backend fetch /api/auth/convex/jwks from itself to verify tokens, up
-// to 2,000 requests a proof. The redeploy applies both auth configs.
-async function pinSigningKeys(log) {
-  let pinned
-  try {
-    pinned = await readSigningKeysJwks({ ...localConvex, adminKey })
-  } catch (error) {
-    log?.write(`${error.message}\n`)
-    return 1
-  }
-  const { jwks, secrets: generated } = pinned
-  secrets.push(...generated)
-  for (const secret of generated) console.log(`::add-mask::${secret}`)
-  if (options.secretsFile)
-    await appendFile(options.secretsFile, generated.map((secret) => `${secret}\n`).join(''))
-  const status = await runCommand(convex('env', 'set', 'JWKS', jwks), log)
-  return status === 0 ? runCommand(allSteps.deploy[0], log) : status
+  snapshots: awaitSnapshotBuilds
 }
 
 // Builds run in the background after the seed marks each head; a head is built once its
@@ -174,8 +133,6 @@ async function awaitSnapshotBuilds(log) {
   log?.write('Content snapshot builds did not finish in 15 minutes.\n')
   return 1
 }
-const stepNames = options.fresh ? ['env', ...options.steps] : options.steps
-
 const redact = (line) => secrets.reduce((text, secret) => text.replaceAll(secret, '***'), line)
 
 async function runCommand(yarnArguments, log) {
@@ -221,7 +178,7 @@ async function runStep(name) {
 if (options.logDir) await mkdir(options.logDir, { recursive: true })
 const summary = []
 let failed = false
-for (const name of stepNames) {
+for (const name of options.steps) {
   const started = Date.now()
   const status = await runStep(name)
   const seconds = Math.round((Date.now() - started) / 1000)
