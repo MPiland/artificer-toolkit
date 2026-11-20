@@ -63,10 +63,10 @@ export async function handleConvexAuthRequest(request: Request) {
   })
 }
 
-export async function createAuthenticatedConvexClient(request: Request) {
-  const { convexUrl, convexSiteUrl } = connection()
+/** The caller's Convex JWT, or null for a credential-free or confirmed signed-out request. */
+async function mintToken(request: Request): Promise<string | null> {
+  const { convexSiteUrl } = connection()
   const headers = await proxyHeaders(request, '/api/auth/convex/token', 'GET')
-  const client = new ConvexHttpClient(convexUrl)
   if (request.headers.has('cookie') || request.headers.has('authorization')) {
     headers.set('host', new URL(convexSiteUrl).host)
     // The SDK's token helper discards HTTP failures. Preserve them so outages
@@ -96,7 +96,7 @@ export async function createAuthenticatedConvexClient(request: Request) {
       if (!session.ok || (await session.json()) !== null) {
         throw new Error('Authentication verification is unavailable.')
       }
-      return client
+      return null
     }
     if (!response.ok) throw new Error('Authentication verification is unavailable.')
     const payload: unknown = await response.json()
@@ -109,12 +109,42 @@ export async function createAuthenticatedConvexClient(request: Request) {
     ) {
       throw new Error('Authentication verification returned an invalid response.')
     }
-    client.setAuth(payload.token)
+    return payload.token
   }
+  return null
+}
+
+const requestTokens = new WeakMap<Request, Promise<string | null>>()
+
+/**
+ * `mintToken` once per incoming request. The session read, the SSR loaders and the `initialToken`
+ * handoff to the browser all share it, so a page view costs one `/convex/token` request on the
+ * server. A rejection stays cached: a failed exchange is never retried anonymously.
+ */
+export function requestToken(request: Request) {
+  let token = requestTokens.get(request)
+  if (!token) {
+    token = mintToken(request)
+    requestTokens.set(request, token)
+  }
+  return token
+}
+
+export async function createAuthenticatedConvexClient(
+  request: Request,
+  getToken: (request: Request) => Promise<string | null> = requestToken
+) {
+  const client = new ConvexHttpClient(connection().convexUrl)
+  const token = await getToken(request)
+  if (token) client.setAuth(token)
   return client
 }
 
-export async function loadConvexSession(request: Request) {
-  const client = await createAuthenticatedConvexClient(request)
+/** Reads the session snapshot; `getToken` defaults to a fresh mint, `requestToken` shares the request's. */
+export async function loadConvexSession(
+  request: Request,
+  getToken: (request: Request) => Promise<string | null> = mintToken
+) {
+  const client = await createAuthenticatedConvexClient(request, getToken)
   return authSessionSnapshotDtoSchema.parse(await client.query(api.account.session, {}))
 }

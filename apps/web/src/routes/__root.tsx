@@ -42,8 +42,18 @@ const QueryDevtools = import.meta.env.DEV
 export const Route = createRootRouteWithContext<AppRouterContext>()({
   ssr: true,
   shouldReload: ({ location }) => !isAuthoringStepNavigationState(location.state),
-  beforeLoad: async ({ context }: { context: AppRouterContext }): Promise<AuthSessionSnapshotDto> =>
-    context.loadCurrentSession?.() ?? loadCurrentSessionFn(),
+  beforeLoad: async ({
+    context
+  }: {
+    context: AppRouterContext
+  }): Promise<AuthSessionSnapshotDto & { initialToken: string | null }> => {
+    // Both reads share the request's single token mint on the server.
+    const [snapshot, initialToken] = await Promise.all([
+      context.loadCurrentSession?.() ?? loadCurrentSessionFn(),
+      context.loadInitialToken?.() ?? null
+    ])
+    return { ...snapshot, initialToken }
+  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },

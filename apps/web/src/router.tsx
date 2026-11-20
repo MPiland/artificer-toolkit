@@ -5,11 +5,9 @@ import { getGlobalStartContext } from '@tanstack/react-start'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { ConvexQueryClient } from '@convex-dev/react-query'
-import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react'
-import { betterAuthClient } from '#app/auth/betterAuthClient'
-import { AuthSessionGate } from '#app/auth/AuthSessionGate'
+import { ConvexAuthBoundary } from '#app/auth/ConvexAuthBoundary'
 import { api } from '@artificer-toolkit/apis/convex/api'
-import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
+import { loadCurrentSessionFn, loadInitialTokenFn } from '#app/server/auth/sessionFn'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
 import type { AppRouterContext } from './routerContext'
 import { isRecord } from '#app/forms/utils/valueGuards'
@@ -44,13 +42,12 @@ export function getRouter(user: AuthSessionUserDto | null = null) {
       loadCurrentSession: () =>
         typeof document === 'undefined'
           ? loadCurrentSessionFn()
-          : convex.convexClient.query(api.account.session, {})
+          : convex.convexClient.query(api.account.session, {}),
+      loadInitialToken: () =>
+        typeof document === 'undefined' ? loadInitialTokenFn() : Promise.resolve(null)
     } satisfies AppRouterContext,
     Wrap: ({ children }) => (
-      <ConvexBetterAuthProvider client={convex.convexClient} authClient={betterAuthClient}>
-        <AuthSessionGate />
-        {children}
-      </ConvexBetterAuthProvider>
+      <ConvexAuthBoundary client={convex.convexClient}>{children}</ConvexAuthBoundary>
     ),
     defaultPreload: 'intent',
     defaultErrorComponent: RouteErrorState,

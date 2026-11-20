@@ -74,11 +74,9 @@ are in the earlier [release-candidate-2026-11-17](../validation/release-candidat
    runner resets the isolated local container before the schema push, then deploys and seeds it from
    the protected corpus, so every later stage starts from the seeded corpus alone. Step 3 rules out a
    replacement container.
-   The `convex-signing-keys` stage then pins the Better Auth signing keys, which the reset keeps, into
-   the deployment's `JWKS` value, as a managed deployment does, before the push evaluates
-   `auth.config.ts`. With an empty `JWKS` every token check fetches the keys from the backend's own
-   HTTP route, which distorts the latency baseline. The value holds the private keys and is never
-   logged.
+   No stage pins signing keys: token verification uses the default remote JWKS (D232, which
+   supersedes the earlier `convex-signing-keys` stage). Do not set a `JWKS` value on any deployment,
+   managed ones included. The reset keeps the Better Auth `jwks` table, so the keys survive it.
    Before Convex codegen pushes a schema, the runner backs up and resets disposable local fixtures.
    Required fields and removed storage paths can reject old rows during that push; resetting after
    deployment would be too late. After package checks, the runner verifies source identity and deploys

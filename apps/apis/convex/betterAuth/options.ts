@@ -23,11 +23,18 @@ export function createAuthAdapterOptions(
       storage: 'database',
       // The count resets only after `window` seconds with no allowed request, because every allowed
       // request refreshes `lastRequest`, so steady traffic from one IP accumulates toward `max`. Each
-      // page view mints about 3 tokens (SSR plus the client provider), and one IP can be a household,
-      // an office NAT or a CI shard. Measured CI peaks: 51 mints in one journey, 187 across an
-      // 11-minute shard. 600 per 10s gives more than 3x that headroom and still caps one IP at an
-      // average of 60 mints per second; the default 100 per 10s is what 429ed the journeys.
-      customRules: { '/convex/token': { window: 10, max: 600 } }
+      // page view mints one token (the SSR token is handed to the provider as `initialToken`), and
+      // one IP can be a household, an office NAT or a CI shard. Measured CI peaks, taken when a page
+      // view minted about 3: 51 mints in one journey, 187 across an 11-minute shard, so about 17 and
+      // 62 now. 200 per 10s keeps more than 3x that headroom and caps one IP at an average of 20
+      // mints per second.
+      customRules: {
+        '/convex/token': { window: 10, max: 200 },
+        // Convex fetches this on every token validation, with no proxy context and so no client IP of
+        // its own: all of those fetches would share one bucket. It serves public key data only, so
+        // it is exempt. Limiting it could only fail validation reads, never protect anything.
+        '/convex/jwks': false
+      }
     },
     // OTP is recovery-only; don't expose a second signup or passwordless-login path.
     disabledPaths: [
@@ -54,7 +61,7 @@ export function createAuthAdapterOptions(
         storeOTP: 'hashed',
         sendVerificationOTP
       }),
-      convex({ authConfig, jwks: process.env.JWKS, jwt: { definePayload: async () => ({}) } })
+      convex({ authConfig, jwt: { definePayload: async () => ({}) } })
     ]
   } satisfies BetterAuthOptions
 }

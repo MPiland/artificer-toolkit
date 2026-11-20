@@ -34,7 +34,8 @@ vi.mock('convex/browser', () => ({
 import {
   createAuthenticatedConvexClient,
   handleConvexAuthRequest,
-  loadConvexSession
+  loadConvexSession,
+  requestToken
 } from './convex.server'
 
 const EDGE_CLIENT_IP = '198.51.100.10'
@@ -269,6 +270,26 @@ describe('Convex auth SSR boundary', () => {
       undefined
     ])
     expect(mocks.tokenFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('mints one token per request for the session read, the SSR client and the browser handoff', async () => {
+    mocks.tokenFetch.mockResolvedValue(Response.json({ token: 'request-jwt' }))
+    mocks.query.mockResolvedValue({
+      user: null,
+      isSuperAdmin: false,
+      featureFlags: { libraryImportEnabled: false, publicSignUpEnabled: false }
+    })
+    const request = edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
+    const other = edgeRequest('https://app.example/home', { headers: { cookie: 'session=other' } })
+    await Promise.all([
+      loadConvexSession(request, requestToken),
+      createAuthenticatedConvexClient(request),
+      requestToken(request)
+    ])
+    expect(mocks.tokenFetch).toHaveBeenCalledOnce()
+    await requestToken(other)
+    expect(mocks.tokenFetch).toHaveBeenCalledTimes(2)
+    expect(mocks.setAuth).toHaveBeenCalledTimes(2)
   })
 
   it('requires a successful null session before treating token denial as signed out', async () => {

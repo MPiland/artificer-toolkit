@@ -134,10 +134,10 @@ jobs:
       - name: Start the local Convex fixtures
         run: pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action start
       # Locally the native proofs run between the seed and the browser proofs, so the Content snapshot
-      # builds are done; a fresh stack waits for them before the browser opens. Pinned signing keys
-      # keep token verification off the backend's own HTTP actions, as on a managed deployment.
-      - name: Deploy, pin signing keys, seed and build Content snapshots
-        run: node scripts/liveBackendValidation.mjs --steps=deploy,signing-keys,seed,snapshots --log-dir=browser-journey-logs/live-backend --secrets-file="$RUNNER_TEMP/throwaway-secrets"
+      # builds are done; a fresh stack waits for them before the browser opens. Token verification
+      # runs on the default remote JWKS, as on a managed deployment (D232).
+      - name: Deploy, seed and build Content snapshots
+        run: node scripts/liveBackendValidation.mjs --steps=deploy,seed,snapshots --log-dir=browser-journey-logs/live-backend
       # Every proof runs even after one fails, and each reports its own result.
       - name: Run the shard's proofs
         env:

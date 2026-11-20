@@ -16,7 +16,6 @@ beforeEach(() => {
   vi.stubEnv('SITE_URL', appOrigin)
   vi.stubEnv('CONVEX_SITE_URL', 'http://127.0.0.1:3221')
   vi.stubEnv('BETTER_AUTH_SECRET', 'account-journey-secret-with-sufficient-length')
-  vi.stubEnv('JWKS', '')
   vi.stubEnv('PUBLIC_SIGN_UP_ENABLED', undefined)
   vi.resetModules()
 })
