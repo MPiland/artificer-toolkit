@@ -195,7 +195,7 @@ describe('Convex auth SSR boundary', () => {
   it('reads the session in one signed round trip with no token mint or JWT in the result', async () => {
     const snapshot = {
       user: {
-        userId: 'user-1',
+        userId: '0b7c7a0e-4f4e-4d5b-8a39-6f1c2e9d4a11',
         email: 'player@example.com',
         username: 'player',
         role: 'user',
