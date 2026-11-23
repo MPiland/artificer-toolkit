@@ -3451,6 +3451,48 @@
               "note": "Merged 2026-11-03 (m636, merge-slice run 41771505614). Password change revokes every other session; the changing session gets a replacement cookie and stays signed in."
             }
           ]
+        },
+        {
+          "id": "ACCOUNTS-12",
+          "title": "Completing an invitation signs me in",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [
+            "Owner finding 2026-11-23 (staging): after completing an invitation the app sent the new user to sign-in instead of signing them in; must ship before production"
+          ],
+          "acs": [
+            {
+              "id": "ACCOUNTS-12.1",
+              "text": "After a new user completes an invitation (chooses a username and password on the invite link), they land signed in on the signed-in home without entering their credentials again; a failed redemption keeps them on the invitation page with the error and signs nobody in.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "Owner finding 2026-11-23 (staging): after completing an invitation the app sent the new user to sign-in instead of signing them in; must ship before production"
+              ],
+              "note": "Registered 2026-11-23 with owner approval. Today UpdatePasswordPage.handleSuccess navigates to /sign-in for both the invitation and the reset flow. Gate: before production promotion, not before staging UAT."
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 3,
+            "size": 2
+          },
+          "tasks": [
+            {
+              "id": "ACCOUNTS-12.T1",
+              "status": "TODO",
+              "closes": ["ACCOUNTS-12.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 3,
+                "size": 2
+              },
+              "text": "Sign the user in after a successful invitation redemption: trace the invitation path from UpdatePasswordPage / UpdatePasswordForm through the redeem server function to authInvitations.redeem, then either establish the session at redemption or sign in with the just-set credentials through the existing auth client, and navigate to the signed-in home; the password-reset flow keeps its current behavior. Prove with a failing-first test against real code (redeem then signed-in session; failed redeem signs nobody in) and extend the account journey test with the invite-to-signed-in flow."
+            }
+          ]
         }
       ]
     },
@@ -26113,6 +26155,130 @@
             }
           ],
           "internalReason": "Performance fix with no new user-visible flow; the task carries its real-code read-budget proof."
+        },
+        {
+          "id": "PERF-7",
+          "title": "Signed-in pages render within the Worker CPU budget",
+          "status": "IN_PROGRESS",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "internalReason": "Performance gate with no new user-visible flow; the staging smoke and the smoke policy unit test carry the evidence.",
+          "origin": [
+            "Owner approval 2026-11-23: the first staging smoke (run mwtouizd) failed gate C2 with p75 75 ms and max 111 ms signed-in SSR CPU against a 10 ms limit (D75 expects 2-8 ms); fix it regardless of the Workers plan",
+            "D233 (owner, 2026-11-23): keep skeleton SSR, move to Workers Paid at production cutover, judge C2 by outcome"
+          ],
+          "acs": [
+            {
+              "id": "PERF-7.1",
+              "text": "Signed-in SSR on the web Worker meets gate C2 as D233 defines it: the managed staging smoke (scripts/managedSmoke.mjs) records per-request CPU, cold isolate included, every invocation ends ok (no exceededCpu), and its disposable fixture is deleted.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "Owner approval 2026-11-23: staging smoke mwtouizd measured /home 75, /systems 111, /characters 49, /campaigns 23, /notifications 17, /settings/profile 16 ms CPU",
+                "D233 (owner, 2026-11-23): C2 judged by outcome; Workers Paid at production"
+              ],
+              "note": "Run mwtouizd passes the D233 CPU check (all ok, verdict-d233.json) but its cleanup poll timed out before the 5-minute poll fix, so a rerun closes the AC. Evidence: local-validation/release-3/smoke-2026-11-23/. Gates RELEASE-3.T2 completion."
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 13,
+            "rr": 8,
+            "size": 5,
+            "finalSource": true
+          },
+          "tasks": [
+            {
+              "id": "PERF-7.T1",
+              "status": "DONE",
+              "closes": ["PERF-7.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 5,
+                "finalSource": true
+              },
+              "text": "Attribute the CPU in signed-in SSR on the web Worker: profile a production web build locally (warm and cold) per stage. Done 2026-11-23: no dominant cost; cold first execution of React, Mantine, router, zod and Sentry plus a diffuse 3-5 ms warm render. An independent review agreed no tuning meets 10 ms on Workers Free, which led to D233. Harness: .claude/worktrees/agent-a9998e7b55d941fb1/local-validation/perf-7-t1/."
+            },
+            {
+              "id": "PERF-7.T2",
+              "status": "IN_PROGRESS",
+              "closes": ["PERF-7.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 1,
+                "finalSource": true
+              },
+              "text": "Apply D233 to gate C2: the smoke policy fails only a non-ok outcome (no 10 ms p75 or per-request limit) and records the figures, with its unit test; ADR 0037 amendment 1, the hosting and release runbooks (Workers Paid before the production deploy). Then rerun the staging smoke with owner approval and record the verdict."
+            }
+          ]
+        },
+        {
+          "id": "PERF-8",
+          "title": "Signed-in pages start painting sooner on a hard load",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "internal",
+          "internalReason": "Latency improvement on an existing flow; a timing proof on the real server path and the staging smoke carry the evidence.",
+          "origin": [
+            "D233 (owner approval 2026-11-23): staging hard loads of signed-in pages waited 0.5-0.8 s warm and 1.5 s cold before the first byte, because root beforeLoad awaits the token mint and then the session query in series (apps/web/src/routes/__root.tsx:45, apps/web/src/server/auth/convex.server.ts:134-144); fold in the per-request waste the independent review found"
+          ],
+          "acs": [
+            {
+              "id": "PERF-8.1",
+              "text": "A hard load of a signed-in page no longer waits on two serial Convex round trips before the server sends the first byte, within the D232 per-request token rule; the staging smoke records the document wait before and after.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["D233 (owner approval 2026-11-23)"]
+            },
+            {
+              "id": "PERF-8.2",
+              "text": "The web Worker does no avoidable per-request work: security headers are applied once with the static CSP computed once per isolate, Sentry does no per-request tracing setup it does not use, and the Mantine theme is resolved once, with error capture (C3) unchanged.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [
+                "D233 (owner approval 2026-11-23): independent review findings (apps/web/src/start.ts:10 and apps/web/src/server.ts:13 both apply security headers; apps/web/src/observability/sentry.server.ts:6-11; apps/web/src/providers/AppProviders.tsx:30-35)"
+              ]
+            }
+          ],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 3,
+            "size": 5,
+            "finalSource": true
+          },
+          "tasks": [
+            {
+              "id": "PERF-8.T1",
+              "status": "TODO",
+              "closes": ["PERF-8.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 3,
+                "size": 3,
+                "finalSource": true
+              },
+              "text": "Remove the serial Convex round trips from the signed-in document path: trace root beforeLoad through the token mint and session query, design the single-wait path within D232 (escalate if it needs a contract change), prove it with a real-code test of the server auth path, then record the staging document wait in the next smoke."
+            },
+            {
+              "id": "PERF-8.T2",
+              "status": "TODO",
+              "closes": ["PERF-8.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 2,
+                "size": 2,
+                "finalSource": true
+              },
+              "text": "Remove the per-request waste: apply security headers once and compute the static CSP once per isolate, configure the Sentry Worker wrapper without unused per-request tracing work (C3 capture proof unchanged), and resolve the Mantine theme once; prove each with the existing unit tests extended."
+            }
+          ]
         }
       ]
     },
