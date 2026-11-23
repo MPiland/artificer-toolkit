@@ -5,6 +5,7 @@ import { retryRateLimitedAuth } from '../tests/developmentAuthRequest'
 import { convexTest } from '../tests/convexTest'
 import { reviewScenariosForSet, REVIEW_SCENARIOS } from '../tests/developmentReviewDataScenarios'
 import {
+  managedAdminCall,
   reviewRoster,
   reviewTarget,
   reviewTargetSteps,
@@ -158,6 +159,28 @@ describe('managed tester set accounts', () => {
     expect(again.sessions).toHaveLength(5)
     await expect(buildSet(world, 1, { password: 'not-the-set-password-1' })).rejects.toThrow()
     expect(world.calls.filter((call) => call.name === 'adapter:updateOne')).toEqual([])
+  })
+})
+
+describe('managed admin call', () => {
+  it('reports the deployment error message, not a parse failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({ status: 'error', errorMessage: 'Server Error: model not found' })
+      )
+    )
+    try {
+      const call = managedAdminCall({
+        deploymentUrl: new URL(managedEnv.CONVEX_URL),
+        adminKey: managedEnv.REVIEW_MANAGED_ADMIN_KEY
+      })
+      await expect(call('adapter:create', {}, true)).rejects.toThrow(
+        'The managed admin call adapter:create failed: Server Error: model not found'
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })
 
