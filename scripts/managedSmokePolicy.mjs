@@ -3,10 +3,8 @@
 // target refusal, request bounds and the CPU verdict. scripts/managedSmoke.mjs and
 // apps/apis/tests/developmentManagedSmokeCli.ts import them, and the unit test imports them too.
 
-// C2 (docs/runbooks/web-worker-hosting.md): p75 SSR CPU at most 10 ms with no "exceeded CPU" errors.
-// Workers Free also stops any single invocation at 10 ms, so a request above it is a failure,
-// cold or warm (D75 expects signed-in skeleton SSR near the anonymous pages' 2-8 ms).
-export const SSR_CPU_LIMITS = { p75Ms: 10, requestMs: 10 }
+// C2 (docs/runbooks/web-worker-hosting.md, D233): no invocation may end `exceededCpu`. Production
+// runs on Workers Paid, so per-request CPU is recorded (p75, max, cold max) rather than held to 10 ms.
 
 // The smoke is bounded: at most three rounds, each a sign-in-free walk of the signed-in pages with a
 // single disposable account. Every round after the first waits an idle gap so the isolate that served
@@ -103,32 +101,35 @@ export function percentile(values, fraction) {
 
 /**
  * Joins the smoke's recorded requests to the CPU rows the operator exported from Workers Logs (by
- * `cf-ray`) and applies the C2 limits. The smoke also fails unless its disposable account was deleted. `cold` marks the first request after a deploy or an idle gap.
+ * `cf-ray`) and applies C2: every request answered a private render and no invocation ended other than
+ * `ok`. The smoke also fails unless its disposable account was deleted. `cold` marks the first request
+ * after a deploy or an idle gap.
  * Returns the violations (empty when the measurement passes) and the figures to record.
  */
 export function evaluateSsrCpu({ requests, cpuRows, cleanup }) {
   const violations = []
   if (cleanup !== 'deleted') violations.push(`Fixture cleanup is ${cleanup}, not deleted.`)
+  // The response header carries the data-center suffix (`<id>-DFW`); the logged request header does not.
+  const rayId = (cfRay) => cfRay.replace(/-[A-Z]{3}$/u, '')
   const rowsByRay = new Map()
   for (const row of cpuRows) {
-    if (rowsByRay.has(row.cfRay)) violations.push(`Duplicate CPU row for cf-ray ${row.cfRay}.`)
-    rowsByRay.set(row.cfRay, row)
+    if (rowsByRay.has(rayId(row.cfRay)))
+      violations.push(`Duplicate CPU row for cf-ray ${row.cfRay}.`)
+    rowsByRay.set(rayId(row.cfRay), row)
   }
   const measured = []
   for (const request of requests) {
     const label = `${request.path} (round ${request.round})`
     if (request.status !== 200 || !/no-store/u.test(request.cacheControl ?? ''))
       violations.push(`${label}: SSR answered ${request.status} instead of a private render.`)
-    const row = rowsByRay.get(request.cfRay)
+    const row = rowsByRay.get(rayId(request.cfRay))
     if (!row) {
       violations.push(`${label}: no CPU row for cf-ray ${request.cfRay}.`)
       continue
     }
     if (row.outcome !== 'ok')
-      violations.push(`${label}: the invocation ended ${row.outcome}, not ok.`)
-    if (row.cpuTimeMs > SSR_CPU_LIMITS.requestMs)
       violations.push(
-        `${label}: ${row.cpuTimeMs} ms CPU exceeds ${SSR_CPU_LIMITS.requestMs} ms${request.cold ? ' on a cold isolate' : ''}.`
+        `${label}: the invocation ended ${row.outcome}, not ok${request.cold ? ' on a cold isolate' : ''}.`
       )
     measured.push({ cold: request.cold, cpuTimeMs: row.cpuTimeMs })
   }
@@ -137,8 +138,6 @@ export function evaluateSsrCpu({ requests, cpuRows, cleanup }) {
     violations.push('No request is marked cold, so no cold-isolate measurement was taken.')
   const all = measured.map((entry) => entry.cpuTimeMs)
   const p75 = all.length > 0 ? percentile(all, 0.75) : undefined
-  if (p75 !== undefined && p75 > SSR_CPU_LIMITS.p75Ms)
-    violations.push(`p75 SSR CPU ${p75} ms exceeds ${SSR_CPU_LIMITS.p75Ms} ms.`)
   if (requests.length === 0) violations.push('The smoke recorded no requests.')
   return {
     pass: violations.length === 0,

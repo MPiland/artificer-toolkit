@@ -1,4 +1,3 @@
-export const SSR_CPU_LIMITS: { readonly p75Ms: number; readonly requestMs: number }
 export const SMOKE_BOUNDS: {
   readonly maxRounds: number
   readonly minIdleMinutes: number

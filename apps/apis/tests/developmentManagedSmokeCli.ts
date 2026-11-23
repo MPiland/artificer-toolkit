@@ -123,7 +123,8 @@ try {
         signal: AbortSignal.timeout(30_000)
       })
       if (response.status === 200) {
-        for (let attempt = 0; attempt < 30; attempt++) {
+        // Staged deletion on a managed deployment can take minutes (observed > 60 s on staging).
+        for (let attempt = 0; attempt < 150; attempt++) {
           if (!(await userExists())) {
             cleanup = 'deleted'
             break

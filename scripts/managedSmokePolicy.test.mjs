@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   SMOKE_BOUNDS,
-  SSR_CPU_LIMITS,
   evaluateSsrCpu,
   parseSmokeArguments,
   percentile,
@@ -92,7 +91,7 @@ const request = (index, overrides = {}) => ({
 })
 const row = (index, cpuTimeMs, outcome = 'ok') => ({ cfRay: `ray-${index}`, cpuTimeMs, outcome })
 
-describe('signed-in SSR CPU verdict (C2, D75)', () => {
+describe('signed-in SSR CPU verdict (C2, D75, D233)', () => {
   it('passes when p75 and every request, cold included, are within the limit', () => {
     const verdict = evaluateSsrCpu({
       requests: [0, 1, 2, 3].map((index) => request(index)),
@@ -103,29 +102,33 @@ describe('signed-in SSR CPU verdict (C2, D75)', () => {
     expect(verdict.figures).toMatchObject({ p75Ms: 5, maxMs: 9, coldRequests: 1, coldMaxMs: 9 })
   })
 
-  it('fails a cold request over the per-invocation limit', () => {
+  it('joins a response cf-ray with its data-center suffix to the logged request header', () => {
+    const verdict = evaluateSsrCpu({
+      requests: [request(0, { cfRay: 'a5f2bfa6dae01924-DFW' })],
+      cpuRows: [{ cfRay: 'a5f2bfa6dae01924', cpuTimeMs: 3, outcome: 'ok' }],
+      cleanup: 'deleted'
+    })
+    expect(verdict.violations).toEqual([])
+  })
+
+  it('records CPU above 10 ms without failing when every invocation ended ok (D233)', () => {
+    const verdict = evaluateSsrCpu({
+      requests: [0, 1, 2, 3, 4, 5].map((index) => request(index)),
+      cpuRows: [row(0, 75), row(1, 111), row(2, 49), row(3, 23), row(4, 17), row(5, 16)],
+      cleanup: 'deleted'
+    })
+    expect(verdict.violations).toEqual([])
+    expect(verdict.figures).toMatchObject({ p75Ms: 75, maxMs: 111, coldMaxMs: 75 })
+  })
+
+  it('fails a cold invocation that ended exceededCpu', () => {
     const verdict = evaluateSsrCpu({
       requests: [0, 1].map((index) => request(index)),
-      cpuRows: [row(0, SSR_CPU_LIMITS.requestMs + 1), row(1, 2)],
+      cpuRows: [row(0, 12, 'exceededCpu'), row(1, 2)],
       cleanup: 'deleted'
     })
     expect(verdict.pass).toBe(false)
-    expect(verdict.violations.join()).toContain('on a cold isolate')
-  })
-
-  it('fails when p75 is over the limit even if no request is over', () => {
-    const verdict = evaluateSsrCpu({
-      requests: [0, 1, 2, 3].map((index) => request(index)),
-      cpuRows: [row(0, 1), row(1, 10), row(2, 10), row(3, 10)],
-      cleanup: 'deleted'
-    })
-    expect(verdict.violations.join()).not.toContain('p75')
-    const over = evaluateSsrCpu({
-      requests: [0, 1, 2, 3].map((index) => request(index)),
-      cpuRows: [row(0, 11), row(1, 11), row(2, 11), row(3, 1)],
-      cleanup: 'deleted'
-    })
-    expect(over.violations.some((entry) => entry.startsWith('p75'))).toBe(true)
+    expect(verdict.violations.join()).toContain('ended exceededCpu, not ok on a cold isolate')
   })
 
   it('fails an exceeded-CPU outcome, a missing row, a wrong status and an undeleted fixture', () => {

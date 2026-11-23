@@ -166,7 +166,7 @@ It is idempotent. A Campaign with its final `Review data ready` Session is skipp
 `node scripts/seedReviewData.mjs --managed --set=<N>` builds tester set N on a managed deployment. It needs the owner's approval for each run (ADR 0035); local data is set 0 and is unchanged.
 
 - **Set.** Five accounts, already verified, so sign-in needs no email: `<mailbox>+t<N>-gm`, `-p1`, `-p2`, `-p3`, `-spare` (for example `mekhit02+t3-gm@gmail.com`). The set owns its own copy of the four review Campaigns, with `(set N)` in each name. Sets never share accounts or Campaigns.
-- **Environment (names only; values stay in the operator's shell, never in the repo or logs).** `CONVEX_URL`, `CONVEX_SITE_URL` (a `*.convex.cloud` deployment and its `.convex.site`), `REVIEW_MANAGED_CONFIRM` (the deployment name), `REVIEW_MANAGED_ADMIN_KEY`, `REVIEW_WORKER_CONTROL_SECRET`, `REVIEW_MAILBOX` (`name@domain`), optional `REVIEW_WEB_ORIGIN`. `CONVEX_DEPLOY_KEY` and the self-hosted variables must be unset.
+- **Environment (names only; values stay in the operator's shell, never in the repo or logs).** `CONVEX_URL`, `CONVEX_SITE_URL` (a `*.convex.cloud` deployment and its `.convex.site`), `REVIEW_MANAGED_CONFIRM` (the deployment name), `REVIEW_MANAGED_ADMIN_KEY` (a short-lived dashboard key with data write permission, `deployment:data:write`; the CI deploy-only key cannot run these calls; delete it after the run), `REVIEW_WORKER_CONTROL_SECRET`, `REVIEW_MAILBOX` (`name@domain`), optional `REVIEW_WEB_ORIGIN`. `CONVEX_DEPLOY_KEY` and the self-hosted variables must be unset.
 - **Password.** Generated per set at run time and printed once, to the operator's terminal only (through a dedicated pipe, not the log file). It is never written to the repo, `local-validation` or any log.
 - **Re-run.** A finished Campaign is skipped. Re-running an existing set needs `REVIEW_SET_PASSWORD` (the password printed at creation); without it the run stops.
 - **New round.** A tester's next round uses a new set number (N+1): new accounts, a new password and clean Campaigns. The old set is simply no longer handed out; there is no rebuild or reset.
@@ -178,7 +178,7 @@ After R08 and the local V15 portion are green, request authorization naming the 
 Worker, R2, and email targets plus the final local manifest. The
 [RELEASE-3.T1 promotion packet](../validation/release-3-t1-promotion-packet-2026-11-07.md) holds the
 target list, the read-only rollback captures to run first, the Worker staging package evidence, and
-the bounded smoke (`scripts/managedSmoke.mjs`) with its signed-in SSR CPU thresholds (D75, gate C2).
+the bounded smoke (`scripts/managedSmoke.mjs`) with its signed-in SSR CPU outcome check (D75, D233, gate C2).
 Fill its placeholders before asking. Then:
 
 1. Confirm every target before deployment and preserve its current deployment identifier for rollback.
@@ -231,7 +231,8 @@ After R09 passes, record the explicit decision on retiring Supabase and the rema
 services. Production and retirement require a new authorization naming the exact targets and retained
 rollback state.
 
-Deploy the exact staging-accepted source, run the bounded R10 smoke with disposable fixtures, and keep
+Before the production web deploy, switch the Cloudflare account to Workers Paid (D233; the owner
+does this in the dashboard). Deploy the exact staging-accepted source, run the bounded R10 smoke with disposable fixtures, and keep
 prior deployment identifiers available until the smoke passes. Retirement then proceeds in this order:
 
 1. Disable legacy writes, schedules, hooks, and traffic while retaining read-only recovery access.
