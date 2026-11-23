@@ -18,21 +18,6 @@ function allowsLoopbackHttp() {
   return isDevelopment() || import.meta.env.MODE === 'proof'
 }
 
-function getScriptSrc(nonce?: string) {
-  return [
-    "script-src 'self'",
-    nonce ? `'nonce-${nonce}'` : null,
-    "'wasm-unsafe-eval'",
-    isDevelopment() ? "'unsafe-eval'" : null
-  ]
-    .filter(Boolean)
-    .join(' ')
-}
-
-function getStyleSrc() {
-  return "style-src 'self' 'unsafe-inline'"
-}
-
 function getSentryConnectSource() {
   const dsn = process.env.VITE_SENTRY_DSN ?? import.meta.env.VITE_SENTRY_DSN
   if (!dsn) return []
@@ -111,20 +96,50 @@ function getImgSrc() {
   return ["img-src 'self' data: blob:", ...getMediaStorageSource()].join(' ')
 }
 
+interface CspTemplate {
+  environment: string
+  beforeNonce: string
+  afterNonce: string
+}
+
+let cspTemplate: CspTemplate | undefined
+
+// Everything except the per-response nonce depends only on build mode and deployment variables, so
+// each isolate builds it once. The key is the raw inputs, so a changed environment rebuilds it.
+function getCspTemplate(): CspTemplate {
+  const environment = [
+    import.meta.env.MODE,
+    process.env.VITE_SENTRY_DSN ?? import.meta.env.VITE_SENTRY_DSN,
+    process.env.VITE_CONVEX_URL ?? import.meta.env.VITE_CONVEX_URL,
+    process.env.VITE_LIVE_SESSION_WEBSOCKET_URL ?? import.meta.env.VITE_LIVE_SESSION_WEBSOCKET_URL,
+    process.env.VITE_MEDIA_STORAGE_ORIGIN ?? import.meta.env.VITE_MEDIA_STORAGE_ORIGIN
+  ].join('\n')
+  if (cspTemplate?.environment === environment) return cspTemplate
+  cspTemplate = {
+    environment,
+    beforeNonce: [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      getImgSrc(),
+      "font-src 'self' data:",
+      getConnectSrc(),
+      "script-src 'self'"
+    ].join('; '),
+    afterNonce: [
+      isDevelopment() ? "'wasm-unsafe-eval' 'unsafe-eval'" : "'wasm-unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "worker-src 'self' blob:"
+    ].join('; ')
+  }
+  return cspTemplate
+}
+
 function getCsp({ nonce }: SecurityHeaderOptions = {}) {
-  return [
-    "default-src 'self'",
-    "base-uri 'self'",
-    "object-src 'none'",
-    "frame-ancestors 'none'",
-    "form-action 'self'",
-    getImgSrc(),
-    "font-src 'self' data:",
-    getConnectSrc(),
-    getScriptSrc(nonce),
-    getStyleSrc(),
-    "worker-src 'self' blob:"
-  ].join('; ')
+  const { beforeNonce, afterNonce } = getCspTemplate()
+  return `${beforeNonce}${nonce ? ` 'nonce-${nonce}'` : ''} ${afterNonce}`
 }
 
 const PERMISSIONS_POLICY = [
@@ -146,20 +161,28 @@ const PERMISSIONS_POLICY = [
   'xr-spatial-tracking=()'
 ].join(', ')
 
+const STATIC_SECURITY_HEADERS = {
+  'Permissions-Policy': PERMISSIONS_POLICY,
+  'Referrer-Policy': 'strict-origin',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY'
+} as const
+
+const SECURITY_HEADER_NAMES = ['Content-Security-Policy', ...Object.keys(STATIC_SECURITY_HEADERS)]
+
 export function createSecurityHeaders(options: SecurityHeaderOptions = {}) {
-  return {
-    'Content-Security-Policy': getCsp(options),
-    'Permissions-Policy': PERMISSIONS_POLICY,
-    'Referrer-Policy': 'strict-origin',
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY'
-  } as const
+  return { 'Content-Security-Policy': getCsp(options), ...STATIC_SECURITY_HEADERS } as const
 }
 
 export function withSecurityHeaders(
   response: Response,
   { preserveExisting = false, ...options }: WithSecurityHeadersOptions = {}
 ): Response {
+  // A response that already carries every header (the request middleware set them with its nonce)
+  // is final: do not rebuild the policy or copy the response.
+  if (preserveExisting && SECURITY_HEADER_NAMES.every((name) => response.headers.has(name))) {
+    return response
+  }
   const headers = new Headers(response.headers)
 
   for (const [name, value] of Object.entries(createSecurityHeaders(options))) {

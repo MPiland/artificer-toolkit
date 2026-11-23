@@ -1,6 +1,5 @@
 import { convexBetterAuthReactStart } from '@convex-dev/better-auth/react-start'
 import { ConvexHttpClient } from 'convex/browser'
-import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   AUTH_PROXY_CONTEXT_HEADER,
   signAuthProxyContext
@@ -63,26 +62,32 @@ export async function handleConvexAuthRequest(request: Request) {
   })
 }
 
+/**
+ * A Better Auth GET on the Convex site, with this request's credentials. The SDK's helpers discard
+ * HTTP failures; callers keep them so outages cannot masquerade as anonymous SSR reads. workerd has
+ * no `redirect: 'error'`, so redirects are not followed and fail the callers' `ok` checks instead.
+ */
+async function fetchAuthEndpoint(path: string, headers: Headers) {
+  const { convexSiteUrl } = connection()
+  headers.set('host', new URL(convexSiteUrl).host)
+  const send = () => fetch(`${convexSiteUrl}${path}`, { headers, redirect: 'manual' })
+  const response = await send()
+  if (response.status !== 429) return response
+  // Rate limiting is not an auth outage. Honor Better Auth's retry hint once, then say so.
+  const retryAfterSeconds = Number(response.headers.get('x-retry-after'))
+  const delayMs = Math.min(Math.max(retryAfterSeconds, 0) * 1000, MAX_RATE_LIMIT_RETRY_MS)
+  await new Promise((resolve) => setTimeout(resolve, delayMs))
+  const retried = await send()
+  if (retried.status === 429) throw new Error('Authentication is rate limited.')
+  return retried
+}
+
 /** The caller's Convex JWT, or null for a credential-free or confirmed signed-out request. */
 async function mintToken(request: Request): Promise<string | null> {
   const { convexSiteUrl } = connection()
   const headers = await proxyHeaders(request, '/api/auth/convex/token', 'GET')
   if (request.headers.has('cookie') || request.headers.has('authorization')) {
-    headers.set('host', new URL(convexSiteUrl).host)
-    // The SDK's token helper discards HTTP failures. Preserve them so outages
-    // cannot masquerade as anonymous SSR reads. workerd has no `redirect: 'error'`, so redirects
-    // are not followed and fail the `ok` checks below instead.
-    const fetchToken = () =>
-      fetch(`${convexSiteUrl}/api/auth/convex/token`, { headers, redirect: 'manual' })
-    let response = await fetchToken()
-    if (response.status === 429) {
-      // Rate limiting is not an auth outage. Honor Better Auth's retry hint once, then say so.
-      const retryAfterSeconds = Number(response.headers.get('x-retry-after'))
-      const delayMs = Math.min(Math.max(retryAfterSeconds, 0) * 1000, MAX_RATE_LIMIT_RETRY_MS)
-      await new Promise((resolve) => setTimeout(resolve, delayMs))
-      response = await fetchToken()
-      if (response.status === 429) throw new Error('Authentication is rate limited.')
-    }
+    const response = await fetchAuthEndpoint('/api/auth/convex/token', headers)
     if (response.status === 401) {
       // Better Auth's token middleware also maps session-adapter failures to 401.
       // Its get-session endpoint preserves those errors; only a successful null
@@ -117,8 +122,8 @@ async function mintToken(request: Request): Promise<string | null> {
 const requestTokens = new WeakMap<Request, Promise<string | null>>()
 
 /**
- * `mintToken` once per incoming request. The session read and the SSR loaders share it, so a
- * page view costs one `/convex/token` request on the server. The token is never serialized into
+ * `mintToken` once per incoming request, shared by every SSR loader, so a page view costs at most
+ * one `/convex/token` request on the server (none for skeleton pages). The token is never serialized into
  * the page, so the browser mints its own. A rejection stays cached: a failed exchange is never
  * retried anonymously.
  */
@@ -138,7 +143,14 @@ export async function createAuthenticatedConvexClient(request: Request) {
   return client
 }
 
+/**
+ * The session snapshot in one Convex round trip: the site resolves the session from the cookie, so
+ * the document never waits on a token mint followed by a JWT-validated query. No token is minted
+ * here; loaders that need one still get it from `requestToken`.
+ */
 export async function loadConvexSession(request: Request) {
-  const client = await createAuthenticatedConvexClient(request)
-  return authSessionSnapshotDtoSchema.parse(await client.query(api.account.session, {}))
+  const path = '/api/auth/session-snapshot'
+  const response = await fetchAuthEndpoint(path, await proxyHeaders(request, path, 'GET'))
+  if (!response.ok) throw new Error('Authentication verification is unavailable.')
+  return authSessionSnapshotDtoSchema.parse(await response.json())
 }

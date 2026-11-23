@@ -307008,6 +307008,28 @@ export declare const api: {
  * ```
  */
 export declare const internal: {
+  account: {
+    sessionForAuthSession: FunctionReference<
+      "query",
+      "internal",
+      { identity: null | { sessionId: string; subject: string } },
+      {
+        featureFlags: {
+          libraryImportEnabled: boolean;
+          publicSignUpEnabled: boolean;
+        };
+        isSuperAdmin: boolean;
+        user: null | {
+          authoringExperience: "guided" | "advanced";
+          email: string;
+          registrationCompleted: boolean;
+          role: "user" | "superadmin";
+          userId: string;
+          username: null | string;
+        };
+      }
+    >;
+  };
   accountDeletion: {
     confirmCredentials: FunctionReference<
       "mutation",

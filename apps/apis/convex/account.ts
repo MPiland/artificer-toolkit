@@ -19,7 +19,8 @@ import {
   type AccountRollPreferencesDto,
   type PublicProfileDto
 } from '@artificer-toolkit/schema/api/account'
-import { query } from './lib/queries'
+import { internalQuery, query } from './lib/queries'
+import type { QueryCtx } from './_generated/server'
 import { components, internal } from './_generated/api'
 import { mutation } from './lib/mutations'
 import {
@@ -95,70 +96,100 @@ export const identity = query({
   handler: async (ctx) => await requireIdentity(ctx)
 })
 
-export const session = query({
-  args: () => ({}),
-  returns: () =>
-    v.object({
-      user: v.union(
-        v.null(),
-        v.object({
-          userId: v.string(),
-          email: v.string(),
-          username: v.union(v.null(), v.string()),
-          role: v.union(v.literal('user'), v.literal('superadmin')),
-          registrationCompleted: v.boolean(),
-          authoringExperience: v.union(v.literal('guided'), v.literal('advanced'))
-        })
-      ),
-      featureFlags: v.object({
-        libraryImportEnabled: v.boolean(),
-        publicSignUpEnabled: v.boolean()
-      }),
-      isSuperAdmin: v.boolean()
+const sessionSnapshotResult = () =>
+  v.object({
+    user: v.union(
+      v.null(),
+      v.object({
+        userId: v.string(),
+        email: v.string(),
+        username: v.union(v.null(), v.string()),
+        role: v.union(v.literal('user'), v.literal('superadmin')),
+        registrationCompleted: v.boolean(),
+        authoringExperience: v.union(v.literal('guided'), v.literal('advanced'))
+      })
+    ),
+    featureFlags: v.object({
+      libraryImportEnabled: v.boolean(),
+      publicSignUpEnabled: v.boolean()
     }),
-  handler: async (ctx): Promise<AuthSessionSnapshotDto> => {
-    const identity = await ctx.auth.getUserIdentity()
-    let user: AuthSessionSnapshotDto['user'] = null
-    if (identity && typeof identity.sessionId === 'string') {
-      const [session, authUser, profile] = await Promise.all([
-        ctx.runQuery(components.betterAuth.adapter.findOne, {
-          model: 'session',
-          where: [
-            { field: '_id', value: identity.sessionId },
-            { field: 'expiresAt', operator: 'gt', value: Date.now() }
-          ]
-        }),
-        readAuthUser(ctx, identity.subject),
-        ctx.db
-          .query('userProfiles')
-          .withIndex('by_authUserId', (query) => query.eq('authUserId', identity.subject))
-          .unique()
-      ])
-      if (session?.userId === identity.subject && authUser) {
-        if (authUser.banned && (!authUser.banExpires || authUser.banExpires >= Date.now())) {
-          user = null
-        } else {
-          if (!profile) throw new Error('Authenticated user profile is missing.')
-          const role = authUser.role ?? 'user'
-          if (role !== 'user' && role !== 'superadmin')
-            throw new Error('Authenticated user has an unsupported role.')
-          user = {
-            userId: profile.userId,
-            role,
-            email: authUser.email,
-            username: authUser.displayUsername ?? authUser.username ?? null,
-            registrationCompleted: profile.registrationCompleted ?? true,
-            authoringExperience: profile.authoringExperience ?? 'guided'
-          }
+    isSuperAdmin: v.boolean()
+  })
+
+interface AuthSessionIdentity {
+  subject: string
+  sessionId: string
+}
+
+/** The session snapshot for a verified Better Auth session identity, or the anonymous snapshot. */
+async function readSessionSnapshot(
+  ctx: QueryCtx,
+  identity: AuthSessionIdentity | null
+): Promise<AuthSessionSnapshotDto> {
+  let user: AuthSessionSnapshotDto['user'] = null
+  if (identity) {
+    const [session, authUser, profile] = await Promise.all([
+      ctx.runQuery(components.betterAuth.adapter.findOne, {
+        model: 'session',
+        where: [
+          { field: '_id', value: identity.sessionId },
+          { field: 'expiresAt', operator: 'gt', value: Date.now() }
+        ]
+      }),
+      readAuthUser(ctx, identity.subject),
+      ctx.db
+        .query('userProfiles')
+        .withIndex('by_authUserId', (query) => query.eq('authUserId', identity.subject))
+        .unique()
+    ])
+    if (session?.userId === identity.subject && authUser) {
+      if (authUser.banned && (!authUser.banExpires || authUser.banExpires >= Date.now())) {
+        user = null
+      } else {
+        if (!profile) throw new Error('Authenticated user profile is missing.')
+        const role = authUser.role ?? 'user'
+        if (role !== 'user' && role !== 'superadmin')
+          throw new Error('Authenticated user has an unsupported role.')
+        user = {
+          userId: profile.userId,
+          role,
+          email: authUser.email,
+          username: authUser.displayUsername ?? authUser.username ?? null,
+          registrationCompleted: profile.registrationCompleted ?? true,
+          authoringExperience: profile.authoringExperience ?? 'guided'
         }
       }
     }
-    return authSessionSnapshotDtoSchema.parse({
-      user,
-      featureFlags: readApplicationFeatureFlags(),
-      isSuperAdmin: user?.role === 'superadmin'
-    })
   }
+  return authSessionSnapshotDtoSchema.parse({
+    user,
+    featureFlags: readApplicationFeatureFlags(),
+    isSuperAdmin: user?.role === 'superadmin'
+  })
+}
+
+export const session = query({
+  args: () => ({}),
+  returns: sessionSnapshotResult,
+  handler: async (ctx): Promise<AuthSessionSnapshotDto> => {
+    const identity = await ctx.auth.getUserIdentity()
+    return readSessionSnapshot(
+      ctx,
+      identity && typeof identity.sessionId === 'string'
+        ? { subject: identity.subject, sessionId: identity.sessionId }
+        : null
+    )
+  }
+})
+
+/** Serves `GET /session/snapshot`, which has already resolved the session from the request cookie. */
+export const sessionForAuthSession = internalQuery({
+  args: () => ({
+    identity: v.union(v.null(), v.object({ subject: v.string(), sessionId: v.string() }))
+  }),
+  returns: sessionSnapshotResult,
+  handler: async (ctx, { identity }): Promise<AuthSessionSnapshotDto> =>
+    readSessionSnapshot(ctx, identity)
 })
 
 export const setAuthoringExperience = mutation({

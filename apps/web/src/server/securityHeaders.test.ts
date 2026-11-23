@@ -181,6 +181,64 @@ describe('security headers', () => {
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
   })
 
+  it('emits the exact production policy, varying only by nonce', () => {
+    vi.stubEnv('MODE', 'production')
+    vi.stubEnv('VITE_CONVEX_URL', 'https://example.convex.cloud')
+    vi.stubEnv('VITE_SENTRY_DSN', '')
+    vi.stubEnv('VITE_LIVE_SESSION_WEBSOCKET_URL', '')
+    vi.stubEnv('VITE_MEDIA_STORAGE_ORIGIN', '')
+    const policy = (script: string) =>
+      [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "connect-src 'self' blob: https://example.convex.cloud wss://example.convex.cloud",
+        script,
+        "style-src 'self' 'unsafe-inline'",
+        "worker-src 'self' blob:"
+      ].join('; ')
+
+    expect(createSecurityHeaders({ nonce: 'first' })['Content-Security-Policy']).toBe(
+      policy("script-src 'self' 'nonce-first' 'wasm-unsafe-eval'")
+    )
+    expect(createSecurityHeaders({ nonce: 'second' })['Content-Security-Policy']).toBe(
+      policy("script-src 'self' 'nonce-second' 'wasm-unsafe-eval'")
+    )
+    expect(createSecurityHeaders()['Content-Security-Policy']).toBe(
+      policy("script-src 'self' 'wasm-unsafe-eval'")
+    )
+    vi.stubEnv('MODE', 'development')
+    expect(createSecurityHeaders({ nonce: 'dev' })['Content-Security-Policy']).toContain(
+      "script-src 'self' 'nonce-dev' 'wasm-unsafe-eval' 'unsafe-eval'; style-src"
+    )
+  })
+
+  it('rebuilds the policy when a deployment variable changes', () => {
+    vi.stubEnv('MODE', 'production')
+    vi.stubEnv('VITE_CONVEX_URL', 'https://first.convex.cloud')
+    expect(createSecurityHeaders()['Content-Security-Policy']).toContain('first.convex.cloud')
+    vi.stubEnv('VITE_CONVEX_URL', 'https://second.convex.cloud')
+    const csp = createSecurityHeaders()['Content-Security-Policy']
+    expect(csp).toContain('second.convex.cloud')
+    expect(csp).not.toContain('first.convex.cloud')
+  })
+
+  it('leaves a response that already has every security header untouched when preserving', () => {
+    const complete = withSecurityHeaders(new Response('ok'), { nonce: 'middleware-nonce' })
+    expect(withSecurityHeaders(complete, { preserveExisting: true })).toBe(complete)
+    expect(complete.headers.get('Content-Security-Policy')).toContain("'nonce-middleware-nonce'")
+
+    const partial = new Response('ok', { headers: { 'X-Frame-Options': 'SAMEORIGIN' } })
+    const filled = withSecurityHeaders(partial, { preserveExisting: true })
+    expect(filled).not.toBe(partial)
+    expect(filled.headers.get('X-Frame-Options')).toBe('SAMEORIGIN')
+    expect(filled.headers.get('Content-Security-Policy')).not.toBeNull()
+  })
+
   it('denies unused browser capabilities by default', () => {
     const response = withSecurityHeaders(new Response('ok'))
     const policy = response.headers.get('Permissions-Policy') ?? ''
