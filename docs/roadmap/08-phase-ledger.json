@@ -26219,7 +26219,7 @@
         {
           "id": "PERF-8",
           "title": "Signed-in pages start painting sooner on a hard load",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "internal",
           "internalReason": "Latency improvement on an existing flow; a timing proof on the real server path and the staging smoke carry the evidence.",
@@ -26237,8 +26237,9 @@
             {
               "id": "PERF-8.2",
               "text": "The web Worker does no avoidable per-request work: security headers are applied once with the static CSP computed once per isolate, Sentry does no per-request tracing setup it does not use, and the Mantine theme is resolved once, with error capture (C3) unchanged.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/web/src/server/securityHeaders.test.ts"],
+              "note": "Closed at m893. Headers: a response already carrying all five headers is returned untouched, and the CSP template is cached per isolate keyed on mode and deployment variables (byte-identical output test). Sentry: serverSentryOptions sets no tracesSampleRate, so tracing is already off; nothing to remove. Mantine: theme and resolver were already module-scope constants (apps/web/src/css/theme.ts).",
               "origin": [
                 "D233 (owner approval 2026-11-23): independent review findings (apps/web/src/start.ts:10 and apps/web/src/server.ts:13 both apply security headers; apps/web/src/observability/sentry.server.ts:6-11; apps/web/src/providers/AppProviders.tsx:30-35)"
               ]
@@ -26254,7 +26255,7 @@
           "tasks": [
             {
               "id": "PERF-8.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PERF-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -26263,11 +26264,11 @@
                 "size": 3,
                 "finalSource": true
               },
-              "text": "Remove the serial Convex round trips from the signed-in document path: trace root beforeLoad through the token mint and session query, design the single-wait path within D232 (escalate if it needs a contract change), prove it with a real-code test of the server auth path, then record the staging document wait in the next smoke."
+              "text": "Remove the serial Convex round trips from the signed-in document path: trace root beforeLoad through the token mint and session query, design the single-wait path within D232 (escalate if it needs a contract change), prove it with a real-code test of the server auth path, then record the staging document wait in the next smoke. Code merged at m893: one signed GET /api/auth/session-snapshot (Better Auth endpoint reading the signed session cookie, then internal.account.sessionForAuthSession) replaces the token mint plus session query; proofs apps/web/src/server/auth/convex.server.test.ts and apps/apis/convex/sessionSnapshotHttp.test.ts. Open: staging smoke document wait."
             },
             {
               "id": "PERF-8.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PERF-8.2"],
               "wsjf": {
                 "bv": 3,
