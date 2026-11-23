@@ -100,15 +100,13 @@ node scripts/managedSmoke.mjs evaluate --requests=local-validation/release-3/<na
 
 **Thresholds.**
 
-| Rule                                                      | Source                                                                                                                                                     |
-| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| p75 signed-in SSR CPU ≤ 10 ms across all requests         | Gate C2, [web Worker hosting](../runbooks/web-worker-hosting.md#gates-before-production-d65); D75 expects 2–8 ms                                           |
-| No invocation above 10 ms, cold requests included         | Workers Free per-invocation limit. D75 requires cold-isolate first requests to be measured but sets no separate number, so the platform limit is the line. |
-| Every invocation `outcome` is `ok` (no `exceededCpu`)     | Gate C2: no "exceeded CPU" errors                                                                                                                          |
-| Every request has exactly one CPU row                     | A missing row is inconclusive and fails                                                                                                                    |
-| At least one cold request; fixture `cleanup` is `deleted` | D75 (cold isolates); RELEASE-3.1                                                                                                                           |
+| Rule                                                                          | Source                                                                                                                                                                                                               |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every invocation `outcome` is `ok` (no `exceededCpu`), cold requests included | Gate C2 as D233 defines it, [web Worker hosting](../runbooks/web-worker-hosting.md#gates-before-production-d65). CPU p75, max and cold max are recorded, not held to 10 ms, because production runs on Workers Paid. |
+| Every request has exactly one CPU row                                         | A missing row is inconclusive and fails                                                                                                                                                                              |
+| At least one cold request; fixture `cleanup` is `deleted`                     | D75 (cold isolates); RELEASE-3.1                                                                                                                                                                                     |
 
-A wall-clock figure (`wallMs` in `requests.json`) is recorded for evidence only. D210 keeps latency out of correctness gates; the SSR CPU limits above are the staging gate.
+A wall-clock figure (`wallMs` in `requests.json`) is recorded for evidence only. D210 keeps latency out of correctness gates; the CPU outcome rule above is the staging gate.
 
 **Not covered by the script (done by hand at T2, from the runbook):** Worker admission and `GET /health` of the session Worker (`MANAGED_VTT_BASE_URL=<web origin> MANAGED_LIVE_SESSION_ENDPOINT=https://tabletop-staging.artificertoolkit.app yarn workspace @artificer-toolkit/session-worker preflight:managed`), Resend delivery, R2 CORS, the managed V15 workload, C3 (Sentry) and C4 (forged `CF-Connecting-IP`).
 
@@ -116,7 +114,9 @@ A wall-clock figure (`wallMs` in `requests.json`) is recorded for evidence only.
 
 - **C3 PASS.** With `VITE_SENTRY_DSN` set on `web-staging` (deploy run 45259442724), `GET /_serverFn/c3-probe` answered 500 ("Server function info not found for c3-probe", cf-ray `a5f2ede979b46b43`, 20:30:00 UTC) and the owner confirmed the event in Sentry.
 - **C4 PASS.** A client-sent `CF-Connecting-IP` is refused at the edge (403, error 1000). Six sign-in attempts with forged `X-Artificer-Client-IP` and `X-Forwarded-For` (each a different address) answered 401 three times, then 429 three times (cf-rays `a5f2d101…` to `a5f2d126…`), so the rate limiter keyed on the real client IP.
-- **C2 FAILED** (smoke run `mwtouizd`: p75 75 ms, max 111 ms, all outcomes ok). PERF-7 owns the fix.
+- **C2 FAILED under the original 10 ms rule** (smoke run `mwtouizd`: p75 75 ms, max 111 ms, all outcomes ok). D233 redefined C2 by outcome (PERF-7).
+- **C2 PASS (D233)** on source m893 (Convex and web redeployed after PERF-8). Smoke run `mwtxcve1`: six signed-in pages, all 200 `private, no-store`, every invocation `ok`, CPU p75 103 ms, max 146 ms, cold 103 ms; the fixture was deleted and the smoke confirmed it. Evidence: `local-validation/release-3/smoke-2026-11-23-r4/`. Earlier runs reported cleanup as unverified because the temporary admin key lacked data read access (`deployment:data:view`), which the existence check needs; the owner confirmed the `mwtouizd` and `mwtvk6zv` accounts were gone, and `mwtx7l4g`'s is still to be confirmed.
+- **PERF-8 document wait** (wall time from the smoke host): cold `/home` 1,496 ms before, then 971 ms and 1,220 ms after; warm median 545 ms before, then 347 ms and 392 ms after.
 
 ## Placeholders the operator fills at T2
 

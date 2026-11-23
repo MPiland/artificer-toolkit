@@ -26159,7 +26159,7 @@
         {
           "id": "PERF-7",
           "title": "Signed-in pages render within the Worker CPU budget",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "internal",
           "internalReason": "Performance gate with no new user-visible flow; the staging smoke and the smoke policy unit test carry the evidence.",
@@ -26171,13 +26171,16 @@
             {
               "id": "PERF-7.1",
               "text": "Signed-in SSR on the web Worker meets gate C2 as D233 defines it: the managed staging smoke (scripts/managedSmoke.mjs) records per-request CPU, cold isolate included, every invocation ends ok (no exceededCpu), and its disposable fixture is deleted.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "docs/validation/release-3-t1-promotion-packet-2026-11-07.md",
+                "scripts/managedSmokePolicy.test.mjs"
+              ],
               "origin": [
                 "Owner approval 2026-11-23: staging smoke mwtouizd measured /home 75, /systems 111, /characters 49, /campaigns 23, /notifications 17, /settings/profile 16 ms CPU",
                 "D233 (owner, 2026-11-23): C2 judged by outcome; Workers Paid at production"
               ],
-              "note": "Run mwtouizd passes the D233 CPU check (all ok, verdict-d233.json) but its cleanup poll timed out before the 5-minute poll fix, so a rerun closes the AC. Evidence: local-validation/release-3/smoke-2026-11-23/. Gates RELEASE-3.T2 completion."
+              "note": "Closed 2026-11-23 by staging smoke mwtxcve1 on source m893: all six invocations ok, CPU p75 103 ms, max 146 ms, cold 103 ms, fixture deleted and verified (evidence local-validation/release-3/smoke-2026-11-23-r4/). Earlier runs' unverified cleanup came from an admin key without deployment:data:view, not from deletion."
             }
           ],
           "wsjf": {
@@ -26203,7 +26206,7 @@
             },
             {
               "id": "PERF-7.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-7.1"],
               "wsjf": {
                 "bv": 8,
@@ -26219,7 +26222,7 @@
         {
           "id": "PERF-8",
           "title": "Signed-in pages start painting sooner on a hard load",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
           "journeyStatus": "internal",
           "internalReason": "Latency improvement on an existing flow; a timing proof on the real server path and the staging smoke carry the evidence.",
@@ -26230,8 +26233,13 @@
             {
               "id": "PERF-8.1",
               "text": "A hard load of a signed-in page no longer waits on two serial Convex round trips before the server sends the first byte, within the D232 per-request token rule; the staging smoke records the document wait before and after.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/server/auth/convex.server.test.ts",
+                "apps/apis/convex/sessionSnapshotHttp.test.ts",
+                "docs/validation/release-3-t1-promotion-packet-2026-11-07.md"
+              ],
+              "note": "Staging document wait (smoke wall time): cold /home 1,496 ms before (mwtouizd), 971 and 1,220 ms after (mwtvk6zv, mwtxcve1); warm median 545 ms before, 347 and 392 ms after.",
               "origin": ["D233 (owner approval 2026-11-23)"]
             },
             {
@@ -26255,7 +26263,7 @@
           "tasks": [
             {
               "id": "PERF-8.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PERF-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -26264,7 +26272,7 @@
                 "size": 3,
                 "finalSource": true
               },
-              "text": "Remove the serial Convex round trips from the signed-in document path: trace root beforeLoad through the token mint and session query, design the single-wait path within D232 (escalate if it needs a contract change), prove it with a real-code test of the server auth path, then record the staging document wait in the next smoke. Code merged at m893: one signed GET /api/auth/session-snapshot (Better Auth endpoint reading the signed session cookie, then internal.account.sessionForAuthSession) replaces the token mint plus session query; proofs apps/web/src/server/auth/convex.server.test.ts and apps/apis/convex/sessionSnapshotHttp.test.ts. Open: staging smoke document wait."
+              "text": "Remove the serial Convex round trips from the signed-in document path: trace root beforeLoad through the token mint and session query, design the single-wait path within D232 (escalate if it needs a contract change), prove it with a real-code test of the server auth path, then record the staging document wait in the next smoke. Code merged at m893: one signed GET /api/auth/session-snapshot (Better Auth endpoint reading the signed session cookie, then internal.account.sessionForAuthSession) replaces the token mint plus session query; proofs apps/web/src/server/auth/convex.server.test.ts and apps/apis/convex/sessionSnapshotHttp.test.ts. Staging document wait recorded 2026-11-23 (PERF-8.1 note)."
             },
             {
               "id": "PERF-8.T2",
