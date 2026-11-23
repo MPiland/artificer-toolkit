@@ -30,6 +30,8 @@ export function createAuthAdapterOptions(
       // view only widen the headroom, and lowering it needs fresh CI measurements first.
       customRules: {
         '/convex/token': { window: 10, max: 600 },
+        // One per server-rendered page view, replacing the token mint on the document path.
+        '/session-snapshot': { window: 10, max: 600 },
         // Convex fetches this on every token validation, with no proxy context and so no client IP of
         // its own: all of those fetches would share one bucket. It serves public key data only, so
         // it is exempt. Limiting it could only fail validation reads, never protect anything.

@@ -284,6 +284,30 @@ export function createAuthOptions(ctx: GenericCtx<DataModel>) {
         }
       },
       {
+        id: 'session-snapshot',
+        endpoints: {
+          // One round trip for the web Worker's server render: the session is resolved from the
+          // cookie here, so no token is minted and no JWT is validated before the first byte. Adapter
+          // failures reject (HTTP 500); only a missing session yields the anonymous snapshot.
+          sessionSnapshot: createAuthEndpoint(
+            '/session-snapshot',
+            { method: 'GET' },
+            async (context) => {
+              const token = await context.getSignedCookie(
+                context.context.authCookies.sessionToken.name,
+                context.context.secret
+              )
+              const found = token ? await context.context.internalAdapter.findSession(token) : null
+              return context.json(
+                await ctx.runQuery(internal.account.sessionForAuthSession, {
+                  identity: found ? { subject: found.user.id, sessionId: found.session.id } : null
+                })
+              )
+            }
+          )
+        }
+      },
+      {
         id: 'account-invitations',
         endpoints: {
           redeemInvitation: createAuthEndpoint(
