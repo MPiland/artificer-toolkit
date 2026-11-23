@@ -113,6 +113,8 @@ try {
   failure = error
 } finally {
   let cleanup = 'not-needed'
+  // Why cleanup is unverified, so a failed delete and a failed existence check read differently.
+  let cleanupReason: string | undefined
   if (created) {
     cleanup = 'unverified'
     try {
@@ -122,28 +124,35 @@ try {
         body: JSON.stringify({ email, currentPassword: password }),
         signal: AbortSignal.timeout(30_000)
       })
-      if (response.status === 200) {
+      if (response.status !== 200) {
+        cleanupReason = `Account delete answered ${response.status}: ${(await response.text()).slice(0, 300)}`
+      } else {
+        cleanupReason = 'The account still existed after 300 s of polling.'
         // Staged deletion on a managed deployment can take minutes (observed > 60 s on staging).
         for (let attempt = 0; attempt < 150; attempt++) {
           if (!(await userExists())) {
             cleanup = 'deleted'
+            cleanupReason = undefined
             break
           }
           await delay(2000)
         }
       }
-    } catch {
+    } catch (error) {
       cleanup = 'unverified'
+      cleanupReason = error instanceof Error ? error.message : String(error)
     }
   }
   await mkdir(dirname(requestsPath), { recursive: true })
   await writeFile(
     requestsPath,
-    `${JSON.stringify({ runId, webOrigin: target.webOrigin, convex: target.convexSlug, fixtureEmail: email, cleanup, requests }, null, 2)}\n`
+    `${JSON.stringify({ runId, webOrigin: target.webOrigin, convex: target.convexSlug, fixtureEmail: email, cleanup, cleanupReason, requests }, null, 2)}\n`
   )
   console.log(`Smoke ${runId}: ${requests.length} request(s), fixture cleanup ${cleanup}.`)
   if (cleanup === 'unverified')
-    console.error(`Remove fixture ${email} through accountDeletion:schedule before finishing.`)
+    console.error(
+      `${cleanupReason ?? 'Cleanup is unverified.'} Remove fixture ${email} through accountDeletion:schedule before finishing.`
+    )
   if (failure || cleanup === 'unverified') {
     console.error(failure instanceof Error ? failure.message : 'Fixture cleanup is unverified.')
     process.exitCode = 1
