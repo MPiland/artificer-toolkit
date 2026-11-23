@@ -74,8 +74,11 @@ configuration, tagging the version with the commit SHA. It never runs on push.
 
 ## Gates before production (D65)
 
-- **C2:** read per-invocation CPU and wall time in Workers Logs across the staging smoke and V15. p75
-  SSR CPU must be at most 10 ms with no "exceeded CPU" errors; otherwise choose Q20 option A or D.
+- **C2 (D233):** read per-invocation CPU, wall time and outcome in Workers Logs across the staging
+  smoke and V15. No request may end `exceededCpu` (error 1102). Record per-request CPU; it is not
+  held to 10 ms, because production runs on Workers Paid.
+- **Plan:** switch the Cloudflare account to Workers Paid before the production deploy (D233). The
+  plan is account-wide, so it covers the session Worker too.
 - **C3:** trigger one server error on staging and confirm Sentry receives it from `@sentry/cloudflare`.
 - **C4:** send a forged `CF-Connecting-IP` to the staging hostname and confirm Convex's rate limiter
   sees the real client IP.

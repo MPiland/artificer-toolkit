@@ -58,10 +58,17 @@ small, with conditions C1–C6 on CPU, headers, Sentry and the client IP.
 
 ## Consequences
 
-- The free Workers plan applies: 10 ms CPU per request and one 100,000-request daily pool shared
-  with the session Worker. Whether signed-in SSR fits is condition C2, measured on staging only
-  (Miniflare does not enforce CPU). If it fails, the D65 record's option A (`ssr: false` on
-  `_authed`) is the recommended fallback; Q20 holds that choice.
+- Staging runs on the free Workers plan (10 ms CPU per request, one 100,000-request daily pool
+  shared with the session Worker). Production runs on Workers Paid from cutover (amendment 1).
+  Condition C2 is measured on staging only (Miniflare does not enforce CPU).
+
+**Amendment 1 (2026-11-23, D233): Workers Paid at production; C2 judged by outcome.** The staging
+smoke measured signed-in SSR at 16–111 ms CPU, mostly cold and warming isolates, with no hot spot
+to remove. Signed-in pages keep the D75 skeleton SSR, and the Cloudflare account moves to Workers
+Paid at production cutover. C2 passes when no request ends `exceededCpu` across the staging smoke
+and V15; per-request CPU is recorded, not held to 10 ms. The D65 option A fallback
+(`ssr: false` on `_authed`) is rejected for its loading UX.
+
 - `CF-Connecting-IP` must be proven not client-spoofable on the custom domain (C4, staging).
 - Local dev and preview run the server in `workerd`, so Node-only APIs fail locally rather than in
   production. `vite.config.ts` copies the root env file's `CONVEX_SITE_URL` and `AUTH_PROXY_SECRET`

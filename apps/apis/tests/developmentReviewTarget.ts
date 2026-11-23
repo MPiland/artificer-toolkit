@@ -143,8 +143,13 @@ export function managedAdminCall(
     if (!response.ok)
       throw new Error(`The managed admin call ${name} failed (HTTP ${response.status}).`)
     const result = z
-      .object({ status: z.literal('success'), value: z.json() })
+      .discriminatedUnion('status', [
+        z.object({ status: z.literal('success'), value: z.json() }),
+        z.object({ status: z.literal('error'), errorMessage: z.string() })
+      ])
       .parse(await response.json())
+    if (result.status === 'error')
+      throw new Error(`The managed admin call ${name} failed: ${result.errorMessage}`)
     return jsonToConvex(result.value)
   }
 }
