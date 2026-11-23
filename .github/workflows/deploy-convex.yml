@@ -1,0 +1,50 @@
+# Manual-only deploy of the Convex backend to a managed deployment. It never runs on pushes, pull
+# requests or a schedule. Start it from GitHub (Actions → Deploy Convex → Run workflow) once this file
+# is on the default branch; the run deploys the source of the ref it is dispatched on.
+#
+# Inert until the user configures the GitHub environments `convex-staging` and `convex-production`,
+# each with the secret CONVEX_DEPLOY_KEY: a deploy-only key for that deployment
+# (docs/runbooks/phase-8-2-release.md). Deployment environment variables stay in the Convex
+# dashboard; this workflow never reads or sets them.
+name: Deploy Convex
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target Convex deployment
+        type: choice
+        options: ['staging', 'production']
+        default: 'staging'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-convex-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: convex-${{ inputs.environment }}
+    steps:
+      - name: Require the deploy key
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: |
+          if [ -z "$CONVEX_DEPLOY_KEY" ]; then echo "::error::CONVEX_DEPLOY_KEY is not set for convex-${{ inputs.environment }}"; exit 1; fi
+      - uses: actions/checkout@v4
+      # Builds the packages the functions import and generates the uncommitted SRD manifest.
+      - uses: ./.github/actions/setup
+        with:
+          build: 'true'
+      # The same command as the repo runners (scripts/convexSelfHosted.mjs convexDeployArguments). The
+      # committed _generated files are current (the live-backend job fails on drift), so codegen and
+      # typecheck stay off; CI's typecheck gate covers the source.
+      - name: Deploy
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: yarn workspace @artificer-toolkit/apis exec convex deploy --yes --typecheck disable --codegen disable

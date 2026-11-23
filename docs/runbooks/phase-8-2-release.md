@@ -187,7 +187,11 @@ Fill its placeholders before asking. Then:
    tables aside), as the [RELEASE-3.T4 readiness record](../validation/release-3-t4-upgrade-readiness-2026-11-07.md)
    requires. If either is not empty, stop and run T4's narrowing diff first. Record the Convex source commit
    each promotion deploys. The next promotion diffs the stored schema from that commit, ships a migration
-   for each narrowing change, and rehearses it locally before it deploys.
+   for each narrowing change, and rehearses it locally before it deploys. Deploy Convex only through the
+   manual `Deploy Convex` workflow (`.github/workflows/deploy-convex.yml`), dispatched on the release ref.
+   Its GitHub environments `convex-staging` and `convex-production` each hold `CONVEX_DEPLOY_KEY`, a
+   deploy-only key for that deployment with no expiry (owner decision 2026-11-23); revoke it in the Convex
+   dashboard if it leaks.
 2. Build the Worker staging package with
    `yarn workspace @artificer-toolkit/session-worker build:staging`; deploy only through the pinned,
    official project tooling. Record the exact commands and native exits in the promotion manifest.
