@@ -17,17 +17,19 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
-1. **GM:** Open the Campaign **Sessions** and choose **Add session**; give it a name, a start time and a **Time zone**.
-2. **P1:** Open the Session and set **Your RSVP** to Maybe, then to Present.
-3. **P2:** Set the RSVP to Absent.
-4. **GM:** Open **Session attendance** and mark who attended. **P1:** look for the attendance control and try to use it.
-5. **P1:** In **Session notes** create a private note and a shared note.
-6. **P2:** Open the Session notes.
-7. **GM:** Open the Session notes.
-8. **GM:** Pin a reference (a Character or Scene) under **Pinned references**. **P1:** open the Session and look at the pinned references.
-9. **GM:** Open the tabletop window and note the Encounter round, the presented Scene and who is present.
-10. **GM:** Choose **Finish this Session**, then recheck the same three things at the tabletop.
-11. **P1:** Edit a shared note on the finished Session.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the Campaign **Sessions** and choose **Add session**; give it a name, a start time and a **Time zone**.
+2. [ ] **P1:** Open the Session and set **Your RSVP** to Maybe, then to Present.
+3. [ ] **P2:** Set the RSVP to Absent.
+4. [ ] **GM:** Open **Session attendance** and mark who attended. **P1:** look for the attendance control and try to use it.
+5. [ ] **P1:** In **Session notes** create a private note and a shared note.
+6. [ ] **P2:** Open the Session notes.
+7. [ ] **GM:** Open the Session notes.
+8. [ ] **GM:** Pin a reference (a Character or Scene) under **Pinned references**. **P1:** open the Session and look at the pinned references.
+9. [ ] **GM:** Open the tabletop window and note the Encounter round, the presented Scene and who is present.
+10. [ ] **GM:** Choose **Finish this Session**, then recheck the same three things at the tabletop.
+11. [ ] **P1:** Edit a shared note on the finished Session.
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

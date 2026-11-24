@@ -17,14 +17,16 @@ Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: G
 
 ## Steps
 
-1. **GM:** Open the party inventory and read the currencies listed.
-2. **GM:** Add coins to one currency, reload and read the entry again.
-3. **P1:** Start a new Character in the Builder. Choose a class and pick the level-1 hit points option.
-4. **P1:** Read the hit points shown, and the hit die value and proficiency bonus.
-5. **P1:** Raise the level to 2 and read the hit points and proficiency bonus again.
-6. **P1:** Look for a field named "HP gained (legacy)" or a hit-point override.
-7. **P1:** Leave a required choice empty, then try to finish. Read the list of issues and select one.
-8. **P1:** In the Builder set the network to Slow 3G (browser developer tools), then save a step. Watch the save control.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the party inventory and read the currencies listed.
+2. [ ] **GM:** Add coins to one currency, reload and read the entry again.
+3. [ ] **P1:** Start a new Character in the Builder. Choose a class and pick the level-1 hit points option.
+4. [ ] **P1:** Read the hit points shown, and the hit die value and proficiency bonus.
+5. [ ] **P1:** Raise the level to 2 and read the hit points and proficiency bonus again.
+6. [ ] **P1:** Look for a field named "HP gained (legacy)" or a hit-point override.
+7. [ ] **P1:** Leave a required choice empty, then try to finish. Read the list of issues and select one.
+8. [ ] **P1:** In the Builder set the network to Slow 3G (browser developer tools), then save a step. Watch the save control.
    R1. **P1:** Delete the Builder draft you started.
 
 ## Expected
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

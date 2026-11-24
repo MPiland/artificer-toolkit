@@ -19,17 +19,19 @@ Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1) · Path position 
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** Switch **Roll my dice automatically** OFF.
 S2. **GM:** In the Sandbox Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first). A first Encounter is running; a second Scene exists.
 
-1. **P1:** Open the Campaign's Encounters list.
-2. **P1:** Open the tabletop window.
-3. **GM:** Prepare a second Encounter (not started) and keep a second Scene unpresented.
-4. **P1:** Reload Encounters and look.
-5. **GM:** Start the second Encounter, then **Present a scene** for the second Scene.
-6. **P1:** Look at Encounters and the tabletop.
-7. **GM:** Prepare a third Encounter that includes P1's Character, and start it so that it pauses on an initiative roll prompt for P1's Character before it becomes active. **P1:** Confirm you see that prompt (if no pre-start prompt appears, record it).
-8. **GM:** Complete the second Encounter. **P1:** Look at Encounters.
+1. [ ] **P1:** Open the Campaign's Encounters list.
+2. [ ] **P1:** Open the tabletop window.
+3. [ ] **GM:** Prepare a second Encounter (not started) and keep a second Scene unpresented.
+4. [ ] **P1:** Reload Encounters and look.
+5. [ ] **GM:** Start the second Encounter, then **Present a scene** for the second Scene.
+6. [ ] **P1:** Look at Encounters and the tabletop.
+7. [ ] **GM:** Prepare a third Encounter that includes P1's Character, and start it so that it pauses on an initiative roll prompt for P1's Character before it becomes active. **P1:** Confirm you see that prompt (if no pre-start prompt appears, record it).
+8. [ ] **GM:** Complete the second Encounter. **P1:** Look at Encounters.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -20,18 +20,20 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In the Spell authoring forms author two homebrew summon Spells (one whose summon rolls its own initiative, one whose summon acts right after its owner) and a summon form with no attacks for step 7. If the forms lack summon turn timing, mark steps 4 to 8 BLOCKED and report. **P1:** Prepare both with slots available.
 
-1. **P3:** Moss casts **Conjure Animals**, choosing a creature and count. Confirm one group token appears with one shared turn.
-2. **P3:** Run the group: confirm one attack per surviving creature. **GM:** Reduce the group count and confirm attacks drop.
-3. **P3:** Check the Extras tab: the summon shows its live HP, and its HP matches the Encounter token.
-4. **P1:** Cast the own-initiative homebrew summon spell with Sage. Confirm the summon rolls its own initiative on arrival and has its own score and its own turn in the order.
-5. **P1:** On the summon's turn confirm **P1** gets a prompt and the action drawer with **End turn**. Try the summon's own Attack: refused as not the current actor. Delegate an attack through Sage: confirm it resolves.
-6. **P1:** Cast the "right after its owner" homebrew summon spell. **GM:** Confirm it acts immediately after Sage in side and individual initiative and keeps that place across two rounds.
-7. **P1:** Cast the no-attack summon. **GM:** Move a hostile Goblin away from it and confirm the summon gets no opportunity attack and offers no attack reaction.
-8. **GM:** End a summon while it is the current actor and again while it is next. Confirm the order continues without a gap each time. Undo and confirm the order restores.
-9. **P3:** Break Moss's Concentration (the GM damages her and **P3** fails the check). Confirm the Conjure Animals summon leaves Extras. **GM:** Reduce another summon to 0 HP and confirm it leaves Extras; **P1:** dismiss a third from Extras and confirm it leaves.
-10. **GM:** Choose **Complete encounter**. **P3:** Cast **Conjure Animals** from Moss's Sheet outside an Encounter. Confirm its Extras entry shows the same creature, count and stat block as the in-Encounter cast in step 1, and that it stays in Extras until dismissed or a long rest. Rebuild the arena with scenario 2 steps 4 and 5 afterwards.
+1. [ ] **P3:** Moss casts **Conjure Animals**, choosing a creature and count. Confirm one group token appears with one shared turn.
+2. [ ] **P3:** Run the group: confirm one attack per surviving creature. **GM:** Reduce the group count and confirm attacks drop.
+3. [ ] **P3:** Check the Extras tab: the summon shows its live HP, and its HP matches the Encounter token.
+4. [ ] **P1:** Cast the own-initiative homebrew summon spell with Sage. Confirm the summon rolls its own initiative on arrival and has its own score and its own turn in the order.
+5. [ ] **P1:** On the summon's turn confirm **P1** gets a prompt and the action drawer with **End turn**. Try the summon's own Attack: refused as not the current actor. Delegate an attack through Sage: confirm it resolves.
+6. [ ] **P1:** Cast the "right after its owner" homebrew summon spell. **GM:** Confirm it acts immediately after Sage in side and individual initiative and keeps that place across two rounds.
+7. [ ] **P1:** Cast the no-attack summon. **GM:** Move a hostile Goblin away from it and confirm the summon gets no opportunity attack and offers no attack reaction.
+8. [ ] **GM:** End a summon while it is the current actor and again while it is next. Confirm the order continues without a gap each time. Undo and confirm the order restores.
+9. [ ] **P3:** Break Moss's Concentration (the GM damages her and **P3** fails the check). Confirm the Conjure Animals summon leaves Extras. **GM:** Reduce another summon to 0 HP and confirm it leaves Extras; **P1:** dismiss a third from Extras and confirm it leaves.
+10. [ ] **GM:** Choose **Complete encounter**. **P3:** Cast **Conjure Animals** from Moss's Sheet outside an Encounter. Confirm its Extras entry shows the same creature, count and stat block as the in-Encounter cast in step 1, and that it stays in Extras until dismissed or a long rest. Rebuild the arena with scenario 2 steps 4 and 5 afterwards.
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

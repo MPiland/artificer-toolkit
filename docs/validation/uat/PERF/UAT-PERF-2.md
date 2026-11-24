@@ -19,16 +19,18 @@ Level 3 (Core play) · Feature PERF · Mode: Group (GM, P1, P2, P3) · Path posi
 
 ## Steps
 
-1. **GM:** Note the current turn. Press **Next turn** and start the stopwatch.
-2. **P1, P2, P3:** Each stop your stopwatch when the turn marker changes in your own window. Record the three times.
-3. **GM:** Use **Next turn** until it is Aria's turn.
-4. **P1:** Open the action drawer and attack the Wolf. Roll when asked.
-5. **GM, P2, P3:** Note how long until the attack result appears in your own window.
-6. **P2 and P3, together:** P2 drags Bryn's token while P3 drags Cade's token. Note whether either feels stuck. If the Encounter refuses a move out of turn, record that and do this step on a Scene outside an Encounter (the Sandbox Campaign, as in [UAT-MOVE-5](../MOVE/UAT-MOVE-5.md)).
-7. **P1:** Open Aria's Sheet in another tab, apply 1 point of damage or healing and save. Switch back to the table.
-8. **P3:** Go to the Campaign page outside the table and watch the displayed hit points while the GM changes the Wolf's or Aria's hit points at the table.
-9. **P1:** On Aria's turn, drag Aria's token away from the Wolf so a **Pending decision** opens.
-10. **GM, P1, P2, P3:** Each confirm the turn and the chat in your own window match the GM's, and read what you see for the pending decision. Then the decision's owner resolves it (**Decline reaction** is enough).
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Note the current turn. Press **Next turn** and start the stopwatch.
+2. [ ] **P1, P2, P3:** Each stop your stopwatch when the turn marker changes in your own window. Record the three times.
+3. [ ] **GM:** Use **Next turn** until it is Aria's turn.
+4. [ ] **P1:** Open the action drawer and attack the Wolf. Roll when asked.
+5. [ ] **GM, P2, P3:** Note how long until the attack result appears in your own window.
+6. [ ] **P2 and P3, together:** P2 drags Bryn's token while P3 drags Cade's token. Note whether either feels stuck. If the Encounter refuses a move out of turn, record that and do this step on a Scene outside an Encounter (the Sandbox Campaign, as in [UAT-MOVE-5](../MOVE/UAT-MOVE-5.md)).
+7. [ ] **P1:** Open Aria's Sheet in another tab, apply 1 point of damage or healing and save. Switch back to the table.
+8. [ ] **P3:** Go to the Campaign page outside the table and watch the displayed hit points while the GM changes the Wolf's or Aria's hit points at the table.
+9. [ ] **P1:** On Aria's turn, drag Aria's token away from the Wolf so a **Pending decision** opens.
+10. [ ] **GM, P1, P2, P3:** Each confirm the turn and the chat in your own window match the GM's, and read what you see for the pending decision. Then the decision's owner resolves it (**Decline reaction** is enough).
 
 ## Expected
 
@@ -58,5 +60,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

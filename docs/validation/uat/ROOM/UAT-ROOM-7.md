@@ -18,15 +18,17 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In Review: Party in the Field create a Scene "UAT Map B" with the provided map, one token and, if the editor offers it, one wall (as in [SCENE-1](../SCENE/UAT-SCENE-1.md)). Do not delete any other Scene.
 
-1. **GM:** In the tabletop window choose to show "UAT Map B" to players (**Choose a Campaign scene to show at the table**, then show it).
-2. **P1:** Look at the tabletop window.
-3. **GM:** Check that the presented Scene (with its tokens) has not changed for the Encounter.
-4. **GM:** Stop showing it.
-5. **P1:** Try to open the shown map again (browser back).
-6. **GM:** Show it again, then delete "UAT Map B".
-7. **P2:** Check the window.
+1. [ ] **GM:** In the tabletop window choose to show "UAT Map B" to players (**Choose a Campaign scene to show at the table**, then show it).
+2. [ ] **P1:** Look at the tabletop window.
+3. [ ] **GM:** Check that the presented Scene (with its tokens) has not changed for the Encounter.
+4. [ ] **GM:** Stop showing it.
+5. [ ] **P1:** Try to open the shown map again (browser back).
+6. [ ] **GM:** Show it again, then delete "UAT Map B".
+7. [ ] **P2:** Check the window.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

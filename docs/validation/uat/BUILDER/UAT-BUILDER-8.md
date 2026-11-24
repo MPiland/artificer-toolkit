@@ -17,17 +17,19 @@ Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 6
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** Build and activate two Fighters named "UAT Delete Me" and "UAT Keep Me" ([BUILDER-1](UAT-BUILDER-1.md) steps 1 to 10).
 S2. **P1:** On the Sandbox Campaign's Party panel choose **Change Character** and assign "UAT Delete Me".
 S3. **GM:** Start an Encounter in the Sandbox Campaign that includes "UAT Delete Me" and leave it running.
 
-1. **GM:** Try to find a way to delete "UAT Delete Me" (open the Campaign Party panel and the Character link).
-2. **P1:** Open `<STAGING_URL>/characters`, open the actions on "UAT Delete Me" and choose **Delete**. Read the confirmation, then choose **Cancel**.
-3. **P1:** Choose **Delete** again and confirm.
-4. **P1:** Reopen the old "UAT Delete Me" Sheet link and Builder link (use the browser Back history).
-5. **GM:** Reload the Sandbox Campaign and look at the Party panel and the running Encounter.
-6. **P1:** Open "UAT Keep Me" and check it is unchanged. Then open it and use the trash icon in the Sheet header: confirm the dialog names "UAT Keep Me", choose **Cancel**.
-7. **P1:** Check the Characters list and the Party panel once more.
+1. [ ] **GM:** Try to find a way to delete "UAT Delete Me" (open the Campaign Party panel and the Character link).
+2. [ ] **P1:** Open `<STAGING_URL>/characters`, open the actions on "UAT Delete Me" and choose **Delete**. Read the confirmation, then choose **Cancel**.
+3. [ ] **P1:** Choose **Delete** again and confirm.
+4. [ ] **P1:** Reopen the old "UAT Delete Me" Sheet link and Builder link (use the browser Back history).
+5. [ ] **GM:** Reload the Sandbox Campaign and look at the Party panel and the running Encounter.
+6. [ ] **P1:** Open "UAT Keep Me" and check it is unchanged. Then open it and use the trash icon in the Sheet header: confirm the dialog names "UAT Keep Me", choose **Cancel**.
+7. [ ] **P1:** Check the Characters list and the Party panel once more.
    R1. **P1:** Build a replacement Character if later scenarios need one.
 
 ## Expected
@@ -59,5 +61,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

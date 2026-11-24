@@ -16,17 +16,19 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path pos
 
 ## Steps
 
-1. **P1:** Start the timer. Open `<STAGING_URL>/spells/new`.
-2. **P1:** Under Basics, enter the **Name** "UAT Fire Bolt Copy" and a **Description** (paste the SRD text or write your own). Set **Level** to Cantrip, **Magic School** to Evocation, and add Sorcerer and Wizard to **Classes**. Under Casting, set **Casting Time** to 1 action and tick the Verbal and Somatic **Components**.
-3. **P1:** Under Effects, add one effect (the **Add effect** button). In **How It Starts** set **Kind** to Action, **Trigger** to Ranged Spell Attack, and **Activation** to Action with **Amount** 1.
-4. **P1:** Under **Range** set **Range Kind** to Distance, **Amount** 120, **Unit** Feet. Under **Targeting** set **Target Selection** to Single Target and **Target Eligibility** to Any valid target.
-5. **P1:** Under **Outcome Paths** add one path. Set **Outcome Path** to On Hit, **Outcome Group** to Single, **Selection Model** to Direct and **Starts From** to Source.
-6. **P1:** In the path's **Result**, set **Outcome Type** to Single, then add one outcome. Set **Effect Kind** to Damage, **Damage Type** to Fire, **Value Kind** to Dice, **Scaling Kind** to Per Level and **Scaling Source** to Character Level.
-7. **P1:** In the outcome's **Levels** table add four rows: **Level** 1 with **Damage Dice** `1d10`, level 5 with `2d10`, level 11 with `3d10`, level 17 with `4d10`.
-8. **P1:** Choose **Save Draft**, reload, and confirm every value is still set.
-9. **P1:** Choose **Activate**. Stop the timer.
-10. **P1:** Open the published "UAT Fire Bolt Copy" in the reader view (its detail page) in one tab and the SRD **Fire Bolt** in another. Compare them side by side: casting time, range, attack, damage, scaling levels and Classes.
-11. **P1:** Record the time taken and the 1-5 difficulty rating (below), then **Discard draft** or delete the Spell to leave no clutter.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Start the timer. Open `<STAGING_URL>/spells/new`.
+2. [ ] **P1:** Under Basics, enter the **Name** "UAT Fire Bolt Copy" and a **Description** (paste the SRD text or write your own). Set **Level** to Cantrip, **Magic School** to Evocation, and add Sorcerer and Wizard to **Classes**. Under Casting, set **Casting Time** to 1 action and tick the Verbal and Somatic **Components**.
+3. [ ] **P1:** Under Effects, add one effect (the **Add effect** button). In **How It Starts** set **Kind** to Action, **Trigger** to Ranged Spell Attack, and **Activation** to Action with **Amount** 1.
+4. [ ] **P1:** Under **Range** set **Range Kind** to Distance, **Amount** 120, **Unit** Feet. Under **Targeting** set **Target Selection** to Single Target and **Target Eligibility** to Any valid target.
+5. [ ] **P1:** Under **Outcome Paths** add one path. Set **Outcome Path** to On Hit, **Outcome Group** to Single, **Selection Model** to Direct and **Starts From** to Source.
+6. [ ] **P1:** In the path's **Result**, set **Outcome Type** to Single, then add one outcome. Set **Effect Kind** to Damage, **Damage Type** to Fire, **Value Kind** to Dice, **Scaling Kind** to Per Level and **Scaling Source** to Character Level.
+7. [ ] **P1:** In the outcome's **Levels** table add four rows: **Level** 1 with **Damage Dice** `1d10`, level 5 with `2d10`, level 11 with `3d10`, level 17 with `4d10`.
+8. [ ] **P1:** Choose **Save Draft**, reload, and confirm every value is still set.
+9. [ ] **P1:** Choose **Activate**. Stop the timer.
+10. [ ] **P1:** Open the published "UAT Fire Bolt Copy" in the reader view (its detail page) in one tab and the SRD **Fire Bolt** in another. Compare them side by side: casting time, range, attack, damage, scaling levels and Classes.
+11. [ ] **P1:** Record the time taken and the 1-5 difficulty rating (below), then **Discard draft** or delete the Spell to leave no clutter.
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

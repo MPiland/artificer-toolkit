@@ -16,14 +16,16 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path pos
 
 ## Steps
 
-1. **OWN:** Open **Account Settings** and find the email change section.
-2. **OWN:** Enter the second email address you own as the new email. Submit. Do not open any link yet.
-3. **OWN:** Reload Account Settings and read the email shown for the account. Sign out and sign in again with your usual details.
-4. **OWN:** Choose **Forgot password** for your account and check which inbox receives the reset email.
-5. **OWN:** Open the inbox of the second address and find the confirmation email. Check its branding and links, then open the confirmation link.
-6. **OWN:** Open **Account Settings** again and read the email shown. Sign out and sign in again.
-7. **OWN:** Choose **Forgot password** again and check which inbox receives the reset email.
-8. **OWN:** Sign out. While signed out, open Account Settings directly and try to change the email.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **OWN:** Open **Account Settings** and find the email change section.
+2. [ ] **OWN:** Enter the second email address you own as the new email. Submit. Do not open any link yet.
+3. [ ] **OWN:** Reload Account Settings and read the email shown for the account. Sign out and sign in again with your usual details.
+4. [ ] **OWN:** Choose **Forgot password** for your account and check which inbox receives the reset email.
+5. [ ] **OWN:** Open the inbox of the second address and find the confirmation email. Check its branding and links, then open the confirmation link.
+6. [ ] **OWN:** Open **Account Settings** again and read the email shown. Sign out and sign in again.
+7. [ ] **OWN:** Choose **Forgot password** again and check which inbox receives the reset email.
+8. [ ] **OWN:** Sign out. While signed out, open Account Settings directly and try to change the email.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -15,11 +15,13 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path pos
 
 ## Steps
 
-1. **OWN:** Open **Account Settings** from the account menu and find the password change section.
-2. **OWN:** Enter a wrong value in **Current password** and a new password you will remember in the new-password fields. Submit.
-3. **OWN:** Enter your real current password and the same new password. Submit.
-4. **OWN:** Sign out, then try to sign in with your old password.
-5. **OWN:** Sign in with the new password.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **OWN:** Open **Account Settings** from the account menu and find the password change section.
+2. [ ] **OWN:** Enter a wrong value in **Current password** and a new password you will remember in the new-password fields. Submit.
+3. [ ] **OWN:** Enter your real current password and the same new password. Submit.
+4. [ ] **OWN:** Sign out, then try to sign in with your old password.
+5. [ ] **OWN:** Sign in with the new password.
 
 ## Expected
 
@@ -46,5 +48,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

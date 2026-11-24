@@ -16,16 +16,18 @@ Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: G
 
 ## Steps
 
-1. **GM:** Open `/spells` and start a new Spell. Leave the name empty, fill in whatever else is required, and try to save.
-2. **GM:** Give the Spell the name "Reliability Probe" and save it.
-3. **GM:** Open the Spell's edit page in two browser tabs, A and B.
-4. **GM (tab A):** Start typing a sentence into the description but do not save.
-5. **GM (tab B):** Change the Spell's name and save.
-6. **GM (tab A):** Read what the page shows, then continue typing.
-7. **P1:** Open Aria's Sheet, go to the Extras area and click the Creature select. Type the first letters of a creature name.
-8. **P1:** Keep typing and watch whether the typed letters stay.
-9. **P1:** Set the browser to Offline, then choose sign out from the account menu.
-10. **P1:** Read the page. Set the browser back to No throttling and use the retry control offered.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open `/spells` and start a new Spell. Leave the name empty, fill in whatever else is required, and try to save.
+2. [ ] **GM:** Give the Spell the name "Reliability Probe" and save it.
+3. [ ] **GM:** Open the Spell's edit page in two browser tabs, A and B.
+4. [ ] **GM (tab A):** Start typing a sentence into the description but do not save.
+5. [ ] **GM (tab B):** Change the Spell's name and save.
+6. [ ] **GM (tab A):** Read what the page shows, then continue typing.
+7. [ ] **P1:** Open Aria's Sheet, go to the Extras area and click the Creature select. Type the first letters of a creature name.
+8. [ ] **P1:** Keep typing and watch whether the typed letters stay.
+9. [ ] **P1:** Set the browser to Offline, then choose sign out from the account menu.
+10. [ ] **P1:** Read the page. Set the browser back to No throttling and use the retry control offered.
     R1. **GM:** Delete the "Reliability Probe" Spell. **P1:** Sign back in if step 9 signed you out.
 
 ## Expected
@@ -54,5 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

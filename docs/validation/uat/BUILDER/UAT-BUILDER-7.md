@@ -16,10 +16,12 @@ Level 1 (Single-user basics) · Feature BUILDER · Mode: Group (P1, P2, P3) · P
 
 ## Steps
 
-1. **P2:** Open `<STAGING_URL>/characters` and choose **Create Character**. Name it "UAT Bryn Sandbox", choose any Race, the Fighter Class and any Background, take the default ability method and equipment, and save the draft.
-2. **P2:** Go to the **Review** step, fix anything listed under **Needs attention**, and choose **Activate**.
-3. **P3:** Repeat steps 1 and 2 for a Fighter named "UAT Cade Sandbox".
-4. **P2 and P3:** Open **Characters** and check the new Character is listed once.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P2:** Open `<STAGING_URL>/characters` and choose **Create Character**. Name it "UAT Bryn Sandbox", choose any Race, the Fighter Class and any Background, take the default ability method and equipment, and save the draft.
+2. [ ] **P2:** Go to the **Review** step, fix anything listed under **Needs attention**, and choose **Activate**.
+3. [ ] **P3:** Repeat steps 1 and 2 for a Fighter named "UAT Cade Sandbox".
+4. [ ] **P2 and P3:** Open **Characters** and check the new Character is listed once.
 
 ## Expected
 
@@ -44,5 +46,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -16,11 +16,13 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2) · Path positi
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. Open the browser device toolbar at 375 px (F12, then the device icon).
 
-1. **P2:** Open Hale's Sheet at 375 px. Set hit points to 0.
-2. **P2:** Confirm death saves are visible and tappable with no sideways page scroll. Press **Roll death save** and confirm the result shows.
-3. **P1:** Open Sage's Sheet at 375 px and the Extras tab. Confirm the familiar entry shows AC, speed, attacks and HP, readable with no sideways scroll.
+1. [ ] **P2:** Open Hale's Sheet at 375 px. Set hit points to 0.
+2. [ ] **P2:** Confirm death saves are visible and tappable with no sideways page scroll. Press **Roll death save** and confirm the result shows.
+3. [ ] **P1:** Open Sage's Sheet at 375 px and the Extras tab. Confirm the familiar entry shows AC, speed, attacks and HP, readable with no sideways scroll.
 
 ## Expected
 
@@ -44,5 +46,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

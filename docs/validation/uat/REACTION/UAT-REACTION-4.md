@@ -19,15 +19,17 @@ Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2) · Path posi
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1 and P2:** In the Builder (as in [BUILDER-2](../BUILDER/UAT-BUILDER-2.md)) build a level 5 caster who knows Counterspell with a third-level slot and commit it. In the Sandbox Campaign use **Change Character** to assign it (P1: "UAT Counter A", P2: "UAT Counter B").
 S2. **GM:** Start an Encounter with a Mage creature; all three tokens are in range of each other. Players' Auto-roll ON; GM's OFF.
 
-1. **GM:** Have the Mage cast a leveled spell at P1's Character.
-2. **P1:** Confirm a Counterspell Use/Decline prompt appears for P1's Character. **P2:** Confirm one appears for P2's Character (each its own controller) and not for P1's.
-3. **P2:** Choose **Use** with a slot at least as high as the spell. Confirm the spell is countered and the slot spent.
-4. **GM:** Repeat with P2 using a lower slot. Confirm the ability check is asked and a failed check still spends the slot.
-5. **P1:** When P2 counters, answer **Use** for your own Counterspell on P2's cast. Confirm the chain resolves innermost first.
-6. **GM:** Read the history of the single triggering occurrence.
+1. [ ] **GM:** Have the Mage cast a leveled spell at P1's Character.
+2. [ ] **P1:** Confirm a Counterspell Use/Decline prompt appears for P1's Character. **P2:** Confirm one appears for P2's Character (each its own controller) and not for P1's.
+3. [ ] **P2:** Choose **Use** with a slot at least as high as the spell. Confirm the spell is countered and the slot spent.
+4. [ ] **GM:** Repeat with P2 using a lower slot. Confirm the ability check is asked and a failed check still spends the slot.
+5. [ ] **P1:** When P2 counters, answer **Use** for your own Counterspell on P2's cast. Confirm the chain resolves innermost first.
+6. [ ] **GM:** Read the history of the single triggering occurrence.
    R1. **GM:** Complete the Encounter. **P1 and P2:** use **Change Character** to put back "UAT Dara" and "UAT Bryn Sandbox".
 
 ## Expected
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

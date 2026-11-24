@@ -18,13 +18,15 @@ Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path posi
 
 ## Steps
 
-1. **GM:** Open Review: Party in the Field and the notes area.
-2. **GM:** Create a GM note and leave it private (not shared with the party). Create a second note and mark it **Shared with party**.
-3. **P1:** Open the same Campaign and its notes.
-4. **P2:** Open the Campaign and its notes.
-5. **P1:** Open Aria's Sheet from the Campaign and add a private note on the Sheet.
-6. **GM:** Open Aria's Sheet from the Campaign Party.
-7. **P1:** Open Bryn's Sheet address in P1's window (copy it from P2).
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open Review: Party in the Field and the notes area.
+2. [ ] **GM:** Create a GM note and leave it private (not shared with the party). Create a second note and mark it **Shared with party**.
+3. [ ] **P1:** Open the same Campaign and its notes.
+4. [ ] **P2:** Open the Campaign and its notes.
+5. [ ] **P1:** Open Aria's Sheet from the Campaign and add a private note on the Sheet.
+6. [ ] **GM:** Open Aria's Sheet from the Campaign Party.
+7. [ ] **P1:** Open Bryn's Sheet address in P1's window (copy it from P2).
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

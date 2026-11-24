@@ -18,13 +18,15 @@ Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1) · Path posit
 
 ## Steps
 
-1. **P1:** On Aria's turn note the movement readout, then start a move and choose **Overrun** to pass through the Wolf's space.
-2. **P1:** While the contest is open, read the movement readout again.
-3. **P1:** Reload the page. Confirm the contest is still open.
-4. **GM:** Answer the contest so that Aria wins. Double-click the answering control (two clicks in under a second).
-5. **P1:** Read the movement readout and Aria's position. Reload and read both again.
-6. **P1:** On Aria's next turn, start another passage and choose **Decline passage**, or have the GM decline for the Wolf.
-7. **P1:** Read the movement readout and Aria's position. Reload.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** On Aria's turn note the movement readout, then start a move and choose **Overrun** to pass through the Wolf's space.
+2. [ ] **P1:** While the contest is open, read the movement readout again.
+3. [ ] **P1:** Reload the page. Confirm the contest is still open.
+4. [ ] **GM:** Answer the contest so that Aria wins. Double-click the answering control (two clicks in under a second).
+5. [ ] **P1:** Read the movement readout and Aria's position. Reload and read both again.
+6. [ ] **P1:** On Aria's next turn, start another passage and choose **Decline passage**, or have the GM decline for the Wolf.
+7. [ ] **P1:** Read the movement readout and Aria's position. Reload.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

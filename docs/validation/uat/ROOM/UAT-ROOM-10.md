@@ -16,13 +16,15 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1) · Path position 88 
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Create a throwaway Campaign "UAT Archive Room" as in [CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md) steps 1 and 2; invite P1 by username and **P1:** accept, as in [SOCIAL-2](../SOCIAL/UAT-SOCIAL-2.md).
 
-1. **GM and P1:** Open the tabletop window of "UAT Archive Room".
-2. **GM:** Post a chat line and note it.
-3. **GM:** Archive the Campaign (as in [UAT-CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md) step 8).
-4. **P1:** Watch the tabletop window, try to post a chat line, then reload it.
-5. **GM:** Try to open the tabletop window of the archived Campaign.
+1. [ ] **GM and P1:** Open the tabletop window of "UAT Archive Room".
+2. [ ] **GM:** Post a chat line and note it.
+3. [ ] **GM:** Archive the Campaign (as in [UAT-CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md) step 8).
+4. [ ] **P1:** Watch the tabletop window, try to post a chat line, then reload it.
+5. [ ] **GM:** Try to open the tabletop window of the archived Campaign.
 
 ## Expected
 
@@ -47,5 +49,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

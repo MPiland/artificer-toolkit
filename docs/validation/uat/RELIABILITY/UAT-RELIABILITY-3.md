@@ -18,17 +18,19 @@ Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P3) · Path p
 
 ## Steps
 
-1. **GM:** Note the round, whose turn it is, Aria's and the Wolf's hit points, and the last three chat entries.
-2. **P3:** On the Campaign page outside the table, note the hit points and conditions shown for each Character, and the round number.
-3. **GM:** Make a change at the table, such as damaging the Wolf or changing Aria's hit points through the action drawer.
-4. **P3:** Without refreshing, watch the Campaign page for the change.
-5. **P1:** Open Aria's Sheet in another tab, change a play value (for example spend a hit die or edit hit points) and save it.
-6. **GM:** Look at the live table for Aria's changed value, make one table action (for example **Next turn**) and look again.
-7. **GM and P1:** Close every tabletop tab and window (stay signed in and stay members; do not use any Leave Campaign control).
-8. Wait about six minutes with nobody in the room (the room closes about five minutes after the last person leaves).
-9. **GM:** Reopen the live table with **Open tabletop window** in the **Live tabletop** panel.
-10. **P1:** Reopen the live table.
-11. **GM and P1:** Compare the round, current turn, hit points, positions, conditions and chat with your notes from step 1 and the changes from steps 3 and 5.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Note the round, whose turn it is, Aria's and the Wolf's hit points, and the last three chat entries.
+2. [ ] **P3:** On the Campaign page outside the table, note the hit points and conditions shown for each Character, and the round number.
+3. [ ] **GM:** Make a change at the table, such as damaging the Wolf or changing Aria's hit points through the action drawer.
+4. [ ] **P3:** Without refreshing, watch the Campaign page for the change.
+5. [ ] **P1:** Open Aria's Sheet in another tab, change a play value (for example spend a hit die or edit hit points) and save it.
+6. [ ] **GM:** Look at the live table for Aria's changed value, make one table action (for example **Next turn**) and look again.
+7. [ ] **GM and P1:** Close every tabletop tab and window (stay signed in and stay members; do not use any Leave Campaign control).
+8. [ ] Wait about six minutes with nobody in the room (the room closes about five minutes after the last person leaves).
+9. [ ] **GM:** Reopen the live table with **Open tabletop window** in the **Live tabletop** panel.
+10. [ ] **P1:** Reopen the live table.
+11. [ ] **GM and P1:** Compare the round, current turn, hit points, positions, conditions and chat with your notes from step 1 and the changes from steps 3 and 5.
     R1. **GM:** Undo the changes of steps 3 and 5 through the normal controls (restore the hit points and position you noted).
 
 ## Expected
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

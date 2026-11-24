@@ -16,16 +16,18 @@ Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Mode: Grou
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **SPARE:** Sign in, create a throwaway Campaign "UAT Spare Camp" at `/campaigns/new` and keep it open for step 5.
 
-1. **GM:** Open `<STAGING_URL>/settings/account`.
-2. **GM:** Choose **Delete account** (the dialog opens).
-3. **GM:** Read the dialog, type the account email as asked ("Type ... to confirm"), and enter a deliberately wrong password; confirm. Do not enter the real password.
-4. **GM:** Close the dialog, reload the page and open `<STAGING_URL>/campaigns`.
-5. **SPARE:** Sign in, create a throwaway Campaign at `<STAGING_URL>/campaigns/new`, then open `<STAGING_URL>/settings/account` and choose **Delete account**.
-6. **SPARE:** Type the account email, enter the correct password and confirm. SPARE owns an active Campaign.
-7. **SPARE:** Reload the page and open `<STAGING_URL>/campaigns`.
-8. **SPARE:** Archive the throwaway Campaign, repeat steps 5-6, and confirm the refusal still applies to an Archived Campaign. Then delete the Campaign.
+1. [ ] **GM:** Open `<STAGING_URL>/settings/account`.
+2. [ ] **GM:** Choose **Delete account** (the dialog opens).
+3. [ ] **GM:** Read the dialog, type the account email as asked ("Type ... to confirm"), and enter a deliberately wrong password; confirm. Do not enter the real password.
+4. [ ] **GM:** Close the dialog, reload the page and open `<STAGING_URL>/campaigns`.
+5. [ ] **SPARE:** Sign in, create a throwaway Campaign at `<STAGING_URL>/campaigns/new`, then open `<STAGING_URL>/settings/account` and choose **Delete account**.
+6. [ ] **SPARE:** Type the account email, enter the correct password and confirm. SPARE owns an active Campaign.
+7. [ ] **SPARE:** Reload the page and open `<STAGING_URL>/campaigns`.
+8. [ ] **SPARE:** Archive the throwaway Campaign, repeat steps 5-6, and confirm the refusal still applies to an Archived Campaign. Then delete the Campaign.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

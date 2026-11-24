@@ -15,10 +15,12 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (any one role) ·
 
 ## Steps
 
-1. Open `<STAGING_URL>/sign-up`.
-2. Read the page title and message.
-3. Look for any form that lets you choose a username and password.
-4. Try to fill and submit it if one is present.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] Open `<STAGING_URL>/sign-up`.
+2. [ ] Read the page title and message.
+3. [ ] Look for any form that lets you choose a username and password.
+4. [ ] Try to fill and submit it if one is present.
 
 ## Expected
 
@@ -43,5 +45,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

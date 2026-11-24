@@ -18,17 +18,19 @@ Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **All:** Roll my dice automatically OFF.
 
-1. **P1:** Click Aria's token and drag it one square away from the Wolf to an empty square, then confirm if asked.
-2. **P1:** Read the movement readout.
-3. **P1:** Drag Aria's token several squares further, farther than Aria's speed.
-4. **P1:** Read the readout and any warning.
-5. **P1:** Try to drag the Wolf's token.
-6. **P1:** Try to drag Bryn's token.
-7. **P2:** Try to drag Aria's token.
-8. **GM:** Move Aria's token and the Wolf's token.
-9. **P1:** Reload the page.
+1. [ ] **P1:** Click Aria's token and drag it one square away from the Wolf to an empty square, then confirm if asked.
+2. [ ] **P1:** Read the movement readout.
+3. [ ] **P1:** Drag Aria's token several squares further, farther than Aria's speed.
+4. [ ] **P1:** Read the readout and any warning.
+5. [ ] **P1:** Try to drag the Wolf's token.
+6. [ ] **P1:** Try to drag Bryn's token.
+7. [ ] **P2:** Try to drag Aria's token.
+8. [ ] **GM:** Move Aria's token and the Wolf's token.
+9. [ ] **P1:** Reload the page.
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

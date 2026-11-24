@@ -17,14 +17,16 @@ Level 3 (Core play) · Feature RULES · Mode: Group (GM, P1) · Path position 11
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** If Aria is at full hit points, damage her through the Encounter first.
 
-1. **P1:** Open the tabletop of Review: Party in the Field and wait for Aria's turn (advance turns as GM if needed).
-2. **P1:** Note Aria's current hit points.
-3. **P1:** Open the action drawer and choose Second Wind (or the heal available).
-4. **P1:** At the roll prompt, choose **Roll dice**.
-5. **P1:** Read the roll card shown in chat.
-6. **P1:** Note Aria's hit points afterwards.
+1. [ ] **P1:** Open the tabletop of Review: Party in the Field and wait for Aria's turn (advance turns as GM if needed).
+2. [ ] **P1:** Note Aria's current hit points.
+3. [ ] **P1:** Open the action drawer and choose Second Wind (or the heal available).
+4. [ ] **P1:** At the roll prompt, choose **Roll dice**.
+5. [ ] **P1:** Read the roll card shown in chat.
+6. [ ] **P1:** Note Aria's hit points afterwards.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

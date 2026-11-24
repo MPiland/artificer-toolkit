@@ -17,20 +17,22 @@ Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 125
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. Read "Aria" as Iris (P1) and "the Wolf" as the Ogre throughout. The GM draws the extra pieces with the tools described in [SCENE-3](../SCENE/UAT-SCENE-3.md).
 
-1. **GM:** Draw a Wall across the map in front of Aria, and a Door (closed) in a second wall.
-2. **P1:** Drag Aria's token through the wall.
-3. **P1:** Drag Aria's token to the door while it is closed.
-4. **P1:** Open the door (from the **Doors** list) and drag through it.
-5. **GM:** Lock the door; **P1:** try to open it, then drag through.
-6. **P1:** Drag Aria onto the square the Wolf occupies.
-7. **P1:** Drag Aria off the edge of the map.
-8. **GM:** Use **Lock token movement** on Aria's token (token properties).
-9. **P1:** Try to move Aria's token.
-10. **GM:** Unlock it; **P1:** move it one square.
-11. **GM:** Add a one-way barrier and a window and try dragging through each.
-12. **GM:** Add difficult terrain with a movement cost multiplier of 2 and walk Aria through two squares of it.
+1. [ ] **GM:** Draw a Wall across the map in front of Aria, and a Door (closed) in a second wall.
+2. [ ] **P1:** Drag Aria's token through the wall.
+3. [ ] **P1:** Drag Aria's token to the door while it is closed.
+4. [ ] **P1:** Open the door (from the **Doors** list) and drag through it.
+5. [ ] **GM:** Lock the door; **P1:** try to open it, then drag through.
+6. [ ] **P1:** Drag Aria onto the square the Wolf occupies.
+7. [ ] **P1:** Drag Aria off the edge of the map.
+8. [ ] **GM:** Use **Lock token movement** on Aria's token (token properties).
+9. [ ] **P1:** Try to move Aria's token.
+10. [ ] **GM:** Unlock it; **P1:** move it one square.
+11. [ ] **GM:** Add a one-way barrier and a window and try dragging through each.
+12. [ ] **GM:** Add difficult terrain with a movement cost multiplier of 2 and walk Aria through two squares of it.
     R1. **GM:** Delete the extra wall, door, one-way barrier, window and terrain line you drew (select each, delete), so the Scene again has only the wall at x=400 with its closed door and the rubble line.
 
 ## Expected
@@ -59,5 +61,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

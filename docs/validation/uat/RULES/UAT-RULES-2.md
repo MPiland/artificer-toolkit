@@ -17,17 +17,19 @@ Level 4 (Advanced play) · Feature RULES · Mode: Group (GM, P2) · Path positio
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In Review: Fire and Thunder choose **Complete encounter** in the turn menu, then create and start a new Encounter as step 1 describes. P2: Roll my dice automatically OFF.
 
-1. **GM:** In Review: Fire and Thunder, with standard initiative set in the Campaign's table settings, create a new Encounter on the presented Scene in Assisted mode and add the Wolf and one Goblin to it. Pyra (P2) is a combatant.
-2. **GM:** Choose **Start encounter**.
-3. **GM:** Watch the Encounter panel while the start is waiting.
-4. **P2:** Read the pending roll prompt for Pyra's initiative. Do not answer yet.
-5. **P2:** Reload the tabletop page while the prompt is open.
-6. **P2:** Answer the prompt with **Roll dice**.
-7. **GM:** If asked to roll initiative for the monsters, answer each prompt.
-8. **GM:** When the start finishes, read the initiative order and the round counter.
-9. **P2:** Look at the same initiative order.
+1. [ ] **GM:** In Review: Fire and Thunder, with standard initiative set in the Campaign's table settings, create a new Encounter on the presented Scene in Assisted mode and add the Wolf and one Goblin to it. Pyra (P2) is a combatant.
+2. [ ] **GM:** Choose **Start encounter**.
+3. [ ] **GM:** Watch the Encounter panel while the start is waiting.
+4. [ ] **P2:** Read the pending roll prompt for Pyra's initiative. Do not answer yet.
+5. [ ] **P2:** Reload the tabletop page while the prompt is open.
+6. [ ] **P2:** Answer the prompt with **Roll dice**.
+7. [ ] **GM:** If asked to roll initiative for the monsters, answer each prompt.
+8. [ ] **GM:** When the start finishes, read the initiative order and the round counter.
+9. [ ] **P2:** Look at the same initiative order.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

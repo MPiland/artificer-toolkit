@@ -16,12 +16,14 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path pos
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/creatures/new` and find a field with System options such as speeds, senses, damage types, skills or abilities.
-2. **P1:** Hover (or focus) several options in the dropdown and read the tooltip.
-3. **P1:** Do the same for damage types and for proficiencies on a new Spell or Class.
-4. **P1:** In the Spell editor, open the mechanics/effects section and add an invocation **Check**; then add a **DC** to that Check.
-5. **P1:** Save the draft and reload.
-6. **P1:** Discard the draft.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/creatures/new` and find a field with System options such as speeds, senses, damage types, skills or abilities.
+2. [ ] **P1:** Hover (or focus) several options in the dropdown and read the tooltip.
+3. [ ] **P1:** Do the same for damage types and for proficiencies on a new Spell or Class.
+4. [ ] **P1:** In the Spell editor, open the mechanics/effects section and add an invocation **Check**; then add a **DC** to that Check.
+5. [ ] **P1:** Save the draft and reload.
+6. [ ] **P1:** Discard the draft.
 
 ## Expected
 
@@ -47,5 +49,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -20,16 +20,18 @@ Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · 
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. For steps 7 and 8: **GM:** In the Sandbox Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first). Do not start it; leave it Prepared.
 
-1. **GM:** Open the Encounter drawer. For the Goblin, open **Controllers** and add P1 as a controller (the companion/granted-creature case).
-2. **P1:** On the Goblin's turn, act for it. Confirm you can resolve its action and end its turn.
-3. **P2:** Try to act for the Goblin. Read the refusal.
-4. **GM:** Remove P1 from the Goblin's **Controllers**. Confirm P1 can no longer act for it.
-5. **GM:** Open Aria's controllers. Confirm P1 is listed and cannot be removed (a Character's assigned player always controls it).
-6. **GM:** Change the Wolf's disposition to Friendly, then Neutral, then back to Hostile. Confirm the token ring colour changes each time (Friendly blue, Hostile red; note the Neutral colour).
-7. **GM:** In the Sandbox, before starting the Prepared Run, remove P3's Character from the Campaign's active Characters. Start. Confirm that Character is not in the order.
-8. **GM:** Remove P3 as a Sandbox member. Confirm P3 drops from every controller list and the P3 window is removed from the live table.
+1. [ ] **GM:** Open the Encounter drawer. For the Goblin, open **Controllers** and add P1 as a controller (the companion/granted-creature case).
+2. [ ] **P1:** On the Goblin's turn, act for it. Confirm you can resolve its action and end its turn.
+3. [ ] **P2:** Try to act for the Goblin. Read the refusal.
+4. [ ] **GM:** Remove P1 from the Goblin's **Controllers**. Confirm P1 can no longer act for it.
+5. [ ] **GM:** Open Aria's controllers. Confirm P1 is listed and cannot be removed (a Character's assigned player always controls it).
+6. [ ] **GM:** Change the Wolf's disposition to Friendly, then Neutral, then back to Hostile. Confirm the token ring colour changes each time (Friendly blue, Hostile red; note the Neutral colour).
+7. [ ] **GM:** In the Sandbox, before starting the Prepared Run, remove P3's Character from the Campaign's active Characters. Start. Confirm that Character is not in the order.
+8. [ ] **GM:** Remove P3 as a Sandbox member. Confirm P3 drops from every controller list and the P3 window is removed from the live table.
    R1. **GM:** Re-seat P3 if step 8 removed them, as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
 
 ## Expected
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

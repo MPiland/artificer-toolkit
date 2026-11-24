@@ -19,22 +19,24 @@ Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2, P3) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **All players:** Switch **Auto-roll** ON in the tabletop header.
 
-1. **GM:** In the live table, read the round number, whose turn it is, and every hit point total. Write them down.
-2. **GM:** Use **Next turn** until it is Aria's turn.
-3. **P1:** Open the action drawer. Confirm the actions that cannot be used right now appear dimmed with a reason. Pick the weapon attack for Aria.
-4. **P1:** Confirm the map shows a range ring around Aria's token and targetable creatures highlighted. Hover the Wolf and read the distance and roll modifiers shown. Press Esc and confirm targeting stops; pick the attack again.
-5. **P1:** In targeting mode, open the Encounter drawer. Confirm the actor list is now sorted by distance with range shown. Click the Wolf on the list, not the map, and confirm it is the same target as clicking on the map would give.
-6. **P1:** Confirm the attack. Read the roll card (hit or miss, damage, advantage reasons) and the Wolf's new hit points. Aria's club is her main-hand weapon, so damage is the full weapon roll plus her ability modifier.
-7. **P1:** Aria has one attack in her Attack action (no Extra Attack), so confirm the drawer offers no further attack as part of that action and shows no "Attack 1 of 2". (Seeing "Attack 1 of 2" needs an Extra Attack Character: [UAT-ATTACK-9](UAT-ATTACK-9.md) step 6a.)
-8. **P1:** Drag Aria's token one square away from the Wolf. Read the movement readout ("used / budget ft").
-9. **GM:** When the Pending decision for an opportunity attack appears, choose **Use reaction** for the Wolf. Read the result. Note that no decision reached P2 or P3 (they were not in the audience).
-10. **P1:** Choose **End turn**. Confirm the turn moves to the next creature in order.
-11. **GM:** Act for the Wolf on its turn: attack Aria. Aria has no reaction feature, so no reaction prompt should reach P1; note that none appears.
-12. **GM:** Advance through Bryn's and Cade's turns. Each of **P2** and **P3** attack a hostile creature on their own turn using the same steps 3 to 6.
-13. **GM:** Complete a full round. Confirm the round number rose by one and that the turn-start steps ran in order for any creature that needed them (Recharge, death save, start-of-turn effects).
-14. **GM:** Open the Encounter history and read the entries: each action, movement, reaction and turn change appears once.
+1. [ ] **GM:** In the live table, read the round number, whose turn it is, and every hit point total. Write them down.
+2. [ ] **GM:** Use **Next turn** until it is Aria's turn.
+3. [ ] **P1:** Open the action drawer. Confirm the actions that cannot be used right now appear dimmed with a reason. Pick the weapon attack for Aria.
+4. [ ] **P1:** Confirm the map shows a range ring around Aria's token and targetable creatures highlighted. Hover the Wolf and read the distance and roll modifiers shown. Press Esc and confirm targeting stops; pick the attack again.
+5. [ ] **P1:** In targeting mode, open the Encounter drawer. Confirm the actor list is now sorted by distance with range shown. Click the Wolf on the list, not the map, and confirm it is the same target as clicking on the map would give.
+6. [ ] **P1:** Confirm the attack. Read the roll card (hit or miss, damage, advantage reasons) and the Wolf's new hit points. Aria's club is her main-hand weapon, so damage is the full weapon roll plus her ability modifier.
+7. [ ] **P1:** Aria has one attack in her Attack action (no Extra Attack), so confirm the drawer offers no further attack as part of that action and shows no "Attack 1 of 2". (Seeing "Attack 1 of 2" needs an Extra Attack Character: [UAT-ATTACK-9](UAT-ATTACK-9.md) step 6a.)
+8. [ ] **P1:** Drag Aria's token one square away from the Wolf. Read the movement readout ("used / budget ft").
+9. [ ] **GM:** When the Pending decision for an opportunity attack appears, choose **Use reaction** for the Wolf. Read the result. Note that no decision reached P2 or P3 (they were not in the audience).
+10. [ ] **P1:** Choose **End turn**. Confirm the turn moves to the next creature in order.
+11. [ ] **GM:** Act for the Wolf on its turn: attack Aria. Aria has no reaction feature, so no reaction prompt should reach P1; note that none appears.
+12. [ ] **GM:** Advance through Bryn's and Cade's turns. Each of **P2** and **P3** attack a hostile creature on their own turn using the same steps 3 to 6.
+13. [ ] **GM:** Complete a full round. Confirm the round number rose by one and that the turn-start steps ran in order for any creature that needed them (Recharge, death save, start-of-turn effects).
+14. [ ] **GM:** Open the Encounter history and read the entries: each action, movement, reaction and turn change appears once.
 
 ## Expected
 
@@ -62,5 +64,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -16,11 +16,13 @@ Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path positio
 
 ## Steps
 
-1. **P1:** Open UAT Dara's Sheet overview and read the Speed value.
-2. **P1:** Open the Movement panel from the Speed value.
-3. **P1:** If the Character has more than one movement type, use **Movement shown on the sheet** to choose another type.
-4. **P1:** Close the panel and re-read the overview Speed.
-5. **P1:** Reload.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open UAT Dara's Sheet overview and read the Speed value.
+2. [ ] **P1:** Open the Movement panel from the Speed value.
+3. [ ] **P1:** If the Character has more than one movement type, use **Movement shown on the sheet** to choose another type.
+4. [ ] **P1:** Close the panel and re-read the overview Speed.
+5. [ ] **P1:** Reload.
 
 ## Expected
 
@@ -46,5 +48,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -17,14 +17,16 @@ Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 65 of 19
 
 ## Steps
 
-1. **GM:** Open the Sandbox Campaign and go to the Live maps area (**Prepared scenes**).
-2. **GM:** Choose **Map image** and select [sample-battle-map.png](../assets/sample-battle-map.png). Watch **Map upload progress**.
-3. **GM:** Type a **Scene name** (for example "UAT Cavern").
-4. **GM:** Choose Grid type **Square**, set **Distance per cell** to 5 and **Distance unit** to **Feet**.
-5. **GM:** Choose **Calibrate on map**, click a grid intersection to set the origin, then click the adjacent intersection 50 pixels away to set the cell size.
-6. **GM:** Check the **Map calibration preview**, then choose **Create scene**.
-7. **GM:** Reload the page and open the Scene again.
-8. **GM:** Edit the Scene name and the cell size, save, and reload.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the Sandbox Campaign and go to the Live maps area (**Prepared scenes**).
+2. [ ] **GM:** Choose **Map image** and select [sample-battle-map.png](../assets/sample-battle-map.png). Watch **Map upload progress**.
+3. [ ] **GM:** Type a **Scene name** (for example "UAT Cavern").
+4. [ ] **GM:** Choose Grid type **Square**, set **Distance per cell** to 5 and **Distance unit** to **Feet**.
+5. [ ] **GM:** Choose **Calibrate on map**, click a grid intersection to set the origin, then click the adjacent intersection 50 pixels away to set the cell size.
+6. [ ] **GM:** Check the **Map calibration preview**, then choose **Create scene**.
+7. [ ] **GM:** Reload the page and open the Scene again.
+8. [ ] **GM:** Edit the Scene name and the cell size, save, and reload.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

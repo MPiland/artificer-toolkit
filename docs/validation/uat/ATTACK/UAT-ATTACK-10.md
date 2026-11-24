@@ -17,21 +17,23 @@ Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 9
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Add as separate creatures to the Party Encounter: Balor, Clay Golem, Cloaker, Dryad, Duergar, Kraken, Purple Worm, Quasit, Rug of Smothering, Shadow, Spirit Naga, Shambling Mound, Brown Bear and Drider. **P1:** Switch **Auto-roll** ON.
 
-1. **GM:** For each creature in turn, open the action drawer on its turn and use its listed attack once against Aria (the GM can raise Aria's hit points from the Sheet if she falls). For each, record the roll card and any rider shown.
-2. **GM:** Balor Whip: confirm forced movement and no opportunity attack for the pulled creature.
-3. **GM:** Cloaker Bite: confirm the Grappled outcome and escape DC shown.
-4. **GM:** Kraken Lightning Storm: confirm the save prompts.
-5. **GM:** Purple Worm Tail Stinger: confirm the poison rider and save.
-6. **GM:** Quasit Claws then Scare: confirm each rider.
-7. **GM:** Shadow Strength Drain: confirm the Strength reduction.
-8. **GM:** For swallow, engulf, curse, disease and lycanthropy riders, confirm a GM ruling note appears beside the damage.
-9. **GM:** On the Brown Bear, begin its Multiattack: confirm the drawer shows what is left and offers only the allowed attacks (it cannot bite twice). Confirm the drawer preselects the only possible next attack and keeps the last target. End the Multiattack early.
-10. **GM:** On the Drider, confirm its Bite swap is offered once. Confirm a Recharge attack not ready is not offered.
-11. **GM:** On the Shambling Mound, hit with both slams; confirm Grappled and then Engulf is offered on a Medium or smaller target.
-12. **GM:** Open the Creature editor on a copy and confirm Multiattack authoring (slots, alternatives, swaps, conditions) and the grapple rider fields (escape DC, size limit, held-at-once count). Try publishing an invalid Multiattack; confirm refusal.
-13. **GM:** Repeat any attack with a replay (reload the page mid-action) and confirm charges are not re-spent and dice are not rerolled.
+1. [ ] **GM:** For each creature in turn, open the action drawer on its turn and use its listed attack once against Aria (the GM can raise Aria's hit points from the Sheet if she falls). For each, record the roll card and any rider shown.
+2. [ ] **GM:** Balor Whip: confirm forced movement and no opportunity attack for the pulled creature.
+3. [ ] **GM:** Cloaker Bite: confirm the Grappled outcome and escape DC shown.
+4. [ ] **GM:** Kraken Lightning Storm: confirm the save prompts.
+5. [ ] **GM:** Purple Worm Tail Stinger: confirm the poison rider and save.
+6. [ ] **GM:** Quasit Claws then Scare: confirm each rider.
+7. [ ] **GM:** Shadow Strength Drain: confirm the Strength reduction.
+8. [ ] **GM:** For swallow, engulf, curse, disease and lycanthropy riders, confirm a GM ruling note appears beside the damage.
+9. [ ] **GM:** On the Brown Bear, begin its Multiattack: confirm the drawer shows what is left and offers only the allowed attacks (it cannot bite twice). Confirm the drawer preselects the only possible next attack and keeps the last target. End the Multiattack early.
+10. [ ] **GM:** On the Drider, confirm its Bite swap is offered once. Confirm a Recharge attack not ready is not offered.
+11. [ ] **GM:** On the Shambling Mound, hit with both slams; confirm Grappled and then Engulf is offered on a Medium or smaller target.
+12. [ ] **GM:** Open the Creature editor on a copy and confirm Multiattack authoring (slots, alternatives, swaps, conditions) and the grapple rider fields (escape DC, size limit, held-at-once count). Try publishing an invalid Multiattack; confirm refusal.
+13. [ ] **GM:** Repeat any attack with a replay (reload the page mid-action) and confirm charges are not re-spent and dice are not rerolled.
     R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
 
 ## Expected
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

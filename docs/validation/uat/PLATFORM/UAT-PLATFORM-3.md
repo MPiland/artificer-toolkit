@@ -17,14 +17,16 @@ Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P2) · Path
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/spells/new`.
-2. **P1:** Type the name "UAT Image Spark" and upload [artwork.png](../assets/artwork.png) as the Spell's artwork.
-3. **P1:** Choose **Save Draft**, then reload and confirm the artwork is still shown.
-4. **P1:** Right-click the artwork and choose Copy image address (or Open image in new tab and copy the address bar).
-5. **P2:** Paste that address into a new tab in P2's own window and press Enter.
-6. **P2:** Open `<STAGING_URL>/spells` and search "UAT Image".
-7. **P1:** Back on the draft, choose **Discard draft** and confirm.
-8. **P1:** Open the copied image address again in a new tab.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/spells/new`.
+2. [ ] **P1:** Type the name "UAT Image Spark" and upload [artwork.png](../assets/artwork.png) as the Spell's artwork.
+3. [ ] **P1:** Choose **Save Draft**, then reload and confirm the artwork is still shown.
+4. [ ] **P1:** Right-click the artwork and choose Copy image address (or Open image in new tab and copy the address bar).
+5. [ ] **P2:** Paste that address into a new tab in P2's own window and press Enter.
+6. [ ] **P2:** Open `<STAGING_URL>/spells` and search "UAT Image".
+7. [ ] **P1:** Back on the draft, choose **Discard draft** and confirm.
+8. [ ] **P1:** Open the copied image address again in a new tab.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -19,21 +19,23 @@ Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path posit
 
 ## Steps
 
-1. **GM:** Open **Social** and create a listing for the Campaign, or open P1's profile and use the invite action to invite **P1** to the sandbox Campaign.
-2. **P1:** Open **Social**, go to **Received invitations**, and accept the invitation.
-3. **GM:** Repeat the invite for P2 and have **P2** accept.
-4. **P1:** Open the sandbox Campaign, choose **Add Character** and assign "UAT Dara" (not Aria).
-5. **P1:** Choose **Leave Campaign** and confirm.
-6. **P1:** Try to open the Campaign's address again.
-7. **GM:** Open the Campaign **Party** and check that P1's Character and seat are gone.
-8. **GM:** Invite P1 again; **P1:** accept it and rejoin.
-9. **GM:** On the Party, choose **Remove player** for P2 and confirm.
-10. **P2:** Reload any open Campaign page.
-11. **GM:** Re-invite P2; **P2:** accept again.
-12. **GM:** In Settings, start an ownership transfer to P1.
-13. **P1:** Accept the ownership offer.
-14. **P1 (now GM):** Check that Settings and Manage controls are available; **GM (now player):** check they are gone.
-15. **P1:** Transfer ownership back to the original GM, and **GM:** accept.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open **Social** and create a listing for the Campaign, or open P1's profile and use the invite action to invite **P1** to the sandbox Campaign.
+2. [ ] **P1:** Open **Social**, go to **Received invitations**, and accept the invitation.
+3. [ ] **GM:** Repeat the invite for P2 and have **P2** accept.
+4. [ ] **P1:** Open the sandbox Campaign, choose **Add Character** and assign "UAT Dara" (not Aria).
+5. [ ] **P1:** Choose **Leave Campaign** and confirm.
+6. [ ] **P1:** Try to open the Campaign's address again.
+7. [ ] **GM:** Open the Campaign **Party** and check that P1's Character and seat are gone.
+8. [ ] **GM:** Invite P1 again; **P1:** accept it and rejoin.
+9. [ ] **GM:** On the Party, choose **Remove player** for P2 and confirm.
+10. [ ] **P2:** Reload any open Campaign page.
+11. [ ] **GM:** Re-invite P2; **P2:** accept again.
+12. [ ] **GM:** In Settings, start an ownership transfer to P1.
+13. [ ] **P1:** Accept the ownership offer.
+14. [ ] **P1 (now GM):** Check that Settings and Manage controls are available; **GM (now player):** check they are gone.
+15. [ ] **P1:** Transfer ownership back to the original GM, and **GM:** accept.
     R1. **P1:** After the rejoin in step 8 your Character was released. Choose **Add Character** and assign "UAT Dara" again.
 
 ## Expected
@@ -61,5 +63,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

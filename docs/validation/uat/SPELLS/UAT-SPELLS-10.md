@@ -19,19 +19,21 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P2:** Auto-roll OFF for the first half, ON for the second. Hale is the target.
 
-1. **GM:** Reduce a Goblin to 0 HP. Confirm it is defeated as a Creature.
-2. **GM:** Reduce Hale to 0 HP with damage that leaves less than her maximum HP over. Confirm Hale is Unconscious and dying.
-3. **GM:** Advance to Hale's turn. Confirm a death save prompt appears for **P2** before anything else on her turn. **P2:** Type a number under 10: a failure is marked on Hale's Sheet (one failure in total).
-4. **GM:** Damage Hale at 0 HP with a normal hit. Confirm one more failure on the Sheet (two in total). Undo that damage, then damage her with a critical hit instead and confirm it adds two failures (three in total, so she dies); undo it again to return to one failure.
-5. **GM:** Heal Hale from 0. Confirm death saves reset on the Sheet and she is conscious at the healed HP.
-6. **GM:** Undo the heal. Confirm the earlier death save tally comes back on the Sheet.
-7. **GM:** Reduce Hale to 0, then on a later turn: **P2** types a 1 for the death save and confirm it adds two failures (from a fresh count), then repeat from a fresh count with a 20 and confirm she regains 1 HP and is conscious.
-8. **GM:** Damage Hale to 0 with damage at least equal to her maximum HP beyond 0. Confirm she is killed outright and shows Dead to everyone.
-9. **GM:** Advance turns. Confirm a dead Hale takes no turn, actions or reactions and ignores healing. Undo back to a dying Hale to continue.
-10. **P2:** Switch **Roll my dice automatically** ON (`/settings/preferences`), get Hale dying again and confirm the death save is rolled for you at her turn start with no prompt. **GM:** Confirm the roll is visible to you in both modes.
-11. **P2:** Switch Auto-roll OFF again and reach three successes: confirm Hale stabilizes. Reach three failures (from fresh Hale at 0): confirm death.
+1. [ ] **GM:** Reduce a Goblin to 0 HP. Confirm it is defeated as a Creature.
+2. [ ] **GM:** Reduce Hale to 0 HP with damage that leaves less than her maximum HP over. Confirm Hale is Unconscious and dying.
+3. [ ] **GM:** Advance to Hale's turn. Confirm a death save prompt appears for **P2** before anything else on her turn. **P2:** Type a number under 10: a failure is marked on Hale's Sheet (one failure in total).
+4. [ ] **GM:** Damage Hale at 0 HP with a normal hit. Confirm one more failure on the Sheet (two in total). Undo that damage, then damage her with a critical hit instead and confirm it adds two failures (three in total, so she dies); undo it again to return to one failure.
+5. [ ] **GM:** Heal Hale from 0. Confirm death saves reset on the Sheet and she is conscious at the healed HP.
+6. [ ] **GM:** Undo the heal. Confirm the earlier death save tally comes back on the Sheet.
+7. [ ] **GM:** Reduce Hale to 0, then on a later turn: **P2** types a 1 for the death save and confirm it adds two failures (from a fresh count), then repeat from a fresh count with a 20 and confirm she regains 1 HP and is conscious.
+8. [ ] **GM:** Damage Hale to 0 with damage at least equal to her maximum HP beyond 0. Confirm she is killed outright and shows Dead to everyone.
+9. [ ] **GM:** Advance turns. Confirm a dead Hale takes no turn, actions or reactions and ignores healing. Undo back to a dying Hale to continue.
+10. [ ] **P2:** Switch **Roll my dice automatically** ON (`/settings/preferences`), get Hale dying again and confirm the death save is rolled for you at her turn start with no prompt. **GM:** Confirm the roll is visible to you in both modes.
+11. [ ] **P2:** Switch Auto-roll OFF again and reach three successes: confirm Hale stabilizes. Reach three failures (from fresh Hale at 0): confirm death.
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

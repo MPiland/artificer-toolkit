@@ -16,15 +16,17 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path pos
 
 ## Steps
 
-1. **P1:** Start the timer. Open `<STAGING_URL>/feats/new` and enter the **Name** "UAT Empowered Copy" and a **Description** (paste the SRD Empowered Spell text or write your own).
-2. **P1:** Under **Charges** define the pool the feature spends, a stand-in for sorcery points: choose a **Limit Kind** (for example Fixed amount, with a number of points) and a **Reset Kind** of Long Rest.
-3. **P1:** Under Effects, add one effect. In **How It Starts** set **Kind** to Passive and **Trigger** to Activated.
-4. **P1:** In **Cast Modifier**, choose the pool from the **Resource pool** list (the pool from step 2, listed under the Feat's name). Set **Cost** to 1. In **Rerolls damage dice after the roll** set **Damage dice rerolled** to 0, **Plus the modifier of** to Charisma, and **At least** to 1.
-5. **P1:** Under **Outcome Paths** add one path: **Outcome Path** On Use, **Outcome Group** Single, **Selection Model** Direct. In its **Result**, add an outcome with **Effect Kind** Manual Adjudication, a **Reason** of your choice, and **Instructions** such as "The chosen damage dice are rolled again, and the new rolls stand."
-6. **P1:** Choose **Save Draft**, reload, confirm the pool is still selected in **Cast Modifier**, then **Activate**. Stop the timer.
-7. **P1:** Open the published copy in the reader view beside the SRD Empowered Spell and compare: the cost (1 point), the Charisma-based reroll count with a minimum of one, and the pool it spends.
-8. **P1:** Rename the Feat (a pool is listed under its owner's name), **Activate** again, and reopen the Cast Modifier.
-9. **P1:** Record the time taken and the difficulty rating, then delete the Feat.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Start the timer. Open `<STAGING_URL>/feats/new` and enter the **Name** "UAT Empowered Copy" and a **Description** (paste the SRD Empowered Spell text or write your own).
+2. [ ] **P1:** Under **Charges** define the pool the feature spends, a stand-in for sorcery points: choose a **Limit Kind** (for example Fixed amount, with a number of points) and a **Reset Kind** of Long Rest.
+3. [ ] **P1:** Under Effects, add one effect. In **How It Starts** set **Kind** to Passive and **Trigger** to Activated.
+4. [ ] **P1:** In **Cast Modifier**, choose the pool from the **Resource pool** list (the pool from step 2, listed under the Feat's name). Set **Cost** to 1. In **Rerolls damage dice after the roll** set **Damage dice rerolled** to 0, **Plus the modifier of** to Charisma, and **At least** to 1.
+5. [ ] **P1:** Under **Outcome Paths** add one path: **Outcome Path** On Use, **Outcome Group** Single, **Selection Model** Direct. In its **Result**, add an outcome with **Effect Kind** Manual Adjudication, a **Reason** of your choice, and **Instructions** such as "The chosen damage dice are rolled again, and the new rolls stand."
+6. [ ] **P1:** Choose **Save Draft**, reload, confirm the pool is still selected in **Cast Modifier**, then **Activate**. Stop the timer.
+7. [ ] **P1:** Open the published copy in the reader view beside the SRD Empowered Spell and compare: the cost (1 point), the Charisma-based reroll count with a minimum of one, and the pool it spends.
+8. [ ] **P1:** Rename the Feat (a pool is listed under its owner's name), **Activate** again, and reopen the Cast Modifier.
+9. [ ] **P1:** Record the time taken and the difficulty rating, then delete the Feat.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -18,14 +18,16 @@ Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (GM, P1, P2, SUPERADMIN
 
 ## Steps
 
-1. **P1:** Open P2's Social Hub profile and choose **Block**; confirm.
-2. **P1:** Open the **Blocked profiles** panel and check P2 is listed.
-3. **P2:** Try to open P1's Social profile.
-4. **P2:** Try to invite P1 to a Campaign P2 owns, if P2 owns one; P1 hosts no table, so record the apply check as not applicable.
-5. **P1 and P2:** Open Review: Party in the Field and its Campaign chat; each posts one line in the Table conversation.
-6. **P1:** In **Blocked profiles**, choose **Unblock** next to P2.
-7. **P2:** Reload P1's profile.
-8. **SUPERADMIN:** Moderate P2 (suspend or restrict the profile) and check P1 and P2 stay members of Review: Party in the Field; then reverse the moderation.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open P2's Social Hub profile and choose **Block**; confirm.
+2. [ ] **P1:** Open the **Blocked profiles** panel and check P2 is listed.
+3. [ ] **P2:** Try to open P1's Social profile.
+4. [ ] **P2:** Try to invite P1 to a Campaign P2 owns, if P2 owns one; P1 hosts no table, so record the apply check as not applicable.
+5. [ ] **P1 and P2:** Open Review: Party in the Field and its Campaign chat; each posts one line in the Table conversation.
+6. [ ] **P1:** In **Blocked profiles**, choose **Unblock** next to P2.
+7. [ ] **P2:** Reload P1's profile.
+8. [ ] **SUPERADMIN:** Moderate P2 (suspend or restrict the profile) and check P1 and P2 stay members of Review: Party in the Field; then reverse the moderation.
 
 ## Expected
 
@@ -54,5 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

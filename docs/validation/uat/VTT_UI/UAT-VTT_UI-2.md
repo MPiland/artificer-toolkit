@@ -19,17 +19,19 @@ Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1, P2) · Path positi
 
 ## Steps
 
-1. **P1:** On Aria's turn start an attack. Confirm a range ring appears around her token and targetable tokens highlight.
-2. **P1:** Hover the Wolf. Confirm a target preview and distance show.
-3. **P1:** Drag Aria's token. Confirm a path preview with cost shows "used / budget ft". **P2:** Confirm you do not see P1's unsent preview, only the committed move once P1 releases.
-4. **P2 (Fire and Thunder):** Start **Fireball** from Pyra's list (she has third-level slots; the review play spent one, so one is left). Confirm an area preview follows the pointer.
-5. **P2:** Start Thunderwave. Confirm the preview is centred on Pyra.
-6. **GM:** Place a hazard zone and a trap. Confirm each preview shows its footprint.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** On Aria's turn start an attack. Confirm a range ring appears around her token and targetable tokens highlight.
+2. [ ] **P1:** Hover the Wolf. Confirm a target preview and distance show.
+3. [ ] **P1:** Drag Aria's token. Confirm a path preview with cost shows "used / budget ft". **P2:** Confirm you do not see P1's unsent preview, only the committed move once P1 releases.
+4. [ ] **P2 (Fire and Thunder):** Start **Fireball** from Pyra's list (she has third-level slots; the review play spent one, so one is left). Confirm an area preview follows the pointer.
+5. [ ] **P2:** Start Thunderwave. Confirm the preview is centred on Pyra.
+6. [ ] **GM:** Place a hazard zone and a trap. Confirm each preview shows its footprint.
    6a. **GM:** If a token has an aura (an aura-bearing creature, or a spell that creates one), confirm its aura area is drawn around the token. If none is available, record VTT_UI-3.1's aura preview as not shown.
-7. **GM:** Add a Large token (for example an Ogre). Confirm its footprint occupies a 2x2 area.
-8. **GM:** Drag the Large token to a spot partly overlapping another token. Confirm the move is refused.
-9. **GM:** Rotate a token. Confirm it rotates and keeps its footprint.
-10. **P1:** Reload the page after starting an aimed area. Confirm temporary previews may disappear and need redoing.
+7. [ ] **GM:** Add a Large token (for example an Ogre). Confirm its footprint occupies a 2x2 area.
+8. [ ] **GM:** Drag the Large token to a spot partly overlapping another token. Confirm the move is refused.
+9. [ ] **GM:** Rotate a token. Confirm it rotates and keeps its footprint.
+10. [ ] **P1:** Reload the page after starting an aimed area. Confirm temporary previews may disappear and need redoing.
     R1. **GM:** Remove the tokens and zones you added in steps 6 to 9.
 
 ## Expected
@@ -54,5 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

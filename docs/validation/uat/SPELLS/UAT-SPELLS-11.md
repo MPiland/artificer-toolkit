@@ -19,14 +19,16 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Add a Zombie and a Wolf next to Hale. Sage is the dying target.
 
-1. **GM:** Reduce Sage to 0 HP so she is dying. **P2:** On Hale's turn cast **Spare the Dying** at Sage. Confirm Sage becomes stable with no further death saves.
-2. **P2:** Try Spare the Dying at the Zombie. Confirm the undead exclusion warning.
-3. **GM:** Damage Sage again. Confirm she is dying again, and Undo restores the stable state with its death saves.
-4. **P2:** On a creature that is not dying (the Wolf), use the Healer's Kit. Confirm the overridable warning that the target is not dying and that nothing changes if overridden.
-5. **GM:** Make Sage dying. **P2:** Use the Healer's Kit on Sage. Confirm Sage becomes stable.
-6. **GM:** Make Sage dying again. **P2:** Use the first aid basic action. Confirm it spends an Action and asks for a DC 10 Wisdom (Medicine) check; success makes Sage stable, failure does not.
+1. [ ] **GM:** Reduce Sage to 0 HP so she is dying. **P2:** On Hale's turn cast **Spare the Dying** at Sage. Confirm Sage becomes stable with no further death saves.
+2. [ ] **P2:** Try Spare the Dying at the Zombie. Confirm the undead exclusion warning.
+3. [ ] **GM:** Damage Sage again. Confirm she is dying again, and Undo restores the stable state with its death saves.
+4. [ ] **P2:** On a creature that is not dying (the Wolf), use the Healer's Kit. Confirm the overridable warning that the target is not dying and that nothing changes if overridden.
+5. [ ] **GM:** Make Sage dying. **P2:** Use the Healer's Kit on Sage. Confirm Sage becomes stable.
+6. [ ] **GM:** Make Sage dying again. **P2:** Use the first aid basic action. Confirm it spends an Action and asks for a DC 10 Wisdom (Medicine) check; success makes Sage stable, failure does not.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -17,16 +17,18 @@ Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1) · Path position 69 
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Add a second door to the presented Scene.
 
-1. **GM:** Make sure the door is **Closed** and not **Locked**.
-2. **P1:** Open the door from the **Doors** list or by clicking it.
-3. **P1:** Close it again.
-4. **GM:** Choose **Lock** on the door.
-5. **P1:** Try to open the locked door.
-6. **P1:** Look at the second door's controls and try to lock it.
-7. **GM:** Choose **Unlock**.
-8. **P1:** Open the door once more.
+1. [ ] **GM:** Make sure the door is **Closed** and not **Locked**.
+2. [ ] **P1:** Open the door from the **Doors** list or by clicking it.
+3. [ ] **P1:** Close it again.
+4. [ ] **GM:** Choose **Lock** on the door.
+5. [ ] **P1:** Try to open the locked door.
+6. [ ] **P1:** Look at the second door's controls and try to lock it.
+7. [ ] **GM:** Choose **Unlock**.
+8. [ ] **P1:** Open the door once more.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

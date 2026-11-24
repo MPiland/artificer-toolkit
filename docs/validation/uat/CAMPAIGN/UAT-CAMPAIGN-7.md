@@ -17,15 +17,17 @@ Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Build and **Activate** a Fighter named "UAT GM Hero" in the Builder (as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) steps 1 to 10). The GM has no Character in the review data.
 
-1. **GM:** Open the Campaign **Party**, choose **Add Character**, and assign the GM's own Character to the Campaign.
-2. **P1:** Open the Campaign and check the Party roster.
-3. **GM:** In the Campaign chat, switch **Message voice** to roleplay and send an in-character line on the Table conversation.
-4. **GM:** Open the Party conversation (players only).
-5. **P1:** Send a message to the Party conversation.
-6. **GM:** Try to move an item from the GM Character's inventory to P1's Character.
-7. **GM:** Transfer ownership to P1 (see [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md); the same plan-capacity note applies) and check the Party roster from both windows.
+1. [ ] **GM:** Open the Campaign **Party**, choose **Add Character**, and assign the GM's own Character to the Campaign.
+2. [ ] **P1:** Open the Campaign and check the Party roster.
+3. [ ] **GM:** In the Campaign chat, switch **Message voice** to roleplay and send an in-character line on the Table conversation.
+4. [ ] **GM:** Open the Party conversation (players only).
+5. [ ] **P1:** Send a message to the Party conversation.
+6. [ ] **GM:** Try to move an item from the GM Character's inventory to P1's Character.
+7. [ ] **GM:** Transfer ownership to P1 (see [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md); the same plan-capacity note applies) and check the Party roster from both windows.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

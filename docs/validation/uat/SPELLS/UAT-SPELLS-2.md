@@ -21,14 +21,16 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
-1. **GM:** Open **Review: Party in the Field**, open the Live tabletop and choose **Complete encounter** on the running review Encounter. If the GM is offered to advance the Campaign clock, choose **Not now**.
-2. **GM:** In the Campaign's table settings confirm Automation mode is Assisted and the Initiative policy is the Speed Factor variant. Make sure **Automatic cover** is ticked. Save table settings if you changed anything.
-3. **P1:** On the Campaign's Party roster choose **Change Character** and pick **Sage** in the Character picker (it replaces Aria). **P2:** choose **Change Character** and pick **Hale**. **P3:** choose **Change Character** and pick **Vex**.
-4. **GM:** Present a Scene (the review map) and create a new Encounter. Add Sage, Hale and Vex's tokens (not Aria's, Bryn's or Cade's), and Goblin x3 in a group about 6 squares from the party, one Wolf adjacent to Sage, one Giant Spider, two Bandits, one Ogre.
-5. **GM:** Start the Encounter and set initiative for everyone. Choose a turn for Sage.
-6. **P1:** In the action drawer find the spell **Fireball**. Confirm it is listed once per slot level Sage can cast it at, such as "Fireball (3rd level)", "Fireball (4th level)" and "Fireball (5th level)", that cantrips appear once, and that the choice shows the spell's component text (it is shown, not enforced).
-7. **P1:** Look for Find Familiar (a ritual) in the action drawer. Expected refusal: it shows as unavailable with a message to cast it from the Sheet, and no slot is spent.
-8. **P1:** Cast **Magic Missile**. Confirm the slot count on the Sheet drops by one; then **GM:** choose Undo last action and confirm the slot is restored.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open **Review: Party in the Field**, open the Live tabletop and choose **Complete encounter** on the running review Encounter. If the GM is offered to advance the Campaign clock, choose **Not now**.
+2. [ ] **GM:** In the Campaign's table settings confirm Automation mode is Assisted and the Initiative policy is the Speed Factor variant. Make sure **Automatic cover** is ticked. Save table settings if you changed anything.
+3. [ ] **P1:** On the Campaign's Party roster choose **Change Character** and pick **Sage** in the Character picker (it replaces Aria). **P2:** choose **Change Character** and pick **Hale**. **P3:** choose **Change Character** and pick **Vex**.
+4. [ ] **GM:** Present a Scene (the review map) and create a new Encounter. Add Sage, Hale and Vex's tokens (not Aria's, Bryn's or Cade's), and Goblin x3 in a group about 6 squares from the party, one Wolf adjacent to Sage, one Giant Spider, two Bandits, one Ogre.
+5. [ ] **GM:** Start the Encounter and set initiative for everyone. Choose a turn for Sage.
+6. [ ] **P1:** In the action drawer find the spell **Fireball**. Confirm it is listed once per slot level Sage can cast it at, such as "Fireball (3rd level)", "Fireball (4th level)" and "Fireball (5th level)", that cantrips appear once, and that the choice shows the spell's component text (it is shown, not enforced).
+7. [ ] **P1:** Look for Find Familiar (a ritual) in the action drawer. Expected refusal: it shows as unavailable with a message to cast it from the Sheet, and no slot is spent.
+8. [ ] **P1:** Cast **Magic Missile**. Confirm the slot count on the Sheet drops by one; then **GM:** choose Undo last action and confirm the slot is restored.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

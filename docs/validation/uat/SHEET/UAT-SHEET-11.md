@@ -17,13 +17,15 @@ Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1) · Path position 91
 
 ## Steps
 
-1. **P1:** Open Aria's Sheet in a second tab.
-2. **P1:** Note Aria's hit points on the Sheet.
-3. **GM:** In the tabletop window apply 2 damage to Aria through the Encounter actor controls.
-4. **P1:** Watch the Sheet without reloading.
-5. **P1:** In the browser developer tools Network panel choose "Offline" (this cuts the page's connection).
-6. **GM:** While P1 is offline, apply 1 more damage to Aria.
-7. **P1:** After about a minute switch the Network panel back to No throttling and wait for the page to reconnect without reloading.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open Aria's Sheet in a second tab.
+2. [ ] **P1:** Note Aria's hit points on the Sheet.
+3. [ ] **GM:** In the tabletop window apply 2 damage to Aria through the Encounter actor controls.
+4. [ ] **P1:** Watch the Sheet without reloading.
+5. [ ] **P1:** In the browser developer tools Network panel choose "Offline" (this cuts the page's connection).
+6. [ ] **GM:** While P1 is offline, apply 1 more damage to Aria.
+7. [ ] **P1:** After about a minute switch the Network panel back to No throttling and wait for the page to reconnect without reloading.
 
 ## Expected
 
@@ -48,5 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -19,20 +19,22 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Drag Hale's token into the goblin group's blast zone on purpose. GM's and P2's Auto-roll OFF. **Everyone:** Take a Long Rest on the Sheet first if the scenario needs spare slots, and clear old grants and conditions from earlier scenarios. Sage needs two 3rd-level and one 4th-level slot spare.
 
-1. **P1:** On Sage's turn choose **Fireball (3rd level)** and click a point on the map near the three Goblins and Hale.
-2. **P1:** Before it resolves, read the list of creatures caught. Confirm Hale (an ally) and the Goblins are listed.
-3. **P1:** Aim a second point far beyond the spell's range. Confirm an overridable warning, then cancel.
-4. **GM:** On the pending area, remove one Goblin from the list. Confirm only the GM has that control (P1 and P2 do not).
-5. **P2:** Confirm Hale's own save prompt appears for P2 only. Answer by typing a roll.
-6. **GM:** Answer the two remaining Goblin save prompts, in any order, one with a low roll and one with a high roll.
-7. **P1:** Confirm the action only settles after the last save is in. Read the damage on each target in the history.
-8. **GM:** Open the history. Confirm damage was rolled once for the area (8d6), full on a failed save and half on a success, per target.
-9. **GM:** Choose Undo last action. Confirm every target's hit points return and Sage's slot returns.
-10. **P1:** Recast at the 4th-level row. Confirm 9d6 is rolled for the area and a 4th-level slot is spent.
-11. **GM:** Undo the 4th-level cast. **P1 (Sage, Evocation):** Cast Fireball at the 3rd-level row again and in the caster's choices use **Sculpt Spells** to spare Hale. Confirm Hale automatically succeeds and takes no damage while the Goblins still save.
-12. **GM:** Undo that cast, then switch your own Auto-roll switch ON, and have **P1** recast Fireball. Confirm the Goblin saves are rolled without a prompt, while **P2** is still asked for Hale unless P2's own Auto-roll is on. Switch the GM's Auto-roll back OFF afterwards.
+1. [ ] **P1:** On Sage's turn choose **Fireball (3rd level)** and click a point on the map near the three Goblins and Hale.
+2. [ ] **P1:** Before it resolves, read the list of creatures caught. Confirm Hale (an ally) and the Goblins are listed.
+3. [ ] **P1:** Aim a second point far beyond the spell's range. Confirm an overridable warning, then cancel.
+4. [ ] **GM:** On the pending area, remove one Goblin from the list. Confirm only the GM has that control (P1 and P2 do not).
+5. [ ] **P2:** Confirm Hale's own save prompt appears for P2 only. Answer by typing a roll.
+6. [ ] **GM:** Answer the two remaining Goblin save prompts, in any order, one with a low roll and one with a high roll.
+7. [ ] **P1:** Confirm the action only settles after the last save is in. Read the damage on each target in the history.
+8. [ ] **GM:** Open the history. Confirm damage was rolled once for the area (8d6), full on a failed save and half on a success, per target.
+9. [ ] **GM:** Choose Undo last action. Confirm every target's hit points return and Sage's slot returns.
+10. [ ] **P1:** Recast at the 4th-level row. Confirm 9d6 is rolled for the area and a 4th-level slot is spent.
+11. [ ] **GM:** Undo the 4th-level cast. **P1 (Sage, Evocation):** Cast Fireball at the 3rd-level row again and in the caster's choices use **Sculpt Spells** to spare Hale. Confirm Hale automatically succeeds and takes no damage while the Goblins still save.
+12. [ ] **GM:** Undo that cast, then switch your own Auto-roll switch ON, and have **P1** recast Fireball. Confirm the Goblin saves are rolled without a prompt, while **P2** is still asked for Hale unless P2's own Auto-roll is on. Switch the GM's Auto-roll back OFF afterwards.
 
 ## Expected
 
@@ -59,5 +61,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

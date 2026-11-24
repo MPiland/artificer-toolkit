@@ -18,14 +18,16 @@ Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1) · Path posit
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In the Sandbox Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first). Leave it waiting to start. **P1:** Roll my dice automatically OFF.
 
-1. **GM:** Before starting, open P1's Character's Sheet and note its initiative modifier. Open the Wolf's stat block and note its Dexterity modifier.
-2. **GM:** Start the Encounter and roll initiative for everyone (with typed faces, for example 10 for each), and read the totals.
-3. **GM:** Make the Wolf Prone and have P1's Character attack it at melee range.
-4. **P1:** At the roll prompt read the advantage reason.
-5. **GM:** Give P1's Character the Bless effect. **P1:** Attack again and read the roll card's reasons.
-6. **GM:** Remove the effects.
+1. [ ] **GM:** Before starting, open P1's Character's Sheet and note its initiative modifier. Open the Wolf's stat block and note its Dexterity modifier.
+2. [ ] **GM:** Start the Encounter and roll initiative for everyone (with typed faces, for example 10 for each), and read the totals.
+3. [ ] **GM:** Make the Wolf Prone and have P1's Character attack it at melee range.
+4. [ ] **P1:** At the roll prompt read the advantage reason.
+5. [ ] **GM:** Give P1's Character the Bless effect. **P1:** Attack again and read the roll card's reasons.
+6. [ ] **GM:** Remove the effects.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

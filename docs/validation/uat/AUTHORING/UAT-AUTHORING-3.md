@@ -16,18 +16,20 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path pos
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/backgrounds/new`.
-2. **P1:** Try to publish (**Activate**) with the name empty.
-3. **P1:** Enter the name "UAT Wanderer", fill the required fields, and choose **Save Draft**.
-4. **P1:** Reload, then go to `<STAGING_URL>/backgrounds` and find your draft.
-5. **P1:** Open it, change the description, and choose **Activate**.
-6. **P1:** Confirm it now shows as Active/Published in the list and use the search box and filters to find it.
-7. **P1:** Open it, edit the name to "UAT Wanderer II", save the draft, and make another change that is invalid (for example clear a required field).
-8. **P1:** Try to **Activate** the invalid version.
-9. **P1:** Fix the field and choose **Activate** again.
-10. **P1:** Choose **Export JSON** on it.
-11. **P1:** Choose Delete and confirm. Then look at the list.
-12. **P1:** In a new draft, choose **Discard draft** and confirm.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/backgrounds/new`.
+2. [ ] **P1:** Try to publish (**Activate**) with the name empty.
+3. [ ] **P1:** Enter the name "UAT Wanderer", fill the required fields, and choose **Save Draft**.
+4. [ ] **P1:** Reload, then go to `<STAGING_URL>/backgrounds` and find your draft.
+5. [ ] **P1:** Open it, change the description, and choose **Activate**.
+6. [ ] **P1:** Confirm it now shows as Active/Published in the list and use the search box and filters to find it.
+7. [ ] **P1:** Open it, edit the name to "UAT Wanderer II", save the draft, and make another change that is invalid (for example clear a required field).
+8. [ ] **P1:** Try to **Activate** the invalid version.
+9. [ ] **P1:** Fix the field and choose **Activate** again.
+10. [ ] **P1:** Choose **Export JSON** on it.
+11. [ ] **P1:** Choose Delete and confirm. Then look at the list.
+12. [ ] **P1:** In a new draft, choose **Discard draft** and confirm.
 
 ## Expected
 
@@ -60,5 +62,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

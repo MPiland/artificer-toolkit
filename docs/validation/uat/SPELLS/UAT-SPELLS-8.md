@@ -19,18 +19,20 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1, P2:** Auto-roll OFF. **GM:** Place a Goblin adjacent to Sage and mark a Goblin hidden for step 6.
 S2. **GM:** For step 7, on a homebrew copy of the System record under `/systems`, define the homebrew condition and make the Campaign use that System. If the Campaign cannot use it or no condition editor exists, record step 7 BLOCKED with that reason.
 
-1. **GM:** Apply **Poisoned** to Sage from the condition control. **P1:** attack. Confirm disadvantage with the reason "Poisoned".
-2. **GM:** Replace with **Frightened**, then **Prone**, then **Restrained**. Each time confirm Sage's attacks roll with disadvantage naming the condition.
-3. **GM:** Make the Goblin Restrained, Stunned, Unconscious and Petrified in turn. Confirm attacks against each have advantage naming the condition.
-4. **GM:** Make the Goblin Prone. Confirm an adjacent attacker has advantage and one more than 5 feet away has disadvantage.
-5. **GM:** Apply Poisoned to Sage and start an Overrun or Tumble contest. Confirm Sage's ability check has disadvantage.
-6. **GM:** Add a Goblin token, mark it hidden, and make the hidden Goblin Frightened. Have it contest Hale's Overrun (or Tumble) so **P2** is asked for a roll. **P2:** Confirm the roll prompt shows disadvantage or the plain contest without naming the hidden Goblin's Frightened condition. Doubt: what exactly a player sees of a hidden holder's condition in a contest prompt.
-7. **GM:** Create a homebrew condition (for example "Dazed" with disadvantage on attack rolls), apply it to Sage, and have **P1** attack. Confirm the roll shows disadvantage naming "Dazed", the same way the SRD conditions did in step 2.
-8. **GM:** Set **Exhaustion** level 1 on Sage. Confirm ability checks have disadvantage; level 2 halves speed; level 3 gives attack and save disadvantage; level 5 sets speed 0.
-9. **P1:** Choose Dash while Restrained and again at Exhaustion 5. Confirm the movement budget stays 0 each time and returns to normal once the condition is removed.
+1. [ ] **GM:** Apply **Poisoned** to Sage from the condition control. **P1:** attack. Confirm disadvantage with the reason "Poisoned".
+2. [ ] **GM:** Replace with **Frightened**, then **Prone**, then **Restrained**. Each time confirm Sage's attacks roll with disadvantage naming the condition.
+3. [ ] **GM:** Make the Goblin Restrained, Stunned, Unconscious and Petrified in turn. Confirm attacks against each have advantage naming the condition.
+4. [ ] **GM:** Make the Goblin Prone. Confirm an adjacent attacker has advantage and one more than 5 feet away has disadvantage.
+5. [ ] **GM:** Apply Poisoned to Sage and start an Overrun or Tumble contest. Confirm Sage's ability check has disadvantage.
+6. [ ] **GM:** Add a Goblin token, mark it hidden, and make the hidden Goblin Frightened. Have it contest Hale's Overrun (or Tumble) so **P2** is asked for a roll. **P2:** Confirm the roll prompt shows disadvantage or the plain contest without naming the hidden Goblin's Frightened condition. Doubt: what exactly a player sees of a hidden holder's condition in a contest prompt.
+7. [ ] **GM:** Create a homebrew condition (for example "Dazed" with disadvantage on attack rolls), apply it to Sage, and have **P1** attack. Confirm the roll shows disadvantage naming "Dazed", the same way the SRD conditions did in step 2.
+8. [ ] **GM:** Set **Exhaustion** level 1 on Sage. Confirm ability checks have disadvantage; level 2 halves speed; level 3 gives attack and save disadvantage; level 5 sets speed 0.
+9. [ ] **P1:** Choose Dash while Restrained and again at Exhaustion 5. Confirm the movement budget stays 0 each time and returns to normal once the condition is removed.
    R1. **GM:** Clear every condition and Exhaustion from Sage and the Goblin.
 
 ## Expected
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

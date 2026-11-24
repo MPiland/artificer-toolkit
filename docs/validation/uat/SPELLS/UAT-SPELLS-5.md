@@ -19,16 +19,18 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Place the Wolf adjacent to Sage and Goblins in a line 3 and 5 squares away. **Everyone:** Take a Long Rest on the Sheet first if the scenario needs spare slots, and clear old grants and conditions from earlier scenarios.
 
-1. **P1:** Choose **Burning Hands**. Press on Sage's token, drag toward the Goblins and release. Confirm a cone is drawn from where you pressed in the direction you dragged and that the list shows the creatures inside it.
-2. **P1:** Cast it. **GM:** answer the saves. Confirm damage per creature as in scenario 3.
-3. **GM:** Undo. **P1:** Choose **Lightning Bolt**. Drag a line through two Goblins. Confirm the line catches the two it crosses.
-4. **P1:** Choose **Thunderwave** and pick which side of Sage's space the cube extends from. Confirm it snaps to the grid on that side, centered along that side. Pick each of the four sides and confirm each snap.
-5. **P1:** Confirm Sage is never in her own Thunderwave list.
-6. **P1:** Try to pick a single point for Burning Hands (a click with no drag). Confirm it is refused with a message about needing a direction.
-7. **P1:** Try to drag a direction for Fireball. Confirm a different refusal message about needing a point.
-8. **GM:** Add a **Magma Mephit** next to two Goblins and reduce it to 0 HP so its Death Burst (a 5-foot area centered on itself) triggers. Confirm every creature whose token overlaps that area is caught except the Mephit, and each gets its own save (the printed DC is 11). Doubt: Death Burst's exact area wording and whether it triggers from a hand-set 0 HP or only from damage; if not, hit it with damage instead.
+1. [ ] **P1:** Choose **Burning Hands**. Press on Sage's token, drag toward the Goblins and release. Confirm a cone is drawn from where you pressed in the direction you dragged and that the list shows the creatures inside it.
+2. [ ] **P1:** Cast it. **GM:** answer the saves. Confirm damage per creature as in scenario 3.
+3. [ ] **GM:** Undo. **P1:** Choose **Lightning Bolt**. Drag a line through two Goblins. Confirm the line catches the two it crosses.
+4. [ ] **P1:** Choose **Thunderwave** and pick which side of Sage's space the cube extends from. Confirm it snaps to the grid on that side, centered along that side. Pick each of the four sides and confirm each snap.
+5. [ ] **P1:** Confirm Sage is never in her own Thunderwave list.
+6. [ ] **P1:** Try to pick a single point for Burning Hands (a click with no drag). Confirm it is refused with a message about needing a direction.
+7. [ ] **P1:** Try to drag a direction for Fireball. Confirm a different refusal message about needing a point.
+8. [ ] **GM:** Add a **Magma Mephit** next to two Goblins and reduce it to 0 HP so its Death Burst (a 5-foot area centered on itself) triggers. Confirm every creature whose token overlaps that area is caught except the Mephit, and each gets its own save (the printed DC is 11). Doubt: Death Burst's exact area wording and whether it triggers from a hand-set 0 HP or only from damage; if not, hit it with damage instead.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

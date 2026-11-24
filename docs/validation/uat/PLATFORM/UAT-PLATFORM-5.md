@@ -16,11 +16,13 @@ Level 4 (Advanced play) · Feature PLATFORM · Mode: Group (GM, P1) · Path posi
 
 ## Steps
 
-1. **GM:** After the Wolf's bite in [UAT-SPELLS-7](../SPELLS/UAT-SPELLS-7.md) step 7, open the chat and find the Concentration save roll card for Sage.
-2. **P1:** Open the chat in P1's window and find the same card.
-3. **GM:** Read the card: the DC, the d20 and total, and the result wording.
-4. **P1:** Compare with the Encounter history entry for the bite and the save.
-5. **GM:** Reload the tabletop and find the card again.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** After the Wolf's bite in [UAT-SPELLS-7](../SPELLS/UAT-SPELLS-7.md) step 7, open the chat and find the Concentration save roll card for Sage.
+2. [ ] **P1:** Open the chat in P1's window and find the same card.
+3. [ ] **GM:** Read the card: the DC, the d20 and total, and the result wording.
+4. [ ] **P1:** Compare with the Encounter history entry for the bite and the save.
+5. [ ] **GM:** Reload the tabletop and find the card again.
 
 ## Expected
 
@@ -46,5 +48,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

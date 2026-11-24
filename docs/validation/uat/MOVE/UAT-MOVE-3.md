@@ -18,20 +18,22 @@ Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Turn **Fog of war** on for the Scene (Shared party). **GM:** Roll my dice automatically OFF.
 
-1. **P1:** On your own turn (or if turn order does not matter in this build, now), drag Aria's token away from the Wolf, out of its reach.
-2. **P1:** Read what appears, and note which part of the map is revealed to you beyond the point where the move stopped.
-3. **GM:** Open the **Pending decision**. Read the prompt for the Wolf.
-4. **P1 and P2:** While it is open, try to move another token and try to open a door.
-5. **GM:** Try to undo the last token move.
-6. **GM:** Choose **Use reaction** for the Wolf's opportunity attack.
-7. **GM:** Answer any roll prompt (with auto-roll off, type or roll the attack).
-8. **P1:** Watch the token and the chat.
-9. **P1:** Move Aria back next to the Wolf and away again, to get a second pause.
-10. **GM:** This time choose **Decline reaction**.
-11. **P1:** Move Aria back next to the Wolf and away a third time to get another pause.
-12. **GM:** Choose **Skip decision**.
+1. [ ] **P1:** On your own turn (or if turn order does not matter in this build, now), drag Aria's token away from the Wolf, out of its reach.
+2. [ ] **P1:** Read what appears, and note which part of the map is revealed to you beyond the point where the move stopped.
+3. [ ] **GM:** Open the **Pending decision**. Read the prompt for the Wolf.
+4. [ ] **P1 and P2:** While it is open, try to move another token and try to open a door.
+5. [ ] **GM:** Try to undo the last token move.
+6. [ ] **GM:** Choose **Use reaction** for the Wolf's opportunity attack.
+7. [ ] **GM:** Answer any roll prompt (with auto-roll off, type or roll the attack).
+8. [ ] **P1:** Watch the token and the chat.
+9. [ ] **P1:** Move Aria back next to the Wolf and away again, to get a second pause.
+10. [ ] **GM:** This time choose **Decline reaction**.
+11. [ ] **P1:** Move Aria back next to the Wolf and away a third time to get another pause.
+12. [ ] **GM:** Choose **Skip decision**.
     R1. **GM:** Turn **Fog of war** OFF again.
 
 ## Expected
@@ -60,5 +62,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

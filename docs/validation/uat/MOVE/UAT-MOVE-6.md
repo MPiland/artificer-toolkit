@@ -18,13 +18,15 @@ Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 
 
 ## Steps
 
-1. **P1:** Move P1's Character's token.
-2. **P2:** Move P2's Character's token at about the same time.
-3. **All:** Compare maps.
-4. **P2:** Reload the page.
-5. **P1:** Go offline (Network panel) and move P1's Character's token; go back online.
-6. **GM:** Remove P2 from the Campaign (see CAMPAIGN UAT).
-7. **P2:** Try to move P2's Character's token and reload.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Move P1's Character's token.
+2. [ ] **P2:** Move P2's Character's token at about the same time.
+3. [ ] **All:** Compare maps.
+4. [ ] **P2:** Reload the page.
+5. [ ] **P1:** Go offline (Network panel) and move P1's Character's token; go back online.
+6. [ ] **GM:** Remove P2 from the Campaign (see CAMPAIGN UAT).
+7. [ ] **P2:** Try to move P2's Character's token and reload.
    R1. **GM:** Re-seat P2 and add P2's token back to the Scene in the Sandbox Campaign as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md) (invite by username, accept, assign the Character).
 
 ## Expected
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

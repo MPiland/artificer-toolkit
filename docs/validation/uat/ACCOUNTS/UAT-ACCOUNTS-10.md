@@ -15,12 +15,14 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1, SUPERAD
 
 ## Steps
 
-1. **SUPERADMIN:** Sign in and open `<STAGING_URL>/social/moderation`.
-2. **SUPERADMIN:** Read the list of items waiting for review.
-3. **GM:** Create or report a Social listing so there is something to moderate, if the list is empty.
-4. **SUPERADMIN:** Open an item and record a review decision.
-5. **SUPERADMIN:** Reload the page.
-6. **P1:** Sign in and check the affected listing.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **SUPERADMIN:** Sign in and open `<STAGING_URL>/social/moderation`.
+2. [ ] **SUPERADMIN:** Read the list of items waiting for review.
+3. [ ] **GM:** Create or report a Social listing so there is something to moderate, if the list is empty.
+4. [ ] **SUPERADMIN:** Open an item and record a review decision.
+5. [ ] **SUPERADMIN:** Reload the page.
+6. [ ] **P1:** Sign in and check the affected listing.
 
 ## Expected
 
@@ -46,5 +48,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

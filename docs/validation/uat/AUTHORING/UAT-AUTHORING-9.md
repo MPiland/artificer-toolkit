@@ -17,13 +17,15 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path pos
 
 ## Steps
 
-1. **GM:** Open `<STAGING_URL>/systems` and the SRD System, then find **Reusable definitions**.
-2. **GM:** Page through the list with **Next definitions page** and **Previous definitions page**; use **Definition family** to see the seven families.
-3. **GM:** Under **Create reusable definition**, choose one family, enter a **Label** and a description, and create it.
-4. **GM:** Edit its **Reusable definition document**, save, and reload.
-5. **GM:** Open the same definition in a second browser tab, change the label there and save.
-6. **GM:** In the first tab (still on the older version), try to save and publish.
-7. **GM:** Reload the first tab and publish.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open `<STAGING_URL>/systems` and the SRD System, then find **Reusable definitions**.
+2. [ ] **GM:** Page through the list with **Next definitions page** and **Previous definitions page**; use **Definition family** to see the seven families.
+3. [ ] **GM:** Under **Create reusable definition**, choose one family, enter a **Label** and a description, and create it.
+4. [ ] **GM:** Edit its **Reusable definition document**, save, and reload.
+5. [ ] **GM:** Open the same definition in a second browser tab, change the label there and save.
+6. [ ] **GM:** In the first tab (still on the older version), try to save and publish.
+7. [ ] **GM:** Reload the first tab and publish.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

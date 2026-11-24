@@ -17,14 +17,16 @@ Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path pos
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** Run the scenario once with Auto-roll ON and once with it OFF.
 
-1. **P1:** Set Auto-roll ON. Take a turn and attack. Count the roll cards your attack posts.
-2. **GM:** Add a creature with Recharge (such as a Dragon Wyrmling) and one with Legendary Actions as reinforcements (Heavy setup: add the creatures by hand), take the Recharge creature's turn and count cards at turn start; when the legendary window opens after another creature's turn, roll its legendary dice and count cards.
-3. **P1:** Set Auto-roll OFF. Attack again; at the roll prompt choose **Roll dice**, then commit. Count cards.
-4. **P1:** Attack again and type physical dice faces instead. Count cards.
-5. **GM:** Make an attack that has advantage or disadvantage (the roll prompt names the reason), change the roll mode at the prompt before committing, and watch the card. Then turn on your computer's "reduce motion" accessibility setting, reload, and repeat.
-6. **GM:** Open Chat and look at where each card went (Table, To GM, Just me). Then mark the Goblin's token hidden, have it attack, and look under **Enemy rolls** and **My rolls**.
+1. [ ] **P1:** Set Auto-roll ON. Take a turn and attack. Count the roll cards your attack posts.
+2. [ ] **GM:** Add a creature with Recharge (such as a Dragon Wyrmling) and one with Legendary Actions as reinforcements (Heavy setup: add the creatures by hand), take the Recharge creature's turn and count cards at turn start; when the legendary window opens after another creature's turn, roll its legendary dice and count cards.
+3. [ ] **P1:** Set Auto-roll OFF. Attack again; at the roll prompt choose **Roll dice**, then commit. Count cards.
+4. [ ] **P1:** Attack again and type physical dice faces instead. Count cards.
+5. [ ] **GM:** Make an attack that has advantage or disadvantage (the roll prompt names the reason), change the roll mode at the prompt before committing, and watch the card. Then turn on your computer's "reduce motion" accessibility setting, reload, and repeat.
+6. [ ] **GM:** Open Chat and look at where each card went (Table, To GM, Just me). Then mark the Goblin's token hidden, have it attack, and look under **Enemy rolls** and **My rolls**.
    R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
 
 ## Expected
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

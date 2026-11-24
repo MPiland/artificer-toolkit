@@ -18,15 +18,17 @@ Level 3 (Core play) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path positio
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** Auto-roll ON.
 S2. **GM:** In the Sandbox Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first). Open **Optional combat rules** and note that Morale appears only once it resolves.
 
-1. **GM:** Open table settings and select **Morale** under **Optional combat rules** if it is offered. If it is not offered, record that and stop (the AC says it appears only once it resolves).
-2. **GM:** Start a new Run of the Wolf and Goblin Blueprint in the Sandbox.
-3. **P1:** On P1's Character's turns attack the Goblin until it is at half hit points or fewer.
-4. **GM:** Confirm a morale save is offered for the Goblin. Accept and resolve it.
-5. **GM:** If the save fails, read the proposed outcome (flee, or surrender when escape is impossible). Confirm it.
-6. **GM:** Open the Goblin's actor card. Confirm the outcome is shown as a morale mark.
+1. [ ] **GM:** Open table settings and select **Morale** under **Optional combat rules** if it is offered. If it is not offered, record that and stop (the AC says it appears only once it resolves).
+2. [ ] **GM:** Start a new Run of the Wolf and Goblin Blueprint in the Sandbox.
+3. [ ] **P1:** On P1's Character's turns attack the Goblin until it is at half hit points or fewer.
+4. [ ] **GM:** Confirm a morale save is offered for the Goblin. Accept and resolve it.
+5. [ ] **GM:** If the save fails, read the proposed outcome (flee, or surrender when escape is impossible). Confirm it.
+6. [ ] **GM:** Open the Goblin's actor card. Confirm the outcome is shown as a morale mark.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

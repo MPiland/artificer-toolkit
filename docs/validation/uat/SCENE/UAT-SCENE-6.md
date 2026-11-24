@@ -17,15 +17,17 @@ Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1) · Path position 70 
 
 ## Steps
 
-1. **GM:** Open the browser developer tools Network panel and choose **Offline**.
-2. **GM:** Move a token and add a wall while offline.
-3. **GM:** Switch back to No throttling, wait for reconnect, and watch the map.
-4. **GM:** Reload.
-5. **P1:** Check the map.
-6. **GM:** Close the tab entirely while offline, reopen the tabletop window online, and check the map.
-7. **GM:** Open the tabletop window in a second browser tab (tab B) beside the first (tab A). In tab A move the wall a little; in tab B, without reloading, move the same wall somewhere else.
-8. **GM:** Reload both tabs and compare the wall.
-9. **GM:** Add a spare token, then in tab A double-click its remove control (two clicks in under a second) and check the token list.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the browser developer tools Network panel and choose **Offline**.
+2. [ ] **GM:** Move a token and add a wall while offline.
+3. [ ] **GM:** Switch back to No throttling, wait for reconnect, and watch the map.
+4. [ ] **GM:** Reload.
+5. [ ] **P1:** Check the map.
+6. [ ] **GM:** Close the tab entirely while offline, reopen the tabletop window online, and check the map.
+7. [ ] **GM:** Open the tabletop window in a second browser tab (tab B) beside the first (tab A). In tab A move the wall a little; in tab B, without reloading, move the same wall somewhere else.
+8. [ ] **GM:** Reload both tabs and compare the wall.
+9. [ ] **GM:** Add a spare token, then in tab A double-click its remove control (two clicks in under a second) and check the token list.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

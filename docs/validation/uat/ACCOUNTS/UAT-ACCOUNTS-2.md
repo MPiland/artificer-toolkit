@@ -15,11 +15,13 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path posi
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/sign-in`.
-2. **P1:** Enter the email address of P1 and a wrong password; submit.
-3. **P1:** Enter an unknown username `nobody_here_uat` and any password; submit.
-4. **P1:** Submit with both fields empty.
-5. **P1:** Sign in correctly.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/sign-in`.
+2. [ ] **P1:** Enter the email address of P1 and a wrong password; submit.
+3. [ ] **P1:** Enter an unknown username `nobody_here_uat` and any password; submit.
+4. [ ] **P1:** Submit with both fields empty.
+5. [ ] **P1:** Sign in correctly.
 
 ## Expected
 
@@ -45,5 +47,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

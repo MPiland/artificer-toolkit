@@ -16,16 +16,18 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path pos
 
 ## Steps
 
-1. **GM:** Open `<STAGING_URL>/backgrounds` and open an SRD Background (for example Acolyte).
-2. **GM:** Try to type into any field on the page.
-3. **GM:** Look for any edit or delete controls.
-4. **GM:** Choose **Duplicate to edit**.
-5. **GM:** Note the new page: its URL, the name and the Draft badge. Edit the name to "UAT Acolyte Copy".
-6. **GM:** Choose **Save Draft**, then reload.
-7. **GM:** Go back to the SRD Acolyte and confirm it is unchanged.
-8. **GM:** Repeat steps 1-4 for an SRD Creature (Wolf at `<STAGING_URL>/creatures`) and an SRD Spell, without editing.
-9. **GM:** In Settings, Preferences set **Authoring experience** to Advanced, then repeat step 4 on another Background.
-10. **GM:** On each copy choose **Discard draft** so no clutter remains.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open `<STAGING_URL>/backgrounds` and open an SRD Background (for example Acolyte).
+2. [ ] **GM:** Try to type into any field on the page.
+3. [ ] **GM:** Look for any edit or delete controls.
+4. [ ] **GM:** Choose **Duplicate to edit**.
+5. [ ] **GM:** Note the new page: its URL, the name and the Draft badge. Edit the name to "UAT Acolyte Copy".
+6. [ ] **GM:** Choose **Save Draft**, then reload.
+7. [ ] **GM:** Go back to the SRD Acolyte and confirm it is unchanged.
+8. [ ] **GM:** Repeat steps 1-4 for an SRD Creature (Wolf at `<STAGING_URL>/creatures`) and an SRD Spell, without editing.
+9. [ ] **GM:** In Settings, Preferences set **Authoring experience** to Advanced, then repeat step 4 on another Background.
+10. [ ] **GM:** On each copy choose **Discard draft** so no clutter remains.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

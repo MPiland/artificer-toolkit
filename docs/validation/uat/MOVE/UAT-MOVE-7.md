@@ -17,15 +17,17 @@ Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 107
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In table settings enable the optional movement rules (Overrun, Shove Aside, Tumble); if they do not appear, start a new Encounter. The confirmed labels are **Overrun**, **Tumble** and **Decline passage**.
 
-1. **P1:** On Aria's turn start a move and choose the Overrun option to pass through the Wolf's space. Note Aria's movement readout before and during the contest.
-2. **GM:** When the contest prompt appears, roll or type the Wolf's roll.
-3. **P1:** Roll or type Aria's roll.
-4. **P1:** Repeat with **Tumble** to pass through an enemy's space.
-5. **GM:** Choose **Decline passage** on one of the contests.
-6. **P1:** Start a Shove Aside move past an ally.
-7. **P1:** Choose the destination square offered for the shoved creature.
+1. [ ] **P1:** On Aria's turn start a move and choose the Overrun option to pass through the Wolf's space. Note Aria's movement readout before and during the contest.
+2. [ ] **GM:** When the contest prompt appears, roll or type the Wolf's roll.
+3. [ ] **P1:** Roll or type Aria's roll.
+4. [ ] **P1:** Repeat with **Tumble** to pass through an enemy's space.
+5. [ ] **GM:** Choose **Decline passage** on one of the contests.
+6. [ ] **P1:** Start a Shove Aside move past an ally.
+7. [ ] **P1:** Choose the destination square offered for the shoved creature.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

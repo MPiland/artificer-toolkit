@@ -19,17 +19,19 @@ Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1, P2) · Path positio
 
 ## Steps
 
-1. **GM:** Open Review: Party in the Field and its Campaign chat; leave it on the Table conversation.
-2. **P2:** Open the same Campaign chat on the Table conversation.
-3. **P1:** Open Aria's Sheet and click a skill (for example Athletics) to start a roll. Read the **Roll destination** choices.
-4. **P1:** Leave the destination at **Table** and choose **Roll dice**.
-5. **P1:** Start another roll, set the destination to **To GM**, and roll.
-6. **P1:** Start a third roll, set the destination to **Just me**, and roll.
-7. **P1:** Open **Open roll history** on the Sheet.
-8. **P1:** Start a short rest preview and roll a hit die; look at the destination choices offered for this roll.
-9. **P1:** Reload the Sheet and open the roll history again.
-10. **P1:** In the roll history, use the clear or discard control (if the history offers one) on one entry, then reload and reopen the history.
-11. **P2:** Paste the address of Aria's Sheet (copied from P1's window) into P2's window and try to open it and its roll history.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open Review: Party in the Field and its Campaign chat; leave it on the Table conversation.
+2. [ ] **P2:** Open the same Campaign chat on the Table conversation.
+3. [ ] **P1:** Open Aria's Sheet and click a skill (for example Athletics) to start a roll. Read the **Roll destination** choices.
+4. [ ] **P1:** Leave the destination at **Table** and choose **Roll dice**.
+5. [ ] **P1:** Start another roll, set the destination to **To GM**, and roll.
+6. [ ] **P1:** Start a third roll, set the destination to **Just me**, and roll.
+7. [ ] **P1:** Open **Open roll history** on the Sheet.
+8. [ ] **P1:** Start a short rest preview and roll a hit die; look at the destination choices offered for this roll.
+9. [ ] **P1:** Reload the Sheet and open the roll history again.
+10. [ ] **P1:** In the roll history, use the clear or discard control (if the history offers one) on one entry, then reload and reopen the history.
+11. [ ] **P2:** Paste the address of Aria's Sheet (copied from P1's window) into P2's window and try to open it and its roll history.
 
 ## Expected
 
@@ -58,5 +60,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

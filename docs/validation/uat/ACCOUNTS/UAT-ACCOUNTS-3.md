@@ -16,14 +16,16 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1) · Path
 
 ## Steps
 
-1. **GM:** In profile A, sign in as GM and open `<STAGING_URL>/campaigns`.
-2. **P1:** In profile B, sign in as P1 and open `<STAGING_URL>/campaigns`.
-3. **P1:** Open `<STAGING_URL>/characters` and note the Characters listed.
-4. **GM:** Open `<STAGING_URL>/characters` and note the Characters listed.
-5. **P1:** Open a second tab in profile B on `<STAGING_URL>/home`.
-6. **P1:** In the second tab, sign out (open /logout).
-7. **P1:** Switch to the first tab and click any navigation link (for example Characters).
-8. **GM:** Reload your page in profile A.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** In profile A, sign in as GM and open `<STAGING_URL>/campaigns`.
+2. [ ] **P1:** In profile B, sign in as P1 and open `<STAGING_URL>/campaigns`.
+3. [ ] **P1:** Open `<STAGING_URL>/characters` and note the Characters listed.
+4. [ ] **GM:** Open `<STAGING_URL>/characters` and note the Characters listed.
+5. [ ] **P1:** Open a second tab in profile B on `<STAGING_URL>/home`.
+6. [ ] **P1:** In the second tab, sign out (open /logout).
+7. [ ] **P1:** Switch to the first tab and click any navigation link (for example Characters).
+8. [ ] **GM:** Reload your page in profile A.
 
 ## Expected
 
@@ -49,5 +51,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

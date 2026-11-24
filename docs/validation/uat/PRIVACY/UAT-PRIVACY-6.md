@@ -18,14 +18,16 @@ Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path posit
 
 ## Steps
 
-1. **GM:** In the Encounter drawer find the health display choice and read the default.
-2. **P2:** Look at Aria's and the Wolf's health on the tabletop and in the turn order.
-3. **P1:** Open the Character health setting for Aria and choose **Descriptive**.
-4. **P2:** Read Aria's health again.
-5. **P1:** Change Aria's setting to **Bar**, then **Exact**.
-6. **GM:** Set the Encounter's health display to **Descriptive** for the Wolf, **Bar** for the Goblin, and give the Wolf a per-actor override of **Exact**.
-7. **P1:** Read the Wolf and Goblin health.
-8. **GM:** Read all health values.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** In the Encounter drawer find the health display choice and read the default.
+2. [ ] **P2:** Look at Aria's and the Wolf's health on the tabletop and in the turn order.
+3. [ ] **P1:** Open the Character health setting for Aria and choose **Descriptive**.
+4. [ ] **P2:** Read Aria's health again.
+5. [ ] **P1:** Change Aria's setting to **Bar**, then **Exact**.
+6. [ ] **GM:** Set the Encounter's health display to **Descriptive** for the Wolf, **Bar** for the Goblin, and give the Wolf a per-actor override of **Exact**.
+7. [ ] **P1:** Read the Wolf and Goblin health.
+8. [ ] **GM:** Read all health values.
    R1. **GM:** Set the health display for player-side and creature tokens back to its default (Hidden).
 
 ## Expected
@@ -54,5 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

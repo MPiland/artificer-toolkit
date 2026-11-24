@@ -18,16 +18,18 @@ Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1) · Path position 1
 
 ## Steps
 
-1. **P1:** Without using the mouse, press Tab until a token has focus. Confirm a visible focus outline.
-2. **P1:** Use the arrow keys to move between tokens; press Enter or Space to select.
-3. **P1:** Open the action drawer by keyboard, pick an attack, and choose a target with the keyboard. Press Esc and confirm targeting cancels.
-4. **P1:** On Aria's turn, move Aria's token by keyboard. Confirm the movement readout updates.
-5. **GM:** Zoom the map out to its lowest zoom. Confirm tokens are still distinguishable and not only by colour.
-6. **P1:** Check that dispositions, conditions and turn state are shown by shape, icon or text as well as colour.
-7. **P1:** With Narrator on, focus a token. Confirm it reads the name, disposition, statuses and position.
-8. **P1:** Make an attack that hits. Confirm the live region announces the outcome.
-9. **P1:** Open the target list with the screen reader. Confirm entries read name, distance and range state.
-10. **P1:** Resize to 375 px width (device toolbar). Confirm the map and drawer remain usable.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Without using the mouse, press Tab until a token has focus. Confirm a visible focus outline.
+2. [ ] **P1:** Use the arrow keys to move between tokens; press Enter or Space to select.
+3. [ ] **P1:** Open the action drawer by keyboard, pick an attack, and choose a target with the keyboard. Press Esc and confirm targeting cancels.
+4. [ ] **P1:** On Aria's turn, move Aria's token by keyboard. Confirm the movement readout updates.
+5. [ ] **GM:** Zoom the map out to its lowest zoom. Confirm tokens are still distinguishable and not only by colour.
+6. [ ] **P1:** Check that dispositions, conditions and turn state are shown by shape, icon or text as well as colour.
+7. [ ] **P1:** With Narrator on, focus a token. Confirm it reads the name, disposition, statuses and position.
+8. [ ] **P1:** Make an attack that hits. Confirm the live region announces the outcome.
+9. [ ] **P1:** Open the target list with the screen reader. Confirm entries read name, distance and range state.
+10. [ ] **P1:** Resize to 375 px width (device toolbar). Confirm the map and drawer remain usable.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

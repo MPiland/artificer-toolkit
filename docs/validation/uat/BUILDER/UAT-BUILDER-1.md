@@ -16,18 +16,20 @@ Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path posit
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/characters` and choose **Create Character**.
-2. **P1:** Enter **Character Name** "UAT Dara" and choose a Race, a Class and a Background.
-3. **P1:** Fill the ability scores (use the **Ability Method** the page offers) and pick the equipment choices.
-4. **P1:** Choose **Save Character Draft**.
-5. **P1:** Close the tab. Reopen `<STAGING_URL>/characters` and find the draft; open it.
-6. **P1:** Confirm your earlier choices are intact, then change the Background and save the draft again.
-7. **P1:** Start a second Character, enter the name "UAT Throwaway", save the draft, then choose **Discard draft** and confirm.
-8. **P1:** Back on "UAT Dara", go to the **Review** step.
-9. **P1:** Read the status. If it says **Needs attention**, open the listed items and fix them until it says **Ready to activate**.
-10. **P1:** Choose **Activate** to commit the Character.
-11. **P1:** Open the new Character's Sheet.
-12. **P1:** Reload the Sheet and check the Characters list.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/characters` and choose **Create Character**.
+2. [ ] **P1:** Enter **Character Name** "UAT Dara" and choose a Race, a Class and a Background.
+3. [ ] **P1:** Fill the ability scores (use the **Ability Method** the page offers) and pick the equipment choices.
+4. [ ] **P1:** Choose **Save Character Draft**.
+5. [ ] **P1:** Close the tab. Reopen `<STAGING_URL>/characters` and find the draft; open it.
+6. [ ] **P1:** Confirm your earlier choices are intact, then change the Background and save the draft again.
+7. [ ] **P1:** Start a second Character, enter the name "UAT Throwaway", save the draft, then choose **Discard draft** and confirm.
+8. [ ] **P1:** Back on "UAT Dara", go to the **Review** step.
+9. [ ] **P1:** Read the status. If it says **Needs attention**, open the listed items and fix them until it says **Ready to activate**.
+10. [ ] **P1:** Choose **Activate** to commit the Character.
+11. [ ] **P1:** Open the new Character's Sheet.
+12. [ ] **P1:** Reload the Sheet and check the Characters list.
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

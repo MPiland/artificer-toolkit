@@ -17,16 +17,18 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path pos
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/spells/new`.
-2. **P1:** Name it "UAT Ember Dart", set a level (for example 1), a school, a casting time, and add the Wizard Class (or another SRD Class) to the Class list.
-3. **P1:** Upload [artwork.png](../assets/artwork.png) as the artwork, choose **Save Draft**, reload and confirm the artwork shows.
-4. **P1:** Publish with **Activate**.
-5. **P1:** Open the Active Spell for editing (this starts a new draft), upload [avatar-a.png](../assets/avatar-a.png) as a different image, then choose **Discard draft** and confirm. Open the Spell again.
-6. **P1:** Open `<STAGING_URL>/spells`, filter by the level, school, Class and casting time you chose and find "UAT Ember Dart".
-7. **P1:** Change a filter so it should not match and confirm it disappears.
-8. **P1:** Choose **Export JSON** on it.
-9. **P1:** Choose **Duplicate**, name the copy "UAT Ember Dart Copy", and save the draft.
-10. **P1:** Open the signed-out page `<STAGING_URL>/spells` in a private window (not signed in).
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/spells/new`.
+2. [ ] **P1:** Name it "UAT Ember Dart", set a level (for example 1), a school, a casting time, and add the Wizard Class (or another SRD Class) to the Class list.
+3. [ ] **P1:** Upload [artwork.png](../assets/artwork.png) as the artwork, choose **Save Draft**, reload and confirm the artwork shows.
+4. [ ] **P1:** Publish with **Activate**.
+5. [ ] **P1:** Open the Active Spell for editing (this starts a new draft), upload [avatar-a.png](../assets/avatar-a.png) as a different image, then choose **Discard draft** and confirm. Open the Spell again.
+6. [ ] **P1:** Open `<STAGING_URL>/spells`, filter by the level, school, Class and casting time you chose and find "UAT Ember Dart".
+7. [ ] **P1:** Change a filter so it should not match and confirm it disappears.
+8. [ ] **P1:** Choose **Export JSON** on it.
+9. [ ] **P1:** Choose **Duplicate**, name the copy "UAT Ember Dart Copy", and save the draft.
+10. [ ] **P1:** Open the signed-out page `<STAGING_URL>/spells` in a private window (not signed in).
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

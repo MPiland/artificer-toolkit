@@ -19,14 +19,16 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1) · Path positi
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Mark a Goblin token hidden (its token menu).
 
-1. **GM:** Add a Goblin token and mark it hidden so players are not sent it.
-2. **GM:** Place it inside an area Sage will fireball, with two visible Goblins.
-3. **P1:** Cast Fireball over all three.
-4. **GM:** Answer all save prompts; give the hidden Goblin a failed save first time.
-5. **P1:** Read the results. Confirm the hidden Goblin appears only if it failed its save.
-6. **GM:** Undo, and repeat with the hidden Goblin succeeding. Confirm P1 sees nothing about it.
+1. [ ] **GM:** Add a Goblin token and mark it hidden so players are not sent it.
+2. [ ] **GM:** Place it inside an area Sage will fireball, with two visible Goblins.
+3. [ ] **P1:** Cast Fireball over all three.
+4. [ ] **GM:** Answer all save prompts; give the hidden Goblin a failed save first time.
+5. [ ] **P1:** Read the results. Confirm the hidden Goblin appears only if it failed its save.
+6. [ ] **GM:** Undo, and repeat with the hidden Goblin succeeding. Confirm P1 sees nothing about it.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

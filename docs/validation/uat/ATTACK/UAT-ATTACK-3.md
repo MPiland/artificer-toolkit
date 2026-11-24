@@ -18,20 +18,22 @@ Level 4 (Advanced play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** If Review: Party in the Field has no running Encounter, create and start one with Aria, Bryn, Cade, a Wolf and a Goblin, as in [ENCOUNTER-1](../ENCOUNTER/UAT-ENCOUNTER-1.md) steps 12 to 16, and advance until Aria is the active actor.
 S2. **P1:** Switch **Auto-roll** ON.
 
-1. **P1:** On Aria's turn, pick an attack and aim at the Wolf. Move Aria's token away first so the Wolf is out of weapon range (use a square or two more than her reach).
-2. **P1:** Confirm. Read the warning and confirm it has a **Do it anyway** button.
-3. **P1:** Choose **Do it anyway**. Confirm the attack resolves.
-4. **GM:** Open the Encounter history. Confirm the entry shows an override badge.
-5. **P1:** Spend the Action (attack), then try a second action that needs an Action. Read the warning and choose **Do it anyway**.
-6. **P1:** Use Aria's Second Wind (a limited-use feature), then try it a second time and, if a warning with **Do it anyway** appears, choose it. Check Aria's Second Wind uses on the Sheet: confirm they never go below zero.
-7. **P1:** Target a friendly creature (Bryn) with an attack. Read the disposition warning and confirm it offers **Do it anyway** (the dimmed-with-reason actions of [UAT-ATTACK-1](UAT-ATTACK-1.md) step 3 and this friendly-target warning are ATTACK-3.1, covered in [UAT-ATTACK-1](UAT-ATTACK-1.md)).
-8. **P1:** On the Sheet unequip Aria's club, then try an attack with it from the drawer. Read the warning.
-9. **P2:** On Bryn's turn, try to act out of turn for Aria. Confirm the refusal has no **Do it anyway** button.
-10. **P1:** In a duplicate browser tab with an old copy of the page (do not reload), try to act again after the Encounter changed in the other tab. Confirm a stale-information refusal with no **Do it anyway**.
-11. **GM:** Complete the Encounter (this ends the Review Encounter; the Party Encounter is not needed again). **P1:** From the old tab try an action on the completed Encounter. Confirm refusal with no **Do it anyway**.
+1. [ ] **P1:** On Aria's turn, pick an attack and aim at the Wolf. Move Aria's token away first so the Wolf is out of weapon range (use a square or two more than her reach).
+2. [ ] **P1:** Confirm. Read the warning and confirm it has a **Do it anyway** button.
+3. [ ] **P1:** Choose **Do it anyway**. Confirm the attack resolves.
+4. [ ] **GM:** Open the Encounter history. Confirm the entry shows an override badge.
+5. [ ] **P1:** Spend the Action (attack), then try a second action that needs an Action. Read the warning and choose **Do it anyway**.
+6. [ ] **P1:** Use Aria's Second Wind (a limited-use feature), then try it a second time and, if a warning with **Do it anyway** appears, choose it. Check Aria's Second Wind uses on the Sheet: confirm they never go below zero.
+7. [ ] **P1:** Target a friendly creature (Bryn) with an attack. Read the disposition warning and confirm it offers **Do it anyway** (the dimmed-with-reason actions of [UAT-ATTACK-1](UAT-ATTACK-1.md) step 3 and this friendly-target warning are ATTACK-3.1, covered in [UAT-ATTACK-1](UAT-ATTACK-1.md)).
+8. [ ] **P1:** On the Sheet unequip Aria's club, then try an attack with it from the drawer. Read the warning.
+9. [ ] **P2:** On Bryn's turn, try to act out of turn for Aria. Confirm the refusal has no **Do it anyway** button.
+10. [ ] **P1:** In a duplicate browser tab with an old copy of the page (do not reload), try to act again after the Encounter changed in the other tab. Confirm a stale-information refusal with no **Do it anyway**.
+11. [ ] **GM:** Complete the Encounter (this ends the Review Encounter; the Party Encounter is not needed again). **P1:** From the old tab try an action on the completed Encounter. Confirm refusal with no **Do it anyway**.
 
 ## Expected
 
@@ -58,5 +60,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

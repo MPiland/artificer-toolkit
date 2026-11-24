@@ -18,17 +18,19 @@ Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Add a token for "UAT Bryn Sandbox" (P2) to the presented Scene, so P1's and P2's Characters both have tokens.
 
-1. **GM:** In the Scene settings check **Fog of war** is off. **P1:** note what is visible.
-2. **GM:** Turn **Fog of war** on and choose **Shared party** fog.
-3. **P1 and P2:** Look at the map.
-4. **GM:** Move P1's Character's token across the map.
-5. **P2:** Look at the map.
-6. **GM:** Change **Fog visibility** to **Per player**. Choose **Choose player**, pick P2, and drag an area to edit that player's fog (**Drag an area on the map to edit fog.**).
-7. **P1 and P2:** Compare the maps.
-8. **GM:** Choose **Reveal entire map**, then switch fog off.
-9. **GM:** Use **Full GM view** and then **GM vision preview** for P1.
+1. [ ] **GM:** In the Scene settings check **Fog of war** is off. **P1:** note what is visible.
+2. [ ] **GM:** Turn **Fog of war** on and choose **Shared party** fog.
+3. [ ] **P1 and P2:** Look at the map.
+4. [ ] **GM:** Move P1's Character's token across the map.
+5. [ ] **P2:** Look at the map.
+6. [ ] **GM:** Change **Fog visibility** to **Per player**. Choose **Choose player**, pick P2, and drag an area to edit that player's fog (**Drag an area on the map to edit fog.**).
+7. [ ] **P1 and P2:** Compare the maps.
+8. [ ] **GM:** Choose **Reveal entire map**, then switch fog off.
+9. [ ] **GM:** Use **Full GM view** and then **GM vision preview** for P1.
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**
