@@ -190,7 +190,7 @@ describe('AuthForms', () => {
     expect(passwordInput).toHaveAttribute('minlength', '12')
     expect(passwordInput).toHaveAttribute('maxlength', '128')
     expect(confirmPasswordInput).toHaveAttribute('autocomplete', 'new-password')
-    expect(screen.getByText('Use 12 to 128 characters.')).toBeInTheDocument()
+    expect(screen.getByText('At least 12 characters.')).toBeInTheDocument()
   })
 
   it('submits the required signup fields and shows neutral confirmation copy', async () => {

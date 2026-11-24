@@ -174,7 +174,7 @@ export function UpdatePasswordForm({
       )}
       <PasswordInput
         label='New password'
-        description={`Use ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters. Avoid a password you use at another table or tool.`}
+        description={`At least ${PASSWORD_MIN_LENGTH} characters. Avoid a password you use at another table or tool.`}
         classNames={{
           input: textInput
         }}
