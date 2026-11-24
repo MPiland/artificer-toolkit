@@ -6,7 +6,7 @@ import type { AccountPasswordUpdateInput } from '@artificer-toolkit/schema/api/a
 import { authEmailDeliveryInputSchema } from '@artificer-toolkit/schema/api/auth'
 import { convexTest } from '../tests/convexTest'
 import { generateValidUsername } from '../tests/fixtures/generatedUsername'
-import { api, components } from './_generated/api'
+import { api, components, internal } from './_generated/api'
 import authSchema from './betterAuth/schema'
 import schema from './schema'
 
@@ -109,6 +109,55 @@ describe('account journeys through the Better Auth HTTP handler', () => {
     expect(await findUser(signup.email)).toBeNull()
     expect(await deliveries(signup.email)).toEqual([])
     expect((await request('sign-in/email', { body: signup })).status).toBe(401)
+  })
+
+  // The web form's invitation flow: redeem the link, then sign in with the credentials just set.
+  it('redeems an invitation and signs the new account in; a refused redemption signs nobody in', async () => {
+    const { t, request, findUser } = await backend()
+    const { email, username, password } = signupInput()
+    const token = 'c'.repeat(64)
+    await t.mutation(internal.authInvitations.issue, { email, token })
+
+    const refused = await request('invitation/redeem', {
+      body: { email, token: 'd'.repeat(64), username, password }
+    })
+    expect(refused.status).toBe(400)
+    expect(refused.setCookies).toEqual([])
+    expect(await findUser(email)).toBeNull()
+    expect((await request('sign-in/email', { body: { email, password } })).status).toBe(401)
+
+    expect(
+      await request('invitation/redeem', { body: { email, token, username, password } })
+    ).toMatchObject({ status: 200, body: { success: true } })
+    const login = await request('sign-in/email', { body: { email, password } })
+    expect(login.status).toBe(200)
+    const sessionToken = login.body?.token
+    if (typeof sessionToken !== 'string') throw new Error('Invited login returned no session.')
+    expect(login.setCookies.some((cookie) => cookie.includes('session_token='))).toBe(true)
+
+    const exchanged = await request('convex/token', { bearer: sessionToken })
+    expect(exchanged.status).toBe(200)
+    const jwt = exchanged.body?.token
+    if (typeof jwt !== 'string') throw new Error('Bearer exchange returned no JWT.')
+    const { payload } = await jwtVerify(
+      jwt,
+      createLocalJWKSet(
+        z
+          .object({
+            keys: z.array(
+              z.object({ kty: z.string(), kid: z.string(), n: z.string(), e: z.string() })
+            )
+          })
+          .parse((await request('convex/jwks')).body)
+      ),
+      { algorithms: ['RS256'], issuer: 'http://127.0.0.1:3221', audience: 'convex' }
+    )
+    if (typeof payload.sub !== 'string' || typeof payload.sessionId !== 'string')
+      throw new Error('JWT carries no session identity.')
+    const session = await t
+      .withIdentity({ subject: payload.sub, sessionId: payload.sessionId })
+      .query(api.account.session, {})
+    expect(session.user).toMatchObject({ email, registrationCompleted: true })
   })
 
   it('signs up, verifies the emailed link, logs in by email and username, reads with a native bearer JWT and signs out', async () => {

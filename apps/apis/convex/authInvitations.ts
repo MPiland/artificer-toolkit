@@ -87,7 +87,7 @@ export const redeem = internalMutation({
     // Email possession was proven by the invitation, not by a client emailVerified flag.
     await internalAdapter.updateUser(created.user.id, { emailVerified: true })
     await internalAdapter.deleteVerificationByIdentifier(identifier)
-    // No session is issued. User signs in normally after committing setup. Nested
+    // No session is issued. The web form signs in normally after this commits. Nested
     // component writes, profile creation and token consumption share this transaction.
     return null
   }
