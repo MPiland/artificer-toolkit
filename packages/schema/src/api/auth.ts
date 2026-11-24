@@ -213,6 +213,15 @@ export const authInvitationIssueInputSchema = lazySchema(() =>
   })
 )
 
+// Deployment-admin CLI batch: each address is invited independently.
+export const authInvitationBatchInputSchema = lazySchema(() =>
+  z.strictObject({
+    emails: z
+      .array(authInvitationIssueInputSchema.shape.email)
+      .check(z.minLength(1), z.maxLength(25))
+  })
+)
+
 export const authInvitationRedeemInputSchema = lazySchema(() =>
   z.extend(authInvitationIssueInputSchema, {
     token: z.string().check(z.regex(/^[a-f0-9]{64}$/)),

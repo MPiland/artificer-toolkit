@@ -80,6 +80,27 @@ describe('one-use account invitations', () => {
     expect(await f.user()).toBeNull()
   })
 
+  it('invites a batch of addresses independently and reports an existing account without a link', async () => {
+    const f = fixture()
+    await f.issue()
+    await f.t.action(internal.authInvitationActions.redeem, f.input)
+    const fresh = `${crypto.randomUUID()}@example.invalid`
+    const result = await f.t.action(internal.authInvitationsCli.invite, {
+      emails: [fresh.toUpperCase(), f.input.email, fresh]
+    })
+    expect(result).toEqual({
+      invited: [fresh],
+      failed: [{ email: f.input.email, reason: expect.stringContaining('Account already exists.') }]
+    })
+    expect(JSON.stringify(result)).not.toMatch(/[a-f0-9]{64}/)
+    const jobs = await f.t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(10))
+    const invitations = jobs
+      .map((job) => job.args[0] as { action?: string; recipient?: string })
+      .filter((delivery) => delivery.action === 'invite')
+      .map((delivery) => delivery.recipient)
+    expect(invitations).toEqual([f.input.email, fresh])
+  })
+
   it('creates one verified ordinary account and credential, consumes the link, and leaves signup closed', async () => {
     const f = fixture()
     await f.issue()

@@ -13,7 +13,7 @@ const input = {
 }
 await assert.rejects(
   client.action(makeFunctionReference<'action'>('authInvitationsCli:invite'), {
-    email: input.email
+    emails: [input.email]
   }),
   /public function/i
 )

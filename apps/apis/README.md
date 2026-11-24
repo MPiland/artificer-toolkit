@@ -402,10 +402,12 @@ provider administration routes. After verifying the selected development target 
 its email provider, run from this workspace:
 
 ```powershell
-yarn convex run authInvitationsCli:invite '{"email":"recipient@example.com"}'
+yarn convex run authInvitationsCli:invite '{"emails":["first@example.com","second@example.com"]}'
 ```
 
-This sends an email; it returns no token. Links expire after 24 hours and reissue invalidates the
+It takes 1–25 addresses (the dashboard's Run function panel accepts the same arguments), sends one
+email per address and returns `{ invited, failed }`; an address with an existing account is listed
+under `failed` without blocking the others. It returns no token. Links expire after 24 hours and reissue invalidates the
 previous link. Redeeming creates a verified ordinary account and consumes the link atomically,
 then the recipient signs in normally. An existing account is never overwritten. Never put real
 invitation links or passwords in validation logs. Deployment/runtime proof and browser acceptance
