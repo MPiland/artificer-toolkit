@@ -163,7 +163,7 @@ It is idempotent. A Campaign with its final `Review data ready` Session is skipp
 
 ### Managed (staging) target
 
-`node scripts/seedReviewData.mjs --managed --set=<N>` builds tester set N on a managed deployment. It needs the owner's approval for each run (ADR 0035); local data is set 0 and is unchanged.
+`node scripts/seedReviewData.mjs --managed --set=<N>` builds tester set N on a managed deployment. It needs the owner's approval for each run (ADR 0035); local data is set 0 and is unchanged. UAT round 1 does not use it: the owner runs UAT with their own accounts and external testers join at alpha (D235).
 
 - **Set.** Five accounts, already verified, so sign-in needs no email: `<mailbox>+t<N>-gm`, `-p1`, `-p2`, `-p3`, `-spare` (for example `mekhit02+t3-gm@gmail.com`). The set owns its own copy of the four review Campaigns, with `(set N)` in each name. Sets never share accounts or Campaigns.
 - **Environment (names only; values stay in the operator's shell, never in the repo or logs).** `CONVEX_URL`, `CONVEX_SITE_URL` (a `*.convex.cloud` deployment and its `.convex.site`), `REVIEW_MANAGED_CONFIRM` (the deployment name), `REVIEW_MANAGED_ADMIN_KEY` (a short-lived dashboard key with data write permission, `deployment:data:write`; the CI deploy-only key cannot run these calls; delete it after the run), `REVIEW_WORKER_CONTROL_SECRET`, `REVIEW_MAILBOX` (`name@domain`), optional `REVIEW_WEB_ORIGIN`. `CONVEX_DEPLOY_KEY` and the self-hosted variables must be unset.
