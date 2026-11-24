@@ -307330,7 +307330,15 @@ export declare const internal: {
     >;
   };
   authInvitationsCli: {
-    invite: FunctionReference<"action", "internal", { email: string }, null>;
+    invite: FunctionReference<
+      "action",
+      "internal",
+      { emails: Array<string> },
+      {
+        failed: Array<{ email: string; reason: string }>;
+        invited: Array<string>;
+      }
+    >;
   };
   authRecovery: {
     execute: FunctionReference<
