@@ -190,6 +190,70 @@ describe('browser journey selection', () => {
       })
     })
 
+    // The browser verifiers under apps/web/tests/live-backend run only inside the proof that loads them.
+    describe('live-backend browser verifiers', () => {
+      const ciProofsOfRunner = ciProofsOf(
+        readFileSync(resolve(root, 'scripts/runLocalConvexProof.ps1'), 'utf8')
+      )
+      const selected = (path) =>
+        pushProofs(graph, [path], ciProofsOfRunner, {}, {}, []).proofs.sort()
+
+      it.each([
+        [
+          'the signed-in request audit',
+          'apps/web/tests/live-backend/signedInRequestAudit.ts',
+          ['signed-in-request-audit']
+        ],
+        [
+          'the password recovery verifier',
+          'apps/web/tests/live-backend/passwordRecovery.ts',
+          ['recovery-browser']
+        ],
+        [
+          'the authoring verifier shared by the publication journeys',
+          'apps/web/tests/live-backend/nativeAuthoring.ts',
+          [
+            'publication-browser',
+            'publication-class-browser',
+            'publication-equipment-browser',
+            'publication-feat-browser'
+          ]
+        ]
+      ])('runs only its journeys when %s changes', (_, path, proofs) => {
+        expect(selected(path)).toEqual(proofs)
+      })
+
+      // The other encounter verifiers import its account type, so the import graph selects theirs too.
+      it('runs both movement journeys when the movement verifier changes', () => {
+        expect(selected('apps/web/tests/live-backend/encounterMovement.ts')).toEqual(
+          expect.arrayContaining(['movement', 'passage'])
+        )
+      })
+
+      it('runs every journey that loads a shared helper', () => {
+        expect(selected('apps/web/tests/live-backend/clientAddress.ts')).toEqual(
+          expect.arrayContaining([
+            'campaign-lifecycle',
+            'movement',
+            'recovery-browser',
+            'social-browser'
+          ])
+        )
+      })
+
+      // v15WorkloadBrowser.ts is loaded only by the record-only v15 workload, but the shared encounter
+      // driver module imports it, so the graph selects the encounter journeys for it.
+      it('selects a journey for every verifier', () => {
+        const verifiers = execFileSync('git', ['ls-files', 'apps/web/tests/live-backend'], {
+          cwd: root,
+          encoding: 'utf8'
+        })
+          .split('\n')
+          .filter(Boolean)
+        expect(verifiers.filter((path) => selected(path).length === 0)).toEqual([])
+      })
+    })
+
     it('names only tracked proof specs', () => {
       const tracked = execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' })
         .split('\n')
