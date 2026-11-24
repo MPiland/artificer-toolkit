@@ -5,8 +5,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { UpdatePasswordPage } from './UpdatePasswordPage'
 
 const mocks = vi.hoisted(() => ({
+  clear: vi.fn(),
   invalidate: vi.fn(),
-  navigate: vi.fn()
+  navigate: vi.fn(),
+  result: { ok: true } as { ok: boolean }
+}))
+
+vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ clear: mocks.clear })
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -25,15 +31,20 @@ vi.mock('../components/AuthPageShell', () => ({
 
 vi.mock('../components/UpdatePasswordForm', () => ({
   UpdatePasswordForm: ({
+    invitation,
     invitationCredentials,
     onSuccess
   }: {
+    invitation: boolean
     invitationCredentials?: { email: string; token: string }
-    onSuccess?: () => Promise<void>
+    onSuccess?: (result: { ok: boolean }) => Promise<void>
   }) => (
     <>
       <span data-testid='invitation-email'>{invitationCredentials?.email}</span>
-      <button disabled={!invitationCredentials} onClick={() => void onSuccess?.()}>
+      <button
+        disabled={invitation && !invitationCredentials}
+        onClick={() => void onSuccess?.(mocks.result)}
+      >
         Complete registration
       </button>
     </>
@@ -94,7 +105,7 @@ describe('UpdatePasswordPage invitation flow', () => {
     expect(window.location.hash).toBe('')
   })
 
-  it('keeps valid credentials in memory, clears the fragment, and returns to sign in after redemption', async () => {
+  it('keeps valid credentials in memory, clears the fragment, and opens the signed-in home after redemption', async () => {
     const token = 'a'.repeat(64)
     window.history.replaceState(
       {},
@@ -113,9 +124,45 @@ describe('UpdatePasswordPage invitation flow', () => {
     )
     expect(window.location.hash).toBe('')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Complete registration' }))
+    const assign = vi.fn()
+    vi.stubGlobal('location', { ...window.location, assign })
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Complete registration' }))
 
-    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith({ to: '/sign-in' }))
-    expect(mocks.invalidate).not.toHaveBeenCalled()
+      await waitFor(() => expect(assign).toHaveBeenCalledExactlyOnceWith('/home'))
+      expect(mocks.clear).toHaveBeenCalledOnce()
+      expect(mocks.navigate).not.toHaveBeenCalled()
+      expect(mocks.invalidate).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it.each([
+    { name: 'a password reset', invitation: false, result: { ok: true } },
+    { name: 'an invitation whose sign-in failed', invitation: true, result: { ok: false } }
+  ])('returns to sign in after $name', async ({ invitation, result }) => {
+    window.history.replaceState(
+      {},
+      '',
+      `/update-password?flow=invite#email=player%40example.com&token=${'a'.repeat(64)}`
+    )
+    mocks.result = result
+    const assign = vi.fn()
+    vi.stubGlobal('location', { ...window.location, assign })
+
+    try {
+      render(<UpdatePasswordPage invitation={invitation} />)
+      const submit = screen.getByRole('button', { name: 'Complete registration' })
+      await waitFor(() => expect(submit).toBeEnabled())
+      fireEvent.click(submit)
+
+      await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith({ to: '/sign-in' }))
+      expect(assign).not.toHaveBeenCalled()
+      expect(mocks.clear).not.toHaveBeenCalled()
+    } finally {
+      mocks.result = { ok: true }
+      vi.unstubAllGlobals()
+    }
   })
 })

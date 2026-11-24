@@ -500,4 +500,53 @@ describe('AuthForms', () => {
     )
     expect(onSuccess).toHaveBeenCalled()
   })
+
+  it.each([
+    { signedIn: { ok: true }, message: 'Your account is ready.' },
+    {
+      signedIn: { ok: false, message: 'Too many sign-in attempts. Try again shortly.' },
+      message: 'Your account is ready. Sign in to continue.'
+    }
+  ])(
+    'signs in with the invited email and new password after redemption: $message',
+    async ({ signedIn, message }) => {
+      const calls: string[] = []
+      const completeInvitation = vi.fn(async () => {
+        calls.push('redeem')
+        return { ok: true }
+      })
+      const signIn = vi.fn(async () => {
+        calls.push('sign-in')
+        return signedIn
+      })
+      const onSuccess = vi.fn()
+
+      renderAuthForm(
+        <UpdatePasswordForm
+          authClient={createAuthClient({ completeInvitation, signIn })}
+          invitation
+          invitationCredentials={{ email: 'player@example.com', token: 'a'.repeat(64) }}
+          onSuccess={onSuccess}
+        />
+      )
+      fireEvent.change(screen.getByRole('textbox', { name: /^username/i }), {
+        target: { value: 'player_one' }
+      })
+      fireEvent.change(screen.getByLabelText(/new password/i, { selector: 'input' }), {
+        target: { value: 'new-password-123' }
+      })
+      fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
+        target: { value: 'new-password-123' }
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Complete registration' }))
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalledExactlyOnceWith(signedIn))
+      expect(calls).toEqual(['redeem', 'sign-in'])
+      expect(signIn).toHaveBeenCalledWith({
+        identifier: 'player@example.com',
+        password: 'new-password-123'
+      })
+      expect(screen.getByText(message)).toBeInTheDocument()
+    }
+  )
 })

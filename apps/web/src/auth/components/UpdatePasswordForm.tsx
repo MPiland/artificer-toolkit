@@ -130,11 +130,22 @@ export function UpdatePasswordForm({
         return
       }
 
-      const message = invitation
-        ? 'Your account is ready.'
-        : 'Use your new password the next time you sign in.'
+      // Redemption issues no session (authInvitations.redeem); the new account signs in through
+      // the ordinary sign-in path with the credentials just set.
+      const outcome =
+        invitation && invitationCredentials
+          ? await authClient.signIn({
+              identifier: invitationCredentials.email,
+              password: parsedPassword.data
+            })
+          : result
+      const message = !invitation
+        ? 'Use your new password the next time you sign in.'
+        : outcome.ok
+          ? 'Your account is ready.'
+          : 'Your account is ready. Sign in to continue.'
       setFeedback({ tone: 'success', message })
-      await onSuccess?.(result)
+      await onSuccess?.(outcome)
     } finally {
       setIsSubmitting(false)
     }
