@@ -20,15 +20,17 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
-1. **P1:** Cast **Magic Missile** choosing the same Goblin for two darts and another for one. Confirm each dart is its own damage instance.
-2. **P1:** Cast **Scorching Ray** with a different target mix. Confirm per-ray attack rolls.
-3. Eldritch Blast needs a Warlock, which no shared Character is; its beam split and level scaling are checked in [UAT-SPELLS-27](UAT-SPELLS-27.md) step 9. Continue here.
-4. **P1:** Cast a multi-target spell with per-creature saves such as Hold Person at a higher slot (3rd level or above). Confirm one save per creature, each answered by the GM for the creatures.
-5. **P1:** Cast **Misty Step**. Click a free square within range. Confirm the token teleports with no path and no opportunity attacks.
-6. **P1:** Cast **Dimension Door** and teleport. Confirm it too.
-7. **P1:** Try a second teleport move without casting. Confirm it is refused.
-8. **GM:** Undo the cast. Confirm the position returns.
-9. **P2:** Hale casts **Word of Recall** and **Plane Shift** (Plane Shift is a 7th-level spell, which is why Hale is level 13; its travel half teleports the target). **P3:** Moss casts **Giant Insect**. **P1:** Sage casts **Telepathic Bond**. Confirm each resolves the right outcome (teleport, manifest, link).
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Cast **Magic Missile** choosing the same Goblin for two darts and another for one. Confirm each dart is its own damage instance.
+2. [ ] **P1:** Cast **Scorching Ray** with a different target mix. Confirm per-ray attack rolls.
+3. [ ] Eldritch Blast needs a Warlock, which no shared Character is; its beam split and level scaling are checked in [UAT-SPELLS-27](UAT-SPELLS-27.md) step 9. Continue here.
+4. [ ] **P1:** Cast a multi-target spell with per-creature saves such as Hold Person at a higher slot (3rd level or above). Confirm one save per creature, each answered by the GM for the creatures.
+5. [ ] **P1:** Cast **Misty Step**. Click a free square within range. Confirm the token teleports with no path and no opportunity attacks.
+6. [ ] **P1:** Cast **Dimension Door** and teleport. Confirm it too.
+7. [ ] **P1:** Try a second teleport move without casting. Confirm it is refused.
+8. [ ] **GM:** Undo the cast. Confirm the position returns.
+9. [ ] **P2:** Hale casts **Word of Recall** and **Plane Shift** (Plane Shift is a 7th-level spell, which is why Hale is level 13; its travel half teleports the target). **P3:** Moss casts **Giant Insect**. **P1:** Sage casts **Telepathic Bond**. Confirm each resolves the right outcome (teleport, manifest, link).
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

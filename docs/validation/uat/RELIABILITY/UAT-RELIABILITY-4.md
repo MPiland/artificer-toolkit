@@ -17,15 +17,17 @@ Level 2 (GM setup) · Feature RELIABILITY · Mode: Solo (GM) · Path position 76
 
 ## Steps
 
-1. **GM:** In **Live maps** upload the image and name it "Reliability squares".
-2. **GM:** Choose **Square** and the unit feet. Note the default distance per cell shown.
-3. **GM:** Switch the unit to metres. Note the new default distance per cell.
-4. **GM:** Switch the unit to squares. Note the new default distance per cell.
-5. **GM:** Switch back to feet and save the Scene.
-6. **GM:** Present the Scene and add a token for a creature.
-7. **GM:** Start a new Encounter on this Scene (Campaign mode Assisted; [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 and 5), with a creature a few squares from another.
-8. **GM:** Move a token, then pick an attack action against a creature a few squares away and read the range shown.
-9. **GM:** Set a second new Scene's unit to squares, present it, start an Encounter and repeat step 8.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** In **Live maps** upload the image and name it "Reliability squares".
+2. [ ] **GM:** Choose **Square** and the unit feet. Note the default distance per cell shown.
+3. [ ] **GM:** Switch the unit to metres. Note the new default distance per cell.
+4. [ ] **GM:** Switch the unit to squares. Note the new default distance per cell.
+5. [ ] **GM:** Switch back to feet and save the Scene.
+6. [ ] **GM:** Present the Scene and add a token for a creature.
+7. [ ] **GM:** Start a new Encounter on this Scene (Campaign mode Assisted; [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 and 5), with a creature a few squares from another.
+8. [ ] **GM:** Move a token, then pick an attack action against a creature a few squares away and read the range shown.
+9. [ ] **GM:** Set a second new Scene's unit to squares, present it, start an Encounter and repeat step 8.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

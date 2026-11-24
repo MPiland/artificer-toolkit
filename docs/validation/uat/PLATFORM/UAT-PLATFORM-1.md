@@ -15,14 +15,16 @@ Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (GM) · Path posi
 
 ## Steps
 
-1. **GM:** Sign in and open `<STAGING_URL>/systems`.
-2. **GM:** Note how many Game Systems are listed, then open the SRD System.
-3. **GM:** On the System page, look through the catalogues it shows (for example Rules Catalogues and reusable definitions) and open one entry.
-4. **GM:** Open `<STAGING_URL>/spells`. In **Search spells**, type "Fireball" and open the result.
-5. **GM:** Open `<STAGING_URL>/creatures`, search "Wolf", open it, go back, search "Goblin", open it.
-6. **GM:** Open `<STAGING_URL>/classes` and find Fighter. Open `<STAGING_URL>/races` and find the Dragonborn. Open `<STAGING_URL>/backgrounds`, `<STAGING_URL>/feats`, `<STAGING_URL>/vehicles` and confirm each list has entries.
-7. **GM:** Open `<STAGING_URL>/equipment`, search "Healer" and open "Healer's Kit".
-8. **GM:** Reload the Fireball page and the Wolf page.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Sign in and open `<STAGING_URL>/systems`.
+2. [ ] **GM:** Note how many Game Systems are listed, then open the SRD System.
+3. [ ] **GM:** On the System page, look through the catalogues it shows (for example Rules Catalogues and reusable definitions) and open one entry.
+4. [ ] **GM:** Open `<STAGING_URL>/spells`. In **Search spells**, type "Fireball" and open the result.
+5. [ ] **GM:** Open `<STAGING_URL>/creatures`, search "Wolf", open it, go back, search "Goblin", open it.
+6. [ ] **GM:** Open `<STAGING_URL>/classes` and find Fighter. Open `<STAGING_URL>/races` and find the Dragonborn. Open `<STAGING_URL>/backgrounds`, `<STAGING_URL>/feats`, `<STAGING_URL>/vehicles` and confirm each list has entries.
+7. [ ] **GM:** Open `<STAGING_URL>/equipment`, search "Healer" and open "Healer's Kit".
+8. [ ] **GM:** Reload the Fireball page and the Wolf page.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

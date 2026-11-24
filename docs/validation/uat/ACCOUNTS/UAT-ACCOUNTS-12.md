@@ -17,18 +17,20 @@ Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Mode: Solo
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Create a throwaway Campaign "UAT Delete Camp" as in [CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md) steps 1 and 2. Invite OWN by username from their profile, as in [SOCIAL-2](../SOCIAL/UAT-SOCIAL-2.md); **OWN:** accept.
 S2. **OWN:** Build a Fighter Character as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) and assign it to "UAT Delete Camp". Create a homebrew Spell as in [AUTHORING-4](../AUTHORING/UAT-AUTHORING-4.md).
 S3. **GM:** Start a Session, present a Scene and start a short Encounter with the Character; **OWN:** post one chat message and make one roll.
 
-1. **OWN:** Open the live tabletop of the shared Campaign and post a chat message and make one roll.
-2. **OWN:** Note the Characters and homebrew you own.
-3. **OWN:** Open `<STAGING_URL>/settings/account` and choose **Delete account**.
-4. **OWN:** Type the account email and the password; confirm.
-5. **OWN:** Try to sign in again.
-6. **GM:** Reload the tabletop and read the chat, roll history and Session log.
-7. **GM:** Open the Encounter history and the member list.
-8. **GM:** Reload the tabletop after a minute.
+1. [ ] **OWN:** Open the live tabletop of the shared Campaign and post a chat message and make one roll.
+2. [ ] **OWN:** Note the Characters and homebrew you own.
+3. [ ] **OWN:** Open `<STAGING_URL>/settings/account` and choose **Delete account**.
+4. [ ] **OWN:** Type the account email and the password; confirm.
+5. [ ] **OWN:** Try to sign in again.
+6. [ ] **GM:** Reload the tabletop and read the chat, roll history and Session log.
+7. [ ] **GM:** Open the Encounter history and the member list.
+8. [ ] **GM:** Reload the tabletop after a minute.
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

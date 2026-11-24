@@ -17,13 +17,15 @@ Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position
 
 ## Steps
 
-1. **GM:** Open the Blueprint in the Encounter builder in two browser tabs, A and B.
-2. **GM (tab A):** Rename the Blueprint and save.
-3. **GM (tab B), without reloading:** Add a second Goblin and save.
-4. **GM:** Reload both tabs and compare the Blueprint name and creature list.
-5. **GM (tab A):** Double-click the save control (two clicks in under a second) after a small change, then open the Encounter history or list.
-6. **P1:** Open the Campaign's Encounter list and look for the Blueprint. Then paste the Blueprint builder's address (copy it from the GM's tab) into P1's browser.
-7. **Signed-out window:** Paste the live table address of the Sandbox Campaign.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the Blueprint in the Encounter builder in two browser tabs, A and B.
+2. [ ] **GM (tab A):** Rename the Blueprint and save.
+3. [ ] **GM (tab B), without reloading:** Add a second Goblin and save.
+4. [ ] **GM:** Reload both tabs and compare the Blueprint name and creature list.
+5. [ ] **GM (tab A):** Double-click the save control (two clicks in under a second) after a small change, then open the Encounter history or list.
+6. [ ] **P1:** Open the Campaign's Encounter list and look for the Blueprint. Then paste the Blueprint builder's address (copy it from the GM's tab) into P1's browser.
+7. [ ] **Signed-out window:** Paste the live table address of the Sandbox Campaign.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

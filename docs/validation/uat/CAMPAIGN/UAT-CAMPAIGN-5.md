@@ -17,16 +17,18 @@ Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Open `<STAGING_URL>/vehicles/new`, create a Vehicle named "UAT Party Wagon" and **Activate** it, so one exists to choose.
 
-1. **GM:** Open the Campaign **Inventory** area and add an item and some currency to the party inventory.
-2. **P1:** Open the Campaign and view the party inventory.
-3. **P1:** Move an item from your Character's inventory to the party inventory, then move one back.
-4. **GM:** Create a Vehicle for the Campaign by choosing a Vehicle definition.
-5. **GM:** Place cargo in the Vehicle from the party inventory.
-6. **GM:** Mark the Vehicle unavailable, then restore it.
-7. **GM:** Return the cargo, then destroy the Vehicle.
-8. **P1:** Reload and check where the cargo is.
+1. [ ] **GM:** Open the Campaign **Inventory** area and add an item and some currency to the party inventory.
+2. [ ] **P1:** Open the Campaign and view the party inventory.
+3. [ ] **P1:** Move an item from your Character's inventory to the party inventory, then move one back.
+4. [ ] **GM:** Create a Vehicle for the Campaign by choosing a Vehicle definition.
+5. [ ] **GM:** Place cargo in the Vehicle from the party inventory.
+6. [ ] **GM:** Mark the Vehicle unavailable, then restore it.
+7. [ ] **GM:** Return the cargo, then destroy the Vehicle.
+8. [ ] **P1:** Reload and check where the cargo is.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -16,9 +16,11 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1) · Path
 
 ## Steps
 
-1. **GM:** Open `<STAGING_URL>/social/moderation`.
-2. **P1:** Open `<STAGING_URL>/social/moderation`.
-3. **GM:** Open `<STAGING_URL>/social` and look for any moderation entry in the navigation.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open `<STAGING_URL>/social/moderation`.
+2. [ ] **P1:** Open `<STAGING_URL>/social/moderation`.
+3. [ ] **GM:** Open `<STAGING_URL>/social` and look for any moderation entry in the navigation.
 
 ## Expected
 
@@ -43,5 +45,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

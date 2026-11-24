@@ -16,13 +16,15 @@ Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path posit
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/library/import`.
-2. **P1:** Under **Choose a source** pick the Foundry source type and choose the JSON file [foundry-uat-fighter.json](../assets/foundry-uat-fighter.json).
-3. **P1:** Review the preview. All three custom items are listed under **Drafts required (3)** (they are imported as drafts; there is no per-item Active or Draft choice for them). Note the section each item is in and import.
-4. **P1:** Open the imported Character's Sheet.
-5. **P1:** Open the custom weapon, armor and shield in Equipment (`<STAGING_URL>/equipment`).
-6. **P1:** On the Sheet inventory check which hand holds the weapon and shield and what is worn.
-7. **P1:** Make an attack with the custom weapon from the Sheet.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/library/import`.
+2. [ ] **P1:** Under **Choose a source** pick the Foundry source type and choose the JSON file [foundry-uat-fighter.json](../assets/foundry-uat-fighter.json).
+3. [ ] **P1:** Review the preview. All three custom items are listed under **Drafts required (3)** (they are imported as drafts; there is no per-item Active or Draft choice for them). Note the section each item is in and import.
+4. [ ] **P1:** Open the imported Character's Sheet.
+5. [ ] **P1:** Open the custom weapon, armor and shield in Equipment (`<STAGING_URL>/equipment`).
+6. [ ] **P1:** On the Sheet inventory check which hand holds the weapon and shield and what is worn.
+7. [ ] **P1:** Make an attack with the custom weapon from the Sheet.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

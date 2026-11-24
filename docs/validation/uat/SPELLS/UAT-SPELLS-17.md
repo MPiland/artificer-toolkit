@@ -19,17 +19,19 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In the item authoring forms build the ring as the steps describe. If the form cannot express a rule, mark the scenario BLOCKED and report which rule is missing. The Sheet lists each held Concentration with its own End Concentration button (SPELLS-12.T4b). Known gap: the once-per-dawn use counter display is unverified; do not assert it.
 
-1. **GM:** In authoring create the homebrew ring described above and give it to Sage. **P1:** Equip it on Sage's Sheet.
-2. **P1:** In the Encounter cast **Hold Person** on a Goblin, then **Fear** on the Wolf. Confirm both are held and the second cast does not replace the first.
-3. **P1:** Cast **Charm Person** (a third Concentration). Confirm the prompt **End which Concentration?** and that choosing Hold Person ends only it and its grants.
-4. **GM:** Damage Sage. Confirm one Concentration save per spell, in casting order, each prompted to **P1**.
-5. **GM:** Fail the second save. Confirm only that spell ends.
-6. **GM:** With only one spell held, damage Sage and confirm the ring's advantage is named on the save. With two held, damage Sage by more than 10 plus the second spell's level and confirm the disadvantage on the second spell's save is named.
-7. **GM:** While two are held, confirm Sage has vulnerability to psychic damage (a psychic hit is doubled); end one and confirm the vulnerability goes.
-8. **P1:** With the ring's one use per dawn already spent, cast a new Concentration and confirm it replaces the old one instead of keeping both.
-9. **P1:** Unequip the ring, cast a new Concentration and confirm it replaces the old.
+1. [ ] **GM:** In authoring create the homebrew ring described above and give it to Sage. **P1:** Equip it on Sage's Sheet.
+2. [ ] **P1:** In the Encounter cast **Hold Person** on a Goblin, then **Fear** on the Wolf. Confirm both are held and the second cast does not replace the first.
+3. [ ] **P1:** Cast **Charm Person** (a third Concentration). Confirm the prompt **End which Concentration?** and that choosing Hold Person ends only it and its grants.
+4. [ ] **GM:** Damage Sage. Confirm one Concentration save per spell, in casting order, each prompted to **P1**.
+5. [ ] **GM:** Fail the second save. Confirm only that spell ends.
+6. [ ] **GM:** With only one spell held, damage Sage and confirm the ring's advantage is named on the save. With two held, damage Sage by more than 10 plus the second spell's level and confirm the disadvantage on the second spell's save is named.
+7. [ ] **GM:** While two are held, confirm Sage has vulnerability to psychic damage (a psychic hit is doubled); end one and confirm the vulnerability goes.
+8. [ ] **P1:** With the ring's one use per dawn already spent, cast a new Concentration and confirm it replaces the old one instead of keeping both.
+9. [ ] **P1:** Unequip the ring, cast a new Concentration and confirm it replaces the old.
 
 ## Expected
 
@@ -54,5 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

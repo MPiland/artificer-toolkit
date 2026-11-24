@@ -19,15 +19,17 @@ Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path posit
 
 ## Steps
 
-1. **P1 and P2:** Open the notifications page (**Notifications**) in each window and note the unread count.
-2. **GM:** Open the Campaign's **Announcements** and write an announcement targeted at the whole table. Publish it.
-3. **P1:** Open Notifications and the Campaign Announcements list.
-4. **GM:** Write a second announcement for the party only (if the Party target is offered) and publish it.
-5. **GM:** Retry publishing the same announcement by pressing the publish control twice quickly.
-6. **GM:** Open the archived original Campaign from [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md) and try to publish an announcement in it.
-7. **P1:** Open a deep link to an announcement that is not available (edit one character of an announcement address copied from the list).
-8. **GM:** In the sandbox Campaign publish an announcement. **P1:** Confirm it appears, then choose **Leave Campaign** and try to open the sandbox announcement list and the announcement address.
-   R1. **GM:** Re-seat P1 in the Sandbox Campaign as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md) (invite by username, accept, assign the Character).
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1 and P2:** Open the notifications page (**Notifications**) in each window and note the unread count.
+2. [ ] **GM:** Open the Campaign's **Announcements** and write an announcement targeted at the whole table. Publish it.
+3. [ ] **P1:** Open Notifications and the Campaign Announcements list.
+4. [ ] **GM:** Write a second announcement for the party only (if the Party target is offered) and publish it.
+5. [ ] **GM:** Retry publishing the same announcement by pressing the publish control twice quickly.
+6. [ ] **GM:** Open the archived original Campaign from [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md) and try to publish an announcement in it.
+7. [ ] **P1:** Open a deep link to an announcement that is not available (edit one character of an announcement address copied from the list).
+8. [ ] **GM:** In the sandbox Campaign publish an announcement. **P1:** Confirm it appears, then choose **Leave Campaign** and try to open the sandbox announcement list and the announcement address.
+       R1. **GM:** Re-seat P1 in the Sandbox Campaign as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md) (invite by username, accept, assign the Character).
 
 ## Expected
 
@@ -54,5 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

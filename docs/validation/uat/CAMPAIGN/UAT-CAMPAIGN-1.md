@@ -16,17 +16,19 @@ Level 2 (GM setup) · Feature CAMPAIGN · Mode: Solo (GM) · Path position 54 of
 
 ## Steps
 
-1. **GM:** Open **Campaigns** and choose **Create a Campaign** (or **Start your first table**).
-2. **GM:** Enter a **Campaign name** such as "UAT Sandbox", a description, choose a **Game System** and create it.
-3. **GM:** On the new Campaign page open **Settings**, change the description, and wait for "Saved.".
-4. **GM:** Open the notes area, add a notes section called "Plot" with one line of text.
-5. **GM:** Choose **Copy Campaign**. Leave the notebook content unticked, create the copy, and open it.
-6. **GM:** Go back to the original and copy it again, this time ticking **Notebook content to copy** for the "Plot" section.
-7. **GM:** Open each copy and compare name, description and notes.
-8. **GM:** On the original Campaign, archive it. Open the archive list (**View archive**) and confirm it is there.
-9. **GM:** Try to edit the archived Campaign.
-10. **GM:** Delete the first copy (the one without notes) and wait for **Campaign deleted.** Keep the second copy (with the "Plot" section) for the later scenarios.
-11. **GM:** Reload **Campaigns** and check the active list and the archive list.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open **Campaigns** and choose **Create a Campaign** (or **Start your first table**).
+2. [ ] **GM:** Enter a **Campaign name** such as "UAT Sandbox", a description, choose a **Game System** and create it.
+3. [ ] **GM:** On the new Campaign page open **Settings**, change the description, and wait for "Saved.".
+4. [ ] **GM:** Open the notes area, add a notes section called "Plot" with one line of text.
+5. [ ] **GM:** Choose **Copy Campaign**. Leave the notebook content unticked, create the copy, and open it.
+6. [ ] **GM:** Go back to the original and copy it again, this time ticking **Notebook content to copy** for the "Plot" section.
+7. [ ] **GM:** Open each copy and compare name, description and notes.
+8. [ ] **GM:** On the original Campaign, archive it. Open the archive list (**View archive**) and confirm it is there.
+9. [ ] **GM:** Try to edit the archived Campaign.
+10. [ ] **GM:** Delete the first copy (the one without notes) and wait for **Campaign deleted.** Keep the second copy (with the "Plot" section) for the later scenarios.
+11. [ ] **GM:** Reload **Campaigns** and check the active list and the archive list.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

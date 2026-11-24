@@ -17,12 +17,14 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Complete the arena Encounter and build a Manual-mode Encounter in Review: Party in the Field by hand (the review Campaign is Assisted).
 
-1. **GM:** Choose **Complete encounter**, set **Automation mode** to Manual in the Campaign's table settings, create a new Encounter with Sage, Hale, Moss and a Goblin, and start it (every combatant needs a hand-entered initiative in Manual mode).
-2. **P1:** Confirm the action drawer is hidden (no automated actions).
-3. **GM:** Damage Sage by hand while she is Concentrating on a spell (cast one in the Sheet first), and apply a save-forcing effect by hand. Confirm no roll prompts, reactions or Concentration checks are raised for anyone.
-4. **GM:** Complete the Encounter, set **Automation mode** back to Assisted, rebuild the arena with scenario 2 steps 4 and 5.
+1. [ ] **GM:** Choose **Complete encounter**, set **Automation mode** to Manual in the Campaign's table settings, create a new Encounter with Sage, Hale, Moss and a Goblin, and start it (every combatant needs a hand-entered initiative in Manual mode).
+2. [ ] **P1:** Confirm the action drawer is hidden (no automated actions).
+3. [ ] **GM:** Damage Sage by hand while she is Concentrating on a spell (cast one in the Sheet first), and apply a save-forcing effect by hand. Confirm no roll prompts, reactions or Concentration checks are raised for anyone.
+4. [ ] **GM:** Complete the Encounter, set **Automation mode** back to Assisted, rebuild the arena with scenario 2 steps 4 and 5.
 
 ## Expected
 
@@ -47,5 +49,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

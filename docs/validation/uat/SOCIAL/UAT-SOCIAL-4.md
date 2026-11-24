@@ -17,13 +17,15 @@ Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (P1, P2, SPARE) · Path
 
 ## Steps
 
-1. **P1:** Open Settings and Profile, fill in at least one private field (for example age or safety practices), and set the profile visibility to a private option (**ProfileVisibilitySetting**).
-2. **P2:** Open P1's Social profile address.
-3. **P2:** Open the "UAT Table" listing from [UAT-SOCIAL-1](UAT-SOCIAL-1.md) and look for P1's application, name and message.
-4. **P1:** Set the profile back to public.
-5. **P2:** Reload P1's profile.
-6. **SPARE (signed out):** Without signing in, open P1's profile address and the listing address.
-7. **SPARE:** Sign in and open them again.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open Settings and Profile, fill in at least one private field (for example age or safety practices), and set the profile visibility to a private option (**ProfileVisibilitySetting**).
+2. [ ] **P2:** Open P1's Social profile address.
+3. [ ] **P2:** Open the "UAT Table" listing from [UAT-SOCIAL-1](UAT-SOCIAL-1.md) and look for P1's application, name and message.
+4. [ ] **P1:** Set the profile back to public.
+5. [ ] **P2:** Reload P1's profile.
+6. [ ] **SPARE (signed out):** Without signing in, open P1's profile address and the listing address.
+7. [ ] **SPARE:** Sign in and open them again.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

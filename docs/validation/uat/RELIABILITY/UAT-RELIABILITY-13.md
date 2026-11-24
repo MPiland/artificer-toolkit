@@ -18,13 +18,15 @@ Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: G
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Invite DISPOSABLE to Review: Sandbox by username from their profile, as in [SOCIAL-2](../SOCIAL/UAT-SOCIAL-2.md); **DISPOSABLE:** accept.
 
-1. **DISPOSABLE:** Open the Review: Sandbox tabletop window.
-2. **GM:** Open the tabletop window and confirm DISPOSABLE is present in the roster.
-3. **DISPOSABLE:** Delete the account from the account settings and confirm the deletion.
-4. **DISPOSABLE:** Read the tabletop window.
-5. **GM:** Read the roster and the live table.
+1. [ ] **DISPOSABLE:** Open the Review: Sandbox tabletop window.
+2. [ ] **GM:** Open the tabletop window and confirm DISPOSABLE is present in the roster.
+3. [ ] **DISPOSABLE:** Delete the account from the account settings and confirm the deletion.
+4. [ ] **DISPOSABLE:** Read the tabletop window.
+5. [ ] **GM:** Read the roster and the live table.
 
 ## Expected
 
@@ -49,5 +51,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -16,13 +16,15 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path pos
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/classes/new`.
-2. **P1:** Name it "UAT Ember Mage", fill the required fields and choose **Save Draft**, then **Activate**.
-3. **P1:** Open "UAT Ember Dart", add "UAT Ember Mage" to its Classes, save the draft and **Activate** again.
-4. **P1:** Open the Class list and open "UAT Ember Mage".
-5. **P1:** Try to delete "UAT Ember Mage".
-6. **P1:** Remove the Class from the Spell, activate the Spell, then delete the Class again.
-7. **P1:** Make a draft copy of the Class ("Duplicate") and choose **Discard draft**.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/classes/new`.
+2. [ ] **P1:** Name it "UAT Ember Mage", fill the required fields and choose **Save Draft**, then **Activate**.
+3. [ ] **P1:** Open "UAT Ember Dart", add "UAT Ember Mage" to its Classes, save the draft and **Activate** again.
+4. [ ] **P1:** Open the Class list and open "UAT Ember Mage".
+5. [ ] **P1:** Try to delete "UAT Ember Mage".
+6. [ ] **P1:** Remove the Class from the Spell, activate the Spell, then delete the Class again.
+7. [ ] **P1:** Make a draft copy of the Class ("Duplicate") and choose **Discard draft**.
 
 ## Expected
 
@@ -49,5 +51,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

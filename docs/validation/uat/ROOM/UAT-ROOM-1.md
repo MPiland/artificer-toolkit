@@ -19,18 +19,20 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2, P3) · Path posi
 
 ## Steps
 
-1. **GM:** Open Review: Party in the Field and its session page. In the **Live tabletop** panel choose **Open tabletop window**.
-2. **P1:** Open the same Campaign and choose **Open tabletop window**.
-3. **P2:** Do the same.
-4. **P3:** Do the same.
-5. **GM:** Read the header badge and the text beside it.
-6. **P1:** Read the header badge and the text beside it.
-7. **GM:** Look for who is present in the room (names or portraits on the live table).
-8. **P2:** Close the tabletop window.
-9. **GM:** Check the presence list again.
-10. **P2:** Reopen the tabletop window.
-11. **All four:** Close every tabletop window and wait six minutes.
-12. **GM:** Open the tabletop window again.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open Review: Party in the Field and its session page. In the **Live tabletop** panel choose **Open tabletop window**.
+2. [ ] **P1:** Open the same Campaign and choose **Open tabletop window**.
+3. [ ] **P2:** Do the same.
+4. [ ] **P3:** Do the same.
+5. [ ] **GM:** Read the header badge and the text beside it.
+6. [ ] **P1:** Read the header badge and the text beside it.
+7. [ ] **GM:** Look for who is present in the room (names or portraits on the live table).
+8. [ ] **P2:** Close the tabletop window.
+9. [ ] **GM:** Check the presence list again.
+10. [ ] **P2:** Reopen the tabletop window.
+11. [ ] **All four:** Close every tabletop window and wait six minutes.
+12. [ ] **GM:** Open the tabletop window again.
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

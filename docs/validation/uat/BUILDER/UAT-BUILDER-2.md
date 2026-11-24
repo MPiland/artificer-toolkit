@@ -16,15 +16,17 @@ Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path posit
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** Open `<STAGING_URL>/characters`, choose **Create Character**, enter the name "UAT Race Condition", and choose **Save Character Draft**. This is the saved draft the steps use.
 
-1. **P1:** Open the draft in window A and in window B (two tabs of the same account).
-2. **P1:** In window A change the Character Name to "UAT RC One" and choose **Save Character Draft**.
-3. **P1:** In window B (still showing the old version) change the name to "UAT RC Two" and choose **Save Character Draft**.
-4. **P1:** Reload window B.
-5. **P1:** Finish the draft in window A to **Activate** it.
-6. **P1:** In window B (still open), try to **Activate** the same draft.
-7. **P1:** Check the Characters list.
+1. [ ] **P1:** Open the draft in window A and in window B (two tabs of the same account).
+2. [ ] **P1:** In window A change the Character Name to "UAT RC One" and choose **Save Character Draft**.
+3. [ ] **P1:** In window B (still showing the old version) change the name to "UAT RC Two" and choose **Save Character Draft**.
+4. [ ] **P1:** Reload window B.
+5. [ ] **P1:** Finish the draft in window A to **Activate** it.
+6. [ ] **P1:** In window B (still open), try to **Activate** the same draft.
+7. [ ] **P1:** Check the Characters list.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

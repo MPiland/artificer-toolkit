@@ -18,16 +18,18 @@ Level 3 (Core play) · Feature AUTHORING · Mode: Solo (GM) · Path position 92 
 
 ## Steps
 
-1. **GM:** Open the SRD Wolf at `<STAGING_URL>/creatures` and read its Armor Class and any natural armor line.
-2. **GM:** Open the SRD Goblin and read its Armor Class and its loadout (main hand, off hand, carried, worn).
-3. **GM:** Choose **Duplicate to edit** on the Goblin and name the copy "UAT Goblin".
-4. **GM:** In the loadout, put a two-handed weapon in the main hand and try to also place a shield in the off hand.
-5. **GM:** Replace the weapon with a one-handed weapon and keep the shield. Note the computed AC.
-6. **GM:** Remove the shield. Note the AC.
-7. **GM:** Set a +1 shield and note the AC again.
-8. **GM:** Look for any field that sets a fixed Armor Class or an AC note.
-9. **GM:** Choose **Save Draft** and **Activate**, then add UAT Goblin to an Encounter of Review: Party in the Field (see Preconditions).
-10. **GM:** In that Encounter, change the instance's shield and watch its AC.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the SRD Wolf at `<STAGING_URL>/creatures` and read its Armor Class and any natural armor line.
+2. [ ] **GM:** Open the SRD Goblin and read its Armor Class and its loadout (main hand, off hand, carried, worn).
+3. [ ] **GM:** Choose **Duplicate to edit** on the Goblin and name the copy "UAT Goblin".
+4. [ ] **GM:** In the loadout, put a two-handed weapon in the main hand and try to also place a shield in the off hand.
+5. [ ] **GM:** Replace the weapon with a one-handed weapon and keep the shield. Note the computed AC.
+6. [ ] **GM:** Remove the shield. Note the AC.
+7. [ ] **GM:** Set a +1 shield and note the AC again.
+8. [ ] **GM:** Look for any field that sets a fixed Armor Class or an AC note.
+9. [ ] **GM:** Choose **Save Draft** and **Activate**, then add UAT Goblin to an Encounter of Review: Party in the Field (see Preconditions).
+10. [ ] **GM:** In that Encounter, change the instance's shield and watch its AC.
 
 ## Expected
 
@@ -58,5 +60,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

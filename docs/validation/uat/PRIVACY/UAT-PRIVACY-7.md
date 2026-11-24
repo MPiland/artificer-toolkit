@@ -17,16 +17,18 @@ Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path posit
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** Open Aria's Sheet settings and turn **Party can view** OFF if it is on.
 
-1. **P2:** Open the Campaign roster.
-2. **P2:** Try to open Aria's Sheet.
-3. **P1:** On Aria's Sheet, find **What the party sees**, and turn **Party can view** on.
-4. **P2:** Reload and open Aria's Sheet.
-5. **P2:** Look for Aria's personality and background.
-6. **P1:** Turn **Party can view** off again.
-7. **P2:** Reload Aria's Sheet.
-8. **GM:** Open Aria's Sheet.
+1. [ ] **P2:** Open the Campaign roster.
+2. [ ] **P2:** Try to open Aria's Sheet.
+3. [ ] **P1:** On Aria's Sheet, find **What the party sees**, and turn **Party can view** on.
+4. [ ] **P2:** Reload and open Aria's Sheet.
+5. [ ] **P2:** Look for Aria's personality and background.
+6. [ ] **P1:** Turn **Party can view** off again.
+7. [ ] **P2:** Reload Aria's Sheet.
+8. [ ] **GM:** Open Aria's Sheet.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

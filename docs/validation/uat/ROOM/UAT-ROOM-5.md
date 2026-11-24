@@ -18,14 +18,16 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
-1. **P1:** Roll a skill from the Sheet with destination Table.
-2. **P1:** Roll another with destination **To GM**.
-3. **GM:** Set the roll switch to Private and roll for the Wolf.
-4. **P2:** Send forty short chat messages quickly (or as fast as you can) to the Table conversation.
-5. **P2:** Wait one minute and send one more.
-6. **P1:** Open the Campaign chat in a second tab and compare it to the tabletop chat.
-7. **P1:** Read the unread badge on the chat, then open it.
-8. **GM (optional, slow):** Send sixty-one short Table messages in under a minute, then wait a minute and send one more.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Roll a skill from the Sheet with destination Table.
+2. [ ] **P1:** Roll another with destination **To GM**.
+3. [ ] **GM:** Set the roll switch to Private and roll for the Wolf.
+4. [ ] **P2:** Send forty short chat messages quickly (or as fast as you can) to the Table conversation.
+5. [ ] **P2:** Wait one minute and send one more.
+6. [ ] **P1:** Open the Campaign chat in a second tab and compare it to the tabletop chat.
+7. [ ] **P1:** Read the unread badge on the chat, then open it.
+8. [ ] **GM (optional, slow):** Send sixty-one short Table messages in under a minute, then wait a minute and send one more.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

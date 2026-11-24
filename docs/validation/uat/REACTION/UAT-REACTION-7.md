@@ -18,10 +18,12 @@ Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position
 
 ## Steps
 
-1. **P1:** In your browser's Network panel set throttling to "Offline" for 30 seconds, then back to "No throttling".
-2. **P1:** Confirm the page reconnects by itself and the Shield prompt is still waiting.
-3. **GM:** Meanwhile confirm the attack is still held.
-4. **P1:** Answer **Use**. Confirm the result is applied once.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** In your browser's Network panel set throttling to "Offline" for 30 seconds, then back to "No throttling".
+2. [ ] **P1:** Confirm the page reconnects by itself and the Shield prompt is still waiting.
+3. [ ] **GM:** Meanwhile confirm the attack is still held.
+4. [ ] **P1:** Answer **Use**. Confirm the result is applied once.
 
 ## Expected
 
@@ -45,5 +47,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

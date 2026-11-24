@@ -15,10 +15,12 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (GM) · Path posi
 
 ## Steps
 
-1. **GM:** Open `<STAGING_URL>/campaigns/new`.
-2. **GM:** In **Campaign name** type `ass_muncher` and try to continue or save.
-3. **GM:** Replace it with `Cassandra's Classic Table` and try to continue or save, but do not finish creating the Campaign (leave the page).
-4. **GM:** Open any existing Campaign's notes and try to save a note containing `AssMuncher`, then remove the text.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open `<STAGING_URL>/campaigns/new`.
+2. [ ] **GM:** In **Campaign name** type `ass_muncher` and try to continue or save.
+3. [ ] **GM:** Replace it with `Cassandra's Classic Table` and try to continue or save, but do not finish creating the Campaign (leave the page).
+4. [ ] **GM:** Open any existing Campaign's notes and try to save a note containing `AssMuncher`, then remove the text.
 
 ## Expected
 
@@ -44,5 +46,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

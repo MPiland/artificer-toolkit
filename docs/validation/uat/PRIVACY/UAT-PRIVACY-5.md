@@ -17,15 +17,17 @@ Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path posit
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **All:** Make sure **Roll my dice automatically** is OFF.
 
-1. **P1:** Make an attack from the action drawer.
-2. **P1:** Reload the page immediately and check that the result and history appear.
-3. **P1:** Press the browser back and forward.
-4. **P2:** Look at the Encounter history; then reload.
-5. **GM:** Make a Private monster roll.
-6. **P2:** Reload several times and open the history each time.
-7. **P1:** Open the same Encounter from a second tab.
+1. [ ] **P1:** Make an attack from the action drawer.
+2. [ ] **P1:** Reload the page immediately and check that the result and history appear.
+3. [ ] **P1:** Press the browser back and forward.
+4. [ ] **P2:** Look at the Encounter history; then reload.
+5. [ ] **GM:** Make a Private monster roll.
+6. [ ] **P2:** Reload several times and open the history each time.
+7. [ ] **P1:** Open the same Encounter from a second tab.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

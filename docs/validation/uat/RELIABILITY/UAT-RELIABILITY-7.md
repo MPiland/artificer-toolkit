@@ -18,13 +18,15 @@ Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1) · Path posit
 
 ## Steps
 
-1. **P1:** Open P1's Character's Sheet. Note the walking speed and the darkvision range if any.
-2. **GM:** Create a Feature "Reliability Boots" that adds +30 to walking speed with the unit set to feet. Publish it.
-3. **GM:** Copy it as "Reliability Yards" with the bonus set to +30 and the unit set to yards. Publish it.
-4. **GM:** Create a Feature "Reliability Eyes" that adds +30 feet to a sense range, and grant it to a Character with a sense that is 20 yards (60 ft) if available.
-5. **P1:** Have the GM give P1's Character "Reliability Boots" and read the Sheet speed. Then swap to "Reliability Yards" and read it again.
-6. **P1:** Read the sense range with "Reliability Eyes" granted.
-7. **P1:** Start a move on a Scene and read the movement budget shown.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open P1's Character's Sheet. Note the walking speed and the darkvision range if any.
+2. [ ] **GM:** Create a Feature "Reliability Boots" that adds +30 to walking speed with the unit set to feet. Publish it.
+3. [ ] **GM:** Copy it as "Reliability Yards" with the bonus set to +30 and the unit set to yards. Publish it.
+4. [ ] **GM:** Create a Feature "Reliability Eyes" that adds +30 feet to a sense range, and grant it to a Character with a sense that is 20 yards (60 ft) if available.
+5. [ ] **P1:** Have the GM give P1's Character "Reliability Boots" and read the Sheet speed. Then swap to "Reliability Yards" and read it again.
+6. [ ] **P1:** Read the sense range with "Reliability Eyes" granted.
+7. [ ] **P1:** Start a move on a Scene and read the movement budget shown.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

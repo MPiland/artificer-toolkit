@@ -18,11 +18,13 @@ Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: G
 
 ## Steps
 
-1. **GM:** Open the authoring tools (`/spells`, then a Class or Feature editor). Confirm each opens and lists its data.
-2. **P1:** Open Aria's Sheet. Confirm it opens and every tab shows data.
-3. **GM:** In **Review: Party in the Field**, open the party inventory and its equipment picker. Confirm the options list.
-4. **GM:** Open the live table of the Campaign with the active Encounter. Confirm it opens and the Encounter appears.
-5. **GM:** Read the browser console for timeout or limit errors on each page.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the authoring tools (`/spells`, then a Class or Feature editor). Confirm each opens and lists its data.
+2. [ ] **P1:** Open Aria's Sheet. Confirm it opens and every tab shows data.
+3. [ ] **GM:** In **Review: Party in the Field**, open the party inventory and its equipment picker. Confirm the options list.
+4. [ ] **GM:** Open the live table of the Campaign with the active Encounter. Confirm it opens and the Encounter appears.
+5. [ ] **GM:** Read the browser console for timeout or limit errors on each page.
 
 ## Expected
 
@@ -46,5 +48,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

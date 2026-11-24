@@ -16,16 +16,18 @@ Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: G
 
 ## Steps
 
-1. **GM:** Open `/spells`, start a new Spell, and read whether a System and a School are preselected.
-2. **GM:** Fill in everything else and try to save without choosing a School. Read the result.
-3. **GM:** Open a new Feature and a new Feat. In each, open the type and charge reset selects and try to clear the choice.
-4. **GM:** Compare the charge reset options in the Feature editor and the Feat editor.
-5. **GM:** Read the enum values shown in the editors (for example reset timing) for raw text such as LONG_REST.
-6. **GM:** Open the Campaign page and note the owner-only controls (edit, archive, transfer, invite).
-7. **P1:** Open the same Campaign page and look for the same controls.
-8. **GM:** Open the list of all SRD Spells (or Equipment). Scroll to the very bottom and note the last item and the total shown.
-9. **GM:** Search for an item that would be on a later page and confirm it is found.
-   R1. **GM and P1:** Delete the Spell and Feature drafts you made.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open `/spells`, start a new Spell, and read whether a System and a School are preselected.
+2. [ ] **GM:** Fill in everything else and try to save without choosing a School. Read the result.
+3. [ ] **GM:** Open a new Feature and a new Feat. In each, open the type and charge reset selects and try to clear the choice.
+4. [ ] **GM:** Compare the charge reset options in the Feature editor and the Feat editor.
+5. [ ] **GM:** Read the enum values shown in the editors (for example reset timing) for raw text such as LONG_REST.
+6. [ ] **GM:** Open the Campaign page and note the owner-only controls (edit, archive, transfer, invite).
+7. [ ] **P1:** Open the same Campaign page and look for the same controls.
+8. [ ] **GM:** Open the list of all SRD Spells (or Equipment). Scroll to the very bottom and note the last item and the total shown.
+9. [ ] **GM:** Search for an item that would be on a later page and confirm it is found.
+       R1. **GM and P1:** Delete the Spell and Feature drafts you made.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

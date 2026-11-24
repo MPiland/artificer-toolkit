@@ -17,14 +17,16 @@ Level 2 (GM setup) · Feature SOCIAL · Mode: Group (GM, P3) · Path position 58
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Open the "UAT Table" Settings and raise the number of player seats to 3 so a free seat exists. P3 is not a member.
 
-1. **GM:** Open another player's social profile (for example P3's) and choose to invite them to the Campaign, adding a short message.
-2. **P3:** Open **Social**, then **Received invitations**.
-3. **P3:** Open the invitation, read it, and **Decline** it.
-4. **GM:** Open the sent invitations view and check the invitation's status.
-5. **GM:** Send the invitation again; **P3:** accept it.
-6. **P3:** Open **Campaigns** and check the new Campaign is listed.
+1. [ ] **GM:** Open another player's social profile (for example P3's) and choose to invite them to the Campaign, adding a short message.
+2. [ ] **P3:** Open **Social**, then **Received invitations**.
+3. [ ] **P3:** Open the invitation, read it, and **Decline** it.
+4. [ ] **GM:** Open the sent invitations view and check the invitation's status.
+5. [ ] **GM:** Send the invitation again; **P3:** accept it.
+6. [ ] **P3:** Open **Campaigns** and check the new Campaign is listed.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

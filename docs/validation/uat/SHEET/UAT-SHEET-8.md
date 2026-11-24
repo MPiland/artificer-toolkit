@@ -16,14 +16,16 @@ Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path positio
 
 ## Steps
 
-1. **P1:** On UAT Dara's Sheet open Equipment and equip the first one-handed weapon.
-2. **P1:** Equip the second one-handed weapon.
-3. **P1:** Note the Armor Class, then equip the shield.
-4. **P1:** Equip a third item and observe what happens.
-5. **P1:** Swap the main-hand and off-hand items.
-6. **P1:** Unequip the item in the main hand.
-7. **P1:** Equip the two-handed weapon.
-8. **P1:** Equip a second shield (if you have one) and compare Armor Class.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** On UAT Dara's Sheet open Equipment and equip the first one-handed weapon.
+2. [ ] **P1:** Equip the second one-handed weapon.
+3. [ ] **P1:** Note the Armor Class, then equip the shield.
+4. [ ] **P1:** Equip a third item and observe what happens.
+5. [ ] **P1:** Swap the main-hand and off-hand items.
+6. [ ] **P1:** Unequip the item in the main hand.
+7. [ ] **P1:** Equip the two-handed weapon.
+8. [ ] **P1:** Equip a second shield (if you have one) and compare Armor Class.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -17,16 +17,18 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (GM, P1, P2) ·
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/backgrounds/new`, name it "UAT Private Draft", **Save Draft**.
-2. **P1:** Copy the draft's page URL from the address bar.
-3. **P2:** Paste the same URL into P2's browser.
-4. **P2:** Append `/edit` if the page has no edit form, and try again.
-5. **P2:** Search Backgrounds for "UAT Private Draft".
-6. **GM:** Repeat steps 3 and 5.
-7. **P1:** **Activate** the Background so it is published but still private.
-8. **P2:** Repeat steps 3-5.
-9. **P2:** Open the SRD Acolyte and look for any delete or direct edit control.
-10. **P1:** Delete "UAT Private Draft".
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/backgrounds/new`, name it "UAT Private Draft", **Save Draft**.
+2. [ ] **P1:** Copy the draft's page URL from the address bar.
+3. [ ] **P2:** Paste the same URL into P2's browser.
+4. [ ] **P2:** Append `/edit` if the page has no edit form, and try again.
+5. [ ] **P2:** Search Backgrounds for "UAT Private Draft".
+6. [ ] **GM:** Repeat steps 3 and 5.
+7. [ ] **P1:** **Activate** the Background so it is published but still private.
+8. [ ] **P2:** Repeat steps 3-5.
+9. [ ] **P2:** Open the SRD Acolyte and look for any delete or direct edit control.
+10. [ ] **P1:** Delete "UAT Private Draft".
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

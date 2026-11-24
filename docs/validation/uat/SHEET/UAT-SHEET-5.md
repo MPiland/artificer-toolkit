@@ -18,15 +18,17 @@ Level 3 (Core play) · Feature SHEET · Mode: Solo (GM) · Path position 90 of 1
 
 ## Steps
 
-1. **GM:** In the GM roller (or the roll prompt), find the **Public / Private** switch (Roll visibility). Confirm it starts on Public the first time.
-2. **GM:** Roll a d20 with Public selected.
-3. **GM:** Switch to **Private** and roll a d20 for the Wolf.
-4. **GM:** In chat, open **My rolls**. Find the private roll.
-5. **GM:** Choose **Show that I rolled** on the private roll.
-6. **GM:** Choose **Show roll** on the same roll.
-7. **GM:** Try **Show roll** on the same card again.
-8. **GM:** Reload the page and check the switch.
-9. **GM:** Roll again with Private, and do not reveal it.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** In the GM roller (or the roll prompt), find the **Public / Private** switch (Roll visibility). Confirm it starts on Public the first time.
+2. [ ] **GM:** Roll a d20 with Public selected.
+3. [ ] **GM:** Switch to **Private** and roll a d20 for the Wolf.
+4. [ ] **GM:** In chat, open **My rolls**. Find the private roll.
+5. [ ] **GM:** Choose **Show that I rolled** on the private roll.
+6. [ ] **GM:** Choose **Show roll** on the same roll.
+7. [ ] **GM:** Try **Show roll** on the same card again.
+8. [ ] **GM:** Reload the page and check the switch.
+9. [ ] **GM:** Roll again with Private, and do not reveal it.
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

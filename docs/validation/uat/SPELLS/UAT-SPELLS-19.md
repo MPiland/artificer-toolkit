@@ -19,20 +19,22 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Complete the Encounter. **P3:** Use **Change Character** to swap Vex for Moss. **GM:** Rebuild the arena as in [SPELLS-2](../SPELLS/UAT-SPELLS-2.md) steps 4 and 5.
 S2. Hale has Spirit Guardians and Blade Barrier; Moss has Spike Growth, Moonbeam and Entangle; Sage has Caltrops (bag of 20), Oil (flask) and Hunting Trap. Remove old grants first.
 
-1. **P2:** Hale casts **Spirit Guardians**. Confirm an aura circle drawn on the map centered on her and that it moves when she moves.
-2. **GM:** Move a Goblin in; confirm it saves on entry and at the start of its turn. Park a creature with only its edge or a corner touching the circle and confirm it is not affected.
-3. **P3:** Moss casts **Moonbeam**, **Spike Growth** and **Entangle** (one at a time, using Undo placement between). Confirm each places a zone and resolves its entry and turn rules.
-4. **P2:** Cast **Blade Barrier**, choosing the wall shape. Confirm a zone with save, damage, cover and difficult terrain.
-5. **P1:** Sage uses the **Caltrops (bag of 20)** item from her equipment in the Encounter. Confirm the field appears on the map.
-6. **GM:** Move a Goblin so it ends its move inside the field: confirm a DC 15 Dexterity save, and on a failure its movement stops, it takes 1 piercing damage, and its speed is down 10 feet.
-7. **GM:** Move another Goblin that only passes through the field. Confirm the save is made on entering and that it stops in the field on a failure.
-8. **GM:** Raise the slowed Goblin's hit points by any amount using the token's HP control. Confirm its speed returns; Undo the heal and confirm the speed reduction returns. Then repeat the heal as **P3**: move Moss (reduce her hit points first with the GM) into the field, fail the save, and heal Moss from her own Sheet; confirm the slow ends.
-9. **GM:** Give the Goblin resistance to piercing damage, make it fail the save again, and confirm no piercing damage is dealt but the slow still applies.
-10. **P1:** Drag Sage's token across a visible half-speed field. Confirm a choice between careful and normal movement and that the chosen move commits.
-11. **P1:** Use the **Oil (flask)** and the **Hunting Trap** items. **GM:** Move a creature through each and confirm each triggers on pass-through, as Blade Barrier did in step 4 (these three are the zones SPELLS-17.5 names).
+1. [ ] **P2:** Hale casts **Spirit Guardians**. Confirm an aura circle drawn on the map centered on her and that it moves when she moves.
+2. [ ] **GM:** Move a Goblin in; confirm it saves on entry and at the start of its turn. Park a creature with only its edge or a corner touching the circle and confirm it is not affected.
+3. [ ] **P3:** Moss casts **Moonbeam**, **Spike Growth** and **Entangle** (one at a time, using Undo placement between). Confirm each places a zone and resolves its entry and turn rules.
+4. [ ] **P2:** Cast **Blade Barrier**, choosing the wall shape. Confirm a zone with save, damage, cover and difficult terrain.
+5. [ ] **P1:** Sage uses the **Caltrops (bag of 20)** item from her equipment in the Encounter. Confirm the field appears on the map.
+6. [ ] **GM:** Move a Goblin so it ends its move inside the field: confirm a DC 15 Dexterity save, and on a failure its movement stops, it takes 1 piercing damage, and its speed is down 10 feet.
+7. [ ] **GM:** Move another Goblin that only passes through the field. Confirm the save is made on entering and that it stops in the field on a failure.
+8. [ ] **GM:** Raise the slowed Goblin's hit points by any amount using the token's HP control. Confirm its speed returns; Undo the heal and confirm the speed reduction returns. Then repeat the heal as **P3**: move Moss (reduce her hit points first with the GM) into the field, fail the save, and heal Moss from her own Sheet; confirm the slow ends.
+9. [ ] **GM:** Give the Goblin resistance to piercing damage, make it fail the save again, and confirm no piercing damage is dealt but the slow still applies.
+10. [ ] **P1:** Drag Sage's token across a visible half-speed field. Confirm a choice between careful and normal movement and that the chosen move commits.
+11. [ ] **P1:** Use the **Oil (flask)** and the **Hunting Trap** items. **GM:** Move a creature through each and confirm each triggers on pass-through, as Blade Barrier did in step 4 (these three are the zones SPELLS-17.5 names).
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

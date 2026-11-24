@@ -16,15 +16,17 @@ Level 1 (Single-user basics) · Feature RULES · Mode: Solo (P1) · Path positio
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/spells/new`.
-2. **P1:** Note which fields are shown. Change the Spell's level from a leveled Spell to a cantrip and note which fields appear or disappear.
-3. **P1:** Change it back. Check whether any field you had filled in earlier has been cleared.
-4. **P1:** Choose a field whose answer reveals more fields (for example the kind of duration, casting time or targeting). Pick each option in turn and note the new fields.
-5. **P1:** Leave a newly revealed required field empty and try to **Activate**.
-6. **P1:** Fill in the revealed field, then switch back to the option that hides it.
-7. **P1:** Switch to the option again and check the field's value.
-8. **P1:** Open `<STAGING_URL>/creatures/new` and repeat steps 4-7 on one choice that reveals a group (for example adding an attack or a trait).
-9. **P1:** Discard both drafts.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/spells/new`.
+2. [ ] **P1:** Note which fields are shown. Change the Spell's level from a leveled Spell to a cantrip and note which fields appear or disappear.
+3. [ ] **P1:** Change it back. Check whether any field you had filled in earlier has been cleared.
+4. [ ] **P1:** Choose a field whose answer reveals more fields (for example the kind of duration, casting time or targeting). Pick each option in turn and note the new fields.
+5. [ ] **P1:** Leave a newly revealed required field empty and try to **Activate**.
+6. [ ] **P1:** Fill in the revealed field, then switch back to the option that hides it.
+7. [ ] **P1:** Switch to the option again and check the field's value.
+8. [ ] **P1:** Open `<STAGING_URL>/creatures/new` and repeat steps 4-7 on one choice that reveals a group (for example adding an attack or a trait).
+9. [ ] **P1:** Discard both drafts.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

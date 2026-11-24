@@ -19,18 +19,20 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1) · Path positi
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Add a Gargoyle and a Magma Mephit (it casts Heat Metal and concentrates).
 S2. **GM:** For step 7 author a homebrew condition that makes Constitution saves fail automatically, as in [SPELLS-8](../SPELLS/UAT-SPELLS-8.md) step 7. If it cannot be authored, mark step 7 BLOCKED and say why.
 
-1. **GM:** On the Goblin set Exhaustion level 4. Confirm its maximum hit points are halved on the token.
-2. **GM:** Set Exhaustion level 6. Confirm the Goblin dies.
-3. **GM:** Apply Petrified to a Wolf. **P1:** attack it with Sage's quarterstaff. Confirm the damage is halved (resisted).
-4. **P1:** Hit the Gargoyle with Sage's quarterstaff. Confirm resistance to nonmagical damage applies. Then cast **Shocking Grasp** on it and confirm that spell hit is not resisted for being nonmagical.
-5. **GM:** Make Sage Stunned and force a Dexterity save. Confirm before and after the roll that it shows "automatic failure" and why.
-6. **GM:** Clear Stunned. **P1:** Cast **Hold Person** on the Goblin to hold Concentration, then the GM applies Exhaustion 3 to Sage and damages her. Confirm **P1** is asked for a Concentration check that rolls with disadvantage and the roll prompt says why.
-7. **GM:** Apply the homebrew auto-fail Constitution condition to Sage while she concentrates and damage her. Confirm the check is labelled an automatic failure and Concentration ends on it.
-8. **GM:** Have the Magma Mephit cast **Heat Metal** (Concentration), then damage the Mephit with Exhaustion 3 on it: same disadvantage label. Repeat with the auto-fail condition: Concentration on the Mephit ends and its Heat Metal grant ends.
-   R1. **GM:** Clear all conditions and Exhaustion.
+1. [ ] **GM:** On the Goblin set Exhaustion level 4. Confirm its maximum hit points are halved on the token.
+2. [ ] **GM:** Set Exhaustion level 6. Confirm the Goblin dies.
+3. [ ] **GM:** Apply Petrified to a Wolf. **P1:** attack it with Sage's quarterstaff. Confirm the damage is halved (resisted).
+4. [ ] **P1:** Hit the Gargoyle with Sage's quarterstaff. Confirm resistance to nonmagical damage applies. Then cast **Shocking Grasp** on it and confirm that spell hit is not resisted for being nonmagical.
+5. [ ] **GM:** Make Sage Stunned and force a Dexterity save. Confirm before and after the roll that it shows "automatic failure" and why.
+6. [ ] **GM:** Clear Stunned. **P1:** Cast **Hold Person** on the Goblin to hold Concentration, then the GM applies Exhaustion 3 to Sage and damages her. Confirm **P1** is asked for a Concentration check that rolls with disadvantage and the roll prompt says why.
+7. [ ] **GM:** Apply the homebrew auto-fail Constitution condition to Sage while she concentrates and damage her. Confirm the check is labelled an automatic failure and Concentration ends on it.
+8. [ ] **GM:** Have the Magma Mephit cast **Heat Metal** (Concentration), then damage the Mephit with Exhaustion 3 on it: same disadvantage label. Repeat with the auto-fail condition: Concentration on the Mephit ends and its Heat Metal grant ends.
+       R1. **GM:** Clear all conditions and Exhaustion.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

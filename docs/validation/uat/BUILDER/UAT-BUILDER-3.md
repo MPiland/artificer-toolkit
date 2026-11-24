@@ -15,15 +15,17 @@ Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P2) · Path posit
 
 ## Steps
 
-1. **P2:** In the Builder, start "UAT Multi": Fighter level 1.
-2. **P2:** Use **Change class** or the Classes step to add Rogue as a second class and give each class its levels.
-3. **P2:** Complete the remaining choices (**HP gained** and **Hit Point Method**, skills, equipment) and **Activate**.
-4. **P2:** On the Sheet check the class line, hit dice, hit points and proficiencies.
-5. **P2:** In the Builder start "UAT Cleric": Cleric with the Life domain.
-6. **P2:** Choose spells to prepare and finish and **Activate**.
-7. **P2:** On the Sheet open the spells, check the prepared list and slots, cast a leveled spell from the Sheet and watch the slot count.
-8. **P2:** In the Builder start "UAT Dragon": a Dragonborn; choose the ancestry options and finish.
-9. **P2:** On the Sheet check the breath weapon and resistance match the ancestry you chose.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P2:** In the Builder, start "UAT Multi": Fighter level 1.
+2. [ ] **P2:** Use **Change class** or the Classes step to add Rogue as a second class and give each class its levels.
+3. [ ] **P2:** Complete the remaining choices (**HP gained** and **Hit Point Method**, skills, equipment) and **Activate**.
+4. [ ] **P2:** On the Sheet check the class line, hit dice, hit points and proficiencies.
+5. [ ] **P2:** In the Builder start "UAT Cleric": Cleric with the Life domain.
+6. [ ] **P2:** Choose spells to prepare and finish and **Activate**.
+7. [ ] **P2:** On the Sheet open the spells, check the prepared list and slots, cast a leveled spell from the Sheet and watch the slot count.
+8. [ ] **P2:** In the Builder start "UAT Dragon": a Dragonborn; choose the ancestry options and finish.
+9. [ ] **P2:** On the Sheet check the breath weapon and resistance match the ancestry you chose.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

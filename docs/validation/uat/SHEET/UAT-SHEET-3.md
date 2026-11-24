@@ -16,17 +16,19 @@ Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path positio
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** Build and **Activate** a Wizard of level 1 named "UAT Wizard" in the Builder, as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) steps 1 to 10. Leave it in no Campaign.
 
-1. **P1:** Open UAT Wizard's Sheet and the spells section.
-2. **P1:** Note the number of remaining first-level slots.
-3. **P1:** Use **Search spells** to find a spell the Wizard can learn, and choose to learn it.
-4. **P1:** Prepare a spell that is not yet prepared.
-5. **P1:** Cast a prepared first-level spell from the Sheet.
-6. **P1:** Reload the page.
-7. **P1:** Take a long rest (see [UAT-SHEET-2](UAT-SHEET-2.md)), then check the slot count.
-8. **P1:** Unprepare the spell you prepared in step 4.
-9. **P1:** Forget the spell you learned in step 3.
+1. [ ] **P1:** Open UAT Wizard's Sheet and the spells section.
+2. [ ] **P1:** Note the number of remaining first-level slots.
+3. [ ] **P1:** Use **Search spells** to find a spell the Wizard can learn, and choose to learn it.
+4. [ ] **P1:** Prepare a spell that is not yet prepared.
+5. [ ] **P1:** Cast a prepared first-level spell from the Sheet.
+6. [ ] **P1:** Reload the page.
+7. [ ] **P1:** Take a long rest (see [UAT-SHEET-2](UAT-SHEET-2.md)), then check the slot count.
+8. [ ] **P1:** Unprepare the spell you prepared in step 4.
+9. [ ] **P1:** Forget the spell you learned in step 3.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

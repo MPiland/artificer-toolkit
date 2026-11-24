@@ -19,17 +19,19 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. Sage needs Shield and Counterspell prepared and a 3rd-level slot spare; Hale needs Aid and Blade Barrier prepared.
 
-1. **GM:** Have the Wolf attack Sage. **P1:** On the reaction prompt choose **Use** Shield. Confirm the attack is held until answered and that a hit can turn into a miss.
-2. **P1:** Take the rest of Sage's turn, then pass to the next round. Confirm Shield's +5 AC ends at the start of Sage's next turn.
-3. **P2:** On Hale's turn cast **Aid** (a 2nd-level spell) at a Character. **P1:** On the reaction prompt use **Counterspell** with a 3rd-level slot. Confirm Aid is countered and does nothing.
-4. **P2:** Hale casts **Blade Barrier** (a 6th-level spell). **P1:** Use Counterspell with a 3rd-level slot. Confirm a Counterspell ability check is asked for (against a DC set by the spell's level), and that even if the check fails the slot is spent.
-5. **GM:** Have the Wolf attack Sage again. **P1:** Decline the reaction. Confirm the attack resolves.
-6. **GM:** Confirm Sage cannot react twice in a round (her second reaction prompt in the same round is not offered).
-7. **P1:** Cast **Shocking Grasp** on the Wolf. Confirm the Wolf is then offered no opportunity attack or other reaction until the grant ends (move Hale away from the Wolf to check).
-8. **P3:** Vex casts **Vicious Mockery** on the Goblin (a one-roll attack-disadvantage grant). **GM:** Then trigger an opportunity attack by the Goblin and, on another turn, a Disarm attempt by it. Confirm each attack roll uses up the grant (the next attack after the first is not at disadvantage).
-9. **P2:** Try to answer Sage's reaction prompt on P2's screen. Confirm P2 is refused. **GM:** Answer for P1 once instead.
+1. [ ] **GM:** Have the Wolf attack Sage. **P1:** On the reaction prompt choose **Use** Shield. Confirm the attack is held until answered and that a hit can turn into a miss.
+2. [ ] **P1:** Take the rest of Sage's turn, then pass to the next round. Confirm Shield's +5 AC ends at the start of Sage's next turn.
+3. [ ] **P2:** On Hale's turn cast **Aid** (a 2nd-level spell) at a Character. **P1:** On the reaction prompt use **Counterspell** with a 3rd-level slot. Confirm Aid is countered and does nothing.
+4. [ ] **P2:** Hale casts **Blade Barrier** (a 6th-level spell). **P1:** Use Counterspell with a 3rd-level slot. Confirm a Counterspell ability check is asked for (against a DC set by the spell's level), and that even if the check fails the slot is spent.
+5. [ ] **GM:** Have the Wolf attack Sage again. **P1:** Decline the reaction. Confirm the attack resolves.
+6. [ ] **GM:** Confirm Sage cannot react twice in a round (her second reaction prompt in the same round is not offered).
+7. [ ] **P1:** Cast **Shocking Grasp** on the Wolf. Confirm the Wolf is then offered no opportunity attack or other reaction until the grant ends (move Hale away from the Wolf to check).
+8. [ ] **P3:** Vex casts **Vicious Mockery** on the Goblin (a one-roll attack-disadvantage grant). **GM:** Then trigger an opportunity attack by the Goblin and, on another turn, a Disarm attempt by it. Confirm each attack roll uses up the grant (the next attack after the first is not at disadvantage).
+9. [ ] **P2:** Try to answer Sage's reaction prompt on P2's screen. Confirm P2 is refused. **GM:** Answer for P1 once instead.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

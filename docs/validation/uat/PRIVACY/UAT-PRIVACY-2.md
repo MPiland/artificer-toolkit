@@ -19,15 +19,17 @@ Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path posit
 
 ## Steps
 
-1. **GM:** Set the roll switch to **Private**.
-2. **GM:** Make the Wolf attack Aria.
-3. **GM:** Open chat **Enemy rolls** and **My rolls**.
-4. **P1:** Look at the Table chat and the Encounter history.
-5. **P2:** Look at the Table chat and the Encounter history.
-6. **GM:** Switch the roll switch to **Public** and have the Wolf attack Bryn.
-7. **GM:** Make a hidden Goblin ([UAT-PRIVACY-1](UAT-PRIVACY-1.md)) roll with the switch on Public.
-8. **P1:** Make a skill roll with **Just me** as the destination.
-9. **GM:** Look in chat for P1's Just me roll. **P2:** confirm you also do not see it.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Set the roll switch to **Private**.
+2. [ ] **GM:** Make the Wolf attack Aria.
+3. [ ] **GM:** Open chat **Enemy rolls** and **My rolls**.
+4. [ ] **P1:** Look at the Table chat and the Encounter history.
+5. [ ] **P2:** Look at the Table chat and the Encounter history.
+6. [ ] **GM:** Switch the roll switch to **Public** and have the Wolf attack Bryn.
+7. [ ] **GM:** Make a hidden Goblin ([UAT-PRIVACY-1](UAT-PRIVACY-1.md)) roll with the switch on Public.
+8. [ ] **P1:** Make a skill roll with **Just me** as the destination.
+9. [ ] **GM:** Look in chat for P1's Just me roll. **P2:** confirm you also do not see it.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

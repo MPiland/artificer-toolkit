@@ -18,19 +18,21 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P2:** For part B build Kade (Monk, Way of the Open Hand, level 11) in the Builder. Kade and Hale are never in the Campaign together.
 Part A (Sage and Hale):
 
-1. **P1:** On Sage's Sheet note the attack and damage rows. **P2:** In the Encounter have Hale cast **Bless** on Sage. **P1:** Read the Sheet row again. Confirm the Bless bonus is folded into the row.
-2. **P1:** Sage attacks with her quarterstaff in the Encounter. Confirm the room rolls the same bonus and damage dice the Sheet row showed.
+1. [ ] **P1:** On Sage's Sheet note the attack and damage rows. **P2:** In the Encounter have Hale cast **Bless** on Sage. **P1:** Read the Sheet row again. Confirm the Bless bonus is folded into the row.
+2. [ ] **P1:** Sage attacks with her quarterstaff in the Encounter. Confirm the room rolls the same bonus and damage dice the Sheet row showed.
 
 Part B (swap):
 
-3. **P2:** While the Encounter is still running, try **Change Character** and confirm it is refused. **GM:** Choose **Complete encounter**. **P2:** Now use **Change Character** and pick Kade in place of Hale. **GM:** Start a new Encounter with Kade, Sage and a Goblin.
-4. **P2:** On Kade's Sheet confirm Tranquility shows as active, not as a use.
-5. **P2:** Make Kade attack the Goblin so the feature's End On condition fires. Confirm the Sheet reads "ended until" the rest it returns on, and that its grants are gone.
-6. **GM:** Undo the attack. Confirm the feature is active again.
-7. **GM:** Choose **Complete encounter**. **P2:** Attack once outside the Encounter if the feature is active again, or leave it ended, then take a **Long Rest** from Kade's Sheet. Confirm Tranquility returns to active.
+3. [ ] **P2:** While the Encounter is still running, try **Change Character** and confirm it is refused. **GM:** Choose **Complete encounter**. **P2:** Now use **Change Character** and pick Kade in place of Hale. **GM:** Start a new Encounter with Kade, Sage and a Goblin.
+4. [ ] **P2:** On Kade's Sheet confirm Tranquility shows as active, not as a use.
+5. [ ] **P2:** Make Kade attack the Goblin so the feature's End On condition fires. Confirm the Sheet reads "ended until" the rest it returns on, and that its grants are gone.
+6. [ ] **GM:** Undo the attack. Confirm the feature is active again.
+7. [ ] **GM:** Choose **Complete encounter**. **P2:** Attack once outside the Encounter if the feature is active again, or leave it ended, then take a **Long Rest** from Kade's Sheet. Confirm Tranquility returns to active.
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

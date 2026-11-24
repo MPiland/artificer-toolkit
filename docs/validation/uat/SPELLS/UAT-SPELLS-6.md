@@ -19,16 +19,18 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Turn **Automatic cover** ON and draw the walls the steps need with the wall tool ([SCENE-3](../SCENE/UAT-SCENE-3.md)).
 
-1. **GM:** Draw a wall between Sage and a Goblin leaving a gap, so the Goblin is half-covered.
-2. **P1:** Cast Ray of Frost (an attack) at the Goblin. Confirm the roll shows a labelled cover bonus (+2).
-3. **P1:** Cast Fireball with the cover boundary near a second Goblin. Confirm that Goblin's Dexterity save shows its cover bonus.
-4. **GM:** Move a Goblin entirely behind a solid wall. Confirm total cover blocks the attack.
-5. **GM:** On a creature's cover, change the tier by hand (for example to three-quarters, +5). Confirm the roll shows +5.
-6. **GM:** Choose **Complete encounter**, then in table settings untick **Automatic cover** and save (the setting is frozen into an Encounter when it is created). Rebuild the arena as a new Encounter with scenario 2 steps 4 and 5, keeping the wall.
-7. **GM:** In the new Encounter, confirm a Goblin half behind the wall now gets no automatic bonus. Set that target's cover tier by hand. **P1:** Attack it with Ray of Frost. Confirm the same bonus applies as when cover was automatic.
-8. **GM:** To leave the later scenarios as they were, choose **Complete encounter**, tick **Automatic cover** again, save, and rebuild the arena with scenario 2 steps 4 and 5.
+1. [ ] **GM:** Draw a wall between Sage and a Goblin leaving a gap, so the Goblin is half-covered.
+2. [ ] **P1:** Cast Ray of Frost (an attack) at the Goblin. Confirm the roll shows a labelled cover bonus (+2).
+3. [ ] **P1:** Cast Fireball with the cover boundary near a second Goblin. Confirm that Goblin's Dexterity save shows its cover bonus.
+4. [ ] **GM:** Move a Goblin entirely behind a solid wall. Confirm total cover blocks the attack.
+5. [ ] **GM:** On a creature's cover, change the tier by hand (for example to three-quarters, +5). Confirm the roll shows +5.
+6. [ ] **GM:** Choose **Complete encounter**, then in table settings untick **Automatic cover** and save (the setting is frozen into an Encounter when it is created). Rebuild the arena as a new Encounter with scenario 2 steps 4 and 5, keeping the wall.
+7. [ ] **GM:** In the new Encounter, confirm a Goblin half behind the wall now gets no automatic bonus. Set that target's cover tier by hand. **P1:** Attack it with Ray of Frost. Confirm the same bonus applies as when cover was automatic.
+8. [ ] **GM:** To leave the later scenarios as they were, choose **Complete encounter**, tick **Automatic cover** again, save, and rebuild the arena with scenario 2 steps 4 and 5.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

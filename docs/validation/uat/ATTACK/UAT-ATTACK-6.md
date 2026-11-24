@@ -18,18 +18,20 @@ Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path positi
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** Switch **Auto-roll** ON.
 
-1. **P1:** On Aria's turn choose the Hide action and complete its Stealth check.
-2. **GM:** Read the Encounter history. Confirm it says which creatures failed to notice Aria.
-3. **P1:** Attack the Wolf from hiding. Read the roll reasons: advantage from an unseen attacker.
-4. **P1:** Confirm that after attacking Aria is no longer hidden.
-5. **GM:** On the Wolf's turn make the Wolf attack Aria. Read the roll reasons: the reasons should reflect whether the Wolf sees Aria.
-6. **GM:** Give Aria the Invisible condition (via a condition effect). Have the Wolf attack. Read the disadvantage reason.
-7. **GM:** Have Aria use Dodge. Confirm Dodge checks sight (no benefit against an attacker who cannot see).
-8. **P1:** Move Aria out of the Wolf's reach and let the Wolf make an opportunity attack. Confirm the same sight rules apply (read the reasons).
-9. **GM:** Open the Wolf creature's stat block and confirm its Senses list is structured (for example darkvision with a range).
-   R1. **GM:** Remove the condition you applied to Aria in step 6 (Aria's token menu or Sheet).
+1. [ ] **P1:** On Aria's turn choose the Hide action and complete its Stealth check.
+2. [ ] **GM:** Read the Encounter history. Confirm it says which creatures failed to notice Aria.
+3. [ ] **P1:** Attack the Wolf from hiding. Read the roll reasons: advantage from an unseen attacker.
+4. [ ] **P1:** Confirm that after attacking Aria is no longer hidden.
+5. [ ] **GM:** On the Wolf's turn make the Wolf attack Aria. Read the roll reasons: the reasons should reflect whether the Wolf sees Aria.
+6. [ ] **GM:** Give Aria the Invisible condition (via a condition effect). Have the Wolf attack. Read the disadvantage reason.
+7. [ ] **GM:** Have Aria use Dodge. Confirm Dodge checks sight (no benefit against an attacker who cannot see).
+8. [ ] **P1:** Move Aria out of the Wolf's reach and let the Wolf make an opportunity attack. Confirm the same sight rules apply (read the reasons).
+9. [ ] **GM:** Open the Wolf creature's stat block and confirm its Senses list is structured (for example darkvision with a range).
+       R1. **GM:** Remove the condition you applied to Aria in step 6 (Aria's token menu or Sheet).
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

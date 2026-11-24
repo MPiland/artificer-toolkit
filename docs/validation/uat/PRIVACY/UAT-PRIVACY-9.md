@@ -17,13 +17,15 @@ Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path posit
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Add a hidden Mage creature to the Scene. Have it cast a Concentration spell (for example Hold Person on Ember) so the hidden caster concentrates. **P1:** Roll my dice automatically OFF.
 
-1. **GM:** Add a creature that is hidden from players and cast a Concentration spell with it (or give it a concentrating effect).
-2. **GM:** Deal damage to the hidden creature outside its own turn so its Concentration check fails.
-3. **P1:** Read the chat and history notice about the dropped Concentration.
-4. **GM:** Read the same notice.
-   R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
+1. [ ] **GM:** Add a creature that is hidden from players and cast a Concentration spell with it (or give it a concentrating effect).
+2. [ ] **GM:** Deal damage to the hidden creature outside its own turn so its Concentration check fails.
+3. [ ] **P1:** Read the chat and history notice about the dropped Concentration.
+4. [ ] **GM:** Read the same notice.
+       R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
 
 ## Expected
 
@@ -49,5 +51,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -19,18 +19,20 @@ Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2, P3) · Path posi
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Add a token for "UAT Cade Sandbox" (P3) to the presented Scene.
 
-1. **GM:** Open the Party and give P1 control of P2's Character in addition to P1's own (**Also controlled by**). Keep P2 as owner.
-2. **P1:** Look for a **Main Character** selector and read the choice.
-3. **P1:** Select P2's Character as the main Character.
-4. **P1:** Click P2's Character's token to select it, then click empty space to clear.
-5. **P1:** Move P2's Character's token one square.
-6. **P2:** Move that token too.
-7. **GM:** Take the control back from P1.
-8. **P1:** Try to move that token again.
-9. **P1:** Type 150 in **Zoom percentage**, press **Zoom in** once, then reload; also open **Full screen**.
-10. **P3:** Check P3's own zoom.
+1. [ ] **GM:** Open the Party and give P1 control of P2's Character in addition to P1's own (**Also controlled by**). Keep P2 as owner.
+2. [ ] **P1:** Look for a **Main Character** selector and read the choice.
+3. [ ] **P1:** Select P2's Character as the main Character.
+4. [ ] **P1:** Click P2's Character's token to select it, then click empty space to clear.
+5. [ ] **P1:** Move P2's Character's token one square.
+6. [ ] **P2:** Move that token too.
+7. [ ] **GM:** Take the control back from P1.
+8. [ ] **P1:** Try to move that token again.
+9. [ ] **P1:** Type 150 in **Zoom percentage**, press **Zoom in** once, then reload; also open **Full screen**.
+10. [ ] **P3:** Check P3's own zoom.
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

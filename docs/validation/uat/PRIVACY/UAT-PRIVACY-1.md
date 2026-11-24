@@ -18,17 +18,19 @@ Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path posit
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **All:** Make sure **Roll my dice automatically** is OFF. The health display must be at its default (Hidden); if PRIVACY-6 changed it, set it back first.
 
-1. **GM:** Open the turn order and the Wolf's and Goblin's details (stat block, hit points, abilities, hidden notes).
-2. **P1:** Open the turn order and click the Wolf's token and the Goblin's token.
-3. **P2:** Do the same.
-4. **GM:** Add a Goblin token to the Scene and mark it **Hidden from players**.
-5. **P1:** Look at the map, the turn order and the Encounter history.
-6. **GM:** Make the hidden Goblin attack Aria (use the action drawer as the GM).
-7. **P1:** Aria has no reaction, so no prompt should appear; read the chat and history.
-8. **P2:** Read the chat and the Encounter history.
-   R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters. Delete the hidden Goblin you added if PRIVACY-2 is not run next.
+1. [ ] **GM:** Open the turn order and the Wolf's and Goblin's details (stat block, hit points, abilities, hidden notes).
+2. [ ] **P1:** Open the turn order and click the Wolf's token and the Goblin's token.
+3. [ ] **P2:** Do the same.
+4. [ ] **GM:** Add a Goblin token to the Scene and mark it **Hidden from players**.
+5. [ ] **P1:** Look at the map, the turn order and the Encounter history.
+6. [ ] **GM:** Make the hidden Goblin attack Aria (use the action drawer as the GM).
+7. [ ] **P1:** Aria has no reaction, so no prompt should appear; read the chat and history.
+8. [ ] **P2:** Read the chat and the Encounter history.
+       R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters. Delete the hidden Goblin you added if PRIVACY-2 is not run next.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

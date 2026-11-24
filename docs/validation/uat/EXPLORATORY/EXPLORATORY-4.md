@@ -49,7 +49,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:** SPARE
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Time:** minutes from start to goal, or to the moment you gave up
 - **Outcome:** reached / reached with help / gave up
 - **Rating:** 1 (very easy and clear) to 5 (very hard or unclear)

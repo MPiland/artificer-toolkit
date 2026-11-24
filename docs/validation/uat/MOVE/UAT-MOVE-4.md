@@ -17,17 +17,19 @@ Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 106
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Turn **Fog of war** on (Shared party) as in [SCENE-4](../SCENE/UAT-SCENE-4.md).
 
-1. **GM:** Note Aria's square.
-2. **P1:** Move Aria's token two squares.
-3. **P1:** Look for an undo control.
-4. **GM:** Choose **Undo last token move** (the stage icon).
-5. **GM:** Press it again.
-6. **P1:** Move Aria again and then have the GM move another token.
-7. **GM:** Choose **Undo last token move** and read which token returns.
-8. **GM:** Trigger an opportunity-attack pause ([UAT-MOVE-3](UAT-MOVE-3.md)) and try to undo during the pause.
-   R1. **GM:** Turn **Fog of war** OFF again.
+1. [ ] **GM:** Note Aria's square.
+2. [ ] **P1:** Move Aria's token two squares.
+3. [ ] **P1:** Look for an undo control.
+4. [ ] **GM:** Choose **Undo last token move** (the stage icon).
+5. [ ] **GM:** Press it again.
+6. [ ] **P1:** Move Aria again and then have the GM move another token.
+7. [ ] **GM:** Choose **Undo last token move** and read which token returns.
+8. [ ] **GM:** Trigger an opportunity-attack pause ([UAT-MOVE-3](UAT-MOVE-3.md)) and try to undo during the pause.
+       R1. **GM:** Turn **Fog of war** OFF again.
 
 ## Expected
 
@@ -54,5 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

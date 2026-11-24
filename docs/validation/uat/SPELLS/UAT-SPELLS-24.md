@@ -19,12 +19,14 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
-1. **P1:** Cast **Fireball** at the Goblin and the Wolf (with **GM**'s Auto-roll OFF). Confirm the action pauses on the creatures' saves for the **GM**, not for P1. **GM:** Turn Auto-roll ON, repeat the cast, and confirm the saves are rolled and the action continues with no pause.
-2. **P2:** While a save prompt is open for Sage, try to answer Sage's prompt on P2's screen. Confirm it is refused or not offered.
-3. **P3:** Try to answer a pending prompt for a Goblin. Confirm it is refused or not offered.
-4. **GM:** Make a roll Private. **P1:** Confirm P1 cannot see it. Use **Show roll** and **Show that I rolled** once each and confirm the roll then becomes visible.
-5. **P3:** Look for an Undo last action control. Confirm only the GM has it.
-6. **P2:** Try to remove a creature from a pending area. Confirm refused.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Cast **Fireball** at the Goblin and the Wolf (with **GM**'s Auto-roll OFF). Confirm the action pauses on the creatures' saves for the **GM**, not for P1. **GM:** Turn Auto-roll ON, repeat the cast, and confirm the saves are rolled and the action continues with no pause.
+2. [ ] **P2:** While a save prompt is open for Sage, try to answer Sage's prompt on P2's screen. Confirm it is refused or not offered.
+3. [ ] **P3:** Try to answer a pending prompt for a Goblin. Confirm it is refused or not offered.
+4. [ ] **GM:** Make a roll Private. **P1:** Confirm P1 cannot see it. Use **Show roll** and **Show that I rolled** once each and confirm the roll then becomes visible.
+5. [ ] **P3:** Look for an Undo last action control. Confirm only the GM has it.
+6. [ ] **P2:** Try to remove a creature from a pending area. Confirm refused.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**
