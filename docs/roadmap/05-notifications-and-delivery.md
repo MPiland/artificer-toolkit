@@ -6,7 +6,7 @@
 > **Completed:** 2026-08-12
 > **Depends on:** [Phase 03](03-campaign-core.md), [Phase 04](04-social-hub.md), and the authenticated account/profile baseline
 > **Unlocks:** Campaign announcements in [Phase 06](06-live-campaign-play.md), paid-table delivery in [Phase 10](10-paid-tables.md), and native push in [Phase 11](11-cross-platform-foundation.md)
-> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0014](../adr/0014-social-projection-and-tokenless-admission.md), and [0017](../adr/0017-supabase-notification-delivery.md)
+> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0014](../adr/0014-social-projection-and-tokenless-admission.md), and 0017
 
 ## Goal
 

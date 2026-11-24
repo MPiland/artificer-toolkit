@@ -39,7 +39,7 @@ the host supplies Scene reads and its dependent-effect pagination. Convex retain
 Current room source binds START/ADVANCE and stored turn-owned resolution to those planners and
 writers in its SQLite transaction. [basicActionPersistence](src/basicActionPersistence.ts) shares
 the basic-action commit with real revision and platform-definition callbacks. Integrated execution
-proof remains pending. See the [source batch record](../../docs/validation/phase-08-2/room-command-source-batch-2026-09-30.md).
+proof remains pending. See the source batch record.
 
 Current source also shares [liveActionAdmission](src/liveActionAdmission.ts),
 [actionPendingPersistence](src/actionPendingPersistence.ts), [actionCommitPersistence](src/actionCommitPersistence.ts)
@@ -125,7 +125,7 @@ measurement proof. External recovery/comparators remain for retirement. General 
 and lifecycle/deletion/recovery cleanup remain transitional or open. Old external recovery and
 comparators await final retirement. These extractions have mechanical source comparison
 and formatting evidence, with no current integrated execution gate or acceptance advancement.
-The [Claude handoff](../../docs/handoffs/phase-08-2-claude-source-first.md) records implementation work
+The Claude handoff records implementation work
 and the unapproved proposals.
 
 `receiptLedger` is the local D70 codec foundation. It packs validated immutable history in canonical

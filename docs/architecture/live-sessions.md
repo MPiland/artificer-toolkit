@@ -15,7 +15,7 @@ Campaign table), [ADR 0034](../adr/0034-player-control-rules-assistance-and-roll
 control, roll prompts), [ADR 0035](../adr/0035-room-authoritative-live-encounters.md) (room
 authority) and [ADR 0036](../adr/0036-versioned-content-snapshots-and-browser-builder.md) (content
 snapshots). Numbered decisions (`D72` and so on) are recorded in
-[Phase 8.2 decisions](../handoffs/phase-08-2-decisions.md).
+[Phase 8.2 decisions](../releases/v0.1.0-decisions.md).
 
 ## Ownership and lifecycle
 

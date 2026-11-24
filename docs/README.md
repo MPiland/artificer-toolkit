@@ -71,8 +71,12 @@ or JSDoc.
 - [Future platform roadmap](roadmap/README.md)
 - [Phase 08 fixed acceptance ledger](roadmap/08-vtt-acceptance.md)
 - [Phase 8.2 Convex cutover acceptance](roadmap/08-2-convex-cutover-acceptance.md)
-- [Phase 8.2 living handoff](handoffs/phase-08-2-convex-cutover.md)
-- [Phase 8.2 local validation record](validation/phase-08-2/README.md)
+
+## Releases
+
+- [Releases](releases/README.md): one doc per version with what shipped, validation evidence and deferrals
+- [v0.1.0](releases/v0.1.0.md), its [decisions log](releases/v0.1.0-decisions.md) and [open questions](releases/open-questions.md)
+- [UAT scenarios and results](validation/uat/)
 
 ## Decisions
 

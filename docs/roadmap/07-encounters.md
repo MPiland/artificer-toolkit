@@ -5,7 +5,7 @@
 > **Status:** complete as of 2026-08-15; rules-runtime convergence, legacy-engine removal, bounded Character and Encounter command policies, exact committed snapshots, cross-process active-session command authority, and authenticated local/Linux recovery and latency gates are validated
 > **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 03](03-campaign-core.md), and the relevant live-play primitives from [Phase 06](06-live-campaign-play.md)
 > **Unlocks:** authoritative tactical play for one-shot and ongoing Campaigns and the [Phase 08 web VTT](08-vtt.md)
-> **Primary ADRs:** [0006](../adr/0006-character-builder-sheet-boundary.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0009](../adr/0009-vtt-encounter-event-boundary.md), [0018](../adr/0018-embedded-rule-packs-and-encounter-resolution.md), [0019](../adr/0019-versioned-cross-domain-rules-runtime.md), [0020](../adr/0020-local-and-remote-live-session-host.md), and [0021](../adr/0021-command-scoped-rules-responsibilities.md)
+> **Primary ADRs:** [0006](../adr/0006-character-builder-sheet-boundary.md), 0008, [0009](../adr/0009-vtt-encounter-event-boundary.md), 0018, 0019, 0020, and 0021
 
 ## Goal
 

@@ -7,7 +7,7 @@
 > **Depends on:** the current authenticated API baseline
 > **Consumed by:** [Phase 03](03-campaign-core.md) for Campaign branding, [Phase 06](06-live-campaign-play.md) for Campaign files, [Phase 08](08-vtt.md) for VTT maps, and [Phase 11](11-cross-platform-foundation.md) for native upload and display surfaces
 > **Unlocks:** Account avatars, Character portraits, authored-content artwork, and a stable asset identity for later Campaign, Marketplace, and VTT profiles
-> **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0011 active content and JSON drafts](../adr/0011-active-authored-content-and-json-drafts.md), [0012 private media assets](../adr/0012-private-media-assets-and-domain-owned-references.md)
+> **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), 0011 active content and JSON drafts, [0012 private media assets](../adr/0012-private-media-assets-and-domain-owned-references.md)
 
 ## Goal
 

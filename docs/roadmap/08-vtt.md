@@ -5,7 +5,7 @@
 > **Status:** rebaselined — retained scene/live-session foundation is implemented; rules runtime, authoritative combat, authoring workflows, and presentation follow the fixed acceptance ledger
 > **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 02](02-media-and-file-pipeline.md), [Phase 06](06-live-campaign-play.md), and [Phase 07](07-encounters.md)
 > **Unlocks:** the complete connected web play loop and its viability test
-> **Primary ADRs:** [0009](../adr/0009-vtt-encounter-event-boundary.md), [0010](../adr/0010-platform-neutral-design-system.md), [0020](../adr/0020-local-and-remote-live-session-host.md), [0023](../adr/0023-shared-rules-kernel-and-system-capabilities.md), [0024](../adr/0024-current-published-authored-content.md), and [0025](../adr/0025-game-system-catalogues-and-encounter-blueprints.md)
+> **Primary ADRs:** [0009](../adr/0009-vtt-encounter-event-boundary.md), [0010](../adr/0010-platform-neutral-design-system.md), 0020, [0023](../adr/0023-shared-rules-kernel-and-system-capabilities.md), [0024](../adr/0024-current-published-authored-content.md), and [0025](../adr/0025-game-system-catalogues-and-encounter-blueprints.md)
 >
 > **Acceptance authority:** [Phase 08 fixed acceptance ledger](08-vtt-acceptance.md)
 

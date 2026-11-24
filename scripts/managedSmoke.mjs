@@ -1,5 +1,5 @@
 // The bounded managed (staging) smoke and cold-isolate signed-in SSR CPU measurement
-// (RELEASE-3.T1; docs/validation/release-3-staging-promotion-packet.md). It runs only against a
+// (RELEASE-3.T1; docs/runbooks/phase-8-2-release.md#staging-reference). It runs only against a
 // staging web origin the operator names, with the managed environment the review-data builder uses
 // (names in the packet), and refuses to start without them. `run` creates one disposable account
 // through the product, walks the signed-in pages and removes the account through the product.

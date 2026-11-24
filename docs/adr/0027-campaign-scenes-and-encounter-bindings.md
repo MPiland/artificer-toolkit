@@ -5,7 +5,7 @@
 - **Scope:** Campaign VTT Scene ownership, Session presentation, Encounter spatial binding, and token identity
 - **Update when:** Scene persistence, Session presentation, Encounter admission, token binding, Scene commands, or spatial replay ownership changes
 - **Verification:** focused schema/repository/service/browser proofs plus the complete local Phase 08 lifecycle
-- **Supersedes:** the Encounter-owned live Scene materialization in [ADR 0020](0020-local-and-remote-live-session-host.md). ADR 0029 separately supersedes ADR 0020's transport, durable authority, journal, and executor topology; the renderer boundary remains in force.
+- **Supersedes:** the Encounter-owned live Scene materialization in ADR 0020. ADR 0029 separately supersedes ADR 0020's transport, durable authority, journal, and executor topology; the renderer boundary remains in force.
 
 ## Context
 

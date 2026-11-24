@@ -354,7 +354,7 @@ D71 source is integrated, with 54 focused API tests, dependency builds/Convex Ty
 local Docker codegen/deploy passing. Native proof `phase82-receipt-max-v8-20260930` passed three
 4,194,304-byte ledgers, creation/retirement rollback, complete paging/replay, real `auth:onDelete`
 logical removal, bounded purge, duplicate retries, SDK cleanup and stale-JWT denial. See the
-[private receipt retirement evidence](../../docs/validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
+private receipt retirement evidence.
 Final integration, the complete local lifecycle, F12/R08 acceptance, checkpoint publication/live
 authority and Q16 remain pending; acceptance remains 51/75 with 24 open. D71 establishes no Q16 budget pass.
 `characters/panels:get` composes current authorized Sheet data with the neutral inspector resolver,
@@ -657,7 +657,7 @@ Batches are packed to a CPU cost budget (25 per record plus 1 per KiB of UTF-8 i
 so at most 3 records; `importBatches.ts`), every Class gets a batch alone, and a batch commits atomically. A larger
 individual document remains whole. Ten Class records were about 1.27 MB and exceeded the hosted
 mutation CPU limit, and a count-and-size bound still let a loaded host push `importSubjects` past
-1 s (PLATFORM-5.T1: [measurements](../../docs/validation/platform-5-t1-seed-mutation-margin-2026-10-15.md)),
+1 s (PLATFORM-5.T1: measurements),
 so batches are budgeted by measured cost without reducing domain validation or checksum checks. Exact repeats reuse content and may backfill
 missing server-derived Equipment option facts after verifying the unchanged root and version. A
 replayed subject is compared with the stored root, version and document, and is never canonicalized
@@ -677,7 +677,7 @@ replace. A subject changing kind, System or content source is a conflict. Demoti
 still has subclasses or subraces is refused with their ids. `importSubjects` and `seed` report
 `replaced`. The seed reads the stored checksums first and gives each replaced subject a batch alone
 (a replace costs about 100-250 ms idle however small the document;
-[measurements](../../docs/validation/platform-18-t1-replace-mutation-margin-2026-10-15.md)). A subject removed from the corpus fails the seed before any write, naming its ids
+measurements). A subject removed from the corpus fails the seed before any write, naming its ids
 (removal is a deferred edge case).
 
 Definitions, Systems, content sources and catalogues are replaced in place the same way (PLATFORM-18.T2,

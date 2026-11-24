@@ -40,9 +40,8 @@ It stays a tool for the user's local review data and for reproducing a CI failur
 Performance (`vtt-load`, `v15-workload`) only records numbers here, as D210 says, and gates on staging
 (PERF-2). `v15-workload` is not in the CI proof list, so run it with
 `gh workflow run browser-journeys.yml --ref ci/<rc> -f proof=v15-workload`; the proof runner
-(`scripts/runLocalConvexProof.ps1`) sets `V15_BROWSER_PROOF=1`. The current RC's CI evidence record is
-[release-candidate-2026-11-18](../validation/release-candidate-2026-11-18.md). The latest V15 figures
-are in the earlier [release-candidate-2026-11-17](../validation/release-candidate-2026-11-17.md) record.
+(`scripts/runLocalConvexProof.ps1`) sets `V15_BROWSER_PROOF=1`. The RC gate runs and the latest V15
+figures are recorded in the [v0.1.0 release](../releases/v0.1.0.md#validation).
 
 1. Apply only the reviewed, explicitly approved local removal packets. Retain their before archives,
    manifests, hashes, native exit codes, and complete logs. Local deletion does not authorize deleting
@@ -175,17 +174,15 @@ It is idempotent. A Campaign with its final `Review data ready` Session is skipp
 ## Staging promotion
 
 After R08 and the local V15 portion are green, request authorization naming the exact Convex, web,
-Worker, R2, and email targets plus the final local manifest. The
-[RELEASE-3.T1 promotion packet](../validation/release-3-t1-promotion-packet-2026-11-07.md) holds the
-target list, the read-only rollback captures to run first, the Worker staging package evidence, and
-the bounded smoke (`scripts/managedSmoke.mjs`) with its signed-in SSR CPU outcome check (D75, D233, gate C2).
-Fill its placeholders before asking. Then:
+Worker, R2, and email targets plus the final local manifest. The [staging reference](#staging-reference)
+below holds the target list, the read-only rollback captures to run first, and the bounded smoke
+(`scripts/managedSmoke.mjs`) with its signed-in SSR CPU outcome check (D75, D233, gate C2). Then:
 
 1. Confirm every target before deployment and preserve its current deployment identifier for rollback.
    Staging upgrades in place and is never reset or reseeded (RELEASE-3.3). Before the first promotion,
    confirm read-only in the Convex dashboard that staging has no deployed functions and no tables (system
-   tables aside), as the [RELEASE-3.T4 readiness record](../validation/release-3-t4-upgrade-readiness-2026-11-07.md)
-   requires. If either is not empty, stop and run T4's narrowing diff first. Record the Convex source commit
+   tables aside), as RELEASE-3.T4 requires. If either is not empty, stop and run a narrowing diff of the
+   stored schema first. Record the Convex source commit
    each promotion deploys. The next promotion diffs the stored schema from that commit, ships a migration
    for each narrowing change, and rehearses it locally before it deploys. Deploy Convex only through the
    manual `Deploy Convex` workflow (`.github/workflows/deploy-convex.yml`), dispatched on the release ref.
@@ -210,6 +207,31 @@ Fill its placeholders before asking. Then:
 A correctness failure returns to local implementation and the complete affected local lifecycle before
 another promotion attempt. A managed integration/configuration failure may be corrected in the owning
 managed configuration, with the correction and rerun recorded.
+
+## Staging reference
+
+Names only; values stay in the operator's shell, GitHub environments and Cloudflare/Convex dashboards.
+
+- **Targets.** Convex deployment `beaming-pig-820`; web Worker `artificer-web-staging` at
+  `staging.artificertoolkit.app`; Session Worker `artificer-live-session-staging` at
+  `tabletop-staging.artificertoolkit.app`; R2 buckets `artificer-toolkit-vtt-staging` and
+  `artificer-content-snapshots-staging`; GitHub environments `web-staging` and `convex-staging`.
+- **Secrets and variables.** Each deployed surface has its own set; the Worker, Convex environment and
+  GitHub environment lists live with their deploy workflows (`deploy-convex.yml`, `deploy-web.yml`) and
+  `apps/session-worker` configuration. `AUTH_PROXY_SECRET` must be at least 64 characters.
+- **First deploy (2026-11-19).** Convex deployed from `a4601721b99ddafa06ca6b1da006fde6b126c80e`, SRD
+  seeded through the product's seed path, Session Worker deployed with `build:staging`.
+- **Read-only rollback capture, before every deploy.** Per surface, record the current deployment
+  identifier: Convex deployment history and deployed commit, the web and Session Worker version ids from
+  the Cloudflare deployment history, the R2 bucket CORS and permission settings, and the Resend domain
+  state. Restore only through the provider's own history (see Rollback).
+- **Managed smoke.** `node scripts/managedSmoke.mjs run` against the staging web origin, then
+  `node scripts/managedSmoke.mjs evaluate`. Thresholds: every invocation outcome `ok`, one CPU row per
+  request, at least one cold request, and fixture cleanup `deleted`. Gate C2 judges CPU by outcome, not by
+  a 10 ms percentile (D75, D233).
+- **Schema pre-flight (RELEASE-3.T4).** The first promotion needs staging empty (no deployed functions,
+  no tables). Later promotions diff the stored schema from the last deployed commit and ship a migration,
+  rehearsed locally, for every narrowing change.
 
 ## Rollback
 
