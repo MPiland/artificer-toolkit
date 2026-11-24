@@ -67,8 +67,8 @@ are in the earlier [release-candidate-2026-11-17](../validation/release-candidat
    R05.2 (packaging and request audit, D75, D80) is the `build` stage plus the browser proof
    `signed-in-request-audit`: for seven signed-in pages (home, systems list and detail, characters,
    campaigns, notifications, settings profile) it reads the local backend's native function log
-   around a script-free server render and requires that the only client-originated Convex call is
-   the root `account:session` query, then replays a hidden-then-visible window and requires no
+   around a script-free server render and requires no HTTP-client Convex call and exactly one
+   `account:sessionForAuthSession` read (the root route's `/api/auth/session-snapshot`, PERF-8), then replays a hidden-then-visible window and requires no
    `/api/auth/get-session` request.
    R08.1 (a fresh, isolated Convex development deployment) is the guarded `convex-reset` stage: the
    runner resets the isolated local container before the schema push, then deploys and seeds it from

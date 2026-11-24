@@ -43,8 +43,9 @@ const functionLogPageSchema = z.object({ entries: z.array(z.unknown()), newCurso
 type FunctionLogCompletion = z.infer<typeof functionLogCompletionSchema>
 
 const serverClientCaller = 'HttpApi'
-// The only Convex call a signed-in server render makes: the root route's session snapshot.
-const sessionIdentifier = 'account:session'
+// A signed-in server render makes no HTTP-client Convex call (no data prefetch). Its only Convex work
+// is the root route's session snapshot, read once through `GET /api/auth/session-snapshot` (PERF-8).
+const sessionIdentifier = 'account:sessionForAuthSession'
 const markerIdentifier = 'account:identity'
 
 export async function verifySignedInRequestAudit(input: {
@@ -119,31 +120,27 @@ export async function verifySignedInRequestAudit(input: {
           maxRedirects: 0
         })
       )
-      const serverCalls = executions
-        .filter((entry) => entry.caller === serverClientCaller)
-        .map(({ udfType, identifier, caller, identityType }) => ({
-          udfType,
-          identifier,
-          caller,
-          identityType
-        }))
-      const session = serverCalls[0]
+      const calls = executions.map(({ udfType, identifier, caller, identityType }) => ({
+        udfType,
+        identifier,
+        caller,
+        identityType
+      }))
+      const clientCalls = calls.filter((call) => call.caller === serverClientCaller)
+      const sessionReads = calls.filter(
+        (call) => call.identifier === sessionIdentifier && call.udfType === 'Query'
+      )
       if (response.status() !== 200 || !/no-store/u.test(response.headers()['cache-control'] ?? ''))
         violations.push(`${path}: SSR answered ${response.status()} instead of a private render.`)
-      else if (
-        serverCalls.length !== 1 ||
-        session?.identifier !== sessionIdentifier ||
-        session.udfType !== 'Query' ||
-        session.identityType !== 'user'
-      )
+      else if (clientCalls.length !== 0 || sessionReads.length !== 1)
         violations.push(
-          `${path}: the server render made Convex calls other than one signed-in ${sessionIdentifier} query: ${JSON.stringify(serverCalls)}`
+          `${path}: the server render made Convex calls other than one ${sessionIdentifier} session read: ${JSON.stringify(calls)}`
         )
 
       pages.push({
         path,
         ssrStatus: response.status(),
-        ssrClientCalls: serverCalls,
+        ssrCalls: calls,
         ssrExecutionCount: executions.length
       })
     }
