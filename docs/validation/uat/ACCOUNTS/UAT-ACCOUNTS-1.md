@@ -2,30 +2,30 @@
 
 Sign in, reload, sign out, sign back in by username.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path position 9 of 190
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path position 2 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox; you are signed out.
+- **P1** has an account created from the owner's invitation, and you know its email address, username and password. You are signed out.
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **P1:** Open `<STAGING_URL>/characters` while signed out.
-2. [ ] **P1:** Note that you land on the sign-in page.
-3. [ ] **P1:** In **Email or username** type the email address of P1, enter the account's password in **Password**, and sign in.
-4. [ ] **P1:** Confirm you arrive on the Characters page you originally asked for.
-5. [ ] **P1:** Reload the page (F5).
-6. [ ] **P1:** Open `<STAGING_URL>/logout` (or use the account menu's sign-out control).
-7. [ ] **P1:** After the "Signing you out" page, open `<STAGING_URL>/characters` again.
-8. [ ] **P1:** Sign in again, this time typing the username P1 in **Email or username**.
-9. [ ] **P1:** Open `<STAGING_URL>/settings/profile` and check the **Username** field.
+1. [P] **P1:** Open `<STAGING_URL>/characters` while signed out.
+2. [P] **P1:** Note that you land on the sign-in page.
+3. [P] **P1:** In **Email or username** type the email address of P1, enter the account's password in **Password**, and sign in.
+4. [P] **P1:** Confirm you arrive on the Characters page you originally asked for.
+5. [P] **P1:** Reload the page (F5).
+6. [P] **P1:** Open `<STAGING_URL>/logout` (or use the account menu's sign-out control).
+7. [P] **P1:** After the "Signing you out" page, open `<STAGING_URL>/characters` again.
+8. [P] **P1:** Sign in again, this time typing the username P1 in **Email or username**.
+9. [P] **P1:** Open `<STAGING_URL>/settings/profile` and check the **Username** field.
 
 ## Expected
 
@@ -47,11 +47,9 @@ ACCOUNTS-1.1, ACCOUNTS-1.2, ACCOUNTS-5.1
 
 Fill this in after the run. Leave the other scenarios' blocks alone.
 
-- **Status:** NOT RUN (change to PASSED, FAILED, BLOCKED or SKIPPED)
+- **Status:** PASSED
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
-- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
-- **Notes:**
+- **Failure details:** N/A
+- **Notes:** We should consider adding the username to the profile popout menu so they can see it quickly

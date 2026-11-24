@@ -2,24 +2,23 @@
 
 The GM plays a Character.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 63 of 190
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 56 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- Done in [UAT-CAMPAIGN-9](UAT-CAMPAIGN-9.md): P1 is a member of the Sandbox Campaign with "UAT Dara" assigned.
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- P1 has Aria assigned in The Campaign (done in [UAT-CAMPAIGN-9](UAT-CAMPAIGN-9.md)). GM has no Character yet.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **GM:** Build and **Activate** a Fighter named "UAT GM Hero" in the Builder (as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) steps 1 to 10). The GM has no Character in the review data.
+S1. **GM:** Build and **Activate** a Fighter named "UAT GM Hero" in the Builder (as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) steps 1 to 10).
 
 1. [ ] **GM:** Open the Campaign **Party**, choose **Add Character**, and assign the GM's own Character to the Campaign.
 2. [ ] **P1:** Open the Campaign and check the Party roster.
@@ -27,7 +26,9 @@ S1. **GM:** Build and **Activate** a Fighter named "UAT GM Hero" in the Builder 
 4. [ ] **GM:** Open the Party conversation (players only).
 5. [ ] **P1:** Send a message to the Party conversation.
 6. [ ] **GM:** Try to move an item from the GM Character's inventory to P1's Character.
-7. [ ] **GM:** Transfer ownership to P1 (see [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md); the same plan-capacity note applies) and check the Party roster from both windows.
+7. [ ] **GM:** Start an ownership transfer to P1 (as in [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md) steps 12 to 14; P1 hosts no Campaign, so accepting works). **P1:** accept, then check the Party roster from both windows.
+8. [ ] **P1:** Transfer ownership back to GM. **GM:** accept.
+        R1. **GM:** Open the Party, remove "UAT GM Hero" from The Campaign, then delete the Character from **Characters** (GM is back to 0 of 6 personal Characters).
 
 ## Expected
 
@@ -35,7 +36,8 @@ S1. **GM:** Build and **Activate** a Fighter named "UAT GM Hero" in the Builder 
 - The in-character line posts in the public Table conversation under the Character's name.
 - The Party conversation is not available to the GM; the GM cannot read it.
 - The inventory transfer works as for any player.
-- After the transfer (if P1's plan allows it) P1, now the owner, still has their own Character "UAT Dara" on the Party roster; the former GM's Character is still listed and is now a player's Character. If the transfer is refused for plan capacity, record that and the roster is unchanged.
+- After the transfer P1, now the owner, still has their own Character Aria on the Party roster; the former GM's Character is still listed and is now a player's Character.
+- After the transfer back GM hosts The Campaign again and the roster is as before step 7.
 
 ## Other users see
 
@@ -53,7 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

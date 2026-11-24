@@ -2,26 +2,26 @@
 
 Wrong password and unknown account are refused.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path position 10 of 190
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path position 3 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox; you are signed out.
+- **P1** has an account created from the owner's invitation, and you know its email address, username and password. You are signed out.
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **P1:** Open `<STAGING_URL>/sign-in`.
-2. [ ] **P1:** Enter the email address of P1 and a wrong password; submit.
-3. [ ] **P1:** Enter an unknown username `nobody_here_uat` and any password; submit.
-4. [ ] **P1:** Submit with both fields empty.
-5. [ ] **P1:** Sign in correctly.
+1. [P] **P1:** Open `<STAGING_URL>/sign-in`.
+2. [P] **P1:** Enter the email address of P1 and a wrong password; submit.
+3. [P] **P1:** Enter an unknown username `nobody_here_uat` and any password; submit.
+4. [P] **P1:** Submit with both fields empty.
+5. [P] **P1:** Sign in correctly.
 
 ## Expected
 
@@ -41,11 +41,9 @@ ACCOUNTS-5.1
 
 Fill this in after the run. Leave the other scenarios' blocks alone.
 
-- **Status:** NOT RUN (change to PASSED, FAILED, BLOCKED or SKIPPED)
+- **Status:** PASSED
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
-- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
+- **Failure details:** N/A
 - **Notes:**

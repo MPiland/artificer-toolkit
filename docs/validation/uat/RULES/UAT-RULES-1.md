@@ -2,16 +2,16 @@
 
 Authoring forms show, hide and require fields as choices change.
 
-Level 1 (Single-user basics) · Feature RULES · Mode: Solo (P1) · Path position 39 of 190
+Level 1 (Single-user basics) · Feature RULES · Mode: Solo (P1) · Path position 32 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- **P1** is signed in with their own free account. No Campaign is needed.
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 - **Settings:** **Authoring experience** in Settings, Preferences is **Guided**.
 
 ## Steps
@@ -52,7 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

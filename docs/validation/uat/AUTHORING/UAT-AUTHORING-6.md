@@ -2,19 +2,19 @@
 
 Creature copy, computed AC and the item loadout.
 
-Level 3 (Core play) · Feature AUTHORING · Mode: Solo (GM) · Path position 92 of 190
+Level 3 (Core play) · Feature AUTHORING · Mode: Solo (GM) · Path position 93 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
+- The account **GM** exists (a free account that hosts The Campaign).
+- The account **P1** exists (a free account, a player in The Campaign), used only for the cross-role check.
+- **The Campaign** (hosted by GM, with P1 seated as a player) has a Scene and a started Encounter the GM can add a creature to, built in the SCENE and ENCOUNTER scenarios. P1 has a Character in The Campaign (Aria, a Level 1 Fighter, built in UAT-BUILDER-1).
 - Done in [UAT-AUTHORING-4](UAT-AUTHORING-4.md): P1 owns the Active Spell "UAT Ember Dart".
 
 ## Accounts and windows
 
 - **Roles used:** GM
-- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as GM.
 
 ## Steps
 
@@ -28,7 +28,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 6. [ ] **GM:** Remove the shield. Note the AC.
 7. [ ] **GM:** Set a +1 shield and note the AC again.
 8. [ ] **GM:** Look for any field that sets a fixed Armor Class or an AC note.
-9. [ ] **GM:** Choose **Save Draft** and **Activate**, then add UAT Goblin to an Encounter of Review: Party in the Field (see Preconditions).
+9. [ ] **GM:** Choose **Save Draft** and **Activate**, then add UAT Goblin to an Encounter of The Campaign (see Prerequisites).
 10. [ ] **GM:** In that Encounter, change the instance's shield and watch its AC.
 
 ## Expected
@@ -42,7 +42,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 ## Cross-role check
 
-Owner follow-up, run after the tester finishes, from the same set's P1 profile (not part of the tester's run):
+Run by a second person after the tester finishes, signed in to their own P1 account in their own browser (not part of the tester's run):
 
 - **P1:** In the live table the instance's AC shows the changed value after step 10.
 
@@ -58,7 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

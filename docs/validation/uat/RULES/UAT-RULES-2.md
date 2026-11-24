@@ -2,29 +2,28 @@
 
 A started Encounter pauses for answers and resumes with nothing half-applied.
 
-Level 4 (Advanced play) · Feature RULES · Mode: Group (GM, P2) · Path position 148 of 190
+Level 4 (Advanced play) · Feature RULES · Mode: Group (GM, P2) · Path position 149 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Fire and Thunder** (owner GM; member P2 with Pyra, who has Fireball and Thunderwave; a Wolf and three Goblins; Assisted mode; the review Encounter started; P1 and P3 are not members).
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- **P2**'s Campaign Character is **Bryn** (a level 1 Fighter P2 built), seated in The Campaign.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **GM:** In Review: Fire and Thunder choose **Complete encounter** in the turn menu, then create and start a new Encounter as step 1 describes. P2: Roll my dice automatically OFF.
+S1. **GM:** In The Campaign choose **Complete encounter** in the turn menu on any running Encounter, then create and start a new Encounter as step 1 describes. P2: Roll my dice automatically OFF.
 
-1. [ ] **GM:** In Review: Fire and Thunder, with standard initiative set in the Campaign's table settings, create a new Encounter on the presented Scene in Assisted mode and add the Wolf and one Goblin to it. Pyra (P2) is a combatant.
+1. [ ] **GM:** In The Campaign, with standard initiative set in the Campaign's table settings, create a new Encounter on the presented Scene in Assisted mode and add the Wolf, one Goblin and Bryn (P2) to it.
 2. [ ] **GM:** Choose **Start encounter**.
 3. [ ] **GM:** Watch the Encounter panel while the start is waiting.
-4. [ ] **P2:** Read the pending roll prompt for Pyra's initiative. Do not answer yet.
+4. [ ] **P2:** Read the pending roll prompt for Bryn's initiative. Do not answer yet.
 5. [ ] **P2:** Reload the tabletop page while the prompt is open.
 6. [ ] **P2:** Answer the prompt with **Roll dice**.
 7. [ ] **GM:** If asked to roll initiative for the monsters, answer each prompt.
@@ -55,7 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

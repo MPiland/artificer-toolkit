@@ -2,26 +2,25 @@
 
 Weapons in hand, loadouts and Disarm.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 134 of 190
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 135 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- Done in [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md): the Sandbox Campaign holds the Wolf and Goblin Blueprint and "UAT Cavern" is its presented Scene.
-- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1, P2 and P3 are seated in the Sandbox Campaign with their Characters.
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- Done in [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md): The Campaign holds the Wolf and Goblin Blueprint and "UAT Cavern" is its presented Scene.
+- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1 is seated in The Campaign with **Aria**, a level 1 Fighter P1 built.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **P1:** In the Builder give "UAT Dara" two light melee weapons (main and off hand) and a shortbow with arrows, then commit. The Sheet owns equipment changes, so you may instead equip them on the Sheet as in [SHEET-8](../SHEET/UAT-SHEET-8.md).
-S2. **GM:** In table settings enable **Track ammunition**. **GM:** In the Sandbox Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first). Add a Goblin if the Run lacks one. Open the Goblin's actor card in two browser tabs for steps 5 to 7. P1: Auto-roll ON.
+S1. **P1:** In the Builder give Aria two light melee weapons (main and off hand) and a shortbow with arrows, then commit. The Sheet owns equipment changes, so you may instead equip them on the Sheet as in [SHEET-8](../SHEET/UAT-SHEET-8.md).
+S2. **GM:** In table settings enable **Track ammunition**. **GM:** In The Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first). Add a Goblin if the Run lacks one. Open the Goblin's actor card in two tabs of the GM's own browser for steps 5 to 7. P1: Auto-roll ON.
 
 1. [ ] **P1:** On P1's Character's turn, attack. Confirm the main-hand weapon and full damage are used; the off-hand attack as a bonus action adds no positive ability modifier unless the Character has Two-Weapon Fighting.
 2. [ ] **P1:** Empty a hand (stow one weapon), then attack with the other. Confirm the attack draws the bound weapon into the free hand automatically.
@@ -53,7 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -2,7 +2,7 @@
 
 Change your password in Account Settings.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 14 of 190
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 7 of 191
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path pos
 ## Accounts and windows
 
 - **Roles used:** OWN
-- **Windows:** One browser window, signed in to the account you created in [ACCOUNTS-6](UAT-ACCOUNTS-6.md). Your normal browser is fine.
+- **Windows:** One browser, signed in as OWN.
 
 ## Steps
 
@@ -46,7 +46,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

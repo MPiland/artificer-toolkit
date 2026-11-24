@@ -2,16 +2,16 @@
 
 Browse Game Systems and Rules Catalogues.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 26 of 190
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 19 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
+- The account **GM** exists (a free account).
 
 ## Accounts and windows
 
 - **Roles used:** GM
-- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as GM.
 
 ## Steps
 
@@ -50,7 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

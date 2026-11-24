@@ -2,17 +2,17 @@
 
 Imported custom items keep their kind, properties and damage.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 45 of 190
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 38 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The account **P1** exists.
 - Use the provided file [assets/foundry-uat-fighter.json](../assets/foundry-uat-fighter.json): a Foundry dnd5e Actor JSON with SRD Human, Soldier and Fighter plus three custom items: UAT Ironwood Greatsword (equipped, two-handed, magical), UAT Ironwood Chain Mail (equipped, medium armor, AC 14) and UAT Ironwood Shield (equipped).
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
@@ -25,6 +25,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 5. [ ] **P1:** Open the custom weapon, armor and shield in Equipment (`<STAGING_URL>/equipment`).
 6. [ ] **P1:** On the Sheet inventory check which hand holds the weapon and shield and what is worn.
 7. [ ] **P1:** Make an attack with the custom weapon from the Sheet.
+8. [ ] **P1:** Delete the imported Character from **Characters** (confirm). P1 is back to 1 of 6 personal Characters (Aria).
 
 ## Expected
 
@@ -53,7 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

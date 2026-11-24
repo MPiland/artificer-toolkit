@@ -2,18 +2,18 @@
 
 Sheet during live play and after reconnect.
 
-Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1) · Path position 91 of 190
+Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1) · Path position 92 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- **The Campaign** is on a presented Scene in Assisted mode with the Speed Factor initiative, with a Wolf token and a Goblin token, and its Encounter started and in round 2 (built in the SCENE and ENCOUNTER scenarios). P1 has Aria in it: a Level 1 Fighter that P1 built in the Character Builder.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -48,7 +48,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

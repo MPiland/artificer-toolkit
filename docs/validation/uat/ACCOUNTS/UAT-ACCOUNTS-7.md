@@ -2,17 +2,17 @@
 
 Choose, change and protect a username.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 16 of 190
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 9 of 191
 
 ## Prerequisites
 
 - Done in [UAT-ACCOUNTS-6](UAT-ACCOUNTS-6.md): you have your own account, created with your own email address.
-- The review data provides the account **GM**, whose username the owner gives you for step 2.
+- You know a username that another account already uses (for example the GM's, which the owner gives you) for step 2.
 
 ## Accounts and windows
 
 - **Roles used:** OWN
-- **Windows:** One browser window, signed in to the account you created in [ACCOUNTS-6](UAT-ACCOUNTS-6.md). Your normal browser is fine.
+- **Windows:** One browser, signed in as OWN.
 
 ## Steps
 
@@ -53,7 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

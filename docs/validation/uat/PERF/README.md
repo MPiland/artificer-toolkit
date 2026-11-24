@@ -1,6 +1,6 @@
 # Performance and cost — UAT scenarios
 
-Feature `PERF` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
+Feature `PERF` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 These scenarios give testers a human feel for responsiveness at a table of four. The numeric budgets are measured by harnesses elsewhere; nothing here replaces them, and nothing here is evidence of normal play. The managed run needs staging credentials and is not a local test.
 
@@ -10,8 +10,8 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                    | Title                                                                                                   |
 | ------------- | ----- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 124           | 3     | [UAT-PERF-2](UAT-PERF-2.md) | Four people at a local table feel responsive                                                            |
-| 189           | 5     | [UAT-PERF-1](UAT-PERF-1.md) | Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke) |
+| 125 | 3 | [UAT-PERF-2](UAT-PERF-2.md) | Four people at a local table feel responsive |
+| 190 | 5 | [UAT-PERF-1](UAT-PERF-1.md) | Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke) |
 
 ## Covered elsewhere
 

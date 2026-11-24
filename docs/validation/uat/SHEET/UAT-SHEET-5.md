@@ -2,19 +2,19 @@
 
 GM Public and Private rolls with reveals.
 
-Level 3 (Core play) · Feature SHEET · Mode: Solo (GM) · Path position 90 of 190
+Level 3 (Core play) · Feature SHEET · Mode: Solo (GM) · Path position 91 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- The account **P2** exists and is seated as a player in The Campaign.
+- **The Campaign** is on a presented Scene in Assisted mode with the Speed Factor initiative, with a Wolf token and a Goblin token, and its Encounter started and in round 2 (built in the SCENE and ENCOUNTER scenarios). P1 has Aria in it: a Level 1 Fighter that P1 built in the Character Builder.
 
 ## Accounts and windows
 
 - **Roles used:** GM
-- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as GM.
 
 ## Steps
 
@@ -40,7 +40,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 ## Cross-role check
 
-Owner follow-up, run after the tester finishes, from the same set's P1 and P2 profiles (not part of the tester's run):
+Run by two other people after the tester finishes, each signed in to their own account in their own browser (P1 and P2, not part of the tester's run):
 
 - **P1:** sees the Public roll card, the "rolled" notice from step 5 and the revealed roll from step 6. Must NOT see the step 3 roll before it is revealed, nor the unrevealed step 9 roll, nor the Wolf's name in the step 5 notice if the Wolf is hidden from P1.
 - **P2:** same as P1.
@@ -57,7 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

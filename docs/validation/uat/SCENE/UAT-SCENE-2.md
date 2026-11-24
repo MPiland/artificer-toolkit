@@ -2,12 +2,12 @@
 
 Map upload refusals.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 66 of 190
+Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 59 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): the Sandbox Campaign exists.
+- The account **GM** exists and hosts The Campaign.
+- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): The Campaign exists.
 - Use the provided file [assets/sample.gif](../assets/sample.gif): the GIF (step 2).
 - Use the provided file [assets/sample.pdf](../assets/sample.pdf): the PDF (step 2).
 - Use the provided file [assets/not-an-image.png](../assets/not-an-image.png): the text file renamed .png (step 3).
@@ -17,7 +17,7 @@ Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 66 of 19
 ## Accounts and windows
 
 - **Roles used:** GM
-- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as GM.
 
 ## Steps
 
@@ -52,7 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

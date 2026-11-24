@@ -2,36 +2,35 @@
 
 An attack with two damage parts keeps each part visible.
 
-Level 4 (Advanced play) · Feature RULES · Mode: Group (GM, P2) · Path position 149 of 190
+Level 4 (Advanced play) · Feature RULES · Mode: Group (GM, P2) · Path position 150 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Fire and Thunder** (owner GM; member P2 with Pyra, who has Fireball and Thunderwave; a Wolf and three Goblins; Assisted mode; the review Encounter started; P1 and P3 are not members).
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- **P2**'s Campaign Character is **Bryn** (a level 1 Fighter P2 built), seated in The Campaign.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **GM:** In Review: Fire and Thunder choose **Complete encounter** in the turn menu, then create and start a new Encounter (standard initiative is not needed). Find an SRD Creature whose attack has two damage types at `/creatures` and add it.
+S1. **GM:** In The Campaign choose **Complete encounter** in the turn menu on any running Encounter, then create and start a new Encounter with Bryn in it (standard initiative is not needed). Find an SRD Creature whose attack has two damage types at `/creatures` and add it.
 
 1. [ ] **GM:** Open the Creature's page and read its attack: note each damage part (dice and damage type).
-2. [ ] **GM:** Start the Encounter and bring the turn to that Creature (Pyra answers any initiative prompt as in [UAT-RULES-2](UAT-RULES-2.md)).
-3. [ ] **GM:** From the action drawer choose that attack against Pyra. Answer the attack roll (and any damage prompt) so it hits; if it misses, undo or repeat on its next turn.
+2. [ ] **GM:** Start the Encounter and bring the turn to that Creature (Bryn answers any initiative prompt as in [UAT-RULES-2](UAT-RULES-2.md)).
+3. [ ] **GM:** From the action drawer choose that attack against Bryn. Answer the attack roll (and any damage prompt) so it hits; if it misses, undo or repeat on its next turn.
 4. [ ] **GM:** Read the roll card in chat and the Encounter history entry for the hit.
-5. [ ] **P2:** Read the same card in P2's window, then read Pyra's hit points before and after.
+5. [ ] **P2:** Read the same card in P2's window, then read Bryn's hit points before and after.
 6. [ ] **GM:** Reload the tabletop and read the card again.
 
 ## Expected
 
 - The roll card lists each damage part as its own line with its dice, damage type and result, then one total; the parts are not merged into a single untyped number.
-- Pyra's hit points drop by the total (less any resistance she has: she has none).
+- Bryn's hit points drop by the total (less any resistance she has: Bryn has none).
 - The Encounter history shows one hit with the same parts, once.
 - After the reload the card and history show the same parts and total.
 
@@ -51,7 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

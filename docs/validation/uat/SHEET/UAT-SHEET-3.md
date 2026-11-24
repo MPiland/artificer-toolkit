@@ -2,17 +2,17 @@
 
 Learn, prepare and cast spells from the Sheet.
 
-Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 48 of 190
+Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 41 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The account **P1** exists.
 - Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): the Builder journey for a new Character is known; "UAT Wizard" is built in step S1.
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
@@ -29,6 +29,7 @@ S1. **P1:** Build and **Activate** a Wizard of level 1 named "UAT Wizard" in the
 7. [ ] **P1:** Take a long rest (see [UAT-SHEET-2](UAT-SHEET-2.md)), then check the slot count.
 8. [ ] **P1:** Unprepare the spell you prepared in step 4.
 9. [ ] **P1:** Forget the spell you learned in step 3.
+10. [ ] **P1:** Delete "UAT Wizard" from **Characters** (confirm). P1 is back to 1 of 6 personal Characters (Aria).
 
 ## Expected
 
@@ -53,7 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

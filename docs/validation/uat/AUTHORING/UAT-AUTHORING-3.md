@@ -2,17 +2,17 @@
 
 Background lifecycle — create, save, publish, replace, export, delete.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 28 of 190
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 21 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- The account **P1** exists (a free account).
+- The account **P2** exists (a free account), used only for the cross-role check.
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
@@ -44,7 +44,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 ## Cross-role check
 
-Owner follow-up, run after the tester finishes, from the same set's P2 profile (not part of the tester's run):
+Run by a second person after the tester finishes, signed in to their own P2 account in their own browser (not part of the tester's run):
 
 - **P2:** After step 3 and again after step 9, search Backgrounds for "UAT Wanderer": it never appears (a draft is private, and homebrew stays private until shared; see [UAT-AUTHORING-11](UAT-AUTHORING-11.md)).
 
@@ -60,7 +60,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

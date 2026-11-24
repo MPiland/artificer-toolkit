@@ -2,34 +2,34 @@
 
 Not a member.
 
-Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 78 of 190
+Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P5) · Path position 72 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Fire and Thunder** (owner GM; member P2 with Pyra, who has Fireball and Thunderwave; a Wolf and three Goblins; Assisted mode; the review Encounter started), where P1 is not a member.
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- **P5** has an account and is not a member of The Campaign.
 
 ## Accounts and windows
 
-- **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** GM, P5
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **GM:** Open Review: Fire and Thunder and its tabletop and copy both addresses. **P1:** Open the copied Campaign address.
-2. [ ] **P1:** Try the Campaign's tabletop address.
-3. [ ] **P1:** Read the message.
+1. [ ] **GM:** Open The Campaign and its tabletop and copy both addresses, then send them to P5. **P5:** Open the Campaign address.
+2. [ ] **P5:** Try the Campaign's tabletop address.
+3. [ ] **P5:** Read the message.
 
 ## Expected
 
-- P1 sees a clear "not found" or access message, not "Server Error", and no Campaign data.
+- P5 sees a clear "not found" or access message, not "Server Error", and no Campaign data.
 - The tabletop address also refuses entry.
 
 ## Other users see
 
-- **GM:** Unaffected; the GM window shows no sign of P1's attempt.
+- **GM:** Unaffected; the GM window shows no sign of P5's attempt.
 
 ## ACs covered
 
@@ -43,7 +43,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

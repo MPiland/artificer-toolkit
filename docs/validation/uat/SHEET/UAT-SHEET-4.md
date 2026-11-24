@@ -2,26 +2,26 @@
 
 Roll from the Sheet and choose who sees it.
 
-Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1, P2) · Path position 89 of 190
+Level 3 (Core play) · Feature SHEET · Mode: Group (GM, P1, P2) · Path position 90 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
-- Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): "UAT Dara" exists.
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- The account **P2** exists and is seated as a player in The Campaign.
+- **The Campaign** is on a presented Scene in Assisted mode with the Speed Factor initiative, with a Wolf token and a Goblin token, and its Encounter started and in round 2 (built in the SCENE and ENCOUNTER scenarios). P1 has Aria in it: a Level 1 Fighter that P1 built in the Character Builder.
+- Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): Aria exists.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **GM:** Open Review: Party in the Field and its Campaign chat; leave it on the Table conversation.
+1. [ ] **GM:** Open The Campaign and its Campaign chat; leave it on the Table conversation.
 2. [ ] **P2:** Open the same Campaign chat on the Table conversation.
 3. [ ] **P1:** Open Aria's Sheet and click a skill (for example Athletics) to start a roll. Read the **Roll destination** choices.
 4. [ ] **P1:** Leave the destination at **Table** and choose **Roll dice**.
@@ -31,7 +31,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 8. [ ] **P1:** Start a short rest preview and roll a hit die; look at the destination choices offered for this roll.
 9. [ ] **P1:** Reload the Sheet and open the roll history again.
 10. [ ] **P1:** In the roll history, use the clear or discard control (if the history offers one) on one entry, then reload and reopen the history.
-11. [ ] **P2:** Paste the address of Aria's Sheet (copied from P1's window) into P2's window and try to open it and its roll history.
+11. [ ] **P1:** Send P2 the address of Aria's Sheet. **P2:** Open it and try to open its roll history.
 
 ## Expected
 
@@ -58,7 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

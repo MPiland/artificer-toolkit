@@ -2,20 +2,18 @@
 
 Four people at a local table feel responsive.
 
-Level 3 (Core play) · Feature PERF · Mode: Group (GM, P1, P2, P3) · Path position 124 of 190
+Level 3 (Core play) · Feature PERF · Mode: Group (GM, P1, P2, P3) · Path position 125 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the account **P3**, who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- P1 has Aria, P2 has Bryn and P3 has Cade as their Characters in The Campaign (each a Level 1 Fighter, built by their player in the Character Builder).
+- The Campaign has a Scene presented and an Encounter started in Assisted mode with a Wolf, a Goblin and the party's Characters, in round 2 ([UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5, then **Next turn** until round 2).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2, P3
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -26,7 +24,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 3. [ ] **GM:** Use **Next turn** until it is Aria's turn.
 4. [ ] **P1:** Open the action drawer and attack the Wolf. Roll when asked.
 5. [ ] **GM, P2, P3:** Note how long until the attack result appears in your own window.
-6. [ ] **P2 and P3, together:** P2 drags Bryn's token while P3 drags Cade's token. Note whether either feels stuck. If the Encounter refuses a move out of turn, record that and do this step on a Scene outside an Encounter (the Sandbox Campaign, as in [UAT-MOVE-5](../MOVE/UAT-MOVE-5.md)).
+6. [ ] **P2 and P3, together:** P2 drags Bryn's token while P3 drags Cade's token. Note whether either feels stuck. If the Encounter refuses a move out of turn, record that and do this step on a Scene outside an Encounter (The Campaign, as in [UAT-MOVE-5](../MOVE/UAT-MOVE-5.md)).
 7. [ ] **P1:** Open Aria's Sheet in another tab, apply 1 point of damage or healing and save. Switch back to the table.
 8. [ ] **P3:** Go to the Campaign page outside the table and watch the displayed hit points while the GM changes the Wolf's or Aria's hit points at the table.
 9. [ ] **P1:** On Aria's turn, drag Aria's token away from the Wolf so a **Pending decision** opens.
@@ -38,7 +36,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 - Step 5: the attack result shows in all four windows at about the same time, with no window waiting for a page refresh.
 - Step 6: both token moves show smoothly in the other windows, and neither move is lost.
 - Step 7: the Sheet change appears at the table at once (no refresh).
-- Step 8: P3's Campaign page updates without a refresh for the values P3 may see.
+- Step 8: The Campaign page in P3's window updates without a refresh for the values P3 may see.
 - Step 10: turn and chat are the same in all four windows; the decision's owner sees the prompt and the other windows show "Waiting on a movement decision." (or the same pending state), then everyone sees it cleared once resolved.
 
 ## Other users see
@@ -58,7 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

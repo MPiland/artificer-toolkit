@@ -1,6 +1,6 @@
 # Platform foundation — UAT scenarios
 
-Feature `PLATFORM` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
+Feature `PLATFORM` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 PLATFORM is mostly infrastructure. What a tester can see is: the SRD content is present and browsable, images can be uploaded, viewed and removed with the right privacy, and account emails are requested from the app. Everything else is proved by its ledger tests and is listed under Covered elsewhere.
 
@@ -10,11 +10,11 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                            | Title                                                  |
 | ------------- | ----- | ----------------------------------- | ------------------------------------------------------ |
-| 22            | 1     | [UAT-PLATFORM-1](UAT-PLATFORM-1.md) | SRD content is present and browsable                   |
-| 23            | 1     | [UAT-PLATFORM-2](UAT-PLATFORM-2.md) | Upload, replace and remove an avatar                   |
-| 24            | 1     | [UAT-PLATFORM-3](UAT-PLATFORM-3.md) | Artwork is private to its owner until shared           |
-| 25            | 1     | [UAT-PLATFORM-4](UAT-PLATFORM-4.md) | Password reset email is requested from the app         |
-| 160           | 4     | [UAT-PLATFORM-5](UAT-PLATFORM-5.md) | A Concentration save shows its result on the roll card |
+| 15 | 1 | [UAT-PLATFORM-1](UAT-PLATFORM-1.md) | SRD content is present and browsable |
+| 16 | 1 | [UAT-PLATFORM-2](UAT-PLATFORM-2.md) | Upload, replace and remove an avatar |
+| 17 | 1 | [UAT-PLATFORM-3](UAT-PLATFORM-3.md) | Artwork is private to its owner until shared |
+| 18 | 1 | [UAT-PLATFORM-4](UAT-PLATFORM-4.md) | Password reset email is requested from the app |
+| 161 | 4 | [UAT-PLATFORM-5](UAT-PLATFORM-5.md) | A Concentration save shows its result on the roll card |
 
 ## Covered elsewhere
 
@@ -58,14 +58,14 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | PLATFORM-17.1  | Test fixture typing.                                                                                                                                                               |
 | PLATFORM-17.2  | Shared test-fixture builder.                                                                                                                                                       |
 | PLATFORM-17.3  | Test-double audit.                                                                                                                                                                 |
-| PLATFORM-18.1  | Seeding a changed corpus N+1 over N needs two different corpus builds on a live backend; a live-backend CI run, not reproducible from the review data.                             |
+| PLATFORM-18.1  | Seeding a changed corpus N+1 over N needs two different corpus builds on a live backend; a live-backend CI run, not reproducible by a tester.                             |
 | PLATFORM-18.2  | Same, for definitions, Systems and catalogues.                                                                                                                                     |
 | PLATFORM-19.1  | CI auto-fix of generated-file drift.                                                                                                                                               |
 | PLATFORM-20.1  | Dead compiler code deleted.                                                                                                                                                        |
 | PLATFORM-20.2  | Copy-only compilers deleted.                                                                                                                                                       |
 | PLATFORM-20.3  | Flat modifier grant compile shape; a type and contract change.                                                                                                                     |
 | PLATFORM-20.4  | Documentation.                                                                                                                                                                     |
-| PLATFORM-21.2  | Stale compiled projection migration; development data is migrated in the change, so nothing stale exists in the review data to observe.                                            |
+| PLATFORM-21.2  | Stale compiled projection migration; development data is migrated in the change, so nothing stale exists to observe.                                            |
 | PLATFORM-22.1  | CI timing for type errors.                                                                                                                                                         |
 | PLATFORM-22.2  | Worker test-harness error reporting.                                                                                                                                               |
 | PLATFORM-22.3  | Merge fast path, proved by tree identity.                                                                                                                                          |

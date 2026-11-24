@@ -1,6 +1,6 @@
 # Release — UAT scenarios
 
-Feature `RELEASE` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
+Feature `RELEASE` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 These scenarios check the alpha play guide against the running build and record the owner's UI review sign-off. Staging and production steps are not local UAT.
 
@@ -10,7 +10,7 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                          | Title                              |
 | ------------- | ----- | --------------------------------- | ---------------------------------- |
-| 188           | 5     | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
+| 189 | 5 | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
 
 ## Covered elsewhere
 
@@ -26,7 +26,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | RELEASE-2.3 | Rule-corpus and gameplay proof; harness                                                                                                      |
 | RELEASE-5.1 | Release check on deployment configuration                                                                                                    |
 | RELEASE-6.1 | Live-backend test observing typed rejection shape                                                                                            |
-| RELEASE-8.3 | Local UAT infrastructure (review data, local email, spare accounts); proved by the ledger tasks and exercised by every scenario in this path |
+| RELEASE-8.3 | UAT infrastructure (test accounts, email); proved by the ledger tasks and exercised by every scenario in this path |
 | RELEASE-3.3 | Staging upgrade-in-place is proved by the local migration rehearsal over staging-shaped data, not by a tester step                           |
 
 ## Not coverable by UAT

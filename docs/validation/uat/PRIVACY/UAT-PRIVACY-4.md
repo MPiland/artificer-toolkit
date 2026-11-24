@@ -2,24 +2,24 @@
 
 Ownership transfer changes who sees what.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1) · Path position 128 of 190
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1) · Path position 129 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Sandbox** (owner GM; members P1, P2 and P3 with Iris, Juno and Kit; Manual mode; dim light and per-player fog; a wall with a closed door, a rubble line and one light; a visible Ogre in the east room and a hidden Goblin and a hidden Wolf; the review Encounter started and nobody has acted).
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- P1 has Aria, P2 has Bryn and P3 has Cade as their Characters in The Campaign (each a Level 1 Fighter, built by their player in the Character Builder).
+- The Campaign has a Scene presented and an Encounter started in Assisted mode with a Wolf, a Goblin and the party's Characters, in round 2 ([UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5, then **Next turn** until round 2).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **GM:** Confirm the hidden Goblin and Wolf tokens on the Scene (add another hidden token if you want), then make a Private roll for a monster (as in [UAT-PRIVACY-2](UAT-PRIVACY-2.md) step 1).
+1. [ ] **GM:** Add a hidden Goblin token and a hidden Wolf token to the presented Scene if they are not there ([UAT-PRIVACY-1](UAT-PRIVACY-1.md) step 4), then make a Private roll for a monster (as in [UAT-PRIVACY-2](UAT-PRIVACY-2.md) step 1).
 2. [ ] **P1:** Note what the tabletop shows. Run an action as P1 and note its command card in chat (for example roll a skill).
 3. [ ] **GM:** Transfer ownership to P1 ([UAT-CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) steps 12 to 13) and have **P1** accept.
 4. [ ] **P1 (new GM):** Reload the tabletop window.
@@ -27,7 +27,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 6. [ ] **GM (now a player):** Check history and chat for the action P1 ran and for the Private roll made before the transfer.
 7. [ ] **P1 (new GM):** Check the same history. Then transfer ownership back ([UAT-CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) step 15) and have the original GM accept.
 8. [ ] **GM (owner again):** Reload and check the history again.
-       R1. **P1:** Transfer the Campaign ownership back to the GM with the same control, and **GM:** accept. Both then confirm the Campaign lists the GM as owner.
+       R1. If step 7 did not complete: **P1:** Transfer the Campaign ownership back to the GM with the same control, and **GM:** accept. Both then confirm the Campaign lists the GM as owner.
 
 ## Expected
 
@@ -51,7 +51,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

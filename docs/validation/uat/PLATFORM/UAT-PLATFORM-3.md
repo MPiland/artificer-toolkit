@@ -2,18 +2,16 @@
 
 Artwork is private to its owner until shared.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P2) · Path position 24 of 190
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P1, P2) · Path position 17 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- Use the provided file [assets/artwork.png](../assets/artwork.png): the Spell artwork uploaded in step 2.
+- **P1** and **P2** have accounts.
 
 ## Accounts and windows
 
 - **Roles used:** P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -51,7 +49,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

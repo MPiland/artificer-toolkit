@@ -8,7 +8,7 @@ Generated from the scenario files' "ACs covered" sections and the ledger: every 
 | ACCOUNTS    | [ACCOUNTS](ACCOUNTS/README.md)       | 15        | 39      | 31                    | 0                | 8                 | 0             |
 | AUTHORING   | [AUTHORING](AUTHORING/README.md)     | 15        | 59      | 52                    | 0                | 7                 | 0             |
 | RULES       | [RULES](RULES/README.md)             | 5         | 14      | 5                     | 0                | 9                 | 0             |
-| BUILDER     | [BUILDER](BUILDER/README.md)         | 7         | 14      | 12                    | 0                | 2                 | 0             |
+| BUILDER     | [BUILDER](BUILDER/README.md)         | 8         | 17      | 15                    | 0                | 2                 | 0             |
 | SHEET       | [SHEET](SHEET/README.md)             | 11        | 25      | 22                    | 0                | 3                 | 0             |
 | CAMPAIGN    | [CAMPAIGN](CAMPAIGN/README.md)       | 9         | 24      | 19                    | 0                | 5                 | 0             |
 | SOCIAL      | [SOCIAL](SOCIAL/README.md)           | 6         | 11      | 8                     | 0                | 3                 | 0             |
@@ -25,13 +25,13 @@ Generated from the scenario files' "ACs covered" sections and the ledger: every 
 | PERF        | [PERF](PERF/README.md)               | 2         | 21      | 5                     | 1                | 16                | 0             |
 | QUALITY     | [QUALITY](QUALITY/README.md)         | 0         | 2       | 0                     | 0                | 2                 | 0             |
 | RELEASE     | [RELEASE](RELEASE/README.md)         | 1         | 20      | 5                     | 0                | 10                | 5             |
-| **Total**   |                                      | **182**   | **723** | **505**               | **1**            | **213**           | **5**         |
+| **Total**   |                                      | **183**   | **726** | **508**               | **1**            | **213**           | **5**         |
 
-Scenarios counted are the scripted ones (182); the orientation scenario and 7 exploratory tasks cover no AC.
+Scenarios counted are the scripted ones (183); the orientation scenario and the 7 exploratory tasks (run in the middle of Level 3) cover no AC.
 
 ## AC map
 
-"(blocked)" means every scenario that covers the AC waits on a [known UAT gap](OPERATOR.md#known-uat-gaps).
+"(blocked)" means every scenario that covers the AC needs managed staging credentials (PERF-1, run only on an approved staging smoke).
 
 <details>
 <summary>PLATFORM: 10 of 68 ACs in scenarios</summary>
@@ -246,7 +246,7 @@ Scenarios counted are the scripted ones (182); the orientation scenario and 7 ex
 </details>
 
 <details>
-<summary>BUILDER: 12 of 14 ACs in scenarios</summary>
+<summary>BUILDER: 15 of 17 ACs in scenarios</summary>
 
 | AC          | Scenarios                                                                            |
 | ----------- | ------------------------------------------------------------------------------------ |
@@ -264,6 +264,9 @@ Scenarios counted are the scripted ones (182); the orientation scenario and 7 ex
 | BUILDER-4.1 | [UAT-BUILDER-6](BUILDER/UAT-BUILDER-6.md)                                            |
 | BUILDER-4.2 | [UAT-BUILDER-6](BUILDER/UAT-BUILDER-6.md)                                            |
 | BUILDER-4.3 | [UAT-BUILDER-6](BUILDER/UAT-BUILDER-6.md)                                            |
+| BUILDER-5.1 | [UAT-BUILDER-8](BUILDER/UAT-BUILDER-8.md)                                            |
+| BUILDER-5.2 | [UAT-BUILDER-8](BUILDER/UAT-BUILDER-8.md)                                            |
+| BUILDER-5.3 | [UAT-BUILDER-8](BUILDER/UAT-BUILDER-8.md)                                            |
 
 </details>
 

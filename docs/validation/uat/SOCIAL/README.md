@@ -1,8 +1,8 @@
 # Social and notifications — UAT scenarios
 
-Feature `SOCIAL` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
+Feature `SOCIAL` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
-Proves players can find a table, apply, be accepted or refused, block and be blocked, receive notifications they chose, and that plan limits stop over-use without destroying data. Accounts: [README](../README.md#roles-and-accounts). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). Read email as [Reading email](../TESTERS.md#reading-email) describes.
+Proves players can find a table, apply, be accepted or refused, block and be blocked, receive notifications they chose, and that plan limits stop over-use without destroying data. Accounts: [README](../README.md#roles-and-accounts). Record results: [TESTERS](../TESTERS.md#recording-results). Read email as [Reading email](../TESTERS.md#reading-email) describes.
 
 ## Scenarios
 
@@ -10,12 +10,12 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                        | Title                                            |
 | ------------- | ----- | ------------------------------- | ------------------------------------------------ |
-| 57            | 2     | [UAT-SOCIAL-1](UAT-SOCIAL-1.md) | Create a listing, apply, accept and fill a table |
-| 58            | 2     | [UAT-SOCIAL-2](UAT-SOCIAL-2.md) | Invitations and Social Hub navigation            |
-| 150           | 4     | [UAT-SOCIAL-3](UAT-SOCIAL-3.md) | Blocks and what they do                          |
-| 151           | 4     | [UAT-SOCIAL-4](UAT-SOCIAL-4.md) | Private profiles and masking                     |
-| 152           | 4     | [UAT-SOCIAL-5](UAT-SOCIAL-5.md) | Notification feed, read state and preferences    |
-| 186           | 5     | [UAT-SOCIAL-6](UAT-SOCIAL-6.md) | Plan limits and capacity                         |
+| 50 | 2 | [UAT-SOCIAL-1](UAT-SOCIAL-1.md) | Create a listing, apply, accept and fill a table |
+| 51 | 2 | [UAT-SOCIAL-2](UAT-SOCIAL-2.md) | Invitations and Social Hub navigation |
+| 151 | 4 | [UAT-SOCIAL-3](UAT-SOCIAL-3.md) | Blocks and what they do |
+| 152 | 4 | [UAT-SOCIAL-4](UAT-SOCIAL-4.md) | Private profiles and masking |
+| 153 | 4 | [UAT-SOCIAL-5](UAT-SOCIAL-5.md) | Notification feed, read state and preferences |
+| 187 | 5 | [UAT-SOCIAL-6](UAT-SOCIAL-6.md) | Plan limits and capacity |
 
 ## Covered elsewhere
 

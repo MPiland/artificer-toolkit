@@ -2,18 +2,18 @@
 
 A hidden Concentration source stays hidden.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 118 of 190
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 119 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Shield and Hold** (owner GM; member P1 with Ember, who has Shield and Hold Person; a Wolf and a Goblin; Assisted mode; the review Encounter started with the Goblin held by Ember's Hold Person and Ember's Shield reaction already used this round).
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- P1 has switched to Ember in The Campaign (Change Character), who has Shield and Hold Person.
+- An Encounter is running in The Campaign in Assisted mode with a Wolf, a Goblin and Ember ([UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -23,7 +23,7 @@ S1. **GM:** Add a hidden Mage creature to the Scene. Have it cast a Concentratio
 
 1. [ ] **GM:** Add a creature that is hidden from players and cast a Concentration spell with it (or give it a concentrating effect).
 2. [ ] **GM:** Deal damage to the hidden creature outside its own turn so its Concentration check fails.
-3. [ ] **P1:** Read the chat and history notice about the dropped Concentration.
+3. [ ] **P1 and P2:** Read the chat and history notice about the dropped Concentration.
 4. [ ] **GM:** Read the same notice.
        R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
 
@@ -35,7 +35,7 @@ S1. **GM:** Add a hidden Mage creature to the Scene. Have it cast a Concentratio
 ## Other users see
 
 - **P1:** must NOT see the hidden creature's name, token or spell source in the notice or anywhere, including after a reload.
-- **P2:** not a member of Shield and Hold; sees nothing of it.
+- **P2:** must NOT see the hidden creature's name, token or spell source either.
 
 ## ACs covered
 
@@ -49,7 +49,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

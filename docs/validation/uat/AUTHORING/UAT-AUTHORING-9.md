@@ -2,18 +2,18 @@
 
 Reusable effects, grants and modifiers on a System.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 34 of 190
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path position 27 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the SRD System with its Reusable definitions list; the GM account can create System definitions there (if no create control is shown to the GM, stop and report it).
+- The account **GM** exists (a free account).
+- The account **P1** exists (a free account).
+- The SRD System has its Reusable definitions list; the GM account can create System definitions there (if no create control is shown to the GM, stop and report it).
 
 ## Accounts and windows
 
 - **Roles used:** GM
-- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as GM.
 
 ## Steps
 
@@ -36,7 +36,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 ## Cross-role check
 
-Owner follow-up, run after the tester finishes, from the same set's P1 profile (not part of the tester's run):
+Run by a second person after the tester finishes, signed in to their own P1 account in their own browser (not part of the tester's run):
 
 - **P1:** After step 4, open the SRD System's **Reusable definitions** list: the GM's draft definition is not listed.
 
@@ -52,7 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

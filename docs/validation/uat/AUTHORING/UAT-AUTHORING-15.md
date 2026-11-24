@@ -2,16 +2,16 @@
 
 BLOCKED until AUTHORING-21 merges: the link between the modifier and its pool is changing from a typed Charge ID to a picker, and this scenario is written against the picker. Mark it BLOCKED in the Result block until then.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 38 of 190
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 31 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The account **P1** exists (a free account).
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 - **Settings:** **Authoring experience** is **Advanced**. Keep the SRD Sorcerer's **Empowered Spell** feature (Classes, Sorcerer, Metamagic) open as the reference. Start a stopwatch before step 1.
 
 ## Steps
@@ -37,7 +37,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 ## Cross-role check
 
-Owner follow-up, run after the tester finishes, from the same set's P2 profile (not part of the tester's run):
+Run by a second person after the tester finishes, signed in to their own P2 account in their own browser (not part of the tester's run):
 
 - **P2:** Searching Feats for "UAT Empowered" finds nothing.
 
@@ -55,7 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

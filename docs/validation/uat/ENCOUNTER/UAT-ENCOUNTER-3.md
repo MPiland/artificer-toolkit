@@ -2,26 +2,26 @@
 
 Prepare, start, delete and persist a Run.
 
-Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 74 of 190
+Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 67 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- Done in [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md): the Scene "UAT Cavern" exists in the Sandbox Campaign.
-- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1 is a Sandbox member with "UAT Dara" assigned.
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- Done in [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md): the Scene "UAT Cavern" exists in The Campaign.
+- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1 is seated in The Campaign with Aria as their Campaign Character.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
-- **Settings:** The Sandbox Campaign's Automation mode is **Assisted** (table settings).
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
+- **Settings:** The Campaign's Automation mode is **Assisted** (table settings).
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **GM:** Open the Sandbox Campaign and check P1 is a member with a Character and the Scene exists.
+1. [ ] **GM:** Open The Campaign and check P1 is a member with a Character and the Scene exists.
 2. [ ] **GM:** Create an Encounter Blueprint with a Wolf and a Goblin. Confirm it appears in the Campaign's Encounter list and the picker offers only Blueprints for this Campaign's game system.
 3. [ ] **GM:** Create a Run from the Blueprint on the Scene. Confirm it is **Prepared** and the map shows tokens for each actor.
 4. [ ] **GM:** Choose **Delete encounter** on the Prepared Run and confirm. Confirm it disappears and the Blueprint is still there.
@@ -61,7 +61,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

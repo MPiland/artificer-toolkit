@@ -2,17 +2,17 @@
 
 Create an account from an invitation.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 12 of 190
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 5 of 191
 
 ## Prerequisites
 
-- The review data provides public sign-up closed, so each new account needs an invitation.
-- The review data provides two invitations issued by the owner before the session: one to your own email address and one to a second address you own (for example a +tag of the same inbox).
+- Public sign-up is closed, so each new account needs an invitation.
+- The owner has issued two invitations before you start: one to your own email address and one to a second address you own (for example a +tag of the same inbox).
 
 ## Accounts and windows
 
 - **Roles used:** OWN
-- **Windows:** One browser window, signed in to the account you created in [ACCOUNTS-6](UAT-ACCOUNTS-6.md). Your normal browser is fine.
+- **Windows:** One browser, not signed in at first (OWN is the account you create in step 2).
 
 ## Steps
 
@@ -53,7 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -2,38 +2,39 @@
 
 Level a Character up between Sessions and play the next Session with the new abilities.
 
-Level 0 (Orientation and exploratory tasks) · Feature EXPLORATORY · Mode: Solo (P2) with a facilitator playing GM · Path position 8 of 190
+Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P2 is the tester, GM follows the script) · Path position 88 of 191
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 
 ## Prerequisites
 
-- The review data provides the account P2, who owns Bryn and Pyra and is a member of Review: Fire and Thunder.
-- The review data provides the Campaign **Review: Fire and Thunder**, owned by GM, with Pyra on P2's seat.
+- The account **P2** exists and is seated in The Campaign. P2 has Bryn, a Level 1 Fighter, as their Campaign Character.
+- **The Campaign** is hosted by GM, with Bryn on P2's seat.
 
-## Roles and windows
+## Accounts and windows
 
 - **Roles used:** P2, GM
-- **Tester role:** P2. You use one account from your set, in your normal browser, and you never act as another role.
-- **Facilitator:** the owner, signed in as GM in a separate browser profile, following the script below. The facilitator does only what the script says, when the trigger happens, and does not explain controls.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
+- **Tester:** P2, in their own browser. You never act as another role.
+- **GM:** a second person, in their own browser and signed in to their own GM account, following the script below. They do only what the script says, when the trigger happens, and do not explain controls.
 
-## Facilitator script
+## Script for the second person
 
-1. Before the tester starts: GM signs in in a separate profile.
-2. When the tester says the levelled copy "Pyra (levelled)" is committed: GM uses **Change Character** to assign the copy to P2's seat and tells the tester.
+1. Before the tester starts: GM opens The Campaign.
+2. When the tester says the levelled copy "Bryn (levelled)" is committed: GM opens the Party panel and waits. The tester assigns the copy to their own seat with **Change Character**; GM confirms it shows on the roster.
 3. When the tester says they are ready to play a round: GM makes the copy the active actor and tells the tester.
 
 ## Task
 
 - **Goal:** Level a Character up between Sessions and play the next Session with the new abilities.
-- **Scope:** Make a copy of Pyra in the Builder named "Pyra (levelled)", raise the copy by one level, and review what changed. Play a round in the Encounter with a newly gained option if one is available. End when the Sheet and the live table agree about the new level.
+- **Scope:** Make a copy of Bryn in the Builder named "Bryn (levelled)", raise the copy by one level (to Level 2), and review what changed. Play a round in the Encounter with a newly gained option if one is available. End when the Sheet and the live table agree about the new level.
 - **Look for:** whether the Builder showed what changed; whether you knew where the Sheet and the Builder differ in purpose; any value that looked wrong after the level-up.
 
-Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop. Tell the facilitator in words when a trigger in the script happens (for example "my Character is ready").
+Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop. Tell the second person in words when a trigger in the script happens (for example "my Character is ready").
 
 ## Afterwards
 
-- GM: use **Change Character** to put Pyra back on P2's seat. Owner: delete the tester's copy.
+- P2: use **Change Character** to put Bryn back on your seat. P2: delete the levelled copy.
 
 ## ACs covered
 
@@ -47,8 +48,6 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:** P2
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Time:** minutes from start to goal, or to the moment you gave up
 - **Outcome:** reached / reached with help / gave up
