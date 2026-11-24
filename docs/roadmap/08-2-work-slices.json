@@ -62,7 +62,7 @@
     {
       "id": "VS",
       "title": "Vertical slices (2026-10-02 re-cut)",
-      "plan": "docs/handoffs/phase-08-2-decisions.md",
+      "plan": "docs/releases/v0.1.0-decisions.md",
       "purpose": "Each slice closes named criteria with a focused proof and finishes the older slices it includes. The V15 load run, final proof and promotion come last (D80)."
     }
   ],

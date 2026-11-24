@@ -6473,7 +6473,7 @@
                 "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts"
               ],
               "origin": [],
-              "note": "Done 2026-10-08: countDatabaseIo meters a note edit outside live play (notes, groups, Build counts, head and play clocks, receipt) and held in a room (play row untouched, reloaded into the next room command); the head drops checksum and sheetStateChecksum, which assembleCharacterStructure derives. Dev data migrated by local reset and reseed (backup local-validation/convex-reset/sheet7.before.zip). User approved the Character aggregate-checksum proposal on 2026-10-06 (phase-08-2-decisions.md Resolved); proposal: local-validation/character-head-checksum-proposal.md.",
+              "note": "Done 2026-10-08: countDatabaseIo meters a note edit outside live play (notes, groups, Build counts, head and play clocks, receipt) and held in a room (play row untouched, reloaded into the next room command); the head drops checksum and sheetStateChecksum, which assembleCharacterStructure derives. Dev data migrated by local reset and reseed (backup local-validation/convex-reset/sheet7.before.zip). User approved the Character aggregate-checksum proposal on 2026-10-06 (v0.1.0-decisions.md Resolved); proposal: local-validation/character-head-checksum-proposal.md.",
               "id": "SHEET-7.1"
             }
           ],
@@ -14792,7 +14792,7 @@
                 "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActiveGrants.ts; packages/rules-runtime/src/encounterActionMaintenance.ts; packages/schema/src/shared/activeRuleEffects.ts; apps/session-worker/src/roomCharacterRules.ts; apps/session-worker/src/roomSceneVision.ts; apps/session-worker/src/nativeEncounterSettlement.ts; packages/encounter-persistence/src/maintenanceOwnerPersistence.ts; apps/apis/convex/characters/rest.ts"
               ],
               "origin": [],
-              "note": "D99. Unit tests per domain plus one journey. The attack-disadvantage grant's consumption is proved under SPELLS-5.4. Red-first (2026-10-09): the Aid journey failed (11 hit points, expected 16) because room Character reconciliation clamped to the grant-free maximum; fixed in roomCharacterRules.ts. Per-speed-type budgets: the user chose option B (2026-10-09, phase-08-2-decisions.md Resolved). Built 2026-10-09: the stored speeds list replaces walkingSpeed; the turn readout keeps one total used and an allowance per speed type (after grants, condition scaling and Dash); a voluntary move may name its speedId and an unknown id is refused; still displayed, never enforced. The Fly journey shows a 60 ft FLY allowance beside 30 ft WALK.",
+              "note": "D99. Unit tests per domain plus one journey. The attack-disadvantage grant's consumption is proved under SPELLS-5.4. Red-first (2026-10-09): the Aid journey failed (11 hit points, expected 16) because room Character reconciliation clamped to the grant-free maximum; fixed in roomCharacterRules.ts. Per-speed-type budgets: the user chose option B (2026-10-09, v0.1.0-decisions.md Resolved). Built 2026-10-09: the stored speeds list replaces walkingSpeed; the turn readout keeps one total used and an allowance per speed type (after grants, condition scaling and Dash); a voluntary move may name its speedId and an unknown id is refused; still displayed, never enforced. The Fly journey shows a 60 ft FLY allowance beside 30 ft WALK.",
               "id": "SPELLS-5.6"
             },
             {
@@ -14811,7 +14811,7 @@
                 "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActionEffectPlans.ts; packages/rules-runtime/src/activeRuleEffectRecords.ts; packages/rules-runtime/src/encounterGrantLifetimes.ts; packages/encounter-persistence/src/effectStore.ts; packages/encounter-persistence/src/characterRunEffects.ts; packages/schema/src/shared/activeRuleEffectLifecycle.ts; packages/source-data/src/srd/spells/fly.ts; packages/source-data/src/srd/spells/heroism.ts; packages/source-data/src/srd/spells/protection-from-energy.ts; packages/source-data/src/srd/spells/shield-of-faith.ts"
               ],
               "origin": [],
-              "note": "D99. Journey through a homebrew Concentration feature fixture. Red-first (2026-10-09): the journey failed (the Character offered no ward action) because modifierGrantPlan refused a maintained grant; then the room refused the Character-held grant because a maintained effect needs an Encounter source, so a maintained grant is Encounter-scoped (ends with the Run, never carries over; open question in phase-08-2-open-questions.md). The compiler unit tests failed (null maintenance) until the SRD links were built. Reopened 2026-10-09: the user chose option B (phase-08-2-decisions.md Resolved). A Character-held Concentration grant carries over to the Campaign clock when the Run ends and ends when its caster starts another Concentration. Slice 1 built (stamp and carry-over). Slice 2 built for Characters in the Run (room, receipt endedCarriedGrants, undo refused); mid-Run admission deferred (D99). Rule 3 built (2026-10-09): the room appends each Character that starts a Concentration to the Run row's bounded concentrationCasterCharacterIds (action and movement-reaction paths, one seam) and each checkpoint ends the stamped grants of the newly added ids on Characters outside any ACTIVE Run (endOutsideCarriedGrants). Red-first: with the checkpoint hook neutralized, the two real-flow actionCharacterSources tests failed (2 failed, 7 passed); restored, 9 passed. The movement-reaction journey found a receipt-schema bug (the owner transition of a holder whose carried grant ends was rejected as not matching a removed owner); its schema contract test failed first and the validator now accepts it. Known edges are in D99: an undone plain Concentration start leaves its id in the set, a Character in another ACTIVE Run is skipped, mid-Run admission stays deferred.",
+              "note": "D99. Journey through a homebrew Concentration feature fixture. Red-first (2026-10-09): the journey failed (the Character offered no ward action) because modifierGrantPlan refused a maintained grant; then the room refused the Character-held grant because a maintained effect needs an Encounter source, so a maintained grant is Encounter-scoped (ends with the Run, never carries over; open question in open-questions.md). The compiler unit tests failed (null maintenance) until the SRD links were built. Reopened 2026-10-09: the user chose option B (v0.1.0-decisions.md Resolved). A Character-held Concentration grant carries over to the Campaign clock when the Run ends and ends when its caster starts another Concentration. Slice 1 built (stamp and carry-over). Slice 2 built for Characters in the Run (room, receipt endedCarriedGrants, undo refused); mid-Run admission deferred (D99). Rule 3 built (2026-10-09): the room appends each Character that starts a Concentration to the Run row's bounded concentrationCasterCharacterIds (action and movement-reaction paths, one seam) and each checkpoint ends the stamped grants of the newly added ids on Characters outside any ACTIVE Run (endOutsideCarriedGrants). Red-first: with the checkpoint hook neutralized, the two real-flow actionCharacterSources tests failed (2 failed, 7 passed); restored, 9 passed. The movement-reaction journey found a receipt-schema bug (the owner transition of a holder whose carried grant ends was rejected as not matching a removed owner); its schema contract test failed first and the validator now accepts it. Known edges are in D99: an undone plain Concentration start leaves its id in the set, a Character in another ACTIVE Run is skipped, mid-Run admission stays deferred.",
               "id": "SPELLS-5.7"
             },
             {
@@ -26429,7 +26429,7 @@
               "id": "QUALITY-4.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R0.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R0.",
               "text": "The four unused pending-context kinds (ENCOUNTER_CHARACTER_RULE_ACTION, ENCOUNTER_ACTOR_RULE_ACTION, ENCOUNTER_ACTOR_SPELL_CAST, ENCOUNTER_CREATURE_RULE_ACTION) and the test-only Convex entry encounters/actionContestSettlement.ts are deleted, and the shared d20 helpers move out of encounterMovementReactionActionExecution.ts to the d20 settlement module; existing suites stay green and bundle bars are unchanged or lower. (Unused closed rule kinds are SPELLS-4.T4e.)",
               "proof": ["rules-runtime-contracts.test.ts", "actionDisarmSettlement.test.ts"]
             }
@@ -26472,7 +26472,7 @@
               "id": "QUALITY-5.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R1.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R1.",
               "text": "The SRD compile golden records each effect's active-effect plan and fact binding beside its graph; the file changes only by added columns.",
               "proof": ["srdEffectCompileGolden.test.ts"]
             }
@@ -26513,7 +26513,7 @@
               "id": "QUALITY-6.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R2. Amended at review 2026-11-10: Giant Killer's golden row stays REFUSED here because its bare Feature weapon attack takes its outcomes from a wielded weapon at runtime (as Volley and Whirlwind Attack); the row moves to QUALITY-8.1 with Giant Killer itself.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R2. Amended at review 2026-11-10: Giant Killer's golden row stays REFUSED here because its bare Feature weapon attack takes its outcomes from a wielded weapon at runtime (as Volley and Whirlwind Attack); the row moves to QUALITY-8.1 with Giant Killer itself.",
               "text": "The compiler accepts reaction triggers through a trigger registry rather than a per-trigger whitelist; ATTACK_ON_OTHER and ATTACK_RESOLVED_ON_SELF effects compile (Protection rows leave REFUSED; an ATTACK_RESOLVED_ON_SELF reaction attack compiles), and no other golden row changes.",
               "proof": ["reactionTriggerCompile.test.ts", "srdEffectCompileGolden.test.ts"]
             }
@@ -26558,7 +26558,7 @@
               "id": "QUALITY-7.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R3.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R3.",
               "text": "Every attack, cast and roll-window reaction is offered by one offer function fed by the event table; Shield, Counterspell and Cutting Words pass through it; Protection is offered through it before the attack roll; no authored trigger except MOVEMENT (QUALITY-9) returns null from the event hooks; the three trigger-literal pin schemas collapse to one.",
               "proof": [
                 "nativeRoomProtection.test.ts",
@@ -26607,7 +26607,7 @@
               "id": "QUALITY-8.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R4. Amended 2026-11-11 (user, D219): Giant Killer's golden row stays REFUSED like Volley and Whirlwind Attack (its bare Feature weapon attack takes its outcomes from the wielded weapon at play time; a room test proves it); a reaction is spent when chosen and undo or void of the parent cascades to the child. CANCEL and REBIND_TEST resume proofs land with QUALITY-9.T1 (D219), so this AC closes with it. Closed 2026-11-14: the CANCEL and REBIND_TEST resume proofs landed with QUALITY-9.T1b2 and T1d1 (D219).",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R4. Amended 2026-11-11 (user, D219): Giant Killer's golden row stays REFUSED like Volley and Whirlwind Attack (its bare Feature weapon attack takes its outcomes from the wielded weapon at play time; a room test proves it); a reaction is spent when chosen and undo or void of the parent cascades to the child. CANCEL and REBIND_TEST resume proofs land with QUALITY-9.T1 (D219), so this AC closes with it. Closed 2026-11-14: the CANCEL and REBIND_TEST resume proofs landed with QUALITY-9.T1b2 and T1d1 (D219).",
               "text": "A chosen reaction runs as an ordinary child action through the system-trigger seam, spending its reaction when chosen, with a suspended parent and one pending child allowed; a reaction that needs its own roll or save resolves and the parent resumes in one of four ways (cancel, rebind the test, adjust the roll, nothing); undoing or voiding the parent undoes its child; replaying the parent raises the child once; Giant Killer's weapon attack runs this way with the wielded weapon, and no SRD compile golden row changes.",
               "proof": [
                 "nativeRoomReaction.test.ts",
@@ -26853,7 +26853,7 @@
               "id": "QUALITY-9.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R5+R6.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R5+R6.",
               "text": "Counterspell and roll-window reactions are offered and run through the shared offer and child action; their dedicated pause kinds are deleted; the Counterspell and roll-window tests pass. Movement reactions moved to QUALITY-18 (2026-11-12).",
               "proof": [
                 "nativeRoomCounterspell.test.ts",
@@ -27112,7 +27112,7 @@
               "id": "QUALITY-10.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R7.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R7.",
               "text": "Every d20 test settles through settleEncounterD20Test with one d20 graph builder and one evidence-pin verifier, and the two contributor merges become one; a source ratchet fails on a hand-rolled d20 outside the settlement; the golden changes only where duplicate definitions merged.",
               "proof": [
                 "encounterAttackBelief.test.ts",
@@ -27177,7 +27177,7 @@
               "id": "QUALITY-11.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R8.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R8.",
               "text": "The rule, HP-zero, start-of-turn and delegated Legendary Action raise loops become one after-commit step fed by the event table; damage mirrors and defeat rewards settle as one stage of that step; a multi-trigger command raises children in today's order.",
               "proof": ["QUALITY-11.T1a, T1b (m725) and T2 (m720) DONE."]
             }
@@ -27254,7 +27254,7 @@
               "id": "QUALITY-12.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R9.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R9.",
               "text": "The same Sheet command gives the same result on Convex and in the room, proved against both hosts: rolls apply carried test dice, minimum roll and effect spends; resource spend has one implementation; HP is clamped after a maximum change; ending concentration has one orchestration; casting places summons. The schema validators import the HP, temporary HP and death-save arithmetic. Manual HP edits still bypass defenses (D156).",
               "proof": ["nativeRoomSheetCarriedRollDice.test.ts", "resourcePoolSpend.test.ts"]
             }
@@ -27298,7 +27298,7 @@
               "id": "QUALITY-13.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R10.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R10.",
               "text": "Single-target, chosen-list and area actions run one per-target driver and one commit skeleton; a chosen-list action offers a reaction and a save window; area tests are unchanged.",
               "proof": [
                 "nativeRoomIncomingGateCards.test.ts",
@@ -27604,7 +27604,7 @@
               "id": "QUALITY-14.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R11.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R11.",
               "text": "Every effect ending (turn tick, grant tick, sweep, REST, SEPARATED, AREA_LEFT) raises an event-table event through one lifetime model; movement damage triggers the same concentration chain as action damage through one planner. DAMAGED is raised once per command and holder.",
               "proof": [
                 "nativeRoomTurnDamagedOncePerHolder.test.ts",
@@ -28017,7 +28017,7 @@
               "id": "QUALITY-15.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R12. Closed 2026-11-17 under the D228 freeze: leftovers are in future-enhancements, QUALITY-15 zone and summon edges.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R12. Closed 2026-11-17 under the D228 freeze: leftovers are in future-enhancements, QUALITY-15 zone and summon edges.",
               "text": "Activation, targeting, test, outcome and lifetime compile independently; the refused count falls with no change to passing rows, and each remaining refusal is a game rule or invalid input.",
               "journeys": ["zone-move-browser"],
               "proof": [
@@ -29191,7 +29191,7 @@
               "id": "QUALITY-16.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice R13. Closed 2026-11-14 with T4 (m778).",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice R13. Closed 2026-11-14 with T4 (m778).",
               "text": "A content ratchet fails on dnd5e strings and System rule literals outside systems/; legendary discovery, relationship paths, lifetime literals and Kernel contributors read System data instead.",
               "proof": [
                 "sourceRatchets.test.mjs",
@@ -29289,7 +29289,7 @@
               "id": "QUALITY-17.1",
               "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in phase-08-2-decisions.md. Audit slice bug.",
+              "note": "Registered 2026-11-10 from the Fable 5.2 pipeline audit; all slices approved by the user (D187 growth yes). See the audit-approval ruling in v0.1.0-decisions.md. Audit slice bug.",
               "text": "Several effects damaging one target in a turn-effect or spatial pass settle through one damage fold that honours damage interceptions; a failing-first regression test proves the defect before the fix, or the investigation records that none exists.",
               "proof": ["encounterTurnEffects.test.ts", "encounterMeleeRetaliation.test.ts"]
             }
@@ -29987,7 +29987,7 @@
                 "after": ["RELEASE-3.T2"],
                 "finalSource": true
               },
-              "text": "Record the explicit Supabase (and remaining managed legacy services) retirement decision after R09 passes: present the evidence to the user, capture their ruling in phase-08-2-decisions.md and the open-questions doc, and update the ledger. User decides; agent writes it up.",
+              "text": "Record the explicit Supabase (and remaining managed legacy services) retirement decision after R09 passes: present the evidence to the user, capture their ruling in v0.1.0-decisions.md and the open-questions doc, and update the ledger. User decides; agent writes it up.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
             },
             {
@@ -30161,7 +30161,7 @@
               "status": "DONE",
               "proof": ["Closed by RELEASE-7.T1 (m593); see each task's proof."],
               "origin": [],
-              "note": "Written once the VTT behavior freezes before alpha, so it describes shipped behavior rather than plans. Source each rule from phase-08-2-decisions.md and the ADRs. Closed 2026-11-01 by RELEASE-7.T1.",
+              "note": "Written once the VTT behavior freezes before alpha, so it describes shipped behavior rather than plans. Source each rule from v0.1.0-decisions.md and the ADRs. Closed 2026-11-01 by RELEASE-7.T1.",
               "id": "RELEASE-7.1"
             },
             {
