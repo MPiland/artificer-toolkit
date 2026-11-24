@@ -3455,9 +3455,9 @@
         {
           "id": "ACCOUNTS-12",
           "title": "Completing an invitation signs me in",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/accountJourneys.test.ts"],
+          "journeyStatus": "verified",
           "origin": [
             "Owner finding 2026-11-23 (staging): after completing an invitation the app sent the new user to sign-in instead of signing them in; must ship before production"
           ],
@@ -3465,12 +3465,17 @@
             {
               "id": "ACCOUNTS-12.1",
               "text": "After a new user completes an invitation (chooses a username and password on the invite link), they land signed in on the signed-in home without entering their credentials again; a failed redemption keeps them on the invitation page with the error and signs nobody in.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/auth/invitationSignIn.test.tsx",
+                "apps/apis/convex/accountJourneys.test.ts",
+                "apps/web/src/auth/AuthForms.test.tsx",
+                "apps/web/src/auth/pages/UpdatePasswordPage.test.tsx"
+              ],
               "origin": [
                 "Owner finding 2026-11-23 (staging): after completing an invitation the app sent the new user to sign-in instead of signing them in; must ship before production"
               ],
-              "note": "Registered 2026-11-23 with owner approval. Today UpdatePasswordPage.handleSuccess navigates to /sign-in for both the invitation and the reset flow. Gate: before production promotion, not before staging UAT."
+              "note": "Registered 2026-11-23 with owner approval. Closed 2026-11-23 at m895: UpdatePasswordForm signs in with the just-set credentials after a successful redeem and UpdatePasswordPage opens /home through openSignedInDocument (shared with SignInPage); the reset flow still goes to /sign-in; a failed sign-in after redeem says the account is ready and asks the user to sign in. CI green: Tests 45297195923, Browser journeys 45297195911, Live backend 45300265733."
             }
           ],
           "wsjf": {
@@ -3482,7 +3487,7 @@
           "tasks": [
             {
               "id": "ACCOUNTS-12.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ACCOUNTS-12.1"],
               "wsjf": {
                 "bv": 5,
@@ -25451,10 +25456,15 @@
           "origin": [],
           "acs": [
             {
-              "text": "The managed workload passes the same thresholds as part of authorized R09 promotion.",
+              "text": "Staging carries the V15 evidence D234 defines: CI keeps gating the V15 budgets on the release source, and the UAT window on staging records Convex usage, Cloudflare Workers and Durable Object metrics, and rule and scene latency from the Convex dashboard and Sentry, alongside the managed smoke's C2 pass.",
               "status": "TODO",
               "proof": [],
-              "origin": ["V15.4", "P81-MANAGED-RULE-LATENCY", "P81-MANAGED-SCENE-LATENCY"],
+              "origin": [
+                "V15.4",
+                "P81-MANAGED-RULE-LATENCY",
+                "P81-MANAGED-SCENE-LATENCY",
+                "D234 (user, 2026-11-23): no staging V15 driver; rewrite to CI budgets plus staging usage evidence"
+              ],
               "id": "PERF-2.1"
             }
           ],
@@ -25475,12 +25485,12 @@
                 "bv": 2,
                 "tc": 3,
                 "rr": 8,
-                "size": 3,
+                "size": 1,
                 "after": ["RELEASE-3.T1", "PERF-1.T1"],
                 "finalSource": true
               },
-              "text": "Run the frozen workload against the authorized staging environment as part of RELEASE-3.1's promotion, with the same thresholds from verifyV15Budgets/driver asserts, and record the evidence. Work is making the existing driver accept a managed target (URLs from the staging env, no secrets in logs) and one run; requires explicit user approval each time (cloud staging rule) and ADR 0035 forbids Convex Cloud for tests unless approved.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). 2026-11-03 (PERF-1.T3): measure the ephemeral preview metric in a GPU browser against a production web build; the GitHub runner browser adds two frames (150-300 ms) of receipt-to-paint on its own."
+              "text": "D234: during the staging UAT window, record Convex usage (function calls, database I/O, bandwidth), Cloudflare Workers and Durable Object metrics, and rule and scene latency from the Convex dashboard and Sentry in the RELEASE-3 promotion packet, with the green V15 CI run on the release source. The owner exports the dashboard figures; no agent touches the managed deployment.",
+              "note": "Resized 2026-11-23 (D234) from a staging run of the frozen V15 driver, which the PERF-2.T1 trace showed cannot target a managed deployment (development-only fixtures, markers and Worker meter)."
             }
           ]
         },
