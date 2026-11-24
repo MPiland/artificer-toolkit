@@ -53,12 +53,51 @@ const JOURNEY_STACK = [
 ]
 const APP_SPECS_CONFIG = /^apps\/web\/playwright\.config\.ts$/
 
+/** The browser verifier modules of apps/web/tests/live-backend that the proof driver imports for one proof. */
+const liveBackend = (...names) =>
+  names.map((name) => new RegExp(`^apps\\/web\\/tests\\/live-backend\\/${name}\\.ts$`))
+
 /**
  * The Playwright config and specs each CI proof's driver starts by script name, which no import graph
- * sees. A change that reaches one runs that proof whatever the acceptance criteria name, since the proof
- * is the only run of its own spec.
+ * sees, and the browser verifiers under apps/web/tests/live-backend that the driver loads for the proof.
+ * A verifier's helpers (campaignCollaboration, sceneLive, clientAddress) need no entry: the import graph
+ * carries a change to them up to the verifiers that import them. A change that reaches one runs that
+ * proof whatever the acceptance criteria name, since the proof is the only run of its own spec.
  */
 export const PROOF_SPECS = {
+  'account-deletion-browser': liveBackend('accountDeletion'),
+  'account-entitlements': liveBackend('accountEntitlements'),
+  'auth-browser': liveBackend('authenticatedSession'),
+  'profile-browser': liveBackend('authenticatedSession'),
+  'campaign-collaboration-browser': liveBackend('campaignCollaboration'),
+  'campaign-content-browser': liveBackend('campaignContent'),
+  'campaign-custody-browser': liveBackend('campaignCustody'),
+  'campaign-lifecycle': liveBackend('campaignLifecycle'),
+  'campaign-membership-browser': liveBackend('campaignMembership'),
+  'publication-browser': liveBackend('nativeAuthoring'),
+  'publication-class-browser': liveBackend('nativeAuthoring'),
+  'publication-feat-browser': liveBackend('nativeAuthoring'),
+  'publication-equipment-browser': liveBackend('nativeAuthoring'),
+  'recovery-browser': liveBackend('passwordRecovery'),
+  'scene-live-browser': liveBackend('sceneAuthoring', 'sceneLive'),
+  'vtt-map-retention': liveBackend('sceneAuthoring', 'sceneLive'),
+  'signed-in-request-audit': liveBackend('signedInRequestAudit'),
+  'social-browser': liveBackend('social'),
+  movement: liveBackend('encounterMovement'),
+  passage: liveBackend('encounterMovement'),
+  'area-browser': liveBackend('encounterArea'),
+  'concentration-sheet-browser': liveBackend('encounterConcentrationSheet'),
+  'delegated-attack-browser': liveBackend('encounterDelegatedAttack'),
+  'disarm-browser': liveBackend('encounterDisarm'),
+  'effects-browser': liveBackend('encounterEffects'),
+  'giant-killer-browser': liveBackend('encounterGiantKiller'),
+  'heat-metal-browser': liveBackend('encounterHeatMetal'),
+  'held-effect-browser': liveBackend('encounterHeldEffect'),
+  'hide-browser': liveBackend('encounterHide'),
+  'player-browser': liveBackend('encounterPlayer'),
+  'shove-aside-browser': liveBackend('encounterShoveAside'),
+  'summon-turn-browser': liveBackend('encounterSummonTurn'),
+  'zone-move-browser': liveBackend('encounterZoneMove'),
   'vtt-browser': [
     /^apps\/web\/tests\/managed-vtt\//,
     /^apps\/web\/playwright\.local-vtt\.config\.ts$/
