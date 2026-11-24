@@ -30,7 +30,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 8. [ ] **P1:** Try to use the open window (post a chat line), then reload it.
 9. [ ] **GM and P2:** Post a chat line and move a token.
 10. [ ] **GM:** Read the presence list.
-    R1. **GM:** Re-seat the player you removed in steps 7 to 10 as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
+        R1. **GM:** Re-seat the player you removed in steps 7 to 10 as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
 
 ## Expected
 

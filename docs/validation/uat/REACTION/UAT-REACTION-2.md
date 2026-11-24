@@ -32,7 +32,7 @@ S1. **GM:** Make sure Bryn's reaction is unused (advance to a new round if neede
 8. [ ] **P2:** Answer **Use** or **Decline** for Bryn.
 9. [ ] **GM:** Create a decision that cannot be skipped (an initiative roll or a save prompt). Try **Skip decision**. Read the refusal.
 10. [ ] **GM:** Repeat step 7 and, instead of P2, answer the decision for Bryn yourself (the GM can answer for anyone). Confirm it resolves.
-    R1. **GM:** Remove the creatures you added from the Encounter. Clear any condition you applied.
+        R1. **GM:** Remove the creatures you added from the Encounter. Clear any condition you applied.
 
 ## Expected
 

@@ -32,7 +32,7 @@ S1. **P3:** Build Dunn (Hill Dwarf Fighter, level 1), Pip (Lightfoot Halfling Fi
 9. [ ] **GM:** Choose **Complete encounter**. **P3:** Change Character to Wren. **GM:** Rebuild the arena. **P3:** Cast **Eldritch Blast** at a level-5 Warlock, splitting the beams between two targets. Confirm two beams (one attack roll each) and that a Goblin at 0 HP is not targeted by a leftover beam.
 10. [ ] **P3:** Confirm the beam count does not change during the Encounter and that each beam is its own damage instance.
 11. [ ] **GM:** Slow a Goblin with Caltrops (scenario 19 step 5), then make that Goblin move through a reaction that can end grants. Confirm the slow stays unless the Goblin regains hit points, and that Undo of that move is refused or restores everything (never half of it). Doubt: which tester-visible situation reaches this guard.
-    R1. **GM:** Complete the arena Encounter. **P1, P2, P3:** Use **Change Character** to put Aria, Bryn and Cade back in Review: Party in the Field.
+        R1. **GM:** Complete the arena Encounter. **P1, P2, P3:** Use **Change Character** to put Aria, Bryn and Cade back in Review: Party in the Field.
 
 ## Expected
 

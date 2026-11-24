@@ -33,7 +33,7 @@ S1. Read "Aria" as Iris (P1) and "the Wolf" as the Ogre throughout. The GM draws
 10. [ ] **GM:** Unlock it; **P1:** move it one square.
 11. [ ] **GM:** Add a one-way barrier and a window and try dragging through each.
 12. [ ] **GM:** Add difficult terrain with a movement cost multiplier of 2 and walk Aria through two squares of it.
-    R1. **GM:** Delete the extra wall, door, one-way barrier, window and terrain line you drew (select each, delete), so the Scene again has only the wall at x=400 with its closed door and the rubble line.
+        R1. **GM:** Delete the extra wall, door, one-way barrier, window and terrain line you drew (select each, delete), so the Scene again has only the wall at x=400 with its closed door and the rubble line.
 
 ## Expected
 

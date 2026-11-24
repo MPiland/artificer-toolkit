@@ -27,7 +27,7 @@ S1. **P1:** Run the scenario once with Auto-roll ON and once with it OFF.
 4. [ ] **P1:** Attack again and type physical dice faces instead. Count cards.
 5. [ ] **GM:** Make an attack that has advantage or disadvantage (the roll prompt names the reason), change the roll mode at the prompt before committing, and watch the card. Then turn on your computer's "reduce motion" accessibility setting, reload, and repeat.
 6. [ ] **GM:** Open Chat and look at where each card went (Table, To GM, Just me). Then mark the Goblin's token hidden, have it attack, and look under **Enemy rolls** and **My rolls**.
-   R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
+       R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
 
 ## Expected
 

@@ -30,7 +30,7 @@ S2. **GM:** Start an Encounter with a Mage creature; all three tokens are in ran
 4. [ ] **GM:** Repeat with P2 using a lower slot. Confirm the ability check is asked and a failed check still spends the slot.
 5. [ ] **P1:** When P2 counters, answer **Use** for your own Counterspell on P2's cast. Confirm the chain resolves innermost first.
 6. [ ] **GM:** Read the history of the single triggering occurrence.
-   R1. **GM:** Complete the Encounter. **P1 and P2:** use **Change Character** to put back "UAT Dara" and "UAT Bryn Sandbox".
+       R1. **GM:** Complete the Encounter. **P1 and P2:** use **Change Character** to put back "UAT Dara" and "UAT Bryn Sandbox".
 
 ## Expected
 

@@ -27,7 +27,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 6. [ ] **P1:** Look for a field named "HP gained (legacy)" or a hit-point override.
 7. [ ] **P1:** Leave a required choice empty, then try to finish. Read the list of issues and select one.
 8. [ ] **P1:** In the Builder set the network to Slow 3G (browser developer tools), then save a step. Watch the save control.
-   R1. **P1:** Delete the Builder draft you started.
+       R1. **P1:** Delete the Builder draft you started.
 
 ## Expected
 

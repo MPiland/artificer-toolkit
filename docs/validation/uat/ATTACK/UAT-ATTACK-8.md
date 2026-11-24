@@ -35,7 +35,7 @@ S1. **P1 and P2:** Switch **Auto-roll** ON. **GM:** Switch it OFF. **GM:** Move 
 11. [ ] **GM:** Use Dash, Disengage, Dodge, Help and First Aid once each; confirm they work as before and appear unavailable when the actor does not meet the restriction.
 12. [ ] **GM:** Open the System's basic actions catalogue. Confirm SRD basic actions are read-only and can be copied into a homebrew System.
 13. [ ] **GM:** Create a homebrew Crusher feat (any-direction 5-foot push on a bludgeoning hit) from a copy of the SRD feat, and build a Sandbox Character who has it (the review Characters do not). **That player:** hit a creature with a bludgeoning weapon. Confirm the mover can pick a legal unoccupied square.
-    R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
+        R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
 
 ## Expected
 

@@ -30,7 +30,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 6. [ ] **P2:** Try to open the Sheet addresses for P1's Character and for P2's own old Character in the Sandbox.
 7. [ ] **Signed-out window:** Open the Sandbox tabletop address while signed out (a private window needs no spare account).
 8. [ ] **SPARE:** Sign in with an account that is not a member and open the tabletop address.
-   R1. **GM:** Re-seat the player you removed in steps 3 to 6 as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
+       R1. **GM:** Re-seat the player you removed in steps 3 to 6 as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
 
 ## Expected
 

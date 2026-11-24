@@ -36,7 +36,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 13. [ ] **P1:** Accept the ownership offer.
 14. [ ] **P1 (now GM):** Check that Settings and Manage controls are available; **GM (now player):** check they are gone.
 15. [ ] **P1:** Transfer ownership back to the original GM, and **GM:** accept.
-    R1. **P1:** After the rejoin in step 8 your Character was released. Choose **Add Character** and assign "UAT Dara" again.
+        R1. **P1:** After the rejoin in step 8 your Character was released. Choose **Add Character** and assign "UAT Dara" again.
 
 ## Expected
 

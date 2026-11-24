@@ -28,7 +28,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 6. [ ] **GM:** Set the Encounter's health display to **Descriptive** for the Wolf, **Bar** for the Goblin, and give the Wolf a per-actor override of **Exact**.
 7. [ ] **P1:** Read the Wolf and Goblin health.
 8. [ ] **GM:** Read all health values.
-   R1. **GM:** Set the health display for player-side and creature tokens back to its default (Hidden).
+       R1. **GM:** Set the health display for player-side and creature tokens back to its default (Hidden).
 
 ## Expected
 

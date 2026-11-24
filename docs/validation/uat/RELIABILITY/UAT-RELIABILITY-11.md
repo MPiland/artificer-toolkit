@@ -27,7 +27,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 7. [ ] **P1:** Open the same Campaign page and look for the same controls.
 8. [ ] **GM:** Open the list of all SRD Spells (or Equipment). Scroll to the very bottom and note the last item and the total shown.
 9. [ ] **GM:** Search for an item that would be on a later page and confirm it is found.
-   R1. **GM and P1:** Delete the Spell and Feature drafts you made.
+       R1. **GM and P1:** Delete the Spell and Feature drafts you made.
 
 ## Expected
 

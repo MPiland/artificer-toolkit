@@ -24,7 +24,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 4. [ ] **P1:** Roll Athletics and read the roll card. Roll Stealth and read the roll card.
 5. [ ] **P1:** Set Aria's temporary hit points to 5 and save. Reload. Then clear them back to nothing and reload.
 6. [ ] **P1:** In the Extras area add a Creature (for example a pet), choosing an origin other than the world default, and save. Reload and read the origin.
-   R1. **P1:** Set Aria's hit points back to the value you noted before step 1.
+       R1. **P1:** Set Aria's hit points back to the value you noted before step 1.
 
 ## Expected
 

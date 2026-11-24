@@ -30,7 +30,7 @@ S1. **All:** Make sure **Roll my dice automatically** is OFF. The health display
 6. [ ] **GM:** Make the hidden Goblin attack Aria (use the action drawer as the GM).
 7. [ ] **P1:** Aria has no reaction, so no prompt should appear; read the chat and history.
 8. [ ] **P2:** Read the chat and the Encounter history.
-   R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters. Delete the hidden Goblin you added if PRIVACY-2 is not run next.
+       R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters. Delete the hidden Goblin you added if PRIVACY-2 is not run next.
 
 ## Expected
 

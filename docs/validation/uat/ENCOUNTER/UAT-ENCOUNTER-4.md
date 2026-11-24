@@ -32,7 +32,7 @@ S1. For steps 7 and 8: **GM:** In the Sandbox Campaign, with "UAT Cavern" presen
 6. [ ] **GM:** Change the Wolf's disposition to Friendly, then Neutral, then back to Hostile. Confirm the token ring colour changes each time (Friendly blue, Hostile red; note the Neutral colour).
 7. [ ] **GM:** In the Sandbox, before starting the Prepared Run, remove P3's Character from the Campaign's active Characters. Start. Confirm that Character is not in the order.
 8. [ ] **GM:** Remove P3 as a Sandbox member. Confirm P3 drops from every controller list and the P3 window is removed from the live table.
-   R1. **GM:** Re-seat P3 if step 8 removed them, as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
+       R1. **GM:** Re-seat P3 if step 8 removed them, as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
 
 ## Expected
 

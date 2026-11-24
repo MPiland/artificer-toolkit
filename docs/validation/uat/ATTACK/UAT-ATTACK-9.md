@@ -34,7 +34,7 @@ S2. **P1:** Before each group of steps the GM uses **Change Character** on P1's 
 7. [ ] **GM:** Complete, assign the Paladin and start an Encounter. **P1:** Hit with a melee weapon. Confirm the app offers Divine Smite; spend a slot and confirm the radiant dice.
 8. [ ] **GM:** Complete, assign the Character with two light weapons and start an Encounter. **P1:** Attack with the main hand and confirm the off-hand bonus attack is offered and adds no positive ability modifier.
 9. [ ] **GM:** For each multiclass in turn (assign, start an Encounter), **P1:** open the Attack action and read how many attacks it offers (Fighter 5 / Ranger 5 makes 2, Fighter 11 / Paladin 5 makes 3, Fighter 20 makes 4).
-   R1. **GM:** Use **Change Character** to put "UAT Dara" back on P1's seat, and complete the Encounter.
+       R1. **GM:** Use **Change Character** to put "UAT Dara" back on P1's seat, and complete the Encounter.
 
 ## Expected
 

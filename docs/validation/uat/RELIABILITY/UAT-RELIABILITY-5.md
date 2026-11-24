@@ -28,7 +28,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 8. [ ] **P1:** Keep typing and watch whether the typed letters stay.
 9. [ ] **P1:** Set the browser to Offline, then choose sign out from the account menu.
 10. [ ] **P1:** Read the page. Set the browser back to No throttling and use the retry control offered.
-    R1. **GM:** Delete the "Reliability Probe" Spell. **P1:** Sign back in if step 9 signed you out.
+        R1. **GM:** Delete the "Reliability Probe" Spell. **P1:** Sign back in if step 9 signed you out.
 
 ## Expected
 

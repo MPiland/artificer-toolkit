@@ -29,7 +29,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 6. [ ] **GM:** Open the archived original Campaign from [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md) and try to publish an announcement in it.
 7. [ ] **P1:** Open a deep link to an announcement that is not available (edit one character of an announcement address copied from the list).
 8. [ ] **GM:** In the sandbox Campaign publish an announcement. **P1:** Confirm it appears, then choose **Leave Campaign** and try to open the sandbox announcement list and the announcement address.
-   R1. **GM:** Re-seat P1 in the Sandbox Campaign as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md) (invite by username, accept, assign the Character).
+       R1. **GM:** Re-seat P1 in the Sandbox Campaign as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md) (invite by username, accept, assign the Character).
 
 ## Expected
 

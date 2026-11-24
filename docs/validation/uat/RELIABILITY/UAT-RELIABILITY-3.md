@@ -31,7 +31,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 9. [ ] **GM:** Reopen the live table with **Open tabletop window** in the **Live tabletop** panel.
 10. [ ] **P1:** Reopen the live table.
 11. [ ] **GM and P1:** Compare the round, current turn, hit points, positions, conditions and chat with your notes from step 1 and the changes from steps 3 and 5.
-    R1. **GM:** Undo the changes of steps 3 and 5 through the normal controls (restore the hit points and position you noted).
+        R1. **GM:** Undo the changes of steps 3 and 5 through the normal controls (restore the hit points and position you noted).
 
 ## Expected
 

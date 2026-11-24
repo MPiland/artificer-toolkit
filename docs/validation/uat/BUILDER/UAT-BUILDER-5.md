@@ -31,7 +31,7 @@ S3. **P1:** On the Sandbox Campaign's Party panel choose **Change Character** an
 4. [ ] **P1:** Use the Builder to commit the repair, or reassign the Character's content as the page offers.
 5. [ ] **GM:** Reload the sandbox Campaign page.
 6. [ ] **P1:** Share the Feat again ([UAT-AUTHORING-11](../AUTHORING/UAT-AUTHORING-11.md) step 2), then **GM:** use **Remove player** on P1 in the sandbox Campaign Party. **P1:** open "UAT Shared" and your Characters list.
-   R1. **P1:** On the Sandbox Campaign's Party panel choose **Change Character** and put "UAT Dara" back.
+       R1. **P1:** On the Sandbox Campaign's Party panel choose **Change Character** and put "UAT Dara" back.
 
 ## Expected
 

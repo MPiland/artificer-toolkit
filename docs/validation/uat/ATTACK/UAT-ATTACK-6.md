@@ -31,7 +31,7 @@ S1. **P1:** Switch **Auto-roll** ON.
 7. [ ] **GM:** Have Aria use Dodge. Confirm Dodge checks sight (no benefit against an attacker who cannot see).
 8. [ ] **P1:** Move Aria out of the Wolf's reach and let the Wolf make an opportunity attack. Confirm the same sight rules apply (read the reasons).
 9. [ ] **GM:** Open the Wolf creature's stat block and confirm its Senses list is structured (for example darkvision with a range).
-   R1. **GM:** Remove the condition you applied to Aria in step 6 (Aria's token menu or Sheet).
+       R1. **GM:** Remove the condition you applied to Aria in step 6 (Aria's token menu or Sheet).
 
 ## Expected
 

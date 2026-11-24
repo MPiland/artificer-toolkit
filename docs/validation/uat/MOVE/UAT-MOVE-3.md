@@ -34,7 +34,7 @@ S1. **GM:** Turn **Fog of war** on for the Scene (Shared party). **GM:** Roll my
 10. [ ] **GM:** This time choose **Decline reaction**.
 11. [ ] **P1:** Move Aria back next to the Wolf and away a third time to get another pause.
 12. [ ] **GM:** Choose **Skip decision**.
-    R1. **GM:** Turn **Fog of war** OFF again.
+        R1. **GM:** Turn **Fog of war** OFF again.
 
 ## Expected
 

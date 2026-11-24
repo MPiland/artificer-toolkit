@@ -29,7 +29,7 @@ S1. **GM:** Turn **Fog of war** on (Shared party) as in [SCENE-4](../SCENE/UAT-S
 6. [ ] **P1:** Move Aria again and then have the GM move another token.
 7. [ ] **GM:** Choose **Undo last token move** and read which token returns.
 8. [ ] **GM:** Trigger an opportunity-attack pause ([UAT-MOVE-3](UAT-MOVE-3.md)) and try to undo during the pause.
-   R1. **GM:** Turn **Fog of war** OFF again.
+       R1. **GM:** Turn **Fog of war** OFF again.
 
 ## Expected
 

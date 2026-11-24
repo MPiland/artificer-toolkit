@@ -32,7 +32,7 @@ S2. **GM:** For step 7 author a homebrew condition that makes Constitution saves
 6. [ ] **GM:** Clear Stunned. **P1:** Cast **Hold Person** on the Goblin to hold Concentration, then the GM applies Exhaustion 3 to Sage and damages her. Confirm **P1** is asked for a Concentration check that rolls with disadvantage and the roll prompt says why.
 7. [ ] **GM:** Apply the homebrew auto-fail Constitution condition to Sage while she concentrates and damage her. Confirm the check is labelled an automatic failure and Concentration ends on it.
 8. [ ] **GM:** Have the Magma Mephit cast **Heat Metal** (Concentration), then damage the Mephit with Exhaustion 3 on it: same disadvantage label. Repeat with the auto-fail condition: Concentration on the Mephit ends and its Heat Metal grant ends.
-   R1. **GM:** Clear all conditions and Exhaustion.
+       R1. **GM:** Clear all conditions and Exhaustion.
 
 ## Expected
 

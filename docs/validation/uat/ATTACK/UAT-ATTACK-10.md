@@ -34,7 +34,7 @@ S1. **GM:** Add as separate creatures to the Party Encounter: Balor, Clay Golem,
 11. [ ] **GM:** On the Shambling Mound, hit with both slams; confirm Grappled and then Engulf is offered on a Medium or smaller target.
 12. [ ] **GM:** Open the Creature editor on a copy and confirm Multiattack authoring (slots, alternatives, swaps, conditions) and the grapple rider fields (escape DC, size limit, held-at-once count). Try publishing an invalid Multiattack; confirm refusal.
 13. [ ] **GM:** Repeat any attack with a replay (reload the page mid-action) and confirm charges are not re-spent and dice are not rerolled.
-    R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
+        R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
 
 ## Expected
 

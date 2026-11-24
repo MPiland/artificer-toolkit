@@ -33,7 +33,7 @@ S2. **GM:** For step 7, on a homebrew copy of the System record under `/systems`
 7. [ ] **GM:** Create a homebrew condition (for example "Dazed" with disadvantage on attack rolls), apply it to Sage, and have **P1** attack. Confirm the roll shows disadvantage naming "Dazed", the same way the SRD conditions did in step 2.
 8. [ ] **GM:** Set **Exhaustion** level 1 on Sage. Confirm ability checks have disadvantage; level 2 halves speed; level 3 gives attack and save disadvantage; level 5 sets speed 0.
 9. [ ] **P1:** Choose Dash while Restrained and again at Exhaustion 5. Confirm the movement budget stays 0 each time and returns to normal once the condition is removed.
-   R1. **GM:** Clear every condition and Exhaustion from Sage and the Goblin.
+       R1. **GM:** Clear every condition and Exhaustion from Sage and the Goblin.
 
 ## Expected
 

@@ -27,7 +27,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 6. [ ] **GM (now a player):** Check history and chat for the action P1 ran and for the Private roll made before the transfer.
 7. [ ] **P1 (new GM):** Check the same history. Then transfer ownership back ([UAT-CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) step 15) and have the original GM accept.
 8. [ ] **GM (owner again):** Reload and check the history again.
-   R1. **P1:** Transfer the Campaign ownership back to the GM with the same control, and **GM:** accept. Both then confirm the Campaign lists the GM as owner.
+       R1. **P1:** Transfer the Campaign ownership back to the GM with the same control, and **GM:** accept. Both then confirm the Campaign lists the GM as owner.
 
 ## Expected
 

@@ -32,7 +32,7 @@ S1. **GM:** Switch **Auto-roll** OFF. **P1 and P2:** Switch **Auto-roll** ON.
 8. [ ] **GM:** Give P2 control of the (still hidden) Goblin in its **Controllers**, and advance to the Goblin's turn.
 9. [ ] **P2:** Attack Aria with the Goblin. **P2:** Confirm you see your own roll card for it. **P1:** Confirm you do not see that card. **GM:** Confirm you see the full card.
 10. [ ] **GM:** Add a spellcasting creature (for example a Mage) that holds a Concentration spell, mark it hidden, and give P2 control of it. Have it take damage that forces a Concentration check. **P2:** Confirm you see a private Concentration check card. **P1:** Confirm you do not. **GM:** Confirm you see the full card. (If no available creature can hold Concentration, record ATTACK-17.6 as not shown.)
-    R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
+        R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
 
 ## Expected
 

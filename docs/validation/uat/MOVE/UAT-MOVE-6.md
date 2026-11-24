@@ -27,7 +27,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 5. [ ] **P1:** Go offline (Network panel) and move P1's Character's token; go back online.
 6. [ ] **GM:** Remove P2 from the Campaign (see CAMPAIGN UAT).
 7. [ ] **P2:** Try to move P2's Character's token and reload.
-   R1. **GM:** Re-seat P2 and add P2's token back to the Scene in the Sandbox Campaign as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md) (invite by username, accept, assign the Character).
+       R1. **GM:** Re-seat P2 and add P2's token back to the Scene in the Sandbox Campaign as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md) (invite by username, accept, assign the Character).
 
 ## Expected
 

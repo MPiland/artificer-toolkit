@@ -29,7 +29,7 @@ S1. **GM:** In the Sandbox Campaign create a spare Scene named "UAT Spare Map" f
 4. [ ] **P1:** Present "UAT Spare Map" in the tabletop window, then try to delete it while it is presented.
 5. [ ] **P1:** Present "UAT Cavern" instead, then delete "UAT Spare Map".
 6. [ ] **P1:** Reload and check the Scene list and storage.
-   R1. **P1:** Transfer ownership of the Sandbox Campaign back to the original GM (Settings, ownership transfer); **GM:** accept (as [CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) steps 14 and 15).
+       R1. **P1:** Transfer ownership of the Sandbox Campaign back to the original GM (Settings, ownership transfer); **GM:** accept (as [CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) steps 14 and 15).
 
 ## Expected
 

@@ -31,7 +31,7 @@ S2. Run steps 1 to 5 first with P1's Auto-roll OFF (the default), then again wit
 6. [ ] **P1:** In Shield and Hold, get a reaction prompt for Ember (as in [UAT-REACTION-1](UAT-REACTION-1.md) steps 2 to 3) while Auto-roll is on. Confirm you are still asked **Use** or **Decline**; only dice are rolled for you.
 7. [ ] **P1:** Open Settings, Preferences, and confirm **Roll my dice automatically** shows on; sign in on another browser and confirm it is on there too.
 8. [ ] **GM:** Turn your own Auto-roll OFF and ON; confirm it only affects the GM's creatures' rolls.
-   R1. **GM:** Remove Prone from the Wolf if you applied it.
+       R1. **GM:** Remove Prone from the Wolf if you applied it.
 
 ## Expected
 

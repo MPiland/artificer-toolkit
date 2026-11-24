@@ -25,7 +25,7 @@ S1. **GM:** Add a hidden Mage creature to the Scene. Have it cast a Concentratio
 2. [ ] **GM:** Deal damage to the hidden creature outside its own turn so its Concentration check fails.
 3. [ ] **P1:** Read the chat and history notice about the dropped Concentration.
 4. [ ] **GM:** Read the same notice.
-   R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
+       R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters.
 
 ## Expected
 

@@ -30,7 +30,7 @@ S3. **GM:** Start an Encounter in the Sandbox Campaign that includes "UAT Delete
 5. [ ] **GM:** Reload the Sandbox Campaign and look at the Party panel and the running Encounter.
 6. [ ] **P1:** Open "UAT Keep Me" and check it is unchanged. Then open it and use the trash icon in the Sheet header: confirm the dialog names "UAT Keep Me", choose **Cancel**.
 7. [ ] **P1:** Check the Characters list and the Party panel once more.
-   R1. **P1:** Build a replacement Character if later scenarios need one.
+       R1. **P1:** Build a replacement Character if later scenarios need one.
 
 ## Expected
 

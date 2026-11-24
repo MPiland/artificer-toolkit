@@ -28,14 +28,14 @@ S1. Read "Aria" and "Bryn" as Iris and Juno. In table settings **Noticing concea
 4. [ ] **P1 and P2:** Look at the map and the zone list.
 5. [ ] **P1:** Move Aria toward the concealed zone from a distance.
 6. [ ] **GM:** Wait for a quiet prompt to reveal the zone to a Character whose passive Perception meets the Spot DC.
-   6a. **GM:** Start dragging Aria's token toward the concealed zone without releasing, and read the path preview for which creatures have not noticed it. Release back on Aria's square.
+       6a. **GM:** Start dragging Aria's token toward the concealed zone without releasing, and read the path preview for which creatures have not noticed it. Release back on Aria's square.
 7. [ ] **P1:** Drag Aria through the visible pit and read the path preview or warning.
 8. [ ] **P1:** Drag Aria through the concealed zone.
 9. [ ] **GM:** Reveal the concealed zone to Aria only, then check P2's window.
 10. [ ] **GM:** Disarm the concealed zone, then use GM undo to bring it back.
 11. [ ] **GM:** Place a third zone with the zone tool, then use GM undo and check it is removed.
 12. [ ] **GM:** In the table settings set **Noticing concealed zones** to **Search only**, move Bryn toward the zone and check that no prompt appears; roll Bryn's search from the Sheet.
-    R1. **GM:** Delete the zones you placed (pit trap, caltrop field, third zone).
+        R1. **GM:** Delete the zones you placed (pit trap, caltrop field, third zone).
 
 ## Expected
 
