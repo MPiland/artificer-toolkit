@@ -10,16 +10,16 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                      | Title                                     |
 | ------------- | ----- | ----------------------------- | ----------------------------------------- |
-| 74 | 3 | [UAT-ROOM-1](UAT-ROOM-1.md) | GM and three players join at once |
-| 75 | 3 | [UAT-ROOM-2](UAT-ROOM-2.md) | Previews and pings |
-| 76 | 3 | [UAT-ROOM-4](UAT-ROOM-4.md) | Chat — Table, Party and Direct |
-| 77 | 3 | [UAT-ROOM-5](UAT-ROOM-5.md) | Rolls, private GM rolls and chat limits |
-| 78 | 3 | [UAT-ROOM-6](UAT-ROOM-6.md) | Notes — private and shared |
-| 79 | 3 | [UAT-ROOM-8](UAT-ROOM-8.md) | Plan and log Sessions |
-| 80 | 3 | [UAT-ROOM-9](UAT-ROOM-9.md) | Live play commands go through the room |
-| 81 | 3 | [UAT-ROOM-7](UAT-ROOM-7.md) | Show a map to players without presenting |
-| 89 | 3 | [UAT-ROOM-10](UAT-ROOM-10.md) | Archiving a Campaign closes its live room |
-| 130 | 3 | [UAT-ROOM-3](UAT-ROOM-3.md) | Reconnect after a dropped connection |
+| 74            | 3     | [UAT-ROOM-1](UAT-ROOM-1.md)   | GM and three players join at once         |
+| 75            | 3     | [UAT-ROOM-2](UAT-ROOM-2.md)   | Previews and pings                        |
+| 76            | 3     | [UAT-ROOM-4](UAT-ROOM-4.md)   | Chat — Table, Party and Direct            |
+| 77            | 3     | [UAT-ROOM-5](UAT-ROOM-5.md)   | Rolls, private GM rolls and chat limits   |
+| 78            | 3     | [UAT-ROOM-6](UAT-ROOM-6.md)   | Notes — private and shared                |
+| 79            | 3     | [UAT-ROOM-8](UAT-ROOM-8.md)   | Plan and log Sessions                     |
+| 80            | 3     | [UAT-ROOM-9](UAT-ROOM-9.md)   | Live play commands go through the room    |
+| 81            | 3     | [UAT-ROOM-7](UAT-ROOM-7.md)   | Show a map to players without presenting  |
+| 89            | 3     | [UAT-ROOM-10](UAT-ROOM-10.md) | Archiving a Campaign closes its live room |
+| 130           | 3     | [UAT-ROOM-3](UAT-ROOM-3.md)   | Reconnect after a dropped connection      |
 
 ## Covered elsewhere
 
@@ -34,7 +34,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | ROOM-5.2  | Which writer applies an Encounter move (room command rather than Convex) is internal; the move itself and its refusals are in [UAT-MOVE-1](../MOVE/UAT-MOVE-1.md), [UAT-MOVE-2](../MOVE/UAT-MOVE-2.md) and [UAT-ROOM-9](UAT-ROOM-9.md) step 7. |
 | ROOM-6.1  | Room test fixture (a player-socket helper); test code only.                                                                                                                                                                                    |
 | ROOM-6.2  | Room test of a spatial save-effect hazard; the hazard play itself is [UAT-MOVE-8](../MOVE/UAT-MOVE-8.md).                                                                                                                                      |
-| ROOM-6.3  | Room tests of maintenance variants; no maintenance prompt exists to drive by hand.                                                                                                                                          |
+| ROOM-6.3  | Room tests of maintenance variants; no maintenance prompt exists to drive by hand.                                                                                                                                                             |
 | ROOM-6.4  | Room test asserting a movement receipt counter; internal bookkeeping.                                                                                                                                                                          |
 | ROOM-6.5  | Room test of empty-prior maintenance; internal.                                                                                                                                                                                                |
 | ROOM-6.6  | Room test of maintenance pauses and stale refusals through a test-only seed route.                                                                                                                                                             |

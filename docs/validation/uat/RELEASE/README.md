@@ -10,24 +10,24 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                          | Title                              |
 | ------------- | ----- | --------------------------------- | ---------------------------------- |
-| 189 | 5 | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
+| 189           | 5     | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
 
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC          | Why not a UAT step                                                                                                                           |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| RELEASE-1.1 | Documentation and ADR status text; link and wording audit                                                                                    |
-| RELEASE-1.2 | Deployment guides and runbook; document review                                                                                               |
-| RELEASE-1.3 | Link audit script                                                                                                                            |
-| RELEASE-2.1 | Lifecycle run from a fresh isolated deployment; harness                                                                                      |
-| RELEASE-2.2 | Lifecycle on one source state; harness                                                                                                       |
-| RELEASE-2.3 | Rule-corpus and gameplay proof; harness                                                                                                      |
-| RELEASE-5.1 | Release check on deployment configuration                                                                                                    |
-| RELEASE-6.1 | Live-backend test observing typed rejection shape                                                                                            |
+| AC          | Why not a UAT step                                                                                                 |
+| ----------- | ------------------------------------------------------------------------------------------------------------------ |
+| RELEASE-1.1 | Documentation and ADR status text; link and wording audit                                                          |
+| RELEASE-1.2 | Deployment guides and runbook; document review                                                                     |
+| RELEASE-1.3 | Link audit script                                                                                                  |
+| RELEASE-2.1 | Lifecycle run from a fresh isolated deployment; harness                                                            |
+| RELEASE-2.2 | Lifecycle on one source state; harness                                                                             |
+| RELEASE-2.3 | Rule-corpus and gameplay proof; harness                                                                            |
+| RELEASE-5.1 | Release check on deployment configuration                                                                          |
+| RELEASE-6.1 | Live-backend test observing typed rejection shape                                                                  |
 | RELEASE-8.3 | UAT infrastructure (test accounts, email); proved by the ledger tasks and exercised by every scenario in this path |
-| RELEASE-3.3 | Staging upgrade-in-place is proved by the local migration rehearsal over staging-shaped data, not by a tester step                           |
+| RELEASE-3.3 | Staging upgrade-in-place is proved by the local migration rehearsal over staging-shaped data, not by a tester step |
 
 ## Not coverable by UAT
 

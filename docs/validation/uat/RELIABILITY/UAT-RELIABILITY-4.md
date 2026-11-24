@@ -28,7 +28,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 7. [ ] **GM:** Complete any Run still running, then start a new Encounter on this Scene (Campaign mode Assisted; [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 and 5), with a creature a few squares from another.
 8. [ ] **GM:** Move a token, then pick an attack action against a creature a few squares away and read the range shown.
 9. [ ] **GM:** Set a second new Scene's unit to squares, present it, start an Encounter and repeat step 8.
-        R1. **GM:** Complete the Encounter, present "UAT Cavern" again and start a new Encounter on it as in [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5, so later scenarios find The Campaign as before. Keep the two new Scenes: The Campaign now holds 3 of 5 Scenes.
+       R1. **GM:** Complete the Encounter, present "UAT Cavern" again and start a new Encounter on it as in [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5, so later scenarios find The Campaign as before. Keep the two new Scenes: The Campaign now holds 3 of 5 Scenes.
 
 ## Expected
 

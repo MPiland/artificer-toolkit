@@ -35,13 +35,13 @@ UAT is not tracked work: there are no PBIs or tasks for it. The ledger holds one
 
 ## Roles and accounts
 
-| Role                   | Used for                                                                             | Plan tier  |
-| ---------------------- | ------------------------------------------------------------------------------------ | ---------- |
-| **GM**                 | Hosts The Campaign                                                                   | Free       |
-| **P1** to **P4**       | Players seated in The Campaign (P1 Aria, P2 Bryn, P3 Cade); P3 and P4 host their own | Free       |
-| **P5**                 | Starts in no Campaign; joins, hosts and is deleted late in the pass                  | Free       |
-| **SUPERADMIN**         | Owner-only moderation scenarios                                                      | Superadmin |
-| **OWN**                | The account you create yourself with your own email address                          | Free       |
+| Role             | Used for                                                                             | Plan tier  |
+| ---------------- | ------------------------------------------------------------------------------------ | ---------- |
+| **GM**           | Hosts The Campaign                                                                   | Free       |
+| **P1** to **P4** | Players seated in The Campaign (P1 Aria, P2 Bryn, P3 Cade); P3 and P4 host their own | Free       |
+| **P5**           | Starts in no Campaign; joins, hosts and is deleted late in the pass                  | Free       |
+| **SUPERADMIN**   | Owner-only moderation scenarios                                                      | Superadmin |
+| **OWN**          | The account you create yourself with your own email address                          | Free       |
 
 All accounts are on the FREE plan unless listed otherwise: 1 active hosted Campaign per account, 5 player seats per Campaign, 5 Scenes per Campaign and 6 personal Characters per account. Every scenario keeps within those limits and says what it deletes to stay there.
 
@@ -52,6 +52,7 @@ Every account has **Roll my dice automatically** switched **off** unless a scena
 Run the scenarios once, in tracker order. Every scenario lists its **Prerequisites**: which earlier scenario you must have finished, or which file in [assets](assets/) to use. A scenario that changes shared state ends with restore steps (R1, R2 ...) that put it back through the normal controls, and a scenario that destroys or consumes data says what it consumes. If a scenario fails halfway, put the shared state back by hand; if that is impossible, mark the scenarios that depend on it BLOCKED. There is no reset inside a pass.
 
 Owner testing tip: each account needs its own cookies, so use one browser profile (or one named container) per account and keep each signed in for the whole pass. Steps switch roles by switching windows, never by signing out.
+
 ## Coverage
 
 [COVERAGE.md](COVERAGE.md) lists, for every AC in the ledger, the scenarios that check it.

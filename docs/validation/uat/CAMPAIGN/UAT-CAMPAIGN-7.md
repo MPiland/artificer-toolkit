@@ -28,7 +28,7 @@ S1. **GM:** Build and **Activate** a Fighter named "UAT GM Hero" in the Builder 
 6. [ ] **GM:** Try to move an item from the GM Character's inventory to P1's Character.
 7. [ ] **GM:** Start an ownership transfer to P1 (as in [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md) steps 12 to 14; P1 hosts no Campaign, so accepting works). **P1:** accept, then check the Party roster from both windows.
 8. [ ] **P1:** Transfer ownership back to GM. **GM:** accept.
-        R1. **GM:** Open the Party, remove "UAT GM Hero" from The Campaign, then delete the Character from **Characters** (GM is back to 0 of 6 personal Characters).
+       R1. **GM:** Open the Party, remove "UAT GM Hero" from The Campaign, then delete the Character from **Characters** (GM is back to 0 of 6 personal Characters).
 
 ## Expected
 

@@ -10,11 +10,11 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                      | Title                                                                        |
 | ------------- | ----- | ----------------------------- | ---------------------------------------------------------------------------- |
-| 32 | 1 | [UAT-RULES-1](UAT-RULES-1.md) | Authoring forms show, hide and require fields as choices change |
-| 114 | 3 | [UAT-RULES-3](UAT-RULES-3.md) | A reaction pauses a hit; answering resumes it; privacy of the pause |
-| 115 | 3 | [UAT-RULES-4](UAT-RULES-4.md) | Healing keeps its dice and modifier visible in the roll card |
-| 149 | 4 | [UAT-RULES-2](UAT-RULES-2.md) | A started Encounter pauses for answers and resumes with nothing half-applied |
-| 150 | 4 | [UAT-RULES-5](UAT-RULES-5.md) | An attack with two damage parts keeps each part visible |
+| 32            | 1     | [UAT-RULES-1](UAT-RULES-1.md) | Authoring forms show, hide and require fields as choices change              |
+| 114           | 3     | [UAT-RULES-3](UAT-RULES-3.md) | A reaction pauses a hit; answering resumes it; privacy of the pause          |
+| 115           | 3     | [UAT-RULES-4](UAT-RULES-4.md) | Healing keeps its dice and modifier visible in the roll card                 |
+| 149           | 4     | [UAT-RULES-2](UAT-RULES-2.md) | A started Encounter pauses for answers and resumes with nothing half-applied |
+| 150           | 4     | [UAT-RULES-5](UAT-RULES-5.md) | An attack with two damage parts keeps each part visible                      |
 
 ## Covered elsewhere
 

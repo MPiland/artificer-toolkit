@@ -26,7 +26,7 @@ Do not open the scripted scenario files before your Result is written: they name
 - **Scope:** Start from an SRD creature of your choice. Change what you think is needed to make it harder, then put it into an Encounter of that Campaign and see the change at the table. Do not use a creature already in the Encounter.
 - **Look for:** whether the locked-versus-editable rules for SRD records were clear; whether you expected to edit a number that the form computes (for example Armor Class); whether the effect of your change was visible at the table.
 
-Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop. 
+Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop.
 
 ## Afterwards
 

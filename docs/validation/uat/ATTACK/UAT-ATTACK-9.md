@@ -35,7 +35,7 @@ S2. **P1:** Before each group of steps use **Change Character** on your seat in 
 8. [ ] **GM:** Complete. **P1:** Seat the Rogue with two light weapons (it is the one from step 6). **GM:** Start an Encounter. **P1:** Attack with the main hand and confirm the off-hand bonus attack is offered and adds no positive ability modifier.
 9. [ ] **P1:** Delete the Barbarian, Rogue and Paladin from `/characters`, then build and commit Fighter 5 / Ranger 5, Fighter 11 / Paladin 5 and Fighter 20. For each multiclass in turn (**P1:** seat it; **GM:** complete the old Encounter and start a new one), **P1:** open the Attack action and read how many attacks it offers (Fighter 5 / Ranger 5 makes 2, Fighter 11 / Paladin 5 makes 3, Fighter 20 makes 4).
        R1. **GM:** Complete the Encounter. **P1:** Use **Change Character** to put Aria back on your seat.
-        R2. **P1:** Delete the Fighter 5, Fighter 5 / Ranger 5, Fighter 11 / Paladin 5 and Fighter 20 Characters from `/characters`. P1 is back to 2 of 6 (Aria and Ember).
+       R2. **P1:** Delete the Fighter 5, Fighter 5 / Ranger 5, Fighter 11 / Paladin 5 and Fighter 20 Characters from `/characters`. P1 is back to 2 of 6 (Aria and Ember).
 
 ## Expected
 

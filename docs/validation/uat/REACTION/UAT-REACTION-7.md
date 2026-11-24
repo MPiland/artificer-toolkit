@@ -23,7 +23,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 2. [ ] **P1:** Confirm the page reconnects by itself and the Shield prompt is still waiting.
 3. [ ] **GM:** Meanwhile confirm the attack is still held.
 4. [ ] **P1:** Answer **Use**. Confirm the result is applied once.
-        R1. **GM:** Complete the Encounter. **P1:** Use **Change Character** to put Aria back in The Campaign in place of Ember.
+       R1. **GM:** Complete the Encounter. **P1:** Use **Change Character** to put Aria back in The Campaign in place of Ember.
 
 ## Expected
 
