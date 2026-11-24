@@ -5,7 +5,7 @@
 > **Status:** implemented baseline; approved Campaign-management extension planned
 > **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md), [Phase 01](01-dice-and-roll-infrastructure.md), and [Phase 02](02-media-and-file-pipeline.md)
 > **Unlocks:** [Phase 04 Social Hub](04-social-hub.md), [Phase 05 notifications](05-notifications-and-delivery.md), [Phase 06 live play](06-live-campaign-play.md), [Phase 07 Encounters](07-encounters.md), and Campaign-scoped content
-> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0011](../adr/0011-active-authored-content-and-json-drafts.md), and [0013](../adr/0013-campaign-authority-and-collaboration.md)
+> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), 0008, 0011, and [0013](../adr/0013-campaign-authority-and-collaboration.md)
 
 ## Goal
 

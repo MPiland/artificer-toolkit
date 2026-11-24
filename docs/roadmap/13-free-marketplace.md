@@ -3,7 +3,7 @@
 > **Status:** deferred until the web viability gate passes and [Phase 12](12-store-release-and-continuous-validation.md) ships
 > **Depends on:** the asset pipeline from [Phase 02](02-media-and-file-pipeline.md), Campaign content binding from [Phase 03](03-campaign-core.md), moderation identity from [Phase 04](04-social-hub.md), entitlement foundations from [Phase 09](09-entitlements-and-subscriptions.md), and [Phase 12](12-store-release-and-continuous-validation.md)
 > **Unlocks:** paid creator content
-> **Primary ADRs:** [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0011](../adr/0011-active-authored-content-and-json-drafts.md)
+> **Primary ADRs:** 0008, 0011
 
 ## Goal
 

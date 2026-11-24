@@ -1,6 +1,6 @@
 # Phase 8.2 — fixed remaining work
 
-> **Current status:** The [acceptance JSON](08-2-convex-cutover-acceptance.json) is authoritative: 51/75 cases accepted and 24 open. The dated implementation log below is historical; its counts and scoped evidence describe earlier checkpoints, not current integrated acceptance. See the [living handoff](../handoffs/phase-08-2-convex-cutover.md), [validation record](../validation/phase-08-2/README.md), and [release runbook](../runbooks/phase-8-2-release.md) for current execution and promotion gates.
+> **Current status:** The [acceptance JSON](08-2-convex-cutover-acceptance.json) is authoritative: 51/75 cases accepted and 24 open. The dated implementation log below is historical; its counts and scoped evidence describe earlier checkpoints, not current integrated acceptance. See the living handoff, validation record, and [release runbook](../runbooks/phase-8-2-release.md) for current execution and promotion gates.
 
 Historical `.codex/validation/` evidence paths below are now available at `local-validation/` in the regular checkout. The old worktree is a retained backup.
 

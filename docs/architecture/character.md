@@ -682,7 +682,7 @@ the stored-stat evaluation reuse the same caches and context, so a commit reads 
   (`characterBuilderCommitErrorDataSchema`). Held Equipment with retained rules, Creatures and
   Vehicles keep their existing source-loss handling.
 
-The [implementation plan](../handoffs/adr-0036-implementation-plan.md#referenced-commit-s7-current)
+The implementation plan
 records the equivalence argument, the differential corpus and the measured reads.
 
 The browser derives the hints in the Builder worker: a finalization preview also returns
@@ -1017,7 +1017,7 @@ dependency builds/Convex TypeScript checks and local Docker codegen/deploy. Nati
 `phase82-receipt-max-v8-20260930` passed three 4,194,304-byte ledgers, creation/retirement rollback,
 complete paging/replay, real `auth:onDelete` logical removal, bounded purge, duplicate retries,
 SDK cleanup and stale-JWT denial. See the
-[private receipt retirement evidence](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
+private receipt retirement evidence.
 Final integration, the complete local lifecycle, F12/R08 acceptance and Q16 remain pending;
 acceptance remains 51/75 with 24 open. Checkpoint packing and live authority remain pending.
 

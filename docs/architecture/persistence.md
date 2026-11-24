@@ -828,7 +828,7 @@ again. Undo stays refused while anything is pending.
   128 parts, starts a new base).
 - **Changed fields only.** Round, participant, side and occurrence updates patch only changed fields, which is
   what a checkpoint carries.
-- Byte costs are recorded in the [record-shapes evidence](../validation/phase-08-2/adr-0035-s1b-record-shapes-2026-09-28.md).
+- Byte costs are recorded in the record-shapes evidence.
 
 ### Encounter Run storage
 
@@ -1724,6 +1724,6 @@ Better Auth tables belong to the component schema (`apps/apis/convex/betterAuth/
 - Content snapshot `SYSTEM` scope is not built (D67).
 - A published-content change reaches a Character's stored stats on its next write; a publish-time recompute is a
   follow-up.
-- The decisions behind this guide are recorded in [Phase 8.2 decisions](../handoffs/phase-08-2-decisions.md) and
-  the ADRs above; plan slices S9 of [ADR 0035](../handoffs/adr-0035-implementation-plan.md) and
-  [ADR 0036](../handoffs/adr-0036-implementation-plan.md) own this guide.
+- The decisions behind this guide are recorded in [Phase 8.2 decisions](../releases/v0.1.0-decisions.md) and
+  the ADRs above; plan slices S9 of ADR 0035 and
+  ADR 0036 own this guide.

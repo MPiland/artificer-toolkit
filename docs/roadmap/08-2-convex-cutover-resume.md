@@ -1,6 +1,6 @@
 # Phase 8.2 — resume checkpoint
 
-> **Historical checkpoint (2026-09-15).** Its workspace, count, process handles and next steps are superseded. Use the [living handoff](../handoffs/phase-08-2-convex-cutover.md), [validation record](../validation/phase-08-2/README.md) and fixed acceptance ledger for the current Phase 8.2 state.
+> **Historical checkpoint (2026-09-15).** Its workspace, count, process handles and next steps are superseded. Use the living handoff, validation record and fixed acceptance ledger for the current Phase 8.2 state.
 
 Historical `.codex/validation/` evidence paths below are now available at `local-validation/` in the regular checkout. The old worktree is a retained backup.
 

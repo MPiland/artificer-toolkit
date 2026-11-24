@@ -6,7 +6,7 @@
 - **Scope:** where and how `apps/web` (TanStack Start SSR, server functions and the `/api/auth` proxy) is built, configured and deployed
 - **Update when:** the web host, the Worker layout, the client-IP source, the security-policy mode, server-side error reporting or the deploy path changes
 - **Supersedes:** ADR 0029's "Netlify hosts TanStack Start SSR only". The rest of that bullet (no GraphQL, generic patches, dual writes or compatibility database layer) stands.
-- **Evidence:** the [D65 feasibility record](../validation/phase-08-2/d65-cloudflare-web-hosting-2026-09-28.md), including its local prototype section
+- **Evidence:** the D65 feasibility record, including its local prototype section
 
 ## Implementation status — 2026-09-29
 

@@ -7,7 +7,7 @@ import schema from './schema'
 
 /**
  * Who may call each public function (PLATFORM-27; inventory and evidence in
- * docs/validation/platform-27-t1-authorization-sweep-2026-11-03.md). Every rule but `public` and
+ * docs/releases/v0.1.0.md "Architecture and decisions" and D211). Every rule but `public` and
  * `development` reads the caller from `ctx.auth` (`requireIdentity`/`getAuthenticatedProfile`, which
  * also refuse banned accounts):
  * - `self`: reads or writes only the caller's own records, keyed by that identity.

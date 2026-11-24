@@ -5,7 +5,7 @@
 - **Scope:** `packages/rules-runtime`, the Kernel in `packages/shared/src/domains/rules`, the Session Worker's encounter rules, and the schema vocabulary they share
 - **Amends:** [ADR 0023](0023-shared-rules-kernel-and-system-capabilities.md). That ADR's neutral Kernel and System module layering also applies to the Encounter, Character and Sheet pipelines, not only the Kernel.
 - **Builds on:** [ADR 0038](0038-rules-authored-from-core-options.md), which makes mechanics authored from core options
-- **Evidence:** [rules-engine composability audit](../handoffs/rules-engine-composability-audit-2026-10-20.md)
+- **Evidence:** rules-engine composability audit
 - **Verification:**
   - the file-size and import-fence ratchets in CI;
   - the golden compile-checksum harness over the SRD corpus;

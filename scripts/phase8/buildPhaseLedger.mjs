@@ -733,7 +733,7 @@ const pbis = [
       X(
         'A note edit reads only its notes and groups, collection counts, clocks and receipt; Character aggregate hashes are derived at assembly instead of persisted on the head, while typed records, identity, ownership, order and count checks and canonical full-capture hashes remain.',
         [],
-        'User approved the Character aggregate-checksum proposal on 2026-10-06 (phase-08-2-decisions.md Resolved); proposal: local-validation/character-head-checksum-proposal.md.'
+        'User approved the Character aggregate-checksum proposal on 2026-10-06 (v0.1.0-decisions.md Resolved); proposal: local-validation/character-head-checksum-proposal.md.'
       )
     ]
   },

@@ -3,7 +3,7 @@
 > **Status:** complete
 > **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md)
 > **Consumed by:** [Phase 06](06-live-campaign-play.md) for Campaign visibility and persisted history, [Phase 07](07-encounters.md) for Encounter-scoped rolls, and [Phase 08](08-vtt.md) for web VTT presentation
-> **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0005 pure rules-system engine](../adr/0005-pure-rules-system-engine.md), [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0010 platform-neutral design system](../adr/0010-platform-neutral-design-system.md)
+> **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), 0005 pure rules-system engine, [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0010 platform-neutral design system](../adr/0010-platform-neutral-design-system.md)
 
 ## Goal
 

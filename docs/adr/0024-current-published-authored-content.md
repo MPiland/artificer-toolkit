@@ -71,5 +71,5 @@ runtime. Master content differs only by ownership/editability.
 - Source updates during an Encounter affect later invocations while already-started work remains
   deterministic.
 
-This decision supersedes ADR [0022](0022-versioned-domain-documents-and-correctness-projections.md)
-and the active-version lifecycle portions of ADR [0008](0008-ruleset-identity-and-content-binding.md).
+This decision supersedes ADR 0022
+and the active-version lifecycle portions of ADR 0008.

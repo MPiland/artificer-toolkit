@@ -6,7 +6,7 @@
 >
 > **Update when:** graph contracts, primitive ownership, System capabilities, publication, occurrence, replay or receipt behavior, the package export surface, or a caller changes
 >
-> **Verification:** `packages/rules-runtime`, `packages/encounter-persistence`, `apps/session-worker/src` (`native*`, `room*`), `apps/apis/convex/{content,characters,encounters}`, `apps/web/src/domains/characters/builder/evaluation`, ADRs 0023-0026, 0029, 0034-0036, 0038, and [the RUL-9 rules audit](../handoffs/rul-9-rules-audit.md)
+> **Verification:** `packages/rules-runtime`, `packages/encounter-persistence`, `apps/session-worker/src` (`native*`, `room*`), `apps/apis/convex/{content,characters,encounters}`, `apps/web/src/domains/characters/builder/evaluation`, ADRs 0023-0026, 0029, 0034-0036, 0038, and the RUL-9 rules audit
 
 The Rules Kernel (`packages/shared/src/domains/rules`) is a pure execution library. It walks a validated
 bounded graph, accepts explicit facts, random evidence and decisions, and returns typed proposals and a
@@ -1834,7 +1834,7 @@ policy keeps the label of its action mechanic.
 
 Per-role visibility and the command flow are in
 [live-sessions.md](live-sessions.md#encounter-commands); the decision is
-[D103](../handoffs/phase-08-2-decisions.md).
+[D103](../releases/v0.1.0-decisions.md).
 
 ### One pending-choice pause (current, RULES-2.T4a; ADR 0039 decision 3)
 
@@ -2102,7 +2102,7 @@ with the creature as roller, and nothing is spent while it waits. The answer is 
 retained faces without rolling, re-checks the offer against the creature's current pool, and continues the
 OUTCOME on the success branch for USE or the failure branch for DECLINE. On USE the charge is written into the
 action receipt as `targetFeatureResourceConsumption`, and GM undo returns it. Area, movement and single-target
-paths share `decideEncounterLegendaryResistance`. The decision is [D104](../handoffs/phase-08-2-decisions.md).
+paths share `decideEncounterLegendaryResistance`. The decision is [D104](../releases/v0.1.0-decisions.md).
 
 ### Reaction to a hit (current, REACTION-4.T1)
 
@@ -2722,8 +2722,7 @@ nothing and one that names two pools throws. A pool with at most `whenAtOrBelow`
 take the higher floor in any order. The plan is applied as the `characterResourceRestores` of a Character
 mechanics batch (the pool's `resourceUsage` row drops to the new `used`, refused as stale when the row is not what
 the plan read). Persistence runs it at settlement, see [persistence](persistence.md). Equipment, Creature features
-and a Reinforcement's own initiative roll are not discovered (T5o known gaps in
-`docs/handoffs/slice-spells-31.md`).
+and a Reinforcement's own initiative roll are not discovered (known gaps from SPELLS-31.T5o).
 
 **Source immunity (SPELLS-31.T5l, D156).** A creature can be immune to one source's use of one action.
 Two authored forms compile to the plan's `sourceImmunity` (`sourceImmunityPlan`). A `SOURCE_IMMUNITY` outcome
@@ -4719,7 +4718,7 @@ These are not current behavior:
 - Phase 8.3 "Player play parity" ([ADR 0034](../adr/0034-player-control-rules-assistance-and-roll-prompts.md)) is no longer a
   target for the rules in this guide. Spell casting, area targeting, death saves and non-movement reactions (`reactionTrigger`, [ADR 0038](../adr/0038-rules-authored-from-core-options.md)) are current and described above; the
   rules gaps the RUL-9 audit listed (grapple, conditions) are a 2026-10-01 snapshot in
-  [the RUL-9 audit](../handoffs/rul-9-rules-audit.md), not a current list.
+  the RUL-9 audit, not a current list.
 - Opposed-test, dice-pool and result-band, and level-less-track Kernel fixtures are conformance work, not
   current Kernel capabilities.
 - Acceptance status of the room and Convex flows is tracked in the

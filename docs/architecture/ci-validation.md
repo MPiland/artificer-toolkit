@@ -72,7 +72,7 @@ The `build` job runs the selector after the build and exposes, per suite, `run-<
 
 ## Parallelism and shard balance
 
-Settings from the PLATFORM-13.T4 trial ([record](../validation/platform-13-t4-ci-parallelism-2026-10-18.md)). The job count stays the same, because the account runs at most 20 jobs at once.
+Settings from the PLATFORM-13.T4 trial (record). The job count stays the same, because the account runs at most 20 jobs at once.
 
 - **Convex:** 2 Vitest file workers per shard (`convex_workers`, default `2`). 4 workers timed out `campaigns/developmentCustody.test.ts`, so that setting was rejected. 3 workers ran clean after the PLATFORM-13.T17 parse memo but gave no wall-time gain, so it was not kept.
 - **Worker:** 4 file workers (`worker_workers`, default `4`), still `--no-isolate`. The local `test` script stays at one worker.

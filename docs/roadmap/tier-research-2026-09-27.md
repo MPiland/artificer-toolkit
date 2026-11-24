@@ -1,6 +1,6 @@
 # Tier research and proposed redesign (2026-09-27)
 
-- **Status:** proposal for Q18 in [the Phase 8.2 open questions](../handoffs/phase-08-2-open-questions.md). Nothing here is decided until the user answers Q18.
+- **Status:** proposal for Q18 in [the Phase 8.2 open questions](../releases/open-questions.md). Nothing here is decided until the user answers Q18.
 - **Current baseline:** `ENTITLEMENT_LIMITS` and `ENTITLEMENT_PRICING` in `packages/shared/src/domains/account/entitlementPolicy.ts`, and "Initial launch plans" in [the roadmap](README.md#initial-launch-plans).
 - **Constraints used:** [PRODUCT.md](../../PRODUCT.md) (every plan joins unlimited Campaigns and uses Encounters and VTT), Q16, Q17 and D65 in the open questions, and [ADR 0035](../adr/0035-room-authoritative-live-encounters.md) Decision 9.
 

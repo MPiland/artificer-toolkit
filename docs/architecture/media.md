@@ -308,7 +308,7 @@ Object-store writes cannot share a transaction with Postgres. Every queued delet
 - `characters.portrait_asset_id` owns Character presentation independently of Builder aggregate replacement.
 - `authored_image_slots` owns one `DRAFT` and one `ACTIVE` artwork slot per authored route identity.
 
-Saving an authored draft initializes its draft slot from active artwork once. Editing artwork changes only the draft slot. Activation promotes that slot in the same transaction that replaces the active aggregate and removes the draft. Discarding a draft removes only its draft slot. This follows [ADR 0011](../adr/0011-active-authored-content-and-json-drafts.md); media does not recreate authored revision history.
+Saving an authored draft initializes its draft slot from active artwork once. Editing artwork changes only the draft slot. Activation promotes that slot in the same transaction that replaces the active aggregate and removes the draft. Discarding a draft removes only its draft slot. This follows ADR 0011; media does not recreate authored revision history.
 
 ### Security and portability
 

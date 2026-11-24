@@ -1,6 +1,6 @@
 // One import mutation must finish well inside Convex's 1 s user-time limit even
 // on a CPU-contended host. Idle measurements on the local backend (PLATFORM-5.T1,
-// docs/validation/platform-5-t1-seed-mutation-margin-2026-10-15.md) fit mutation
+// docs/releases/v0.1.0.md "Seed and replace margins") fit mutation
 // time as about 25 ms per record plus 1 ms per KiB of document; a loaded host ran
 // 3-6x slower. Costs are in idle milliseconds and the budget leaves that headroom.
 // Every record costs more than 25, so a batch holds at most 3 records.
@@ -26,7 +26,7 @@ export function sourceImportRecordCost(record: unknown) {
 // Packs records in order up to the budget; a record at or over the budget gets its
 // own batch. Never split a document. A record that replaces a stored subject (`alone`) also gets a
 // batch alone: replacing costs about 100-250 ms idle however small the document is
-// (PLATFORM-18.T1, docs/validation/platform-18-t1-replace-mutation-margin-2026-10-15.md), which the
+// (PLATFORM-18.T1, docs/releases/v0.1.0.md "Seed and replace margins"), which the
 // per-KiB fit above does not capture.
 export function* sourceImportBatches<T>(records: readonly T[], alone?: (record: T) => boolean) {
   let batch: T[] = []

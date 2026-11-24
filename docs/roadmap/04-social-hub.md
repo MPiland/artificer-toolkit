@@ -5,7 +5,7 @@
 > **Status:** implemented
 > **Depends on:** [Phase 03](03-campaign-core.md) and the current authenticated account/profile baseline; notification integration follows [Phase 05](05-notifications-and-delivery.md)
 > **Unlocks:** public table discovery and the paid-table extension
-> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0014](../adr/0014-social-projection-and-tokenless-admission.md), [0015](../adr/0015-campaign-format-copy-and-maturity-presentation.md)
+> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), 0008, [0014](../adr/0014-social-projection-and-tokenless-admission.md), [0015](../adr/0015-campaign-format-copy-and-maturity-presentation.md)
 
 ## Goal
 
