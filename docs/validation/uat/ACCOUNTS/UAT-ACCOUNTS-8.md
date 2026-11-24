@@ -16,15 +16,17 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1, P2) · 
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/settings/profile`. Check **Profile visibility** says Private.
-2. **P1:** Type a short unique text such as "UAT bio 123" in **Bio**, but do not save yet. Reload the page.
-3. **P1:** Type the bio again and choose **Save profile**.
-4. **P2:** Open `<STAGING_URL>/profiles/P1.
-5. **P1:** Set **Profile visibility** to Public and choose **Save profile**.
-6. **P2:** Reload the profile page.
-7. **P1:** Set **Profile visibility** back to Private and save.
-8. **P2:** Reload the profile page.
-9. **P2:** Without reloading, sign out and sign in as P1 in the same browser profile, then open P1's settings.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/settings/profile`. Check **Profile visibility** says Private.
+2. [ ] **P1:** Type a short unique text such as "UAT bio 123" in **Bio**, but do not save yet. Reload the page.
+3. [ ] **P1:** Type the bio again and choose **Save profile**.
+4. [ ] **P2:** Open `<STAGING_URL>/profiles/P1.
+5. [ ] **P1:** Set **Profile visibility** to Public and choose **Save profile**.
+6. [ ] **P2:** Reload the profile page.
+7. [ ] **P1:** Set **Profile visibility** back to Private and save.
+8. [ ] **P2:** Reload the profile page.
+9. [ ] **P2:** Without reloading, sign out and sign in as P1 in the same browser profile, then open P1's settings.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

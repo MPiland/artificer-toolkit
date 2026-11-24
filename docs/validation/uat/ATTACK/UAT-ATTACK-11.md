@@ -18,17 +18,19 @@ Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 1
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** In the Builder give "UAT Dara" two light melee weapons (main and off hand) and a shortbow with arrows, then commit. The Sheet owns equipment changes, so you may instead equip them on the Sheet as in [SHEET-8](../SHEET/UAT-SHEET-8.md).
 S2. **GM:** In table settings enable **Track ammunition**. **GM:** In the Sandbox Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first). Add a Goblin if the Run lacks one. Open the Goblin's actor card in two browser tabs for steps 5 to 7. P1: Auto-roll ON.
 
-1. **P1:** On P1's Character's turn, attack. Confirm the main-hand weapon and full damage are used; the off-hand attack as a bonus action adds no positive ability modifier unless the Character has Two-Weapon Fighting.
-2. **P1:** Empty a hand (stow one weapon), then attack with the other. Confirm the attack draws the bound weapon into the free hand automatically.
-3. **P1:** Throw a weapon. Confirm it leaves the hand. Swap weapons and confirm swaps are free.
-4. **GM:** Attempt Disarm against P1's Character in Assisted mode. Confirm the player must give evidence (a roll) and the item leaves the held hand.
-5. **GM:** Replace the Goblin's loadout (active Creature actor) from the actor card. Confirm the new loadout appears and the Goblin's next attack uses it.
-6. **GM (tab A and tab B):** On the Goblin's turn, with its attack ready to confirm in tab A, replace the loadout in tab B and confirm the attack in tab A within a second of each other.
-7. **GM:** Read the Encounter history and the Goblin's loadout.
-8. **P1:** With ammunition tracking on, fire the shortbow until the stack is empty. Confirm the next shot is refused. Turn tracking off in a new Encounter and confirm the bonuses still apply and nothing is counted.
+1. [ ] **P1:** On P1's Character's turn, attack. Confirm the main-hand weapon and full damage are used; the off-hand attack as a bonus action adds no positive ability modifier unless the Character has Two-Weapon Fighting.
+2. [ ] **P1:** Empty a hand (stow one weapon), then attack with the other. Confirm the attack draws the bound weapon into the free hand automatically.
+3. [ ] **P1:** Throw a weapon. Confirm it leaves the hand. Swap weapons and confirm swaps are free.
+4. [ ] **GM:** Attempt Disarm against P1's Character in Assisted mode. Confirm the player must give evidence (a roll) and the item leaves the held hand.
+5. [ ] **GM:** Replace the Goblin's loadout (active Creature actor) from the actor card. Confirm the new loadout appears and the Goblin's next attack uses it.
+6. [ ] **GM (tab A and tab B):** On the Goblin's turn, with its attack ready to confirm in tab A, replace the loadout in tab B and confirm the attack in tab A within a second of each other.
+7. [ ] **GM:** Read the Encounter history and the Goblin's loadout.
+8. [ ] **P1:** With ammunition tracking on, fire the shortbow until the stack is empty. Confirm the next shot is refused. Turn tracking off in a new Encounter and confirm the bonuses still apply and nothing is counted.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

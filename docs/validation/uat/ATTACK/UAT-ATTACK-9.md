@@ -18,21 +18,23 @@ Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 1
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** In the Builder (as in [BUILDER-2](../BUILDER/UAT-BUILDER-2.md)) build and commit: a Barbarian, a Rogue, a Fighter of level 5 (Extra Attack, Second Wind, Action Surge), a Paladin with spell slots, a Character with two light melee weapons, and the multiclasses Fighter 5 / Ranger 5, Fighter 11 / Paladin 5 and Fighter 20.
 S2. **P1:** Before each group of steps the GM uses **Change Character** on P1's seat in the Party panel (a player has one Character per Campaign). Set **Auto-roll** ON for P1 and OFF for the GM.
 
-1. **GM:** Assign the Barbarian to P1's seat and start an Encounter with a Wolf.
-2. **P1:** As the Barbarian, use Rage as a bonus action. Confirm a rage charge is spent and resistance and the damage bonus apply.
-3. **P1:** As the Barbarian, try to cast a spell while raging. Read the refusal. End Rage by choice.
-4. **GM:** Undo the Rage action. Confirm the charge returns.
-5. **P1:** As the Barbarian, Rage again and end the turn without attacking a hostile or taking damage. Confirm Rage ends at the end of the turn (ATTACK-9.6).
-6. **GM:** Complete the Encounter, assign the Rogue to P1's seat and start an Encounter. **P1:** As the Rogue, make a hit with advantage. Confirm Sneak Attack dice are added once. Hit a second time in the same turn; confirm no second dice.
+1. [ ] **GM:** Assign the Barbarian to P1's seat and start an Encounter with a Wolf.
+2. [ ] **P1:** As the Barbarian, use Rage as a bonus action. Confirm a rage charge is spent and resistance and the damage bonus apply.
+3. [ ] **P1:** As the Barbarian, try to cast a spell while raging. Read the refusal. End Rage by choice.
+4. [ ] **GM:** Undo the Rage action. Confirm the charge returns.
+5. [ ] **P1:** As the Barbarian, Rage again and end the turn without attacking a hostile or taking damage. Confirm Rage ends at the end of the turn (ATTACK-9.6).
+6. [ ] **GM:** Complete the Encounter, assign the Rogue to P1's seat and start an Encounter. **P1:** As the Rogue, make a hit with advantage. Confirm Sneak Attack dice are added once. Hit a second time in the same turn; confirm no second dice.
    - 6a. **GM:** Complete, assign the Fighter 5 and start an Encounter. **P1:** Take the Attack action. Confirm the drawer shows "Attack 1 of 2" with the last weapon and target kept, make the first attack, then make the second without a warning. **GM:** Undo the second attack and confirm its slot is returned and the first attack stays.
    - 6b. **P1:** As the Fighter 5, use Second Wind (heals 1d10 + level) and Action Surge (extra action). Confirm each is limited to its uses per short rest.
-7. **GM:** Complete, assign the Paladin and start an Encounter. **P1:** Hit with a melee weapon. Confirm the app offers Divine Smite; spend a slot and confirm the radiant dice.
-8. **GM:** Complete, assign the Character with two light weapons and start an Encounter. **P1:** Attack with the main hand and confirm the off-hand bonus attack is offered and adds no positive ability modifier.
-9. **GM:** For each multiclass in turn (assign, start an Encounter), **P1:** open the Attack action and read how many attacks it offers (Fighter 5 / Ranger 5 makes 2, Fighter 11 / Paladin 5 makes 3, Fighter 20 makes 4).
-   R1. **GM:** Use **Change Character** to put "UAT Dara" back on P1's seat, and complete the Encounter.
+7. [ ] **GM:** Complete, assign the Paladin and start an Encounter. **P1:** Hit with a melee weapon. Confirm the app offers Divine Smite; spend a slot and confirm the radiant dice.
+8. [ ] **GM:** Complete, assign the Character with two light weapons and start an Encounter. **P1:** Attack with the main hand and confirm the off-hand bonus attack is offered and adds no positive ability modifier.
+9. [ ] **GM:** For each multiclass in turn (assign, start an Encounter), **P1:** open the Attack action and read how many attacks it offers (Fighter 5 / Ranger 5 makes 2, Fighter 11 / Paladin 5 makes 3, Fighter 20 makes 4).
+       R1. **GM:** Use **Change Character** to put "UAT Dara" back on P1's seat, and complete the Encounter.
 
 ## Expected
 
@@ -58,5 +60,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

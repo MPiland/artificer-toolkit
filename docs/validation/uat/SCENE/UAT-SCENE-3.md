@@ -20,19 +20,21 @@ Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
-1. **GM:** Open the tabletop window and choose **Present a scene**, then pick "UAT Cavern".
-2. **P1:** Open the tabletop window.
-3. **P2:** Open the tabletop window.
-4. **GM:** Add a token for P1's Character and place it on the map.
-5. **GM:** Add a second token for a creature (for example a Goblin) and mark it **Hidden from players**.
-6. **GM:** Draw a wall across the map.
-7. **GM:** Add a door, a window, a one-way barrier and a light on the map.
-8. **GM:** Draw a darkness zone.
-9. **GM:** Add a GM note with **GM only** visibility.
-10. **GM:** Check the **Scene objects** list.
-11. **P1:** Compare the map with what the GM sees.
-12. **GM:** Make the goblin visible (turn off Hidden from players).
-13. **GM:** Move the wall a little.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the tabletop window and choose **Present a scene**, then pick "UAT Cavern".
+2. [ ] **P1:** Open the tabletop window.
+3. [ ] **P2:** Open the tabletop window.
+4. [ ] **GM:** Add a token for P1's Character and place it on the map.
+5. [ ] **GM:** Add a second token for a creature (for example a Goblin) and mark it **Hidden from players**.
+6. [ ] **GM:** Draw a wall across the map.
+7. [ ] **GM:** Add a door, a window, a one-way barrier and a light on the map.
+8. [ ] **GM:** Draw a darkness zone.
+9. [ ] **GM:** Add a GM note with **GM only** visibility.
+10. [ ] **GM:** Check the **Scene objects** list.
+11. [ ] **P1:** Compare the map with what the GM sees.
+12. [ ] **GM:** Make the goblin visible (turn off Hidden from players).
+13. [ ] **GM:** Move the wall a little.
 
 ## Expected
 
@@ -58,5 +60,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

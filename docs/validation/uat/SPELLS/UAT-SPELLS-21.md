@@ -19,19 +19,21 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Add a Goblin; Sage needs Invisibility, Charm Person, Fear and Blindness/Deafness prepared. Draw a wall with the wall tool for step 6.
 
-1. **P1:** Cast Invisibility on Sage. Make an attack roll. Confirm the Invisibility ends. Undo the attack: confirm it returns.
-2. **P1:** Recast and cast a spell instead: confirm it ends.
-3. **P2:** Hale casts **Sanctuary** on Sage; have **P1** attack an enemy with Sage. Confirm Sanctuary ends when Sage attacks. Recast it and have Sage cast an offensive spell at an enemy: confirm it ends the same way.
-4. **P1:** Cast **Charm Person** on the Goblin and fail its save. **P2:** Have Hale (a companion) hit the Goblin. Confirm the charm ends because the caster's companion harmed the target. Undo the hit and confirm the charm returns.
-5. **P1:** Cast **Fear** on the Goblin. Fail its save. Confirm Frightened records Sage as the source.
-6. **GM:** Move the Goblin so it loses line of sight to Sage, then have it attack. Confirm disadvantage only while it can see her (Heavy setup: a wall drawn by hand to break the line of sight).
-7. **GM:** Move the Goblin closer to Sage. Confirm a soft warning that you can override.
-8. **GM:** Start the Goblin's turn. Confirm the GM is told it must Dash and move away; do something else and confirm a "Do it anyway" warning logged for the GM.
-9. **GM:** End the Goblin's turn without line of sight. Confirm it is offered a Wisdom save; success ends the effect for it only. Undo.
-10. **P1:** Cast **Blindness/Deafness** on a Goblin choosing Blinded. Confirm the condition on a failed save with a repeat save at the end of each of its turns. Recast it with a 3rd-level slot and confirm an extra target can be chosen.
-11. **GM:** Apply Frightened to the Goblin by hand, with no source. Confirm its attacks always roll with disadvantage, whether or not it can see anyone.
+1. [ ] **P1:** Cast Invisibility on Sage. Make an attack roll. Confirm the Invisibility ends. Undo the attack: confirm it returns.
+2. [ ] **P1:** Recast and cast a spell instead: confirm it ends.
+3. [ ] **P2:** Hale casts **Sanctuary** on Sage; have **P1** attack an enemy with Sage. Confirm Sanctuary ends when Sage attacks. Recast it and have Sage cast an offensive spell at an enemy: confirm it ends the same way.
+4. [ ] **P1:** Cast **Charm Person** on the Goblin and fail its save. **P2:** Have Hale (a companion) hit the Goblin. Confirm the charm ends because the caster's companion harmed the target. Undo the hit and confirm the charm returns.
+5. [ ] **P1:** Cast **Fear** on the Goblin. Fail its save. Confirm Frightened records Sage as the source.
+6. [ ] **GM:** Move the Goblin so it loses line of sight to Sage, then have it attack. Confirm disadvantage only while it can see her (Heavy setup: a wall drawn by hand to break the line of sight).
+7. [ ] **GM:** Move the Goblin closer to Sage. Confirm a soft warning that you can override.
+8. [ ] **GM:** Start the Goblin's turn. Confirm the GM is told it must Dash and move away; do something else and confirm a "Do it anyway" warning logged for the GM.
+9. [ ] **GM:** End the Goblin's turn without line of sight. Confirm it is offered a Wisdom save; success ends the effect for it only. Undo.
+10. [ ] **P1:** Cast **Blindness/Deafness** on a Goblin choosing Blinded. Confirm the condition on a failed save with a repeat save at the end of each of its turns. Recast it with a 3rd-level slot and confirm an extra target can be chosen.
+11. [ ] **GM:** Apply Frightened to the Goblin by hand, with no source. Confirm its attacks always roll with disadvantage, whether or not it can see anyone.
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

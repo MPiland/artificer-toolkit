@@ -19,18 +19,20 @@ Level 3 (Core play) · Feature RULES · Mode: Group (GM, P1, P2) · Path positio
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In Review: Shield and Hold use **Next turn** until a new round starts and Ember's Shield reaction is available again.
 
-1. **GM:** Open the tabletop of Review: Shield and Hold and advance to the Wolf's turn.
-2. **GM:** Have the Wolf attack Ember from the action drawer.
-3. **GM:** Read the Encounter panel while the attack is waiting.
-4. **P1:** Read the reaction prompt that appears for Ember (Shield).
-5. **P1:** Close the tab, wait a few seconds, and reopen the tabletop. (Alternatively set the browser's Network panel to Offline for 10 seconds and back.)
-6. **P1:** Read the prompt again, then choose **Use reaction**.
-7. **P1:** If asked, roll or enter the dice and let the attack complete.
-8. **GM:** Read the Encounter history for this attack.
-9. **GM:** Advance through Ember's turn (her reaction becomes available again) to the Wolf's next turn. Repeat steps 2-4, then choose **Skip decision** instead of waiting.
-10. **P2:** In P2's own window, try to open the tabletop of Review: Shield and Hold (paste its address).
+1. [ ] **GM:** Open the tabletop of Review: Shield and Hold and advance to the Wolf's turn.
+2. [ ] **GM:** Have the Wolf attack Ember from the action drawer.
+3. [ ] **GM:** Read the Encounter panel while the attack is waiting.
+4. [ ] **P1:** Read the reaction prompt that appears for Ember (Shield).
+5. [ ] **P1:** Close the tab, wait a few seconds, and reopen the tabletop. (Alternatively set the browser's Network panel to Offline for 10 seconds and back.)
+6. [ ] **P1:** Read the prompt again, then choose **Use reaction**.
+7. [ ] **P1:** If asked, roll or enter the dice and let the attack complete.
+8. [ ] **GM:** Read the Encounter history for this attack.
+9. [ ] **GM:** Advance through Ember's turn (her reaction becomes available again) to the Wolf's next turn. Repeat steps 2-4, then choose **Skip decision** instead of waiting.
+10. [ ] **P2:** In P2's own window, try to open the tabletop of Review: Shield and Hold (paste its address).
 
 ## Expected
 
@@ -61,5 +63,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

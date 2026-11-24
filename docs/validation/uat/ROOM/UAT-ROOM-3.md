@@ -18,17 +18,19 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
-1. **P1:** In the browser developer tools open the Network panel and choose **Offline**.
-2. **GM:** Move a token (or post a chat line) while P1 is offline.
-3. **P1:** Wait one minute, then switch the throttle back to No throttling.
-4. **P1:** Watch the tabletop window without reloading.
-5. **P1:** Reload the page.
-6. **GM:** If an Encounter decision is waiting for P1, check it is still pending.
-7. **GM:** In the sandbox Campaign, use **Remove player** on P1 while P1's tabletop window is open.
-8. **P1:** Try to use the open window (post a chat line), then reload it.
-9. **GM and P2:** Post a chat line and move a token.
-10. **GM:** Read the presence list.
-    R1. **GM:** Re-seat the player you removed in steps 7 to 10 as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** In the browser developer tools open the Network panel and choose **Offline**.
+2. [ ] **GM:** Move a token (or post a chat line) while P1 is offline.
+3. [ ] **P1:** Wait one minute, then switch the throttle back to No throttling.
+4. [ ] **P1:** Watch the tabletop window without reloading.
+5. [ ] **P1:** Reload the page.
+6. [ ] **GM:** If an Encounter decision is waiting for P1, check it is still pending.
+7. [ ] **GM:** In the sandbox Campaign, use **Remove player** on P1 while P1's tabletop window is open.
+8. [ ] **P1:** Try to use the open window (post a chat line), then reload it.
+9. [ ] **GM and P2:** Post a chat line and move a token.
+10. [ ] **GM:** Read the presence list.
+        R1. **GM:** Re-seat the player you removed in steps 7 to 10 as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

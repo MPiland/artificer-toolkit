@@ -19,15 +19,17 @@ Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1) · Path position 77 
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In the Sandbox Campaign create a spare Scene named "UAT Spare Map" from [sample-battle-map-b.png](../assets/sample-battle-map-b.png) as in [SCENE-1](UAT-SCENE-1.md) steps 2 to 6 (grid 5 ft, calibrate on the 50-pixel intersections). Scenes "UAT Cavern" and "UAT Spare Map" now both exist.
 
-1. **GM:** Open Settings and Account and note the used media storage.
-2. **GM:** Transfer ownership of the Sandbox Campaign to P1 and have **P1** accept.
-3. **P1:** Open Settings and Account and note the media storage. **GM:** do the same.
-4. **P1:** Present "UAT Spare Map" in the tabletop window, then try to delete it while it is presented.
-5. **P1:** Present "UAT Cavern" instead, then delete "UAT Spare Map".
-6. **P1:** Reload and check the Scene list and storage.
-   R1. **P1:** Transfer ownership of the Sandbox Campaign back to the original GM (Settings, ownership transfer); **GM:** accept (as [CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) steps 14 and 15).
+1. [ ] **GM:** Open Settings and Account and note the used media storage.
+2. [ ] **GM:** Transfer ownership of the Sandbox Campaign to P1 and have **P1** accept.
+3. [ ] **P1:** Open Settings and Account and note the media storage. **GM:** do the same.
+4. [ ] **P1:** Present "UAT Spare Map" in the tabletop window, then try to delete it while it is presented.
+5. [ ] **P1:** Present "UAT Cavern" instead, then delete "UAT Spare Map".
+6. [ ] **P1:** Reload and check the Scene list and storage.
+       R1. **P1:** Transfer ownership of the Sandbox Campaign back to the original GM (Settings, ownership transfer); **GM:** accept (as [CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) steps 14 and 15).
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -16,17 +16,19 @@ Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path positio
 
 ## Steps
 
-1. **P1:** Open Characters from the main menu and choose **UAT Dara** to open the Character Sheet.
-2. **P1:** Note the current hit points shown in the vitals area.
-3. **P1:** Choose **Manage hit points**, enter 3 in **Hit point amount**, apply it as damage, and close the panel.
-4. **P1:** Turn **Inspiration** on.
-5. **P1:** Choose **Manage conditions and exhaustion**, add one condition (for example Poisoned) with a short note, and close the panel.
-6. **P1:** Open the inventory section and add or change a quantity of one item; then change a currency amount (for example add 5 copper pieces).
-7. **P1:** Open the notes section, choose **Create Note**, type a short note, and save it.
-8. **P1:** Reload the browser page.
-9. **P1:** Compare every item you changed with what the Sheet now shows.
-10. **P1:** In a second browser tab of the same account, open the same Sheet and change the hit point amount by one more point of damage; then, in the first tab (not reloaded), apply one more point of healing.
-11. **P1:** Reload both tabs.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open Characters from the main menu and choose **UAT Dara** to open the Character Sheet.
+2. [ ] **P1:** Note the current hit points shown in the vitals area.
+3. [ ] **P1:** Choose **Manage hit points**, enter 3 in **Hit point amount**, apply it as damage, and close the panel.
+4. [ ] **P1:** Turn **Inspiration** on.
+5. [ ] **P1:** Choose **Manage conditions and exhaustion**, add one condition (for example Poisoned) with a short note, and close the panel.
+6. [ ] **P1:** Open the inventory section and add or change a quantity of one item; then change a currency amount (for example add 5 copper pieces).
+7. [ ] **P1:** Open the notes section, choose **Create Note**, type a short note, and save it.
+8. [ ] **P1:** Reload the browser page.
+9. [ ] **P1:** Compare every item you changed with what the Sheet now shows.
+10. [ ] **P1:** In a second browser tab of the same account, open the same Sheet and change the hit point amount by one more point of damage; then, in the first tab (not reloaded), apply one more point of healing.
+11. [ ] **P1:** Reload both tabs.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

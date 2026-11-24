@@ -18,18 +18,20 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2, P3) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. Allow time: three Builder runs at levels 5 to 11 (Sage, Hale, Vex).
 
-1. **P1:** Open `/characters`, create a new Character with the Builder: Wizard level 9, Evocation, named **Sage**, with the spell list and equipment above. Save it.
-2. **P2:** Build **Hale** the same way (Cleric 13, spell list and items above).
-3. **P3:** Build **Vex** (Bard 5) and **Moss** (Druid 9). Make sure all three Characters are active (the Builder asks) so they can be picked into the Campaign in scenario 2.
-4. **P1:** Open Sage's Sheet. Cast **Find Familiar** from the Sheet (it is a ritual, so the Sheet allows it). Do this here, before any Encounter.
-5. **P1:** Open the **Extras** tab. Confirm a Summoned entry for the familiar shows AC, speed, attacks and current and maximum hit points.
-6. **P1:** Lower the familiar's hit points on the Sheet by a few points. Reload the page. Confirm the lowered count is still shown.
-7. **P2:** On Hale's Sheet, edit current hit points down to 0.
-8. **P2:** Confirm death save successes and failures show at 0 HP. Press **Roll death save** once (type a number 10 or higher) and see a success marked.
-9. **P2:** Edit three failures into the death saves. Confirm the Sheet shows Hale as Dead.
-10. **P2:** Edit current hit points to a value above 0. Confirm the Dead state clears and Hale is alive.
+1. [ ] **P1:** Open `/characters`, create a new Character with the Builder: Wizard level 9, Evocation, named **Sage**, with the spell list and equipment above. Save it.
+2. [ ] **P2:** Build **Hale** the same way (Cleric 13, spell list and items above).
+3. [ ] **P3:** Build **Vex** (Bard 5) and **Moss** (Druid 9). Make sure all three Characters are active (the Builder asks) so they can be picked into the Campaign in scenario 2.
+4. [ ] **P1:** Open Sage's Sheet. Cast **Find Familiar** from the Sheet (it is a ritual, so the Sheet allows it). Do this here, before any Encounter.
+5. [ ] **P1:** Open the **Extras** tab. Confirm a Summoned entry for the familiar shows AC, speed, attacks and current and maximum hit points.
+6. [ ] **P1:** Lower the familiar's hit points on the Sheet by a few points. Reload the page. Confirm the lowered count is still shown.
+7. [ ] **P2:** On Hale's Sheet, edit current hit points down to 0.
+8. [ ] **P2:** Confirm death save successes and failures show at 0 HP. Press **Roll death save** once (type a number 10 or higher) and see a success marked.
+9. [ ] **P2:** Edit three failures into the death saves. Confirm the Sheet shows Hale as Dead.
+10. [ ] **P2:** Edit current hit points to a value above 0. Confirm the Dead state clears and Hale is alive.
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

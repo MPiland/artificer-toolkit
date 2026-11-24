@@ -18,17 +18,19 @@ Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1) · Path position 1
 
 ## Steps
 
-1. **GM:** Open the Scene settings and set ambient illumination to Bright. Confirm the map shows as authored.
-2. **GM:** Set to Dim. Confirm the map is visibly darkened. Set to Dark. Confirm it is black beyond lights and senses.
-3. **GM:** Add a light with a bright and a dim radius and a colour. Confirm both radii show, tinted by the colour without washing out the map art.
-4. **GM:** Add a magical darkness area. Confirm it stays black inside light.
-5. **GM:** Add an obscurement. Confirm it draws as its own layer.
-6. **GM:** Use the view preview to see as a chosen token. Confirm you see that token's view.
-7. **P1:** With the darkvision Character assigned, confirm that within the darkvision range darkness shows as dim light in greys and dim light shows as bright in colour.
-8. **GM:** Give P1 control of a second token (the Giant Bat) in its **Controllers**. **P1:** Select that token, then P1's Character's token. Confirm the view changes to the selected token's senses, one token at a time.
-9. **P1:** Select the Giant Bat and confirm its blindsight reveals within range regardless of light. **GM:** Give a token truesight (or use a creature that has it) and confirm magical darkness shows through it.
-10. **GM:** Assign the Warlock with Devil's Sight to P1's seat. **P1:** Confirm within its range it sees in colour in both ordinary and magical darkness, does not see invisible creatures, and magical darkness is marked by a dotted outline and faint tint.
-11. **GM:** Open the view preview for the Wolf. Confirm it uses the Wolf's stat-block senses like a Character does (compare with the senses printed on its stat block).
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the Scene settings and set ambient illumination to Bright. Confirm the map shows as authored.
+2. [ ] **GM:** Set to Dim. Confirm the map is visibly darkened. Set to Dark. Confirm it is black beyond lights and senses.
+3. [ ] **GM:** Add a light with a bright and a dim radius and a colour. Confirm both radii show, tinted by the colour without washing out the map art.
+4. [ ] **GM:** Add a magical darkness area. Confirm it stays black inside light.
+5. [ ] **GM:** Add an obscurement. Confirm it draws as its own layer.
+6. [ ] **GM:** Use the view preview to see as a chosen token. Confirm you see that token's view.
+7. [ ] **P1:** With the darkvision Character assigned, confirm that within the darkvision range darkness shows as dim light in greys and dim light shows as bright in colour.
+8. [ ] **GM:** Give P1 control of a second token (the Giant Bat) in its **Controllers**. **P1:** Select that token, then P1's Character's token. Confirm the view changes to the selected token's senses, one token at a time.
+9. [ ] **P1:** Select the Giant Bat and confirm its blindsight reveals within range regardless of light. **GM:** Give a token truesight (or use a creature that has it) and confirm magical darkness shows through it.
+10. [ ] **GM:** Assign the Warlock with Devil's Sight to P1's seat. **P1:** Confirm within its range it sees in colour in both ordinary and magical darkness, does not see invisible creatures, and magical darkness is marked by a dotted outline and faint tint.
+11. [ ] **GM:** Open the view preview for the Wolf. Confirm it uses the Wolf's stat-block senses like a Character does (compare with the senses printed on its stat block).
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -16,12 +16,14 @@ Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (P3) · Path posi
 
 ## Steps
 
-1. **P3:** Open `<STAGING_URL>/sign-in` and follow the forgot-password link to the **Reset your password** page.
-2. **P3:** Enter the email address of P3 in **Email address** and submit.
-3. **P3:** On the next page (**Verify your reset code**) read the message shown.
-4. **P3:** Go back and repeat with an address that has no account, `nobody-here@example.invalid`.
-5. **P3:** Compare the messages from both attempts.
-6. **P3:** Sign in normally with the old password to confirm nothing changed.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P3:** Open `<STAGING_URL>/sign-in` and follow the forgot-password link to the **Reset your password** page.
+2. [ ] **P3:** Enter the email address of P3 in **Email address** and submit.
+3. [ ] **P3:** On the next page (**Verify your reset code**) read the message shown.
+4. [ ] **P3:** Go back and repeat with an address that has no account, `nobody-here@example.invalid`.
+5. [ ] **P3:** Compare the messages from both attempts.
+6. [ ] **P3:** Sign in normally with the old password to confirm nothing changed.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

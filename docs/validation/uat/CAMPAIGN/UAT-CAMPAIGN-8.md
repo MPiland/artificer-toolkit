@@ -16,9 +16,11 @@ Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position
 
 ## Steps
 
-1. **GM:** Open Review: Fire and Thunder and its tabletop and copy both addresses. **P1:** Open the copied Campaign address.
-2. **P1:** Try the Campaign's tabletop address.
-3. **P1:** Read the message.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open Review: Fire and Thunder and its tabletop and copy both addresses. **P1:** Open the copied Campaign address.
+2. [ ] **P1:** Try the Campaign's tabletop address.
+3. [ ] **P1:** Read the message.
 
 ## Expected
 
@@ -43,5 +45,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

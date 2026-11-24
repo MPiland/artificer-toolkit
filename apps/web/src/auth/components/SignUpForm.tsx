@@ -142,7 +142,7 @@ export function SignUpForm({
       />
       <PasswordInput
         label='Password'
-        description={`Use ${PASSWORD_MIN_LENGTH} to ${PASSWORD_MAX_LENGTH} characters.`}
+        description={`At least ${PASSWORD_MIN_LENGTH} characters.`}
         classNames={{
           input: textInput
         }}

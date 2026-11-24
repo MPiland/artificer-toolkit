@@ -17,15 +17,17 @@ Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 127
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. Read "Aria" as Iris. **GM:** Move the Ogre's token next to Iris's token, or move the party through the door.
 
-1. **GM:** Open Campaign table settings and check the climb rule is offered; turn it on and start a fresh Encounter if needed.
-2. **P1:** On Aria's turn choose the option to climb onto the large creature.
-3. **P1 and GM:** Roll the contest: Aria's Athletics or Acrobatics against the creature's Acrobatics.
-4. **GM:** Move the large creature one square.
-5. **P1:** Attack the creature while clinging.
-6. **GM:** Make the creature try to dislodge Aria with the contest it is offered.
-7. **P1:** Look at where Aria lands.
+1. [ ] **GM:** Open Campaign table settings and check the climb rule is offered; turn it on and start a fresh Encounter if needed.
+2. [ ] **P1:** On Aria's turn choose the option to climb onto the large creature.
+3. [ ] **P1 and GM:** Roll the contest: Aria's Athletics or Acrobatics against the creature's Acrobatics.
+4. [ ] **GM:** Move the large creature one square.
+5. [ ] **P1:** Attack the creature while clinging.
+6. [ ] **GM:** Make the creature try to dislodge Aria with the contest it is offered.
+7. [ ] **P1:** Look at where Aria lands.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

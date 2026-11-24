@@ -16,10 +16,12 @@ Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path positio
 
 ## Steps
 
-1. **P1:** Open Characters, choose the control to create a new Character, and complete the Builder to the end, picking a class and background with starting equipment.
-2. **P1:** Finish and open the new Character's Sheet.
-3. **P1:** Open the inventory section and currency totals.
-4. **P1:** Reload the Sheet.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open Characters, choose the control to create a new Character, and complete the Builder to the end, picking a class and background with starting equipment.
+2. [ ] **P1:** Finish and open the new Character's Sheet.
+3. [ ] **P1:** Open the inventory section and currency totals.
+4. [ ] **P1:** Reload the Sheet.
 
 ## Expected
 
@@ -44,5 +46,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

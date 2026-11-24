@@ -16,14 +16,16 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path pos
 
 ## Steps
 
-1. **OWN:** Open the invitation link from the invitation email.
-2. **OWN:** On **Complete registration**, enter a username and a password and submit.
-3. **OWN:** Open the email-confirmation link that arrives; you should land on the email-confirmed page.
-4. **OWN:** Sign in with the new email, then sign out and sign in with the new username.
-5. **OWN:** Open the same invitation link again.
-6. **OWN:** Open an invitation link whose code you have altered by one character.
-7. **OWN:** Open a second invitation addressed to a different email, and try to register with the first person's email address.
-8. **OWN:** Try to register with a username that is already taken (for example the GM's username, which the owner gives you).
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **OWN:** Open the invitation link from the invitation email.
+2. [ ] **OWN:** On **Complete registration**, enter a username and a password and submit.
+3. [ ] **OWN:** Open the email-confirmation link that arrives; you should land on the email-confirmed page.
+4. [ ] **OWN:** Sign in with the new email, then sign out and sign in with the new username.
+5. [ ] **OWN:** Open the same invitation link again.
+6. [ ] **OWN:** Open an invitation link whose code you have altered by one character.
+7. [ ] **OWN:** Open a second invitation addressed to a different email, and try to register with the first person's email address.
+8. [ ] **OWN:** Try to register with a username that is already taken (for example the GM's username, which the owner gives you).
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

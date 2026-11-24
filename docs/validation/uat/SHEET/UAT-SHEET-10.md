@@ -17,12 +17,14 @@ Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path positio
 
 ## Steps
 
-1. **P1:** Sign in at 375 px and open UAT Dara's Sheet ([UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md)).
-2. **P1:** Use the **Character sheet mobile pages** navigation to visit each page (overview, actions, spells or inventory, notes).
-3. **P1:** Open **Manage hit points** and apply 1 damage, then heal 1.
-4. **P1:** Open **Open manual dice roller** and roll a d20.
-5. **P1:** Open **Open roll history**.
-6. **P1:** Scroll each page to the bottom.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Sign in at 375 px and open UAT Dara's Sheet ([UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md)).
+2. [ ] **P1:** Use the **Character sheet mobile pages** navigation to visit each page (overview, actions, spells or inventory, notes).
+3. [ ] **P1:** Open **Manage hit points** and apply 1 damage, then heal 1.
+4. [ ] **P1:** Open **Open manual dice roller** and roll a d20.
+5. [ ] **P1:** Open **Open roll history**.
+6. [ ] **P1:** Scroll each page to the bottom.
 
 ## Expected
 
@@ -48,5 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

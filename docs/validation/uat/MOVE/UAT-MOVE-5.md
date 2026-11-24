@@ -17,12 +17,14 @@ Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1) · Path position 72 o
 
 ## Steps
 
-1. **GM:** Present the Scene with a token for P1's Character, a wall, and an unbound token (add a plain token "Marker" with **Controlled by players** on).
-2. **P1:** Move P1's Character's token.
-3. **P1:** Move the Marker.
-4. **GM:** Turn **Controlled by players** off for the Marker.
-5. **P1:** Try to move the Marker.
-6. **P1:** Try to move P1's Character's token to a place behind the wall.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Present the Scene with a token for P1's Character, a wall, and an unbound token (add a plain token "Marker" with **Controlled by players** on).
+2. [ ] **P1:** Move P1's Character's token.
+3. [ ] **P1:** Move the Marker.
+4. [ ] **GM:** Turn **Controlled by players** off for the Marker.
+5. [ ] **P1:** Try to move the Marker.
+6. [ ] **P1:** Try to move P1's Character's token to a place behind the wall.
 
 ## Expected
 
@@ -48,5 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

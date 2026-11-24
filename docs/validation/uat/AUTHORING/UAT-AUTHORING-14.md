@@ -16,17 +16,19 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path pos
 
 ## Steps
 
-1. **P1:** Start the timer. Open `<STAGING_URL>/spells/new`.
-2. **P1:** Under Basics, enter the **Name** "UAT Fireball Copy" and a **Description**. Set **Level** to Level 3, **Magic School** to Evocation, and add Sorcerer and Wizard to **Classes**. Set **Casting Time** to 1 action and tick Verbal, Somatic and Material **Components**.
-3. **P1:** Under Effects, add one effect. In **How It Starts** set **Kind** to Action and **Trigger** to Saving Throw. In **Saving Throw** set **DC Method** to the option that uses the caster's spell save DC, and **Save Ability** to Dexterity. Set **Activation** to Action with **Amount** 1.
-4. **P1:** Set **Range** to Distance, **Amount** 150, **Unit** Feet. Set **Shape Kind** to Sphere with **Radius** **Amount** 20, **Unit** Feet. Set **Target Selection** to Area Contents and **Target Eligibility** to Any valid target.
-5. **P1:** Under **Outcome Paths** add a first path: **Outcome Path** On Save Failure, **Outcome Group** Single, **Selection Model** Direct, **Starts From** Source. In its **Result** set **Outcome Type** Single and add an outcome: **Effect Kind** Damage, **Damage Type** Fire, **Value Kind** Dice, **Scaling Kind** Per Level, **Scaling Source** Spell Cast Level.
-6. **P1:** In that outcome's **Levels** table add seven rows: **Level** 3 with **Damage Dice** `8d6`, then 4 with `9d6`, 5 with `10d6`, 6 with `11d6`, 7 with `12d6`, 8 with `13d6`, 9 with `14d6`.
-7. **P1:** Add a second path: **Outcome Path** On Save Success, with the same Group, Selection Model and Starts From. Add an outcome with the same Effect Kind, Damage Type, Value Kind, Scaling Kind and Scaling Source, and set **Amount Modifier** to Half.
-8. **P1:** In the second outcome's **Levels** table enter the same seven rows again (levels 3 to 9, `8d6` to `14d6`).
-9. **P1:** Choose **Save Draft**, reload, then **Activate**. Stop the timer.
-10. **P1:** Open the published copy in the reader view beside the SRD **Fireball** and compare casting time, range, area, save, damage on a failed save, damage on a successful save, and the upcast table.
-11. **P1:** Record the time taken and the difficulty rating, then delete the Spell.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Start the timer. Open `<STAGING_URL>/spells/new`.
+2. [ ] **P1:** Under Basics, enter the **Name** "UAT Fireball Copy" and a **Description**. Set **Level** to Level 3, **Magic School** to Evocation, and add Sorcerer and Wizard to **Classes**. Set **Casting Time** to 1 action and tick Verbal, Somatic and Material **Components**.
+3. [ ] **P1:** Under Effects, add one effect. In **How It Starts** set **Kind** to Action and **Trigger** to Saving Throw. In **Saving Throw** set **DC Method** to the option that uses the caster's spell save DC, and **Save Ability** to Dexterity. Set **Activation** to Action with **Amount** 1.
+4. [ ] **P1:** Set **Range** to Distance, **Amount** 150, **Unit** Feet. Set **Shape Kind** to Sphere with **Radius** **Amount** 20, **Unit** Feet. Set **Target Selection** to Area Contents and **Target Eligibility** to Any valid target.
+5. [ ] **P1:** Under **Outcome Paths** add a first path: **Outcome Path** On Save Failure, **Outcome Group** Single, **Selection Model** Direct, **Starts From** Source. In its **Result** set **Outcome Type** Single and add an outcome: **Effect Kind** Damage, **Damage Type** Fire, **Value Kind** Dice, **Scaling Kind** Per Level, **Scaling Source** Spell Cast Level.
+6. [ ] **P1:** In that outcome's **Levels** table add seven rows: **Level** 3 with **Damage Dice** `8d6`, then 4 with `9d6`, 5 with `10d6`, 6 with `11d6`, 7 with `12d6`, 8 with `13d6`, 9 with `14d6`.
+7. [ ] **P1:** Add a second path: **Outcome Path** On Save Success, with the same Group, Selection Model and Starts From. Add an outcome with the same Effect Kind, Damage Type, Value Kind, Scaling Kind and Scaling Source, and set **Amount Modifier** to Half.
+8. [ ] **P1:** In the second outcome's **Levels** table enter the same seven rows again (levels 3 to 9, `8d6` to `14d6`).
+9. [ ] **P1:** Choose **Save Draft**, reload, then **Activate**. Stop the timer.
+10. [ ] **P1:** Open the published copy in the reader view beside the SRD **Fireball** and compare casting time, range, area, save, damage on a failed save, damage on a successful save, and the upcast table.
+11. [ ] **P1:** Record the time taken and the difficulty rating, then delete the Spell.
 
 ## Expected
 
@@ -57,5 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -17,13 +17,15 @@ Level 1 (Single-user basics) · Feature SHEET · Mode: Group (P1, P2) · Path po
 
 ## Steps
 
-1. **P1:** On UAT Dara's Sheet open the inventory section and add the homebrew item.
-2. **P1:** Equip it. Check the actions list and any bonus it grants.
-3. **P1:** Unequip it, then equip it again.
-4. **P1:** Try to attune the item if it allows attunement; note the attunement slot count.
-5. **P1:** Move some currency between types using **Amount to move** and **Currency type to move**.
-6. **P1:** Go to Equipment, delete the homebrew item (confirm any prompt), and return to UAT Dara's Sheet.
-7. **P2:** Copy the address of UAT Dara's Sheet from P1's browser and open it in P2's window.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** On UAT Dara's Sheet open the inventory section and add the homebrew item.
+2. [ ] **P1:** Equip it. Check the actions list and any bonus it grants.
+3. [ ] **P1:** Unequip it, then equip it again.
+4. [ ] **P1:** Try to attune the item if it allows attunement; note the attunement slot count.
+5. [ ] **P1:** Move some currency between types using **Amount to move** and **Currency type to move**.
+6. [ ] **P1:** Go to Equipment, delete the homebrew item (confirm any prompt), and return to UAT Dara's Sheet.
+7. [ ] **P2:** Copy the address of UAT Dara's Sheet from P1's browser and open it in P2's window.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

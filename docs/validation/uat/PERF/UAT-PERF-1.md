@@ -16,14 +16,16 @@ Level 5 (Reliability, performance and release) · Feature PERF · Mode: Group (G
 
 ## Steps
 
-1. **GM, P1 and P2:** Each opens the live table of the managed fixture Campaign in a separate browser profile.
-2. **GM:** Open or close a door on the presented Scene.
-3. **P1 and P2:** Watch their windows until the door changes and note how many seconds it took.
-4. **P1:** Drag a token across the Scene.
-5. **GM and P2:** Watch the token move, and note whether it follows while dragging and where it ends.
-6. **GM:** Make a rule-bound change (for example a visible Encounter action) and watch all three windows.
-7. **GM:** Go Offline for a short time, then reconnect; confirm the Scene change that was in flight recovers or is reversed cleanly.
-8. **P1 and P2:** Check that the GM-only token never appears in your window.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM, P1 and P2:** Each opens the live table of the managed fixture Campaign in a separate browser profile.
+2. [ ] **GM:** Open or close a door on the presented Scene.
+3. [ ] **P1 and P2:** Watch their windows until the door changes and note how many seconds it took.
+4. [ ] **P1:** Drag a token across the Scene.
+5. [ ] **GM and P2:** Watch the token move, and note whether it follows while dragging and where it ends.
+6. [ ] **GM:** Make a rule-bound change (for example a visible Encounter action) and watch all three windows.
+7. [ ] **GM:** Go Offline for a short time, then reconnect; confirm the Scene change that was in flight recovers or is reversed cleanly.
+8. [ ] **P1 and P2:** Check that the GM-only token never appears in your window.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

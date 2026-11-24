@@ -19,18 +19,20 @@ Level 2 (GM setup) · Feature AUTHORING · Mode: Group (GM, P1, P2) · Path posi
 
 ## Steps
 
-1. **P1:** Open the Campaign page of Review: Party in the Field and find **Campaign content**.
-2. **P1:** Under **Share owned homebrew**, set **Content type** to Spell, pick **Owned homebrew** "UAT Ember Dart", and choose **Share**.
-3. **P2:** Open the same Campaign page and look at **Campaign content**.
-4. **GM:** Do the same.
-5. **P1:** Open "UAT Ember Dart", edit the description, and **Activate** the new version.
-6. **P2:** Reload **Campaign content** and open the shared Spell.
-7. **P2:** Look for a way to remove the share (it was shared by P1).
-8. **GM:** Look for a way to remove the share.
-9. **P1:** Remove the share (the unshare control next to the entry).
-10. **P2:** Reload **Campaign content**.
-11. **P1:** Open the Campaign page of Review: Fire and Thunder (P1 is not a member).
-12. **P1:** Back on Review: Party in the Field, open **Share owned homebrew**, set **Content type** to Background, and look at **Owned homebrew**: P1 has an unpublished draft if [UAT-AUTHORING-3](UAT-AUTHORING-3.md) left one, otherwise create a draft Background first.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open the Campaign page of Review: Party in the Field and find **Campaign content**.
+2. [ ] **P1:** Under **Share owned homebrew**, set **Content type** to Spell, pick **Owned homebrew** "UAT Ember Dart", and choose **Share**.
+3. [ ] **P2:** Open the same Campaign page and look at **Campaign content**.
+4. [ ] **GM:** Do the same.
+5. [ ] **P1:** Open "UAT Ember Dart", edit the description, and **Activate** the new version.
+6. [ ] **P2:** Reload **Campaign content** and open the shared Spell.
+7. [ ] **P2:** Look for a way to remove the share (it was shared by P1).
+8. [ ] **GM:** Look for a way to remove the share.
+9. [ ] **P1:** Remove the share (the unshare control next to the entry).
+10. [ ] **P2:** Reload **Campaign content**.
+11. [ ] **P1:** Open the Campaign page of Review: Fire and Thunder (P1 is not a member).
+12. [ ] **P1:** Back on Review: Party in the Field, open **Share owned homebrew**, set **Content type** to Background, and look at **Owned homebrew**: P1 has an unpublished draft if [UAT-AUTHORING-3](UAT-AUTHORING-3.md) left one, otherwise create a draft Background first.
 
 ## Expected
 
@@ -59,5 +61,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

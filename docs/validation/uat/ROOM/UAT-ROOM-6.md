@@ -17,14 +17,16 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
-1. **P1:** Open the Campaign notes and create an entry titled "P1 secret"; leave it **Private**.
-2. **P1:** Create a second entry "P1 shared" and set it **Shared**.
-3. **P2:** Open the notes and look for both entries.
-4. **GM:** Open the notes and look for both entries.
-5. **P1:** Change "P1 secret" to Shared; **P2:** reload the notes and look for it. Then **P1:** change it back to Private; **P2:** reload again.
-6. **P2:** Try to change visibility on "P1 shared" and try to edit its text; then copy the address of "P1 secret" from P1's window (if an entry has its own address) and open it in P2's window.
-7. **P1:** Open "P1 shared" in two tabs (A and B). In tab A change the text and save. In tab B (not reloaded) change the text differently and save.
-8. **P1:** Delete "P1 secret".
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open the Campaign notes and create an entry titled "P1 secret"; leave it **Private**.
+2. [ ] **P1:** Create a second entry "P1 shared" and set it **Shared**.
+3. [ ] **P2:** Open the notes and look for both entries.
+4. [ ] **GM:** Open the notes and look for both entries.
+5. [ ] **P1:** Change "P1 secret" to Shared; **P2:** reload the notes and look for it. Then **P1:** change it back to Private; **P2:** reload again.
+6. [ ] **P2:** Try to change visibility on "P1 shared" and try to edit its text; then copy the address of "P1 secret" from P1's window (if an entry has its own address) and open it in P2's window.
+7. [ ] **P1:** Open "P1 shared" in two tabs (A and B). In tab A change the text and save. In tab B (not reloaded) change the text differently and save.
+8. [ ] **P1:** Delete "P1 secret".
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -20,15 +20,17 @@ Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2, SPARE) · Pat
 
 ## Steps
 
-1. **P1:** Open the address of Review: Fire and Thunder and try its tabletop address.
-2. **P1:** Search listings for Fire and Thunder and open its public listing page, if one exists.
-3. **GM:** In the Sandbox, remove P2 while P2's tabletop window is open ([UAT-CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) shows the removal control).
-4. **P2:** Watch the tabletop window, then reload it.
-5. **P2:** Try the old tabletop address and the Campaign address.
-6. **P2:** Try to open the Sheet addresses for P1's Character and for P2's own old Character in the Sandbox.
-7. **Signed-out window:** Open the Sandbox tabletop address while signed out (a private window needs no spare account).
-8. **SPARE:** Sign in with an account that is not a member and open the tabletop address.
-   R1. **GM:** Re-seat the player you removed in steps 3 to 6 as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open the address of Review: Fire and Thunder and try its tabletop address.
+2. [ ] **P1:** Search listings for Fire and Thunder and open its public listing page, if one exists.
+3. [ ] **GM:** In the Sandbox, remove P2 while P2's tabletop window is open ([UAT-CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) shows the removal control).
+4. [ ] **P2:** Watch the tabletop window, then reload it.
+5. [ ] **P2:** Try the old tabletop address and the Campaign address.
+6. [ ] **P2:** Try to open the Sheet addresses for P1's Character and for P2's own old Character in the Sandbox.
+7. [ ] **Signed-out window:** Open the Sandbox tabletop address while signed out (a private window needs no spare account).
+8. [ ] **SPARE:** Sign in with an account that is not a member and open the tabletop address.
+       R1. **GM:** Re-seat the player you removed in steps 3 to 6 as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md).
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

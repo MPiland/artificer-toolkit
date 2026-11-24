@@ -21,12 +21,14 @@ Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 66 of 19
 
 ## Steps
 
-1. **GM:** Open the Scene creation area and choose **Map image**.
-2. **GM:** Select [sample.gif](../assets/sample.gif) and then [sample.pdf](../assets/sample.pdf).
-3. **GM:** Select [not-an-image.png](../assets/not-an-image.png).
-4. **GM:** Select [oversize-9000x100.png](../assets/oversize-9000x100.png).
-5. **GM:** Select [sample-battle-map.png](../assets/sample-battle-map.png), then clear it and select it again.
-6. **GM:** Try **Create scene** with no Scene name.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the Scene creation area and choose **Map image**.
+2. [ ] **GM:** Select [sample.gif](../assets/sample.gif) and then [sample.pdf](../assets/sample.pdf).
+3. [ ] **GM:** Select [not-an-image.png](../assets/not-an-image.png).
+4. [ ] **GM:** Select [oversize-9000x100.png](../assets/oversize-9000x100.png).
+5. [ ] **GM:** Select [sample-battle-map.png](../assets/sample-battle-map.png), then clear it and select it again.
+6. [ ] **GM:** Try **Create scene** with no Scene name.
 
 ## Expected
 
@@ -52,5 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

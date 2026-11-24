@@ -19,14 +19,16 @@ Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (P3) · Path posi
 
 ## Steps
 
-1. **P3:** Open `<STAGING_URL>/settings/profile`.
-2. **P3:** Choose **Change avatar** and pick the first image, [avatar-a.png](../assets/avatar-a.png).
-3. **P3:** Wait for the upload to finish, then choose **Save profile** if the page asks for it.
-4. **P3:** Reload the page.
-5. **P3:** Choose **Change avatar** again and pick the second image, [avatar-b.png](../assets/avatar-b.png). Confirm it replaces the first.
-6. **P3:** Choose **Change avatar** and pick the text file [not-an-image.txt](../assets/not-an-image.txt).
-7. **P3:** Choose **Change avatar** and pick [oversize-9000x100.png](../assets/oversize-9000x100.png). If the page states a size limit that this file does not exceed, note the limit in the Notes and skip the oversized line in Expected.
-8. **P3:** Remove the avatar using the remove control next to it, then reload.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P3:** Open `<STAGING_URL>/settings/profile`.
+2. [ ] **P3:** Choose **Change avatar** and pick the first image, [avatar-a.png](../assets/avatar-a.png).
+3. [ ] **P3:** Wait for the upload to finish, then choose **Save profile** if the page asks for it.
+4. [ ] **P3:** Reload the page.
+5. [ ] **P3:** Choose **Change avatar** again and pick the second image, [avatar-b.png](../assets/avatar-b.png). Confirm it replaces the first.
+6. [ ] **P3:** Choose **Change avatar** and pick the text file [not-an-image.txt](../assets/not-an-image.txt).
+7. [ ] **P3:** Choose **Change avatar** and pick [oversize-9000x100.png](../assets/oversize-9000x100.png). If the page states a size limit that this file does not exceed, note the limit in the Notes and skip the oversized line in Expected.
+8. [ ] **P3:** Remove the avatar using the remove control next to it, then reload.
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -17,15 +17,17 @@ Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1) · Path position 
 
 ## Steps
 
-1. **GM:** Confirm the hidden Goblin and Wolf tokens on the Scene (add another hidden token if you want), then make a Private roll for a monster (as in [UAT-PRIVACY-2](UAT-PRIVACY-2.md) step 1).
-2. **P1:** Note what the tabletop shows. Run an action as P1 and note its command card in chat (for example roll a skill).
-3. **GM:** Transfer ownership to P1 ([UAT-CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) steps 12 to 13) and have **P1** accept.
-4. **P1 (new GM):** Reload the tabletop window.
-5. **GM (now a player):** Reload the tabletop window.
-6. **GM (now a player):** Check history and chat for the action P1 ran and for the Private roll made before the transfer.
-7. **P1 (new GM):** Check the same history. Then transfer ownership back ([UAT-CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) step 15) and have the original GM accept.
-8. **GM (owner again):** Reload and check the history again.
-   R1. **P1:** Transfer the Campaign ownership back to the GM with the same control, and **GM:** accept. Both then confirm the Campaign lists the GM as owner.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Confirm the hidden Goblin and Wolf tokens on the Scene (add another hidden token if you want), then make a Private roll for a monster (as in [UAT-PRIVACY-2](UAT-PRIVACY-2.md) step 1).
+2. [ ] **P1:** Note what the tabletop shows. Run an action as P1 and note its command card in chat (for example roll a skill).
+3. [ ] **GM:** Transfer ownership to P1 ([UAT-CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) steps 12 to 13) and have **P1** accept.
+4. [ ] **P1 (new GM):** Reload the tabletop window.
+5. [ ] **GM (now a player):** Reload the tabletop window.
+6. [ ] **GM (now a player):** Check history and chat for the action P1 ran and for the Private roll made before the transfer.
+7. [ ] **P1 (new GM):** Check the same history. Then transfer ownership back ([UAT-CAMPAIGN-2](../CAMPAIGN/UAT-CAMPAIGN-2.md) step 15) and have the original GM accept.
+8. [ ] **GM (owner again):** Reload and check the history again.
+       R1. **P1:** Transfer the Campaign ownership back to the GM with the same control, and **GM:** accept. Both then confirm the Campaign lists the GM as owner.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

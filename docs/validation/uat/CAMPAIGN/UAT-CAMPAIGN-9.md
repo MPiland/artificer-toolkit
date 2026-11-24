@@ -18,12 +18,14 @@ Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2, P3) · Path p
 
 ## Steps
 
-1. **GM:** Open the Sandbox Campaign (the copy with the "Plot" notes from [CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md)) and open its **Party** panel. Note which of P1, P2 and P3 are members and which Character each has.
-2. **GM:** For each of P2 and P3 who is not a member, open **Social**, open the player's profile and invite them to the Sandbox Campaign. **P2 / P3:** open **Social**, **Received invitations**, and accept.
-3. **P2:** In the Sandbox Campaign choose **Add Character** (or **Change Character**) and assign "UAT Bryn Sandbox".
-4. **P3:** Do the same with "UAT Cade Sandbox".
-5. **P1:** If the Party panel shows no Character for you, assign "UAT Dara".
-6. **GM:** Reload the Party panel.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the Sandbox Campaign (the copy with the "Plot" notes from [CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md)) and open its **Party** panel. Note which of P1, P2 and P3 are members and which Character each has.
+2. [ ] **GM:** For each of P2 and P3 who is not a member, open **Social**, open the player's profile and invite them to the Sandbox Campaign. **P2 / P3:** open **Social**, **Received invitations**, and accept.
+3. [ ] **P2:** In the Sandbox Campaign choose **Add Character** (or **Change Character**) and assign "UAT Bryn Sandbox".
+4. [ ] **P3:** Do the same with "UAT Cade Sandbox".
+5. [ ] **P1:** If the Party panel shows no Character for you, assign "UAT Dara".
+6. [ ] **GM:** Reload the Party panel.
 
 ## Expected
 
@@ -49,5 +51,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -18,19 +18,21 @@ Level 2 (GM setup) · Feature SOCIAL · Mode: Group (GM, P1, P2, P3) · Path pos
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** Create a new Campaign named "UAT Table" as in [CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md) steps 1 and 2. In its Settings set the number of player seats to 1. P1, P2 and P3 have no application to it yet.
 
-1. **GM:** Open **Social** and choose to host a new listing. Fill in the table details (title, **Game style**, **Tone**, **Table needs**, **Content guidance**) and publish it with one open seat.
-2. **P1:** Open **Social** and find the GM's listing (use **Show results** after setting filters if offered). Open it.
-3. **P1:** Choose **Apply to join**, type a **Message to the host**, and submit.
-4. **P2:** Do the same for the same listing.
-5. **P1:** Open **My applications** and check the status of your application.
-6. **GM:** Open the hosted listing's applications. Accept P1.
-7. **GM:** Try to accept P2 while the table is full.
-8. **P2:** Reload **My applications**.
-9. **P3:** Open the listing and try to apply.
-10. **P1:** Withdraw your own application from **My applications** if still open, otherwise open the Campaign.
-11. **GM:** Reload the hosted listing's applications.
+1. [ ] **GM:** Open **Social** and choose to host a new listing. Fill in the table details (title, **Game style**, **Tone**, **Table needs**, **Content guidance**) and publish it with one open seat.
+2. [ ] **P1:** Open **Social** and find the GM's listing (use **Show results** after setting filters if offered). Open it.
+3. [ ] **P1:** Choose **Apply to join**, type a **Message to the host**, and submit.
+4. [ ] **P2:** Do the same for the same listing.
+5. [ ] **P1:** Open **My applications** and check the status of your application.
+6. [ ] **GM:** Open the hosted listing's applications. Accept P1.
+7. [ ] **GM:** Try to accept P2 while the table is full.
+8. [ ] **P2:** Reload **My applications**.
+9. [ ] **P3:** Open the listing and try to apply.
+10. [ ] **P1:** Withdraw your own application from **My applications** if still open, otherwise open the Campaign.
+11. [ ] **GM:** Reload the hosted listing's applications.
 
 ## Expected
 
@@ -59,5 +61,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

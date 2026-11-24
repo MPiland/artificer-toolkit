@@ -16,11 +16,13 @@ Level 0 (Orientation and exploratory tasks) · Feature ORIENTATION · Mode: Solo
 
 ## Steps
 
-1. Open `<STAGING_URL>`, choose sign in, and sign in with your account's email or username and password.
-2. Open **Campaigns** and write down every Campaign you see.
-3. Open **Characters** and write down every Character you see.
-4. If you are the GM, open each of the four Campaigns in turn and find the Party panel, the Live tabletop panel and the Sessions list.
-5. Sign out, then sign in again with the same details.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] Open `<STAGING_URL>`, choose sign in, and sign in with your account's email or username and password.
+2. [ ] Open **Campaigns** and write down every Campaign you see.
+3. [ ] Open **Characters** and write down every Character you see.
+4. [ ] If you are the GM, open each of the four Campaigns in turn and find the Party panel, the Live tabletop panel and the Sessions list.
+5. [ ] Sign out, then sign in again with the same details.
 
 ## Expected
 
@@ -47,5 +49,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

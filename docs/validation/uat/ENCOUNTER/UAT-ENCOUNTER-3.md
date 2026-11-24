@@ -19,20 +19,22 @@ Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position
 
 ## Steps
 
-1. **GM:** Open the Sandbox Campaign and check P1 is a member with a Character and the Scene exists.
-2. **GM:** Create an Encounter Blueprint with a Wolf and a Goblin. Confirm it appears in the Campaign's Encounter list and the picker offers only Blueprints for this Campaign's game system.
-3. **GM:** Create a Run from the Blueprint on the Scene. Confirm it is **Prepared** and the map shows tokens for each actor.
-4. **GM:** Choose **Delete encounter** on the Prepared Run and confirm. Confirm it disappears and the Blueprint is still there.
-5. **GM:** Create a Run again and **Start encounter**. Confirm it becomes active.
-6. **GM:** Try to start a second Run in the same Campaign while the first is active. Read the refusal.
-7. **GM:** Close the tab, then reopen the live table. Confirm the active Encounter and presented Scene are still there.
-8. **P1:** Open the live table, confirm you see the same Scene and Encounter. Close and reopen; confirm it persists.
-9. **GM:** Finish the Session (end the current Session from the Campaign session page). Confirm the Encounter is still active in the next Session.
-10. **GM:** Remove an actor mid-combat when it is not its turn. Confirm the turn marker stays on the same actor.
-11. **GM:** Add a reinforcement. Confirm the turn marker and history are unchanged.
-12. **GM:** Complete the Encounter. Confirm the Scene stays presented to players.
-13. **GM:** Create a new Run from the same Blueprint on the same Scene and start it. Confirm each actor's token binds again, with no duplicate tokens.
-14. **GM:** Open the first Run's history. Confirm it still names its actors and results unchanged.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open the Sandbox Campaign and check P1 is a member with a Character and the Scene exists.
+2. [ ] **GM:** Create an Encounter Blueprint with a Wolf and a Goblin. Confirm it appears in the Campaign's Encounter list and the picker offers only Blueprints for this Campaign's game system.
+3. [ ] **GM:** Create a Run from the Blueprint on the Scene. Confirm it is **Prepared** and the map shows tokens for each actor.
+4. [ ] **GM:** Choose **Delete encounter** on the Prepared Run and confirm. Confirm it disappears and the Blueprint is still there.
+5. [ ] **GM:** Create a Run again and **Start encounter**. Confirm it becomes active.
+6. [ ] **GM:** Try to start a second Run in the same Campaign while the first is active. Read the refusal.
+7. [ ] **GM:** Close the tab, then reopen the live table. Confirm the active Encounter and presented Scene are still there.
+8. [ ] **P1:** Open the live table, confirm you see the same Scene and Encounter. Close and reopen; confirm it persists.
+9. [ ] **GM:** Finish the Session (end the current Session from the Campaign session page). Confirm the Encounter is still active in the next Session.
+10. [ ] **GM:** Remove an actor mid-combat when it is not its turn. Confirm the turn marker stays on the same actor.
+11. [ ] **GM:** Add a reinforcement. Confirm the turn marker and history are unchanged.
+12. [ ] **GM:** Complete the Encounter. Confirm the Scene stays presented to players.
+13. [ ] **GM:** Create a new Run from the same Blueprint on the same Scene and start it. Confirm each actor's token binds again, with no duplicate tokens.
+14. [ ] **GM:** Open the first Run's history. Confirm it still names its actors and results unchanged.
 
 ## Expected
 
@@ -61,5 +63,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -18,15 +18,17 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1) · Path position 86 
 
 ## Steps
 
-1. **P1:** Open Aria's Sheet in a second tab; note hit points.
-2. **GM:** Apply 2 damage to Aria through the Encounter actor controls.
-3. **P1:** Check the Sheet and the tabletop.
-4. **P1:** On the Sheet apply 1 point of healing.
-5. **GM:** Check Aria's hit points on the tabletop.
-6. **GM:** Move Aria's token one square.
-7. **P1:** In the tabletop window, try to drag Bryn's token one square. **GM:** check Bryn's token on the GM's tabletop and reload it.
-8. **Both:** Close the Sheet and the tabletop windows and wait six minutes (the room saves and closes).
-9. **GM:** Open the tabletop window again and the Sheet in another tab.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open Aria's Sheet in a second tab; note hit points.
+2. [ ] **GM:** Apply 2 damage to Aria through the Encounter actor controls.
+3. [ ] **P1:** Check the Sheet and the tabletop.
+4. [ ] **P1:** On the Sheet apply 1 point of healing.
+5. [ ] **GM:** Check Aria's hit points on the tabletop.
+6. [ ] **GM:** Move Aria's token one square.
+7. [ ] **P1:** In the tabletop window, try to drag Bryn's token one square. **GM:** check Bryn's token on the GM's tabletop and reload it.
+8. [ ] **Both:** Close the Sheet and the tabletop windows and wait six minutes (the room saves and closes).
+9. [ ] **GM:** Open the tabletop window again and the Sheet in another tab.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

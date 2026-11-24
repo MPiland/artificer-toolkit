@@ -16,13 +16,15 @@ Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path positio
 
 ## Steps
 
-1. **P1:** On UAT Dara's Sheet, note hit points, hit dice, any spent resource, and any condition or exhaustion level.
-2. **P1:** Open the rests section and start a short rest. Read the preview before confirming.
-3. **P1:** In the preview, choose a number of hit dice to roll and roll them (with Roll my dice automatically OFF you are prompted; choose **Roll dice**).
-4. **P1:** Confirm the short rest.
-5. **P1:** Note hit points, hit dice, and which resources came back.
-6. **P1:** Add a condition, then start a long rest, read the preview, and confirm it.
-7. **P1:** Reload the page.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** On UAT Dara's Sheet, note hit points, hit dice, any spent resource, and any condition or exhaustion level.
+2. [ ] **P1:** Open the rests section and start a short rest. Read the preview before confirming.
+3. [ ] **P1:** In the preview, choose a number of hit dice to roll and roll them (with Roll my dice automatically OFF you are prompted; choose **Roll dice**).
+4. [ ] **P1:** Confirm the short rest.
+5. [ ] **P1:** Note hit points, hit dice, and which resources came back.
+6. [ ] **P1:** Add a condition, then start a long rest, read the preview, and confirm it.
+7. [ ] **P1:** Reload the page.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

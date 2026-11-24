@@ -19,15 +19,17 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2, P3) · Path posi
 
 ## Steps
 
-1. **P1:** In the Table conversation send "Hello table".
-2. **P1:** Edit that message to say "Hello again table".
-3. **P1:** Delete (tombstone) the message.
-4. **P2:** Switch the Message voice to roleplay and send a line in the Table conversation.
-5. **P2:** Open the **Party** conversation and send a message there.
-6. **P3:** Open **Direct messages** and send P1 a direct message.
-7. **GM:** Try to open the Party conversation and the direct message list.
-8. **P1:** Send three rapid Table messages "A", "B", "C" in a row.
-9. **GM:** With the roll switch on Public, have the Wolf attack Aria from the action drawer so that the attack roll card and the damage roll card come from one command.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** In the Table conversation send "Hello table".
+2. [ ] **P1:** Edit that message to say "Hello again table".
+3. [ ] **P1:** Delete (tombstone) the message.
+4. [ ] **P2:** Switch the Message voice to roleplay and send a line in the Table conversation.
+5. [ ] **P2:** Open the **Party** conversation and send a message there.
+6. [ ] **P3:** Open **Direct messages** and send P1 a direct message.
+7. [ ] **GM:** Try to open the Party conversation and the direct message list.
+8. [ ] **P1:** Send three rapid Table messages "A", "B", "C" in a row.
+9. [ ] **GM:** With the roll switch on Public, have the Wolf attack Aria from the action drawer so that the attack roll card and the damage roll card come from one command.
 
 ## Expected
 
@@ -55,5 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

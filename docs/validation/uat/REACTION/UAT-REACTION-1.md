@@ -17,22 +17,24 @@ Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path 
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In Review: Shield and Hold use **Next turn** until a new round starts and Ember's Shield reaction is available again.
 S2. **P1:** Auto-roll ON.
 
-1. **GM:** Open the live table. Note Ember's hit points, armor class, remaining first-level slots and that her reaction is available.
-2. **GM:** Advance to the Wolf's turn. Have the Wolf attack Ember with an attack that will hit (use the roll the app produces).
-3. **P1:** Confirm a reaction prompt appears for Ember offering **Use** or **Decline**, and that the hit has not been applied yet (Ember's hit points unchanged).
-4. **GM:** Confirm you see the attack held and waiting, and that no timer is running.
-5. **P1:** Wait 60 seconds without answering. Confirm nothing is applied.
-6. **P1:** Close the tab and reopen the live table. Confirm the prompt is still there.
-7. **P1:** Choose **Use**. Confirm one first-level slot is spent, Ember's reaction is used and her armor class goes up.
-8. **GM:** Confirm the Wolf's hit became a miss if the new armor class beat the roll, and read the history.
-9. **GM:** Choose **Undo last action**. Confirm the reaction, the slot and the hit are restored.
-10. **GM:** Advance to the Wolf's next turn and have it attack Ember again (repeat steps 2 to 3), then **P1:** choose **Decline**. Confirm the hit is applied and Ember's reaction and slot are not spent.
-11. **GM:** Repeat steps 2 to 3 once more, then **P1:** choose **Use**. Then, in the same round, have the Wolf (or the other hostile) attack Ember again. Confirm no second reaction is offered (one reaction per round).
-12. **GM:** Advance to the next round and confirm Ember's reaction is available again.
-13. **P1:** On Ember's turn, try to cast Shield from the ordinary action list (not as a reaction). Read the refusal.
+1. [ ] **GM:** Open the live table. Note Ember's hit points, armor class, remaining first-level slots and that her reaction is available.
+2. [ ] **GM:** Advance to the Wolf's turn. Have the Wolf attack Ember with an attack that will hit (use the roll the app produces).
+3. [ ] **P1:** Confirm a reaction prompt appears for Ember offering **Use** or **Decline**, and that the hit has not been applied yet (Ember's hit points unchanged).
+4. [ ] **GM:** Confirm you see the attack held and waiting, and that no timer is running.
+5. [ ] **P1:** Wait 60 seconds without answering. Confirm nothing is applied.
+6. [ ] **P1:** Close the tab and reopen the live table. Confirm the prompt is still there.
+7. [ ] **P1:** Choose **Use**. Confirm one first-level slot is spent, Ember's reaction is used and her armor class goes up.
+8. [ ] **GM:** Confirm the Wolf's hit became a miss if the new armor class beat the roll, and read the history.
+9. [ ] **GM:** Choose **Undo last action**. Confirm the reaction, the slot and the hit are restored.
+10. [ ] **GM:** Advance to the Wolf's next turn and have it attack Ember again (repeat steps 2 to 3), then **P1:** choose **Decline**. Confirm the hit is applied and Ember's reaction and slot are not spent.
+11. [ ] **GM:** Repeat steps 2 to 3 once more, then **P1:** choose **Use**. Then, in the same round, have the Wolf (or the other hostile) attack Ember again. Confirm no second reaction is offered (one reaction per round).
+12. [ ] **GM:** Advance to the next round and confirm Ember's reaction is available again.
+13. [ ] **P1:** On Ember's turn, try to cast Shield from the ordinary action list (not as a reaction). Read the refusal.
 
 ## Expected
 
@@ -62,5 +64,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

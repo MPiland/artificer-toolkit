@@ -18,20 +18,22 @@ Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2, P3) · Path po
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1 and P2:** Switch **Auto-roll** ON in the tabletop header.
 
-1. **GM:** Advance to Aria's turn.
-2. **P2:** Try to attack with Aria (open the drawer, or select Aria's token and try to use an action). Read the refusal.
-3. **P2:** Try to move Aria's token. Read the refusal.
-4. **P1:** Try to act for the Wolf (select its token and try an action). Read the refusal.
-5. **P1:** While it is still Aria's turn, use an action for Aria. Confirm it works.
-6. **GM:** Advance to Bryn's turn.
-7. **P1:** Try to attack with Aria out of turn. Read the refusal.
-8. **GM:** Mark the Goblin's token hidden from players. **P2:** On Bryn's turn, open the target list and confirm the Goblin is not listed.
-9. **P1:** Start an attack and, before confirming, quickly click confirm twice (double-click). Confirm only one attack resolves and that you cannot have two Encounter commands in flight.
-10. **GM:** Open the Goblin's **Controllers** and give P2 control, then advance to the Goblin's turn. **P2:** Confirm you can now act for the Goblin and end its turn.
-11. **GM:** Advance to the Goblin's next turn and remove P2 from the Goblin's controllers. Confirm P2 can no longer act for it.
-12. **P2:** Try again to act for the Goblin. Read the refusal.
+1. [ ] **GM:** Advance to Aria's turn.
+2. [ ] **P2:** Try to attack with Aria (open the drawer, or select Aria's token and try to use an action). Read the refusal.
+3. [ ] **P2:** Try to move Aria's token. Read the refusal.
+4. [ ] **P1:** Try to act for the Wolf (select its token and try an action). Read the refusal.
+5. [ ] **P1:** While it is still Aria's turn, use an action for Aria. Confirm it works.
+6. [ ] **GM:** Advance to Bryn's turn.
+7. [ ] **P1:** Try to attack with Aria out of turn. Read the refusal.
+8. [ ] **GM:** Mark the Goblin's token hidden from players. **P2:** On Bryn's turn, open the target list and confirm the Goblin is not listed.
+9. [ ] **P1:** Start an attack and, before confirming, quickly click confirm twice (double-click). Confirm only one attack resolves and that you cannot have two Encounter commands in flight.
+10. [ ] **GM:** Open the Goblin's **Controllers** and give P2 control, then advance to the Goblin's turn. **P2:** Confirm you can now act for the Goblin and end its turn.
+11. [ ] **GM:** Advance to the Goblin's next turn and remove P2 from the Goblin's controllers. Confirm P2 can no longer act for it.
+12. [ ] **P2:** Try again to act for the Goblin. Read the refusal.
 
 ## Expected
 
@@ -58,5 +60,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

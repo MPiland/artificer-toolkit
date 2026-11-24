@@ -15,16 +15,18 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path pos
 
 ## Steps
 
-1. **OWN:** Open `<STAGING_URL>/sign-in` and go to **Reset your password**.
-2. **OWN:** Enter your own email address and submit to reach **Verify your reset code**.
-3. **OWN:** Enter a wrong six-digit code such as 000000 and submit.
-4. **OWN:** Request a new code from the same page (resend) a few times in a row.
-5. **OWN:** Reload the page and look at the address bar.
-6. **OWN:** Before the reset, keep a second tab open and signed in as OWN. Then enter the real code from the newest reset email to your own email address.
-7. **OWN:** On **Update password**, type different values in **New password** and **Confirm password**; submit.
-8. **OWN:** Type the same new password in both fields; submit.
-9. **OWN:** Try to sign in with the old password, and reload the second tab.
-10. **OWN:** Sign in with the new password. Try the code from step 6 again. Keep the new password.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **OWN:** Open `<STAGING_URL>/sign-in` and go to **Reset your password**.
+2. [ ] **OWN:** Enter your own email address and submit to reach **Verify your reset code**.
+3. [ ] **OWN:** Enter a wrong six-digit code such as 000000 and submit.
+4. [ ] **OWN:** Request a new code from the same page (resend) a few times in a row.
+5. [ ] **OWN:** Reload the page and look at the address bar.
+6. [ ] **OWN:** Before the reset, keep a second tab open and signed in as OWN. Then enter the real code from the newest reset email to your own email address.
+7. [ ] **OWN:** On **Update password**, type different values in **New password** and **Confirm password**; submit.
+8. [ ] **OWN:** Type the same new password in both fields; submit.
+9. [ ] **OWN:** Try to sign in with the old password, and reload the second tab.
+10. [ ] **OWN:** Sign in with the new password. Try the code from step 6 again. Keep the new password.
 
 ## Expected
 
@@ -56,5 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

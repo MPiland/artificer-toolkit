@@ -18,13 +18,15 @@ Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position
 
 ## Steps
 
-1. **GM:** Turn on **Show my previews to players** (the label reads **Players see your previews and pings** when on).
-2. **GM:** Hover or aim at a spot on the map to create a preview and ping the map.
-3. **P1:** Watch the map.
-4. **GM:** Turn it off (the label reads **Previews and pings are private**) and ping again.
-5. **P1:** Ping a spot on the map yourself.
-6. **P2:** Watch for P1's ping.
-7. **GM:** Leave the windows open for at least ten minutes (record the actual time; the room renews each window's sign-in before it expires), then ping again.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Turn on **Show my previews to players** (the label reads **Players see your previews and pings** when on).
+2. [ ] **GM:** Hover or aim at a spot on the map to create a preview and ping the map.
+3. [ ] **P1:** Watch the map.
+4. [ ] **GM:** Turn it off (the label reads **Previews and pings are private**) and ping again.
+5. [ ] **P1:** Ping a spot on the map yourself.
+6. [ ] **P2:** Watch for P1's ping.
+7. [ ] **GM:** Leave the windows open for at least ten minutes (record the actual time; the room renews each window's sign-in before it expires), then ping again.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

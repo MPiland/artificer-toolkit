@@ -18,17 +18,19 @@ Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (GM, P1, P2) · Path po
 
 ## Steps
 
-1. **P1 and P2:** Open the notifications page and note the unread count.
-2. **GM:** Publish an announcement in Review: Party in the Field (Announcements).
-3. **P1:** Watch the notification count in the header without reloading, then open Notifications.
-4. **P1:** Open the notification; confirm it opens the announcement and is marked read.
-5. **P1:** Open notification preferences and switch off both channels (in-app and email).
-6. **GM:** Publish a second announcement.
-7. **P1:** Check Notifications.
-8. **P2:** Check Notifications.
-9. **GM:** Publish announcements one after another until P2 has been sent more than 25 in total (count P2's earlier ones; this is slow, roughly 26 small announcements). Then count the entries in P2's feed. Stop and record the count reached if you cannot finish.
-10. **P1:** Turn the channels back on.
-11. **GM:** Publish another announcement and check P1 gets it.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1 and P2:** Open the notifications page and note the unread count.
+2. [ ] **GM:** Publish an announcement in Review: Party in the Field (Announcements).
+3. [ ] **P1:** Watch the notification count in the header without reloading, then open Notifications.
+4. [ ] **P1:** Open the notification; confirm it opens the announcement and is marked read.
+5. [ ] **P1:** Open notification preferences and switch off both channels (in-app and email).
+6. [ ] **GM:** Publish a second announcement.
+7. [ ] **P1:** Check Notifications.
+8. [ ] **P2:** Check Notifications.
+9. [ ] **GM:** Publish announcements one after another until P2 has been sent more than 25 in total (count P2's earlier ones; this is slow, roughly 26 small announcements). Then count the entries in P2's feed. Stop and record the count reached if you cannot finish.
+10. [ ] **P1:** Turn the channels back on.
+11. [ ] **GM:** Publish another announcement and check P1 gets it.
 
 ## Expected
 
@@ -58,5 +60,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

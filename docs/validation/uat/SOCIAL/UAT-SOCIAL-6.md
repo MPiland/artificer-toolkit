@@ -18,13 +18,15 @@ Level 5 (Reliability, performance and release) · Feature SOCIAL · Mode: Group 
 
 ## Steps
 
-1. **P1:** Open Settings and Account, and read the plan, limits and current usage (**EntitlementSummary**).
-2. **GM:** Open the same page and compare.
-3. **P1:** Create new homebrew items or Characters until you reach the limit shown for one of them (use the cheapest: a homebrew Feat).
-4. **P1:** Try to create one more beyond the limit.
-5. **P1:** Delete one and create it again, then delete the Feats you made for this scenario.
-6. **P1:** Try to host a Campaign beyond the hosted-Campaign limit, or add a seat beyond the seat limit, if the free tier has one.
-7. **SUPERADMIN:** Downgrade P1's tier and open the Account page.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open Settings and Account, and read the plan, limits and current usage (**EntitlementSummary**).
+2. [ ] **GM:** Open the same page and compare.
+3. [ ] **P1:** Create new homebrew items or Characters until you reach the limit shown for one of them (use the cheapest: a homebrew Feat).
+4. [ ] **P1:** Try to create one more beyond the limit.
+5. [ ] **P1:** Delete one and create it again, then delete the Feats you made for this scenario.
+6. [ ] **P1:** Try to host a Campaign beyond the hosted-Campaign limit, or add a seat beyond the seat limit, if the free tier has one.
+7. [ ] **SUPERADMIN:** Downgrade P1's tier and open the Account page.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

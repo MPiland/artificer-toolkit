@@ -20,23 +20,25 @@ Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P2) · Path p
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **GM:** In Review: Shield and Hold use **Next turn** until a new round starts and Ember's Shield reaction is available again. (steps 1 to 7).
 
-1. **GM:** In **Review: Shield and Hold**, open the live table and use **Next turn** until the Wolf is current. Have the Wolf attack Ember (roll if asked) so that a Shield prompt appears for Ember's player.
-2. **P1:** Open the Shield prompt and leave it unanswered.
-3. **GM:** Open the same prompt (the GM can answer for anyone).
-4. **P1 and GM, together on "go":** P1 clicks **Use** while the GM clicks **Decline**.
-5. **P1:** Read the screen after both clicks settle.
-6. **GM:** Read the screen, then open Encounter history.
-7. **GM:** Check Ember's spell slots and whether the attack hit or missed.
-8. Switch both to **Review: Party in the Field**. **P1 and P2, together on "go":** P1 drags Aria's token and P2 drags Bryn's token to different empty squares.
-9. **P1 and GM, together on "go":** P1 drags Aria's token to one empty square while the GM drags the same Aria token to a different empty square.
-10. **GM, P1 and P2:** Look at Aria's position in each window, then reload each window and look again.
-11. **GM:** Open Encounter history and read the movement entries from steps 8 and 9.
-12. **GM (in Shield and Hold) and P2 (in Party in the Field), together on "go":** the GM presses **Next turn** in Shield and Hold while P2 drags Bryn's token in Party in the Field.
-13. **GM (tab A and tab B, in the Sandbox), together on "go":** tab A presents Scene 1 while tab B presents Scene 2.
-14. **GM and P1:** Reload both windows and read which Scene is presented.
-15. **GM (tab A and tab B), together on "go":** both choose **Complete encounter** on the Sandbox Run. **GM:** Read the Encounter history.
+1. [ ] **GM:** In **Review: Shield and Hold**, open the live table and use **Next turn** until the Wolf is current. Have the Wolf attack Ember (roll if asked) so that a Shield prompt appears for Ember's player.
+2. [ ] **P1:** Open the Shield prompt and leave it unanswered.
+3. [ ] **GM:** Open the same prompt (the GM can answer for anyone).
+4. [ ] **P1 and GM, together on "go":** P1 clicks **Use** while the GM clicks **Decline**.
+5. [ ] **P1:** Read the screen after both clicks settle.
+6. [ ] **GM:** Read the screen, then open Encounter history.
+7. [ ] **GM:** Check Ember's spell slots and whether the attack hit or missed.
+8. [ ] Switch both to **Review: Party in the Field**. **P1 and P2, together on "go":** P1 drags Aria's token and P2 drags Bryn's token to different empty squares.
+9. [ ] **P1 and GM, together on "go":** P1 drags Aria's token to one empty square while the GM drags the same Aria token to a different empty square.
+10. [ ] **GM, P1 and P2:** Look at Aria's position in each window, then reload each window and look again.
+11. [ ] **GM:** Open Encounter history and read the movement entries from steps 8 and 9.
+12. [ ] **GM (in Shield and Hold) and P2 (in Party in the Field), together on "go":** the GM presses **Next turn** in Shield and Hold while P2 drags Bryn's token in Party in the Field.
+13. [ ] **GM (tab A and tab B, in the Sandbox), together on "go":** tab A presents Scene 1 while tab B presents Scene 2.
+14. [ ] **GM and P1:** Reload both windows and read which Scene is presented.
+15. [ ] **GM (tab A and tab B), together on "go":** both choose **Complete encounter** on the Sandbox Run. **GM:** Read the Encounter history.
 
 ## Expected
 
@@ -68,5 +70,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

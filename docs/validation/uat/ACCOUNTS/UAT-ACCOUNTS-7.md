@@ -16,15 +16,17 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path pos
 
 ## Steps
 
-1. **OWN:** Open `<STAGING_URL>/settings/profile`.
-2. **OWN:** In **Username** type the GM's username (the owner gives it to you). Note the availability message and try to save with **Save profile**.
-3. **OWN:** Type the GM's username in different capitalisation and try again.
-4. **OWN:** Type `ass_muncher`, then `AssMuncher`, then `Ass1Muncher`, then `assmuncher`; try to save each.
-5. **OWN:** Type `Cassandra`, then `Classic`, then `Glasshouse`; check the availability message for each without saving.
-6. **OWN:** Type your username with `_Two` added and choose **Save profile**.
-7. **OWN:** Reload the page. Sign out and sign in using your username with `_Two` added.
-8. **OWN:** Change the username to your original username in different capitalisation and save; then change it back to your original capitalisation and save.
-9. **OWN:** Reload and check the exact capitalisation shown.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **OWN:** Open `<STAGING_URL>/settings/profile`.
+2. [ ] **OWN:** In **Username** type the GM's username (the owner gives it to you). Note the availability message and try to save with **Save profile**.
+3. [ ] **OWN:** Type the GM's username in different capitalisation and try again.
+4. [ ] **OWN:** Type `ass_muncher`, then `AssMuncher`, then `Ass1Muncher`, then `assmuncher`; try to save each.
+5. [ ] **OWN:** Type `Cassandra`, then `Classic`, then `Glasshouse`; check the availability message for each without saving.
+6. [ ] **OWN:** Type your username with `_Two` added and choose **Save profile**.
+7. [ ] **OWN:** Reload the page. Sign out and sign in using your username with `_Two` added.
+8. [ ] **OWN:** Change the username to your original username in different capitalisation and save; then change it back to your original capitalisation and save.
+9. [ ] **OWN:** Reload and check the exact capitalisation shown.
 
 ## Expected
 
@@ -53,5 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

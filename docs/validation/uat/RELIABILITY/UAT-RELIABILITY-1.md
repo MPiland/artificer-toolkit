@@ -18,23 +18,25 @@ Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P2) · Path p
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. Note Aria's and the Wolf's hit points and Aria's position before you start. **All:** Roll my dice automatically OFF.
 
-1. **GM:** Set the **Roll visibility** switch in the action drawer to **Private**. Make any roll for the Wolf (for example roll its initiative or an attack roll). Note what the roll shows.
-2. **P1:** Drag Aria's token away from the Wolf so Aria leaves the Wolf's reach (a small step is enough).
-3. **P1:** Read the screen. The move must pause rather than finish.
-4. **GM:** Find the **Pending decision** drawer and read it. It offers **Use reaction** and **Decline reaction** for the Wolf. Do not answer yet.
-5. **P2:** Try to drag Bryn's token a short distance. Read the message.
-6. **GM:** Set the browser to Offline for about 15 seconds, then set it back to No throttling (or close the tab and reopen the live table).
-7. **GM:** Read the **Pending decision** drawer again.
-8. **P1:** Reload the page (browser refresh) while the decision is still open. Reopen the live table. Read what Aria's token and the drawer show.
-9. **GM:** Double-click **Use reaction** quickly (two clicks in under a second).
-10. **GM:** Open the Encounter history. Count the opportunity attacks against Aria that were just added.
-11. **P1:** Reload the page again and compare Aria's hit points, the Wolf's reaction, and the history with before the reload.
-12. **GM:** In the Encounter turn menu choose **Undo last action**. Note Aria's hit points afterwards.
-13. **GM:** Reload the page, open the turn menu again and try **Undo last action** a second time. Read the message.
-14. **P1:** Look for any undo control at the table. Then open chat and look for **My rolls**.
-15. **P2:** Reload and check that the GM's private roll from step 1 is not in chat or the roll cards.
+1. [ ] **GM:** Set the **Roll visibility** switch in the action drawer to **Private**. Make any roll for the Wolf (for example roll its initiative or an attack roll). Note what the roll shows.
+2. [ ] **P1:** Drag Aria's token away from the Wolf so Aria leaves the Wolf's reach (a small step is enough).
+3. [ ] **P1:** Read the screen. The move must pause rather than finish.
+4. [ ] **GM:** Find the **Pending decision** drawer and read it. It offers **Use reaction** and **Decline reaction** for the Wolf. Do not answer yet.
+5. [ ] **P2:** Try to drag Bryn's token a short distance. Read the message.
+6. [ ] **GM:** Set the browser to Offline for about 15 seconds, then set it back to No throttling (or close the tab and reopen the live table).
+7. [ ] **GM:** Read the **Pending decision** drawer again.
+8. [ ] **P1:** Reload the page (browser refresh) while the decision is still open. Reopen the live table. Read what Aria's token and the drawer show.
+9. [ ] **GM:** Double-click **Use reaction** quickly (two clicks in under a second).
+10. [ ] **GM:** Open the Encounter history. Count the opportunity attacks against Aria that were just added.
+11. [ ] **P1:** Reload the page again and compare Aria's hit points, the Wolf's reaction, and the history with before the reload.
+12. [ ] **GM:** In the Encounter turn menu choose **Undo last action**. Note Aria's hit points afterwards.
+13. [ ] **GM:** Reload the page, open the turn menu again and try **Undo last action** a second time. Read the message.
+14. [ ] **P1:** Look for any undo control at the table. Then open chat and look for **My rolls**.
+15. [ ] **P2:** Reload and check that the GM's private roll from step 1 is not in chat or the roll cards.
 
 ## Expected
 
@@ -68,5 +70,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

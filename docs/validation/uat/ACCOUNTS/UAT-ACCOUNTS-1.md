@@ -15,15 +15,17 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path posi
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/characters` while signed out.
-2. **P1:** Note that you land on the sign-in page.
-3. **P1:** In **Email or username** type the email address of P1, enter the account's password in **Password**, and sign in.
-4. **P1:** Confirm you arrive on the Characters page you originally asked for.
-5. **P1:** Reload the page (F5).
-6. **P1:** Open `<STAGING_URL>/logout` (or use the account menu's sign-out control).
-7. **P1:** After the "Signing you out" page, open `<STAGING_URL>/characters` again.
-8. **P1:** Sign in again, this time typing the username P1 in **Email or username**.
-9. **P1:** Open `<STAGING_URL>/settings/profile` and check the **Username** field.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/characters` while signed out.
+2. [ ] **P1:** Note that you land on the sign-in page.
+3. [ ] **P1:** In **Email or username** type the email address of P1, enter the account's password in **Password**, and sign in.
+4. [ ] **P1:** Confirm you arrive on the Characters page you originally asked for.
+5. [ ] **P1:** Reload the page (F5).
+6. [ ] **P1:** Open `<STAGING_URL>/logout` (or use the account menu's sign-out control).
+7. [ ] **P1:** After the "Signing you out" page, open `<STAGING_URL>/characters` again.
+8. [ ] **P1:** Sign in again, this time typing the username P1 in **Email or username**.
+9. [ ] **P1:** Open `<STAGING_URL>/settings/profile` and check the **Username** field.
 
 ## Expected
 
@@ -51,5 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

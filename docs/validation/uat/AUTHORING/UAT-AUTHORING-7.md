@@ -16,15 +16,17 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path pos
 
 ## Steps
 
-1. **P1:** Open `<STAGING_URL>/equipment`, search "Healer" and open the SRD item.
-2. **P1:** Read its name and look for its uses/charges.
-3. **P1:** Search "Arrows", "Crossbow Bolts", "Sling Bullets", "Blowgun Needles", "Iron Spikes" and read each name and price.
-4. **P1:** Duplicate the SRD Longsword to a draft, name it "UAT Blade", and **Activate** it.
-5. **P1:** Create a variant of "UAT Blade" named "UAT Blade +1" that inherits from it and adds a bonus; **Activate** it.
-6. **P1:** Edit "UAT Blade" (change the damage dice) and **Activate** the new version.
-7. **P1:** Open "UAT Blade +1" and look at its damage.
-8. **P1:** Try to delete "UAT Blade" while the variant exists.
-9. **P1:** Delete the variant first, then the base.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **P1:** Open `<STAGING_URL>/equipment`, search "Healer" and open the SRD item.
+2. [ ] **P1:** Read its name and look for its uses/charges.
+3. [ ] **P1:** Search "Arrows", "Crossbow Bolts", "Sling Bullets", "Blowgun Needles", "Iron Spikes" and read each name and price.
+4. [ ] **P1:** Duplicate the SRD Longsword to a draft, name it "UAT Blade", and **Activate** it.
+5. [ ] **P1:** Create a variant of "UAT Blade" named "UAT Blade +1" that inherits from it and adds a bonus; **Activate** it.
+6. [ ] **P1:** Edit "UAT Blade" (change the damage dice) and **Activate** the new version.
+7. [ ] **P1:** Open "UAT Blade +1" and look at its damage.
+8. [ ] **P1:** Try to delete "UAT Blade" while the variant exists.
+9. [ ] **P1:** Delete the variant first, then the base.
 
 ## Expected
 
@@ -54,5 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

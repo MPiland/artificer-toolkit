@@ -15,14 +15,16 @@ Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (GM) · Path pos
 
 ## Steps
 
-1. **GM:** Open `<STAGING_URL>/systems` and open the SRD System.
-2. **GM:** Note any identifier, version or checksum the page shows. Reload and compare.
-3. **GM:** Open the Rules Catalogue (or catalogues) on the System page. Page forward and back, then use the search and a category filter.
-4. **GM:** Note the counts shown, apply a filter, and note the filtered count.
-5. **GM:** Open `<STAGING_URL>/races`. Count the SRD base Races listed, and find a Race that has subraces and confirm base Races and their subraces are grouped together.
-6. **GM:** Open `<STAGING_URL>/spells`. Page through the list, use the filters for level, school and Class, and search "Cure".
-7. **GM:** Open a Spell, note its URL, then reload it. Copy the URL into a new tab.
-8. **GM:** Look at the main navigation on the System page and on the Spells page.
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
+1. [ ] **GM:** Open `<STAGING_URL>/systems` and open the SRD System.
+2. [ ] **GM:** Note any identifier, version or checksum the page shows. Reload and compare.
+3. [ ] **GM:** Open the Rules Catalogue (or catalogues) on the System page. Page forward and back, then use the search and a category filter.
+4. [ ] **GM:** Note the counts shown, apply a filter, and note the filtered count.
+5. [ ] **GM:** Open `<STAGING_URL>/races`. Count the SRD base Races listed, and find a Race that has subraces and confirm base Races and their subraces are grouped together.
+6. [ ] **GM:** Open `<STAGING_URL>/spells`. Page through the list, use the filters for level, school and Class, and search "Cure".
+7. [ ] **GM:** Open a Spell, note its URL, then reload it. Copy the URL into a new tab.
+8. [ ] **GM:** Look at the main navigation on the System page and on the Spells page.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -19,14 +19,16 @@ Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2) · Path posi
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1 and P2:** On their Sheets equip a weapon each, as in [SHEET-8](../SHEET/UAT-SHEET-8.md).
 S2. **GM:** In table settings enable the Disarm optional rule with Assisted mode on. In the Sandbox Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first).
 
-1. **GM:** Have the Wolf attempt Disarm against P1's Character.
-2. **P1:** Confirm a prompt for evidence (a roll) appears for your Character; provide it.
-3. **P2:** Confirm you do not see P1's prompt and cannot answer it.
-4. **GM:** Try to answer a second time. Confirm a stale or already-resolved refusal.
-5. **P1:** Open your Character's Sheet and confirm the held item changed once.
+1. [ ] **GM:** Have the Wolf attempt Disarm against P1's Character.
+2. [ ] **P1:** Confirm a prompt for evidence (a roll) appears for your Character; provide it.
+3. [ ] **P2:** Confirm you do not see P1's prompt and cannot answer it.
+4. [ ] **GM:** Try to answer a second time. Confirm a stale or already-resolved refusal.
+5. [ ] **P1:** Open your Character's Sheet and confirm the held item changed once.
 
 ## Expected
 
@@ -50,5 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

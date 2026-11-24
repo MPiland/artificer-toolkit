@@ -18,16 +18,18 @@ Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path posit
 
 ## Steps
 
+Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
+
 S1. **P1:** Build a Character named "UAT Reconcile" as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) steps 1 to 10, choosing the Feat "UAT Sharp Eyes", the Background "UAT Wanderer" and the Equipment item "UAT Blade". Activate it, take some damage so hit points are below maximum, and add a custom note to the inventory.
 
-1. **P1:** Open "UAT Reconcile" on the Sheet and note the Feat's effect, the current hit points, the inventory and the URL.
-2. **P1:** Open "UAT Sharp Eyes", edit a detail and **Activate** a new version (a replacement).
-3. **P1:** Reopen "UAT Reconcile"'s Sheet and the Builder preview.
-4. **P1:** Delete "UAT Sharp Eyes" from the Feat page.
-5. **P1:** Open the Character list and the Sheet.
-6. **P1:** Open the Character in the Builder and read the preview before changing anything.
-7. **P1:** Choose **Activate** on the repaired Character.
-8. **P1:** Open the Sheet again, then do the same with the Background and the Equipment (delete each, preview, activate).
+1. [ ] **P1:** Open "UAT Reconcile" on the Sheet and note the Feat's effect, the current hit points, the inventory and the URL.
+2. [ ] **P1:** Open "UAT Sharp Eyes", edit a detail and **Activate** a new version (a replacement).
+3. [ ] **P1:** Reopen "UAT Reconcile"'s Sheet and the Builder preview.
+4. [ ] **P1:** Delete "UAT Sharp Eyes" from the Feat page.
+5. [ ] **P1:** Open the Character list and the Sheet.
+6. [ ] **P1:** Open the Character in the Builder and read the preview before changing anything.
+7. [ ] **P1:** Choose **Activate** on the repaired Character.
+8. [ ] **P1:** Open the Sheet again, then do the same with the Background and the Equipment (delete each, preview, activate).
 
 ## Expected
 
@@ -54,5 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Tester:**
 - **Set:**
 - **Role:**
-- **Failed step:**
+- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**
