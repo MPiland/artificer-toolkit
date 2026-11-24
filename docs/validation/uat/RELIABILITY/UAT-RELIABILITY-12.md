@@ -2,19 +2,18 @@
 
 Core pages open with their data.
 
-Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 184 of 190
+Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 185 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides a deployment that has not just been restarted.
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- P1 has Aria, P2 has Bryn and P3 has Cade as their Characters in The Campaign (each a Level 1 Fighter, built by their player in the Character Builder).
+- The product has not just been restarted (wait a few minutes after a restart before running this).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -22,7 +21,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 1. [ ] **GM:** Open the authoring tools (`/spells`, then a Class or Feature editor). Confirm each opens and lists its data.
 2. [ ] **P1:** Open Aria's Sheet. Confirm it opens and every tab shows data.
-3. [ ] **GM:** In **Review: Party in the Field**, open the party inventory and its equipment picker. Confirm the options list.
+3. [ ] **GM:** In The Campaign, open the party inventory and its equipment picker. Confirm the options list.
 4. [ ] **GM:** Open the live table of the Campaign with the active Encounter. Confirm it opens and the Encounter appears.
 5. [ ] **GM:** Read the browser console for timeout or limit errors on each page.
 
@@ -46,7 +45,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

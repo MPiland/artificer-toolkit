@@ -2,23 +2,23 @@
 
 Short and long rest.
 
-Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 47 of 190
+Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 40 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- Done in [UAT-SHEET-1](UAT-SHEET-1.md): "UAT Dara" has taken damage (SHEET-1 step 3) and used Second Wind.
+- The account **P1** exists.
+- Done in [UAT-SHEET-1](UAT-SHEET-1.md): Aria has taken damage (SHEET-1 step 3) and used Second Wind.
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **P1:** On UAT Dara's Sheet, note hit points, hit dice, any spent resource, and any condition or exhaustion level.
+1. [ ] **P1:** On Aria's Sheet, note hit points, hit dice, any spent resource, and any condition or exhaustion level.
 2. [ ] **P1:** Open the rests section and start a short rest. Read the preview before confirming.
 3. [ ] **P1:** In the preview, choose a number of hit dice to roll and roll them (with Roll my dice automatically OFF you are prompted; choose **Roll dice**).
 4. [ ] **P1:** Confirm the short rest.
@@ -50,7 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

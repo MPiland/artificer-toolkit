@@ -2,44 +2,46 @@
 
 Refused account deletions.
 
-Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Mode: Group (GM, P1, SPARE) · Path position 185 of 190
+Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Mode: Group (GM, P1, P5) · Path position 186 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **SPARE**, a player who is a member of no Campaign and owns no Character.
+- **GM** hosts **The Campaign**, with P1 to P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- **P5** is a player who is a member of P3's Campaign only (see [UAT-SOCIAL-2](../SOCIAL/UAT-SOCIAL-2.md)) and hosts no Campaign.
 
 ## Accounts and windows
 
-- **Roles used:** GM, P1, SPARE
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** GM, P1, P5
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **SPARE:** Sign in, create a throwaway Campaign "UAT Spare Camp" at `/campaigns/new` and keep it open for step 5.
-
 1. [ ] **GM:** Open `<STAGING_URL>/settings/account`.
 2. [ ] **GM:** Choose **Delete account** (the dialog opens).
 3. [ ] **GM:** Read the dialog, type the account email as asked ("Type ... to confirm"), and enter a deliberately wrong password; confirm. Do not enter the real password.
 4. [ ] **GM:** Close the dialog, reload the page and open `<STAGING_URL>/campaigns`.
-5. [ ] **SPARE:** Sign in, create a throwaway Campaign at `<STAGING_URL>/campaigns/new`, then open `<STAGING_URL>/settings/account` and choose **Delete account**.
-6. [ ] **SPARE:** Type the account email, enter the correct password and confirm. SPARE owns an active Campaign.
-7. [ ] **SPARE:** Reload the page and open `<STAGING_URL>/campaigns`.
-8. [ ] **SPARE:** Archive the throwaway Campaign, repeat steps 5-6, and confirm the refusal still applies to an Archived Campaign. Then delete the Campaign.
+5. [ ] **P5:** Create the Campaign "P5's Campaign" at `<STAGING_URL>/campaigns/new`, then open `<STAGING_URL>/settings/account` and choose **Delete account**.
+6. [ ] **P5:** Type the account email, enter the correct password and confirm. P5 owns an active Campaign.
+7. [ ] **P5:** Reload the page and open `<STAGING_URL>/campaigns`.
+8. [ ] **P5:** Archive "P5's Campaign", then repeat steps 5-6 (without creating a Campaign).
+9. [ ] **P5:** Delete "P5's Campaign" and wait for **Campaign deleted.** P5 now owns no Campaign, so [UAT-RELIABILITY-13](../RELIABILITY/UAT-RELIABILITY-13.md) can delete the account.
+10. [ ] **P1:** Open `<STAGING_URL>/campaigns` and The Campaign.
 
 ## Expected
 
 - Step 3: refused ("Could not delete your account. Try again." or a wrong-password message); nothing is deleted.
-- Step 4: still signed in; the four review Campaigns are intact.
-- Step 6: refused because SPARE owns an active Campaign; the message names the reason (hand over, archive or delete the Campaign first); no data is removed.
-- Step 7: still signed in; the throwaway Campaign is listed.
-- Step 8: the refusal also applies while the Campaign is Archived. Deleting the account itself is left to [UAT-ACCOUNTS-12](UAT-ACCOUNTS-12.md).
+- Step 4: still signed in; The Campaign is intact.
+- Step 6: refused because P5 owns an active Campaign; the message says to transfer or delete your Campaigns first; no data is removed.
+- Step 7: still signed in; P5's Campaign is listed.
+- Step 8: still refused with the same message: an Archived Campaign still blocks account deletion.
+- Step 9: the Campaign is gone and P5 is still signed in with the account intact. Deleting P5's account is left to [UAT-RELIABILITY-13](../RELIABILITY/UAT-RELIABILITY-13.md).
+- Step 10: The Campaign still lists the GM as owner.
 
 ## Other users see
 
-- **P1:** Nothing changes; the Campaigns still list the GM.
+- **P1:** Nothing changes; The Campaign still lists the GM.
 
 ## ACs covered
 
@@ -53,7 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

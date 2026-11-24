@@ -2,19 +2,17 @@
 
 Build the casters and cast from the Sheet outside an Encounter.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2, P3) · Path position 153 of 190
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2, P3) · Path position 154 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the account **P3**, who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
-- The review data provides players who can reach `/characters`; nobody is in an Encounter, so no Character swap is involved.
+- Each player already has a Character seated in The Campaign: **Aria** (P1), **Bryn** (P2) and **Cade** (P3), each a level 1 Fighter that the player built in the Character Builder. Nobody is in an Encounter, so no Character swap is involved.
+- A free account holds 6 personal Characters. P3 ends the SPELLS series with exactly 6 (Cade, Vex, Moss and three one-off Characters in scenario 27), so P3 must not build extra Characters outside these scenarios.
 
 ## Accounts and windows
 
 - **Roles used:** P1, P2, P3
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -42,8 +40,7 @@ S1. Allow time: three Builder runs at levels 5 to 11 (Sage, Hale, Vex).
 
 ## Other users see
 
-- **P1:** Not applicable (their own Sheet only).
-- **P3:** Cannot open Hale's or Sage's Sheet through their own Characters list.
+- **P1, P2, P3:** Each sees only their own Characters in their own list; nobody can open another player's Sheet from their own Characters list.
 
 ## ACs covered
 
@@ -57,7 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

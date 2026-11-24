@@ -1,6 +1,6 @@
 # VTT presentation — UAT scenarios
 
-Feature `VTT_UI` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup). Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several users: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). Gaps: [README](../OPERATOR.md#known-uat-gaps).
+Feature `VTT_UI` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Accounts: [README](../README.md#roles-and-accounts). Record results: [TESTERS](../TESTERS.md#recording-results).
 
 This file proves the live map shows each token's identity, conditions, facing and system state clearly, previews and perception match the rules, footprints and dragging behave, and the map is usable by keyboard, at low zoom, without relying on colour, and with a screen reader.
 
@@ -10,10 +10,10 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                        | Title                                                 |
 | ------------- | ----- | ------------------------------- | ----------------------------------------------------- |
-| 115           | 3     | [UAT-VTT_UI-1](UAT-VTT_UI-1.md) | Token identity, status rings, facing and system state |
-| 116           | 3     | [UAT-VTT_UI-2](UAT-VTT_UI-2.md) | Previews, footprints, large tokens and dragging       |
-| 117           | 3     | [UAT-VTT_UI-4](UAT-VTT_UI-4.md) | Keyboard, screen reader and low zoom                  |
-| 140           | 3     | [UAT-VTT_UI-3](UAT-VTT_UI-3.md) | Light, fog, senses and the GM's view preview          |
+| 116           | 3     | [UAT-VTT_UI-1](UAT-VTT_UI-1.md) | Token identity, status rings, facing and system state |
+| 117           | 3     | [UAT-VTT_UI-2](UAT-VTT_UI-2.md) | Previews, footprints, large tokens and dragging       |
+| 118           | 3     | [UAT-VTT_UI-4](UAT-VTT_UI-4.md) | Keyboard, screen reader and low zoom                  |
+| 141           | 3     | [UAT-VTT_UI-3](UAT-VTT_UI-3.md) | Light, fog, senses and the GM's view preview          |
 
 ## Covered elsewhere
 

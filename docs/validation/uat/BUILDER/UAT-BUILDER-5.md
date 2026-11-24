@@ -2,36 +2,36 @@
 
 Withdrawing shared content reconciles assigned Characters.
 
-Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 60 of 190
+Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 53 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1 is a member of the Sandbox Campaign with "UAT Dara" assigned.
+- The account **P1** exists and is seated as a player in The Campaign.
+- The account **GM** exists and hosts The Campaign.
+- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1 is seated in The Campaign with Aria as their Campaign Character.
 - Done in [UAT-AUTHORING-8](../AUTHORING/UAT-AUTHORING-8.md): the Feat "UAT Sharp Eyes" is Active and owned by P1.
 - Done in [UAT-AUTHORING-11](../AUTHORING/UAT-AUTHORING-11.md): sharing homebrew with a Campaign is known.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **P1:** Share the Feat "UAT Sharp Eyes" with the Sandbox Campaign as in [AUTHORING-11](../AUTHORING/UAT-AUTHORING-11.md).
+S1. **P1:** Share the Feat "UAT Sharp Eyes" with The Campaign as in [AUTHORING-11](../AUTHORING/UAT-AUTHORING-11.md).
 S2. **P1:** Build and activate a Character named "UAT Shared" that takes the Feat "UAT Sharp Eyes" (as in [BUILDER-1](UAT-BUILDER-1.md) steps 1 to 10).
-S3. **P1:** On the Sandbox Campaign's Party panel choose **Change Character** and assign "UAT Shared" in place of "UAT Dara".
+S3. **P1:** On The Campaign's Party panel choose **Change Character** and assign "UAT Shared" in place of Aria.
 
-1. [ ] **P1:** Confirm "UAT Shared" in the sandbox Campaign has the Feat on the Sheet.
-2. [ ] **P1:** Remove the share of the Feat from the sandbox Campaign content list.
+1. [ ] **P1:** Confirm "UAT Shared" in The Campaign has the Feat on the Sheet.
+2. [ ] **P1:** Remove the share of the Feat from The Campaign content list.
 3. [ ] **P1:** Open the Character and check the Sheet and Builder preview.
 4. [ ] **P1:** Use the Builder to commit the repair, or reassign the Character's content as the page offers.
-5. [ ] **GM:** Reload the sandbox Campaign page.
-6. [ ] **P1:** Share the Feat again ([UAT-AUTHORING-11](../AUTHORING/UAT-AUTHORING-11.md) step 2), then **GM:** use **Remove player** on P1 in the sandbox Campaign Party. **P1:** open "UAT Shared" and your Characters list.
-       R1. **P1:** On the Sandbox Campaign's Party panel choose **Change Character** and put "UAT Dara" back.
+5. [ ] **GM:** Reload The Campaign page.
+6. [ ] **P1:** Share the Feat again ([UAT-AUTHORING-11](../AUTHORING/UAT-AUTHORING-11.md) step 2), then **GM:** use **Remove player** on P1 in The Campaign Party. **P1:** open "UAT Shared" and your Characters list.
+       R1. **GM:** Invite P1 back into The Campaign (the invite steps in the CAMPAIGN scenarios). **P1:** Accept, then on the Party panel choose **Change Character** and put Aria back. Then delete "UAT Shared" from **Characters** (P1 is back to 1 of 6 personal Characters).
 
 ## Expected
 
@@ -56,7 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

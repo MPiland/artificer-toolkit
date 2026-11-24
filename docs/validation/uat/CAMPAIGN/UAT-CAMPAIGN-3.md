@@ -2,25 +2,23 @@
 
 Players see only what the GM made visible.
 
-Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 79 of 190
+Level 3 (Core play) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 73 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- P1 has Aria, P2 has Bryn and P3 has Cade as their Characters in The Campaign (each a Level 1 Fighter, built by their player in the Character Builder).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **GM:** Open Review: Party in the Field and the notes area.
+1. [ ] **GM:** Open The Campaign and the notes area.
 2. [ ] **GM:** Create a GM note and leave it private (not shared with the party). Create a second note and mark it **Shared with party**.
 3. [ ] **P1:** Open the same Campaign and its notes.
 4. [ ] **P2:** Open the Campaign and its notes.
@@ -50,7 +48,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -2,22 +2,20 @@
 
 Assisted and Manual Encounter journeys pass.
 
-Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 143 of 190
+Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 144 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the account **P3**, who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
-- The review data provides the Campaign **Review: Sandbox** (owner GM; members P1, P2 and P3 with Iris, Juno and Kit; Manual mode; dim light and per-player fog; a wall with a closed door, a rubble line and one light; a visible Ogre in the east room and a hidden Goblin and a hidden Wolf; the review Encounter started and nobody has acted).
-- Done in [UAT-MOVE-9](../MOVE/UAT-MOVE-9.md): the Sandbox Scene is back to its seeded walls and zones.
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- The account **P2** exists and is seated as a player in The Campaign.
+- The account **P3** exists and is seated as a player in The Campaign.
+- **The Campaign** is running: P1, P2 and P3 are seated with Campaign Characters Aria, Bryn and Cade (Level 1 Fighters, each built by their own player in the Character Builder), a presented Scene with a Wolf token and a Goblin token, Assisted mode with the Speed Factor initiative, and an Encounter started and in round 2 (built in the CAMPAIGN, SCENE and ENCOUNTER scenarios).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2, P3
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -26,7 +24,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 S1. **P1, P2, P3:** Switch **Auto-roll** ON in the tabletop header.
 Part A: Assisted, three players
 
-1. [ ] **GM:** Open **Review: Party in the Field**, then **Open tabletop window** in the **Live tabletop** panel. Note whose turn it is, the round number, and each creature's hit points on screen.
+1. [ ] **GM:** Open **The Campaign**, then **Open tabletop window** in the **Live tabletop** panel. Note whose turn it is, the round number, and each creature's hit points on screen.
 2. [ ] **P1, P2, P3:** Open the same live table. Confirm each header shows the **Player** badge and the Scene is visible.
 3. [ ] **GM:** Open the Encounter drawer and the Encounter history. Confirm Aria, Bryn and Cade are listed as Characters (Friendly) and Wolf and Goblin as creatures (Hostile).
 4. [ ] **GM:** Use **Next turn** until it is Aria's turn (or use **Current turn** if the tool offers a picker).
@@ -40,12 +38,12 @@ Part A: Assisted, three players
 
 Part B: Manual
 
-12. [ ] **GM:** Open **Review: Sandbox** and, in its table settings, check **Automation mode** is **Manual**. Choose **Complete encounter** on its already started Encounter. Reuse its presented Scene, which has tokens for Iris, Juno and Kit.
-13. [ ] **GM:** Create an Encounter with a Goblin; the party takes in the Sandbox's assigned Characters. Check that **Start encounter** stays disabled until every combatant has initiative.
+12. [ ] **GM:** In The Campaign's table settings, change **Automation mode** to **Manual** (the Encounter from Part A is already complete). Reuse the presented Scene, which has tokens for Aria, Bryn and Cade.
+13. [ ] **GM:** Create an Encounter with a Goblin; the party takes in The Campaign's assigned Characters. Check that **Start encounter** stays disabled until every combatant has initiative.
 14. [ ] **GM:** Use **Roll initiative** for the Goblin, then enter an Initiative number for each of P1's, P2's and P3's Characters, then **Start encounter**.
 15. [ ] **P1:** Open the live table. Confirm the action drawer is not shown (Manual mode) and that you can still move your own Character's token.
 16. [ ] **GM:** Use **Next turn** through a full round. Edit a hit point total by hand on a creature and confirm the app records it without applying any rule or prompt.
-17. [ ] **GM:** Complete the Encounter. Leave **Automation mode** as **Manual**; afterwards start a new Encounter in Review: Sandbox from its Scene with the same three Characters, so later scenarios find it started.
+17. [ ] **GM:** Complete the Encounter. Change **Automation mode** back to **Assisted**, then start a new Encounter from the Scene with the same three Characters, so later scenarios find The Campaign as it was before Part B.
 
 ## Expected
 
@@ -55,7 +53,7 @@ Part B: Manual
 - After **Complete encounter** the Run no longer shows as active.
 - In Part B the **Start encounter** button is disabled until every combatant has initiative, then enabled.
 - In Manual mode the action drawer is hidden for players, no roll prompts or reaction prompts appear, and the table tracks turns, rounds and reminders only. (The "Assisted only" refusal of a rules action cannot be triggered by hand because no rules control is offered; the ledger proof covers it.)
-- The Manual Encounter's party is exactly the Sandbox's active Character assignments: Iris, Juno and Kit are in the order.
+- The Manual Encounter's party is exactly The Campaign's active Character assignments: Aria, Bryn and Cade are in the order.
 
 ## Other users see
 
@@ -74,7 +72,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

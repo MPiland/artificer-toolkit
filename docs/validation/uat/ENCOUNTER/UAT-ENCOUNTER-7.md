@@ -2,18 +2,18 @@
 
 Blueprint edits and who can reach them.
 
-Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 75 of 190
+Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 68 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- Done in [UAT-ENCOUNTER-3](UAT-ENCOUNTER-3.md): the Sandbox Campaign has the Wolf and Goblin Blueprint from step 2 and P1 as a member.
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- Done in [UAT-ENCOUNTER-3](UAT-ENCOUNTER-3.md): The Campaign has the Wolf and Goblin Blueprint from step 2 and P1 as a member.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -24,8 +24,8 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 3. [ ] **GM (tab B), without reloading:** Add a second Goblin and save.
 4. [ ] **GM:** Reload both tabs and compare the Blueprint name and creature list.
 5. [ ] **GM (tab A):** Double-click the save control (two clicks in under a second) after a small change, then open the Encounter history or list.
-6. [ ] **P1:** Open the Campaign's Encounter list and look for the Blueprint. Then paste the Blueprint builder's address (copy it from the GM's tab) into P1's browser.
-7. [ ] **Signed-out window:** Paste the live table address of the Sandbox Campaign.
+6. [ ] **P1:** Open the Campaign's Encounter list and look for the Blueprint. Then ask the GM to send the Blueprint builder's address and open it in P1's browser.
+7. [ ] **Anyone not signed in (a private window is fine):** Open the live table address of The Campaign.
 
 ## Expected
 
@@ -50,7 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

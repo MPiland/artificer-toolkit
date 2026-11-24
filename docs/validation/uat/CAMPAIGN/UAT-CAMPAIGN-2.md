@@ -2,29 +2,27 @@
 
 Invite, accept, leave, remove, rejoin and transfer.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 55 of 190
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 48 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- Done in [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md): the second copy, with the "Plot" notes section, is the Sandbox Campaign; the original is archived.
-- Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): "UAT Dara" is committed and in no Campaign.
+- **The Campaign** exists, hosted by GM, with no player seated yet (done in [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md): it is the second copy, renamed "The Campaign"; the original is archived).
+- **P1** and **P2** have accounts. **P1** has built Aria and **P2** has built Bryn (done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md) and [UAT-BUILDER-7](../BUILDER/UAT-BUILDER-7.md)); neither is in a Campaign yet.
+- All accounts are on the FREE plan: 1 active hosted Campaign per account, 5 player seats per Campaign, 5 Scenes per Campaign and 6 personal Characters per account.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **GM:** Open **Social** and create a listing for the Campaign, or open P1's profile and use the invite action to invite **P1** to the sandbox Campaign.
+1. [ ] **GM:** Open **Social** and create a listing for the Campaign, or open P1's profile and use the invite action to invite **P1** to The Campaign.
 2. [ ] **P1:** Open **Social**, go to **Received invitations**, and accept the invitation.
 3. [ ] **GM:** Repeat the invite for P2 and have **P2** accept.
-4. [ ] **P1:** Open the sandbox Campaign, choose **Add Character** and assign "UAT Dara" (not Aria).
+4. [ ] **P1:** Open The Campaign, choose **Add Character** and assign Aria.
 5. [ ] **P1:** Choose **Leave Campaign** and confirm.
 6. [ ] **P1:** Try to open the Campaign's address again.
 7. [ ] **GM:** Open the Campaign **Party** and check that P1's Character and seat are gone.
@@ -36,7 +34,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 13. [ ] **P1:** Accept the ownership offer.
 14. [ ] **P1 (now GM):** Check that Settings and Manage controls are available; **GM (now player):** check they are gone.
 15. [ ] **P1:** Transfer ownership back to the original GM, and **GM:** accept.
-        R1. **P1:** After the rejoin in step 8 your Character was released. Choose **Add Character** and assign "UAT Dara" again.
+        R1. **P1:** After the rejoin in step 8 your Character was released. Choose **Add Character** and assign Aria again.
 
 ## Expected
 
@@ -61,7 +59,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

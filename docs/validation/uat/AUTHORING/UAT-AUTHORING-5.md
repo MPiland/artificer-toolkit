@@ -2,17 +2,17 @@
 
 Author a Class and see the Spell guard.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 31 of 190
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 24 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The account **P1** exists (a free account).
 - Done in [UAT-AUTHORING-4](UAT-AUTHORING-4.md): the Spell "UAT Ember Dart" is Active and lists a Class.
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
@@ -49,7 +49,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

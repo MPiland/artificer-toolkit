@@ -2,24 +2,23 @@
 
 Refusals at walls, hostile spaces and the map edge.
 
-Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 125 of 190
+Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 126 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Sandbox** (owner GM; members P1, P2 and P3 with Iris, Juno and Kit; Manual mode; dim light and per-player fog; a wall with a closed door, a rubble line and one light; a visible Ogre in the east room and a hidden Goblin and a hidden Wolf; the review Encounter started and nobody has acted).
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- **P1**'s Campaign Character is **Aria** (a level 1 Fighter P1 built), with a token on a presented Scene in The Campaign and a started Encounter in which the GM can place tokens.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. Read "Aria" as Iris (P1) and "the Wolf" as the Ogre throughout. The GM draws the extra pieces with the tools described in [SCENE-3](../SCENE/UAT-SCENE-3.md).
+S1. **GM:** Put a Wolf token on the Scene next to Aria. The GM draws the walls, doors and other pieces with the tools described in [SCENE-3](../SCENE/UAT-SCENE-3.md).
 
 1. [ ] **GM:** Draw a Wall across the map in front of Aria, and a Door (closed) in a second wall.
 2. [ ] **P1:** Drag Aria's token through the wall.
@@ -33,7 +32,7 @@ S1. Read "Aria" as Iris (P1) and "the Wolf" as the Ogre throughout. The GM draws
 10. [ ] **GM:** Unlock it; **P1:** move it one square.
 11. [ ] **GM:** Add a one-way barrier and a window and try dragging through each.
 12. [ ] **GM:** Add difficult terrain with a movement cost multiplier of 2 and walk Aria through two squares of it.
-        R1. **GM:** Delete the extra wall, door, one-way barrier, window and terrain line you drew (select each, delete), so the Scene again has only the wall at x=400 with its closed door and the rubble line.
+        R1. **GM:** Delete the extra wall, door, one-way barrier, window and terrain line you drew (select each, delete), so the Scene is as it was before this scenario.
 
 ## Expected
 
@@ -59,7 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

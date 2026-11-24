@@ -2,29 +2,29 @@
 
 Morale.
 
-Level 3 (Core play) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 135 of 190
+Level 3 (Core play) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 136 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- Done in [UAT-ENCOUNTER-3](UAT-ENCOUNTER-3.md): the Sandbox Campaign holds the Wolf and Goblin Blueprint and "UAT Cavern" is its presented Scene.
-- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1, P2 and P3 are seated in the Sandbox Campaign with their Characters.
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- Done in [UAT-ENCOUNTER-3](UAT-ENCOUNTER-3.md): The Campaign holds the Wolf and Goblin Blueprint and "UAT Cavern" is its presented Scene.
+- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1, P2 and P3 are seated in The Campaign with their Characters.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
 S1. **P1:** Auto-roll ON.
-S2. **GM:** In the Sandbox Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first). Open **Optional combat rules** and note that Morale appears only once it resolves.
+S2. **GM:** In The Campaign, with "UAT Cavern" presented, create and start a new Run from the Wolf and Goblin Blueprint as in [ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5 (complete any Run still running first). Open **Optional combat rules** and note that Morale appears only once it resolves.
 
 1. [ ] **GM:** Open table settings and select **Morale** under **Optional combat rules** if it is offered. If it is not offered, record that and stop (the AC says it appears only once it resolves).
-2. [ ] **GM:** Start a new Run of the Wolf and Goblin Blueprint in the Sandbox.
+2. [ ] **GM:** Start a new Run of the Wolf and Goblin Blueprint in The Campaign.
 3. [ ] **P1:** On P1's Character's turns attack the Goblin until it is at half hit points or fewer.
 4. [ ] **GM:** Confirm a morale save is offered for the Goblin. Accept and resolve it.
 5. [ ] **GM:** If the save fails, read the proposed outcome (flee, or surrender when escape is impossible). Confirm it.
@@ -50,7 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

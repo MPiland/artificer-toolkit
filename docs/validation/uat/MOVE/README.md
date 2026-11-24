@@ -1,8 +1,8 @@
 # Token movement — UAT scenarios
 
-Feature `MOVE` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
+Feature `MOVE` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Every role is a different person on their own device, signed in to their own account.
 
-Proves a player can move only their own token, that the table stops illegal moves (walls, hostile spaces, the map edge, locked tokens), that leaving an enemy's reach pauses for the GM's answer, that the GM can undo a token move, and that traps, hidden hazards and climbing behave and stay hidden from players. Accounts: [README](../README.md#roles-and-accounts). Review data: [README](../OPERATOR.md#review-data). Several windows: [README](../README.md#role-setup-for-the-owner). Record results: [TESTERS](../TESTERS.md#recording-results). Scenes with walls, doors and zones do not exist in the review data: build them in a sandbox Campaign (see SCENE UAT, [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md) and [UAT-SCENE-3](../SCENE/UAT-SCENE-3.md)) or add them to Review: Party in the Field in the steps.
+Proves a player can move only their own token, that the table stops illegal moves (walls, hostile spaces, the map edge, locked tokens), that leaving an enemy's reach pauses for the GM's answer, that the GM can undo a token move, and that traps, hidden hazards and climbing behave and stay hidden from players. Accounts: [README](../README.md#roles-and-accounts). Record results: [TESTERS](../TESTERS.md#recording-results). Scenes with walls, doors and zones are built by the GM in The Campaign (see SCENE UAT, [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md) and [UAT-SCENE-3](../SCENE/UAT-SCENE-3.md)) or added in the steps; The Campaign holds at most 5 Scenes on the free plan.
 
 ## Scenarios
 
@@ -10,15 +10,15 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                    | Title                                              |
 | ------------- | ----- | --------------------------- | -------------------------------------------------- |
-| 72            | 2     | [UAT-MOVE-5](UAT-MOVE-5.md) | Moving outside an Encounter and in a sandbox       |
-| 73            | 2     | [UAT-MOVE-6](UAT-MOVE-6.md) | Peers converge, reload and departure               |
-| 104           | 3     | [UAT-MOVE-1](UAT-MOVE-1.md) | A player moves their own token                     |
-| 105           | 3     | [UAT-MOVE-3](UAT-MOVE-3.md) | Opportunity attack pauses the move                 |
-| 106           | 3     | [UAT-MOVE-4](UAT-MOVE-4.md) | Undo last token move                               |
-| 107           | 3     | [UAT-MOVE-7](UAT-MOVE-7.md) | Overrun, Shove Aside and Tumble                    |
-| 125           | 3     | [UAT-MOVE-2](UAT-MOVE-2.md) | Refusals at walls, hostile spaces and the map edge |
-| 126           | 3     | [UAT-MOVE-8](UAT-MOVE-8.md) | Hidden hazards, traps and auras                    |
-| 127           | 3     | [UAT-MOVE-9](UAT-MOVE-9.md) | Climb onto a larger creature                       |
+| 65            | 2     | [UAT-MOVE-5](UAT-MOVE-5.md) | Moving outside an Encounter and in a sandbox       |
+| 66            | 2     | [UAT-MOVE-6](UAT-MOVE-6.md) | Peers converge, reload and departure               |
+| 105           | 3     | [UAT-MOVE-1](UAT-MOVE-1.md) | A player moves their own token                     |
+| 106           | 3     | [UAT-MOVE-3](UAT-MOVE-3.md) | Opportunity attack pauses the move                 |
+| 107           | 3     | [UAT-MOVE-4](UAT-MOVE-4.md) | Undo last token move                               |
+| 108           | 3     | [UAT-MOVE-7](UAT-MOVE-7.md) | Overrun, Shove Aside and Tumble                    |
+| 126           | 3     | [UAT-MOVE-2](UAT-MOVE-2.md) | Refusals at walls, hostile spaces and the map edge |
+| 127           | 3     | [UAT-MOVE-8](UAT-MOVE-8.md) | Hidden hazards, traps and auras                    |
+| 128           | 3     | [UAT-MOVE-9](UAT-MOVE-9.md) | Climb onto a larger creature                       |
 
 ## Covered elsewhere
 

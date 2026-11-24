@@ -1,6 +1,6 @@
 # Code quality: one home per rule — UAT scenarios
 
-Feature `QUALITY` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Set up first: [README](../OPERATOR.md#setup).
+Feature `QUALITY` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 QUALITY removes duplicated and diverging logic and adds lint guardrails. Its two acceptance criteria are internal (regression tests and a CI lint job), so there is no tester flow here. A few of the formerly diverging behaviours can be seen in play (for example removed-item references in [UAT-BUILDER-4](../BUILDER/UAT-BUILDER-4.md)), but the criterion itself is that one shared implementation exists and a regression test fails without it.
 

@@ -2,24 +2,23 @@
 
 Climb onto a larger creature.
 
-Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 127 of 190
+Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 128 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Sandbox** (owner GM; members P1, P2 and P3 with Iris, Juno and Kit; Manual mode; dim light and per-player fog; a wall with a closed door, a rubble line and one light; a visible Ogre in the east room and a hidden Goblin and a hidden Wolf; the review Encounter started and nobody has acted).
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- **The Campaign** has Aria (P1), a level 1 Fighter P1 built, seated with a token on a presented Scene in a started Encounter (the one from [UAT-ENCOUNTER-1](../ENCOUNTER/UAT-ENCOUNTER-1.md), or any new one). An Ogre (a large creature) is added in S1.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. Read "Aria" as Iris. **GM:** Move the Ogre's token next to Iris's token, or move the party through the door.
+S1. **GM:** Add an Ogre token to the Encounter and move it next to Aria's token.
 
 1. [ ] **GM:** Open Campaign table settings and check the climb rule is offered; turn it on and start a fresh Encounter if needed.
 2. [ ] **P1:** On Aria's turn choose the option to climb onto the large creature.
@@ -52,7 +51,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

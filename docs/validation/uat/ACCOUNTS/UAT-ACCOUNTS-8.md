@@ -2,17 +2,17 @@
 
 Private profiles stay private; Public profiles show only public fields.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1, P2) · Path position 18 of 190
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1, P2) · Path position 11 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox, whose profile is Private by default.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- **P1** has an account whose profile is Private (the default).
+- **P2** and **GM** each have an account and are signed in on their own devices.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -21,20 +21,18 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 1. [ ] **P1:** Open `<STAGING_URL>/settings/profile`. Check **Profile visibility** says Private.
 2. [ ] **P1:** Type a short unique text such as "UAT bio 123" in **Bio**, but do not save yet. Reload the page.
 3. [ ] **P1:** Type the bio again and choose **Save profile**.
-4. [ ] **P2:** Open `<STAGING_URL>/profiles/P1.
+4. [ ] **P2:** Open P1's profile page at `<STAGING_URL>/profiles/P1`.
 5. [ ] **P1:** Set **Profile visibility** to Public and choose **Save profile**.
-6. [ ] **P2:** Reload the profile page.
+6. [ ] **P2 and GM:** Reload (or open) P1's profile page.
 7. [ ] **P1:** Set **Profile visibility** back to Private and save.
-8. [ ] **P2:** Reload the profile page.
-9. [ ] **P2:** Without reloading, sign out and sign in as P1 in the same browser profile, then open P1's settings.
+8. [ ] **P2 and GM:** Reload P1's profile page.
 
 ## Expected
 
 - Step 2: the unsaved bio is lost on reload (it was not saved), and the page does not show anyone else's data.
 - Step 4: P2 sees "Profile unavailable" (or similar), no bio and no details.
-- Step 6: P2 sees P1's username, avatar and the bio "UAT bio 123", and no email address.
+- Step 6: P2 and the GM see P1's username, avatar and the bio "UAT bio 123", and no email address.
 - Step 8: access is gone at once ("Profile unavailable").
-- Step 9: after switching accounts in one browser, P1 sees only P1's own bio and username; nothing from P2's session leaks.
 
 ## Other users see
 
@@ -53,7 +51,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -2,25 +2,25 @@
 
 Show a map to players without presenting.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 87 of 190
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 81 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- **The Campaign** is running: P1, P2 and P3 are seated with Campaign Characters Aria, Bryn and Cade (Level 1 Fighters, each built by their own player in the Character Builder), a presented Scene with a Wolf token and a Goblin token, Assisted mode with the Speed Factor initiative, and an Encounter started and in round 2 (built in the CAMPAIGN, SCENE and ENCOUNTER scenarios).
 - Use the provided file [assets/sample-battle-map-b.png](../assets/sample-battle-map-b.png): the different map image for the throwaway Scene "UAT Map B".
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **GM:** In Review: Party in the Field create a Scene "UAT Map B" with the provided map, one token and, if the editor offers it, one wall (as in [SCENE-1](../SCENE/UAT-SCENE-1.md)). Do not delete any other Scene.
+S1. **GM:** In The Campaign create a Scene "UAT Map B" with the provided map, one token and, if the editor offers it, one wall (as in [SCENE-1](../SCENE/UAT-SCENE-1.md)). Do not delete any other Scene.
 
 1. [ ] **GM:** In the tabletop window choose to show "UAT Map B" to players (**Choose a Campaign scene to show at the table**, then show it).
 2. [ ] **P1:** Look at the tabletop window.
@@ -52,7 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

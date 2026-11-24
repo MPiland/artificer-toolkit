@@ -2,11 +2,11 @@
 
 Removing content a Character uses repairs the Character.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 44 of 190
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 37 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- The account **P1** exists.
 - Done in [UAT-AUTHORING-8](../AUTHORING/UAT-AUTHORING-8.md): the Feat "UAT Sharp Eyes" is Active and owned by P1.
 - Done in [UAT-AUTHORING-3](../AUTHORING/UAT-AUTHORING-3.md): the Background "UAT Wanderer" is Active and owned by P1.
 - Done in [UAT-AUTHORING-7](../AUTHORING/UAT-AUTHORING-7.md): the Equipment item "UAT Blade" is Active and owned by P1.
@@ -14,7 +14,7 @@ Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path posit
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
@@ -30,6 +30,7 @@ S1. **P1:** Build a Character named "UAT Reconcile" as in [BUILDER-1](../BUILDER
 6. [ ] **P1:** Open the Character in the Builder and read the preview before changing anything.
 7. [ ] **P1:** Choose **Activate** on the repaired Character.
 8. [ ] **P1:** Open the Sheet again, then do the same with the Background and the Equipment (delete each, preview, activate).
+9. [ ] **P1:** Delete "UAT Reconcile" from **Characters** (confirm). P1 is back to 1 of 6 personal Characters (Aria).
 
 ## Expected
 
@@ -54,7 +55,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

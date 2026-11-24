@@ -2,31 +2,28 @@
 
 Set up the Spell Arena Encounter (Assisted).
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 154 of 190
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 155 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the account **P3**, who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- **The Campaign** has P1, P2 and P3 seated with **Aria**, **Bryn** and **Cade** (level 1 Fighters each player built) and a Scene with a map that the GM can present. An earlier Encounter may still be running.
 - Done in [UAT-SPELLS-1](UAT-SPELLS-1.md): Sage (P1), Hale (P2) and Vex (P3) are committed and in no Campaign.
-- Done in [UAT-ENCOUNTER-2](../ENCOUNTER/UAT-ENCOUNTER-2.md): the Party Encounter was completed.
+- Done in [UAT-ENCOUNTER-2](../ENCOUNTER/UAT-ENCOUNTER-2.md): the Campaign's first Encounter was run and completed.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2, P3
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **GM:** Open **Review: Party in the Field**, open the Live tabletop and choose **Complete encounter** on the running review Encounter. If the GM is offered to advance the Campaign clock, choose **Not now**.
+1. [ ] **GM:** Open **The Campaign**, open the Live tabletop and choose **Complete encounter** on any Encounter that is still running (skip this if none is). If the GM is offered to advance the Campaign clock, choose **Not now**.
 2. [ ] **GM:** In the Campaign's table settings confirm Automation mode is Assisted and the Initiative policy is the Speed Factor variant. Make sure **Automatic cover** is ticked. Save table settings if you changed anything.
 3. [ ] **P1:** On the Campaign's Party roster choose **Change Character** and pick **Sage** in the Character picker (it replaces Aria). **P2:** choose **Change Character** and pick **Hale**. **P3:** choose **Change Character** and pick **Vex**.
-4. [ ] **GM:** Present a Scene (the review map) and create a new Encounter. Add Sage, Hale and Vex's tokens (not Aria's, Bryn's or Cade's), and Goblin x3 in a group about 6 squares from the party, one Wolf adjacent to Sage, one Giant Spider, two Bandits, one Ogre.
+4. [ ] **GM:** Present a Scene with a map and create a new Encounter. Add Sage, Hale and Vex's tokens (not Aria's, Bryn's or Cade's), and Goblin x3 in a group about 6 squares from the party, one Wolf adjacent to Sage, one Giant Spider, two Bandits, one Ogre.
 5. [ ] **GM:** Start the Encounter and set initiative for everyone. Choose a turn for Sage.
 6. [ ] **P1:** In the action drawer find the spell **Fireball**. Confirm it is listed once per slot level Sage can cast it at, such as "Fireball (3rd level)", "Fireball (4th level)" and "Fireball (5th level)", that cantrips appear once, and that the choice shows the spell's component text (it is shown, not enforced).
 7. [ ] **P1:** Look for Find Familiar (a ritual) in the action drawer. Expected refusal: it shows as unavailable with a message to cast it from the Sheet, and no slot is spent.
@@ -53,7 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

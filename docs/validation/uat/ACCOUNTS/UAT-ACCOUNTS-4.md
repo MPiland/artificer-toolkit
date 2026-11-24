@@ -2,16 +2,16 @@
 
 Public sign-up is closed.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (any one role) · Path position 11 of 190
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (any one role) · Path position 4 of 191
 
 ## Prerequisites
 
-- The review data provides no account for the browser: you are signed out, and the sign-up page is the only thing you need.
+- No account is needed: you are signed out, and the sign-up page is the only thing you need.
 
 ## Accounts and windows
 
 - **Roles used:** none (signed out)
-- **Windows:** One browser window, signed out. Your normal browser is fine.
+- **Windows:** One browser, not signed in.
 
 ## Steps
 
@@ -43,7 +43,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

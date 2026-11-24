@@ -2,24 +2,24 @@
 
 Shield prompts the right player while the attacker waits.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path position 109 of 190
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path position 110 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Shield and Hold** (owner GM; member P1 with Ember, who has Shield and Hold Person; a Wolf and a Goblin; Assisted mode; the review Encounter started with the Goblin held by Ember's Hold Person and Ember's Shield reaction already used this round).
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- P1 has Aria seated in The Campaign. P1 has 1 of 6 personal Characters, so there is room to build Ember in step S0.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2, P3
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **GM:** In Review: Shield and Hold use **Next turn** until a new round starts and Ember's Shield reaction is available again.
+S0. **P1:** In the Builder (as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) steps 1 to 10) build and activate **Ember**, a level 3 Wizard who has Shield and Hold Person prepared and first-level spell slots. Later scenarios reuse her.
+S1. **GM:** Choose **Complete encounter** on any running Encounter. **P1:** Use **Change Character** to put Ember in The Campaign in place of Aria. **GM:** Create and start an Encounter in Assisted mode with Ember, a Wolf and a Goblin, and use **Next turn** until Ember's Shield reaction is available.
 S2. **P1:** Auto-roll ON.
 
 1. [ ] **GM:** Open the live table. Note Ember's hit points, armor class, remaining first-level slots and that her reaction is available.
@@ -35,6 +35,7 @@ S2. **P1:** Auto-roll ON.
 11. [ ] **GM:** Repeat steps 2 to 3 once more, then **P1:** choose **Use**. Then, in the same round, have the Wolf (or the other hostile) attack Ember again. Confirm no second reaction is offered (one reaction per round).
 12. [ ] **GM:** Advance to the next round and confirm Ember's reaction is available again.
 13. [ ] **P1:** On Ember's turn, try to cast Shield from the ordinary action list (not as a reaction). Read the refusal.
+        R1. **GM:** Complete the Encounter. **P1:** Use **Change Character** to put Aria back in The Campaign in place of Ember.
 
 ## Expected
 
@@ -48,7 +49,7 @@ S2. **P1:** Auto-roll ON.
 ## Other users see
 
 - **GM:** Sees the attack held while the decision is open and sees who has answered.
-- **P2/P3:** Not members of this Campaign; they see nothing of it.
+- **P2, P3:** Watching the same table as seated players: they see the held attack but get no Use or Decline prompt for Ember.
 
 ## ACs covered
 
@@ -62,7 +63,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

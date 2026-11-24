@@ -2,19 +2,18 @@
 
 Reconnect while a decision is open.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position 112 of 190
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position 113 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Shield and Hold** (owner GM; member P1 with Ember, who has Shield and Hold Person; a Wolf and a Goblin; Assisted mode; the review Encounter started with the Goblin held by Ember's Hold Person and Ember's Shield reaction already used this round).
-- Done in [UAT-REACTION-1](UAT-REACTION-1.md): steps 1 to 3 left a pending reaction prompt for P1.
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- Done in [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md): P1 built **Ember**, a level 3 Wizard with Shield and Hold Person prepared and 1st-level slots. Ember is not seated yet; the setup step has P1 swap to her.
+- Done in [UAT-REACTION-1](UAT-REACTION-1.md): setup and steps 1 to 3 (Ember seated, a running Encounter, and a reaction prompt for P1 that is still waiting; do not answer it yet).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -24,6 +23,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 2. [ ] **P1:** Confirm the page reconnects by itself and the Shield prompt is still waiting.
 3. [ ] **GM:** Meanwhile confirm the attack is still held.
 4. [ ] **P1:** Answer **Use**. Confirm the result is applied once.
+       R1. **GM:** Complete the Encounter. **P1:** Use **Change Character** to put Aria back in The Campaign in place of Ember.
 
 ## Expected
 
@@ -45,7 +45,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

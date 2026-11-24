@@ -2,23 +2,23 @@
 
 Edit a personal Sheet and reload.
 
-Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 46 of 190
+Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 39 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): "UAT Dara", a level-1 Fighter, is committed and in no Campaign.
+- The account **P1** exists.
+- Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): Aria, a level-1 Fighter, is committed and in no Campaign.
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **P1:** Open Characters from the main menu and choose **UAT Dara** to open the Character Sheet.
+1. [ ] **P1:** Open Characters from the main menu and choose **Aria** to open the Character Sheet.
 2. [ ] **P1:** Note the current hit points shown in the vitals area.
 3. [ ] **P1:** Choose **Manage hit points**, enter 3 in **Hit point amount**, apply it as damage, and close the panel.
 4. [ ] **P1:** Turn **Inspiration** on.
@@ -53,7 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

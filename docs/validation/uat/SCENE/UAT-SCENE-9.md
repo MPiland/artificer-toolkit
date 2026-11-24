@@ -2,26 +2,26 @@
 
 One shared table screen for several players.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2, P3) · Path position 71 of 190
+Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2, P3) · Path position 64 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the account **P3**, who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
-- Done in [UAT-SCENE-4](UAT-SCENE-4.md): tokens for UAT Dara and UAT Bryn Sandbox are on the presented Scene.
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- The account **P2** exists and is seated as a player in The Campaign.
+- The account **P3** exists and is seated as a player in The Campaign.
+- Done in [UAT-SCENE-4](UAT-SCENE-4.md): tokens for Aria and Bryn are on the presented Scene.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2, P3
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **GM:** Add a token for "UAT Cade Sandbox" (P3) to the presented Scene.
+S1. **GM:** Add a token for Cade (P3) to the presented Scene.
 
 1. [ ] **GM:** Open the Party and give P1 control of P2's Character in addition to P1's own (**Also controlled by**). Keep P2 as owner.
 2. [ ] **P1:** Look for a **Main Character** selector and read the choice.
@@ -57,7 +57,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -2,17 +2,17 @@
 
 Password reset email is requested from the app.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (P3) · Path position 25 of 190
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Solo (P3) · Path position 18 of 191
 
 ## Prerequisites
 
-- The review data provides a browser that is signed out.
+- **P3** has an account; you know its email address and password. The browser is signed out.
 - Done in [UAT-ACCOUNTS-1](../ACCOUNTS/UAT-ACCOUNTS-1.md): you know the sign-in page.
 
 ## Accounts and windows
 
 - **Roles used:** P3
-- **Windows:** One browser window, signed in as P3 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, not signed in at first.
 
 ## Steps
 
@@ -30,13 +30,13 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 - Both attempts show the same neutral message (the app does not reveal whether an account exists) and the page asking for the six-digit code.
 - No error about email delivery appears.
 - The old password still signs in.
-- **Local only** (the second half needs the local email sink): [Reading local email](../OPERATOR.md#reading-local-email) shows one reset email in the inbox of the email address of P3; no email exists for `nobody-here@example.invalid`.
+- **Reading the email:** the owner reads the mailbox of P3's address and confirms it holds one reset email for P3; no email exists for `nobody-here@example.invalid`.
 
 - Staging: every email this scenario sends arrives in the inbox within a few minutes, shows the product branding, has working links and is not in spam.
 
 ## Other users see
 
-- Not applicable: single user.
+- Not applicable: one person acts in this scenario.
 
 ## ACs covered
 
@@ -50,7 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

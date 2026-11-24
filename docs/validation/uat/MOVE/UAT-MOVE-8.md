@@ -2,25 +2,23 @@
 
 Hidden hazards, traps and auras.
 
-Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 126 of 190
+Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 127 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Sandbox** (owner GM; members P1, P2 and P3 with Iris, Juno and Kit; Manual mode; dim light and per-player fog; a wall with a closed door, a rubble line and one light; a visible Ogre in the east room and a hidden Goblin and a hidden Wolf; the review Encounter started and nobody has acted).
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- **The Campaign** has Aria (P1) and Bryn (P2), level 1 Fighters their players built, seated, with tokens on a presented Scene in a started Encounter (the one from [UAT-ENCOUNTER-1](../ENCOUNTER/UAT-ENCOUNTER-1.md), or any new one).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. Read "Aria" and "Bryn" as Iris and Juno. In table settings **Noticing concealed zones** is **GM prompt** (default).
+S1. **GM:** In table settings **Noticing concealed zones** is **GM prompt** (default).
 
 1. [ ] **GM:** Open the zone tool (**Create scene object**, zone) and place a visible pit trap zone with a label and no spot DC.
 2. [ ] **P1 and P2:** Look at the map.
@@ -63,7 +61,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

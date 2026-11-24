@@ -2,24 +2,24 @@
 
 Upload a map, calibrate and create a Scene.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 65 of 190
+Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 58 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): the Sandbox Campaign has P1, P2 and P3 as members, each with a Character.
+- The account **GM** exists and hosts The Campaign.
+- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): The Campaign has P1, P2 and P3 as members, each with a Character.
 - Use the provided file [assets/sample-battle-map.png](../assets/sample-battle-map.png): a 1000 x 750 map with a 50-pixel grid; grid intersections are 50 pixels apart.
 
 ## Accounts and windows
 
 - **Roles used:** GM
-- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as GM.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **GM:** Open the Sandbox Campaign and go to the Live maps area (**Prepared scenes**).
+1. [ ] **GM:** Open The Campaign and go to the Live maps area (**Prepared scenes**).
 2. [ ] **GM:** Choose **Map image** and select [sample-battle-map.png](../assets/sample-battle-map.png). Watch **Map upload progress**.
 3. [ ] **GM:** Type a **Scene name** (for example "UAT Cavern").
 4. [ ] **GM:** Choose Grid type **Square**, set **Distance per cell** to 5 and **Distance unit** to **Feet**.
@@ -50,7 +50,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

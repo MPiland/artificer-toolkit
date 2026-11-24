@@ -2,19 +2,17 @@
 
 Peers converge, reload and departure.
 
-Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 73 of 190
+Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 66 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- Done in [UAT-SCENE-4](../SCENE/UAT-SCENE-4.md): "UAT Cavern" is presented with tokens for UAT Dara and UAT Bryn Sandbox, and no Encounter is running.
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- Done in [UAT-SCENE-4](../SCENE/UAT-SCENE-4.md): "UAT Cavern" is presented in The Campaign with tokens for **Aria** (P1) and **Bryn** (P2), level 1 Fighters their players built, and no Encounter is running.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -22,12 +20,12 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 1. [ ] **P1:** Move P1's Character's token.
 2. [ ] **P2:** Move P2's Character's token at about the same time.
-3. [ ] **All:** Compare maps.
+3. [ ] **GM, P1, P2:** Each compare your own map with what the others describe.
 4. [ ] **P2:** Reload the page.
 5. [ ] **P1:** Go offline (Network panel) and move P1's Character's token; go back online.
 6. [ ] **GM:** Remove P2 from the Campaign (see CAMPAIGN UAT).
 7. [ ] **P2:** Try to move P2's Character's token and reload.
-       R1. **GM:** Re-seat P2 and add P2's token back to the Scene in the Sandbox Campaign as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md) (invite by username, accept, assign the Character).
+       R1. **GM:** Re-seat P2 and add P2's token back to the Scene in The Campaign as in [CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md) (**GM:** invite P2 by username; **P2:** accept and assign Bryn as P2's Character).
 
 ## Expected
 
@@ -51,7 +49,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

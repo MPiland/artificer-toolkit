@@ -2,18 +2,18 @@
 
 A new Scene measures lengths correctly in every unit.
 
-Level 2 (GM setup) · Feature RELIABILITY · Mode: Solo (GM) · Path position 76 of 190
+Level 2 (GM setup) · Feature RELIABILITY · Mode: Solo (GM) · Path position 70 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1, P2 and P3 are seated in the Sandbox Campaign with their Characters.
-- Use the provided file [assets/sample-battle-map.png](../assets/sample-battle-map.png): the map to upload (replaces "any small JPEG, PNG or WebP image").
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- The Campaign has room for two more Scenes (the FREE plan allows 5 Scenes per Campaign; it holds only "UAT Cavern" at this point).
+- Use the provided file [assets/sample-battle-map.png](../assets/sample-battle-map.png): the map to upload.
 
 ## Accounts and windows
 
 - **Roles used:** GM
-- **Windows:** One browser window, signed in as GM with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as GM.
 
 ## Steps
 
@@ -25,9 +25,10 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 4. [ ] **GM:** Switch the unit to squares. Note the new default distance per cell.
 5. [ ] **GM:** Switch back to feet and save the Scene.
 6. [ ] **GM:** Present the Scene and add a token for a creature.
-7. [ ] **GM:** Start a new Encounter on this Scene (Campaign mode Assisted; [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 and 5), with a creature a few squares from another.
+7. [ ] **GM:** Complete any Run still running, then start a new Encounter on this Scene (Campaign mode Assisted; [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 and 5), with a creature a few squares from another.
 8. [ ] **GM:** Move a token, then pick an attack action against a creature a few squares away and read the range shown.
 9. [ ] **GM:** Set a second new Scene's unit to squares, present it, start an Encounter and repeat step 8.
+       R1. **GM:** Complete the Encounter, present "UAT Cavern" again and start a new Encounter on it as in [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5, so later scenarios find The Campaign as before. Keep the two new Scenes: The Campaign now holds 3 of 5 Scenes.
 
 ## Expected
 
@@ -39,7 +40,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 ## Other users see
 
-- Not applicable: single user.
+- Not applicable: one person acts in this scenario.
 
 ## ACs covered
 
@@ -53,7 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

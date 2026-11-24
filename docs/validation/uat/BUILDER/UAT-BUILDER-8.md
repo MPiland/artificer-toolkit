@@ -2,35 +2,34 @@
 
 A player permanently deletes their own Character from the Characters list and from the Sheet; the Campaign and its running Encounter let it go.
 
-Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 61 of 191
+Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 69 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- Done in [UAT-BUILDER-7](UAT-BUILDER-7.md): P1 can build and activate a Character ([BUILDER-1](UAT-BUILDER-1.md) steps 1 to 10).
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)). P1 has Aria as their Campaign Character (1 of 6 personal Characters).
+- An Encounter is running in The Campaign ([UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md)).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
 S1. **P1:** Build and activate two Fighters named "UAT Delete Me" and "UAT Keep Me" ([BUILDER-1](UAT-BUILDER-1.md) steps 1 to 10).
-S2. **P1:** On the Sandbox Campaign's Party panel choose **Change Character** and assign "UAT Delete Me".
-S3. **GM:** Start an Encounter in the Sandbox Campaign that includes "UAT Delete Me" and leave it running.
+S2. **P1:** On The Campaign's Party panel choose **Change Character** and assign "UAT Delete Me".
+S3. **GM:** Start an Encounter in The Campaign that includes "UAT Delete Me" and leave it running.
 
 1. [ ] **GM:** Try to find a way to delete "UAT Delete Me" (open the Campaign Party panel and the Character link).
 2. [ ] **P1:** Open `<STAGING_URL>/characters`, open the actions on "UAT Delete Me" and choose **Delete**. Read the confirmation, then choose **Cancel**.
 3. [ ] **P1:** Choose **Delete** again and confirm.
 4. [ ] **P1:** Reopen the old "UAT Delete Me" Sheet link and Builder link (use the browser Back history).
-5. [ ] **GM:** Reload the Sandbox Campaign and look at the Party panel and the running Encounter.
+5. [ ] **GM:** Reload The Campaign and look at the Party panel and the running Encounter.
 6. [ ] **P1:** Open "UAT Keep Me" and check it is unchanged. Then open it and use the trash icon in the Sheet header: confirm the dialog names "UAT Keep Me", choose **Cancel**.
 7. [ ] **P1:** Check the Characters list and the Party panel once more.
-       R1. **P1:** Build a replacement Character if later scenarios need one.
+       R1. **P1:** Delete "UAT Keep Me" from **Characters**, then on the Party panel choose **Add Character** and assign Aria (P1 has 1 of 6 personal Characters again). **GM:** Complete the Encounter and start a new one on the presented Scene with the Wolf, the Goblin and Aria, Bryn and Cade as in [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5.
 
 ## Expected
 
@@ -59,7 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

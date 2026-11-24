@@ -2,27 +2,26 @@
 
 Undo last action and its refusals.
 
-Level 4 (Advanced play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 147 of 190
+Level 4 (Advanced play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 148 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
-- The review data provides the Campaign **Review: Shield and Hold** (owner GM; member P1 with Ember, who has Shield and Hold Person; a Wolf and a Goblin; Assisted mode; the review Encounter started with the Goblin held by Ember's Hold Person and Ember's Shield reaction already used this round).
-- Done in [UAT-ENCOUNTER-2](../ENCOUNTER/UAT-ENCOUNTER-2.md): the Party Encounter was completed; the Party Scene is still presented.
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- **The Campaign** has Aria (P1), Bryn (P2) and Cade (P3), level 1 Fighters each player built, seated; Assisted mode with the Speed Factor initiative; and a running Encounter in round 2 with tokens for the three Fighters, a Wolf and a Goblin, as the GM built it in [UAT-ENCOUNTER-1](../ENCOUNTER/UAT-ENCOUNTER-1.md) (steps 12 to 16) and played on.
+- Done in [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md): P1 built **Ember**, a level 3 Wizard with Shield and Hold Person prepared (used in step 7; P1 swaps to Ember there and back to Aria in R1).
+- Done in [UAT-ENCOUNTER-2](../ENCOUNTER/UAT-ENCOUNTER-2.md): the Campaign's first Encounter was completed and its Scene is still presented.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **GM:** If Review: Party in the Field has no running Encounter, create and start one with Aria, Bryn, Cade, a Wolf and a Goblin, as in [ENCOUNTER-1](../ENCOUNTER/UAT-ENCOUNTER-1.md) steps 12 to 16, and advance until Aria is the active actor.
-S2. **P1:** Switch **Auto-roll** ON. For step 7 **GM:** In Review: Shield and Hold use **Next turn** until Ember's reaction is available.
+S1. **GM:** If The Campaign has no running Encounter, create and start one with Aria, Bryn, Cade, a Wolf and a Goblin, as in [ENCOUNTER-1](../ENCOUNTER/UAT-ENCOUNTER-1.md) steps 12 to 16, and advance until Aria is the active actor.
+S2. **P1:** Switch **Auto-roll** ON.
 
 1. [ ] **P1:** On Aria's turn, attack the Wolf. Note the Wolf's hit points before and after.
 2. [ ] **P1:** Look for an undo control. Confirm players cannot undo anything at the live table.
@@ -30,10 +29,11 @@ S2. **P1:** Switch **Auto-roll** ON. For step 7 **GM:** In Review: Shield and Ho
 4. [ ] **GM:** Choose **Undo last action** again right away. Read the refusal (nothing to undo or already undone).
 5. [ ] **P1:** Attack again. Then **GM:** move any token. Then **GM:** **Undo last action**. Read the refusal (a later change touched an affected actor) and the "adjust manually" message.
 6. [ ] **P1:** Attack again. **P1:** before the GM undoes, edit Aria's hit points or spend her Second Wind from the Sheet. **GM:** try **Undo last action**. Read the refusal (Sheet changed since).
-7. [ ] **GM:** Switch to **Review: Shield and Hold** (GM and P1 only), where Ember holds Concentration on Hold Person. Have the Wolf attack Ember until a hit forces a Concentration check that Ember fails (or type a low roll when prompted), so the Concentration ends. **GM:** try to undo that damage action. Read the refusal naming what cannot be restored.
+7. [ ] **GM:** Choose **Complete encounter**. **P1:** Use **Change Character** to put Ember in The Campaign in place of Aria. **GM:** Create and start a new Encounter with Ember, a Wolf and a Goblin. **P1:** Cast Hold Person on the Goblin so Ember holds Concentration. **GM:** Have the Wolf attack Ember until a hit forces a Concentration check that Ember fails (or type a low roll when prompted), so the Concentration ends. **GM:** try to undo that damage action. Read the refusal naming what cannot be restored. Steps 8 to 10 use this new Encounter.
 8. [ ] **P1:** Begin an action that raises a Pending decision (move out of an enemy's reach). While the decision is open, **GM:** try **Undo last action**. Read the refusal.
-9. [ ] **GM:** Back in **Review: Party in the Field**, place a zone (hazard) with the zone tool as in [UAT-MOVE-8](../MOVE/UAT-MOVE-8.md) step 1 and use **Undo placement**. Confirm the zone disappears.
+9. [ ] **GM:** Place a zone (hazard) with the zone tool as in [UAT-MOVE-8](../MOVE/UAT-MOVE-8.md) step 1 and use **Undo placement**. Confirm the zone disappears.
 10. [ ] **GM:** Complete the Encounter, then try **Undo last action**. Read the refusal.
+        R1. **P1:** Use **Change Character** to put Aria back in The Campaign in place of Ember.
 
 ## Expected
 
@@ -58,7 +58,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -2,18 +2,18 @@
 
 Another account cannot see or edit your drafts.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (GM, P1, P2) · Path position 29 of 190
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (GM, P1, P2) · Path position 22 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the account **GM**, owner of the four review Campaigns.
+- The account **P1** exists (a free account).
+- The account **P2** exists (a free account), used only for the cross-role check.
+- The account **GM** exists (a free account).
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -53,7 +53,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

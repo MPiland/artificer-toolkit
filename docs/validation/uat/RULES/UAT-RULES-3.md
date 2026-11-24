@@ -2,28 +2,26 @@
 
 A reaction pauses a hit; answering resumes it; privacy of the pause.
 
-Level 3 (Core play) · Feature RULES · Mode: Group (GM, P1, P2) · Path position 113 of 190
+Level 3 (Core play) · Feature RULES · Mode: Group (GM, P1, P2, P5) · Path position 114 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the Campaign **Review: Shield and Hold** (owner GM; member P1 with Ember, who has Shield and Hold Person; a Wolf and a Goblin; Assisted mode; the review Encounter started with the Goblin held by Ember's Hold Person and Ember's Shield reaction already used this round).
-- The review data provides the Campaign **Review: Party in the Field** (owner GM; members P1, P2 and P3 with Aria, Bryn and Cade, Level 1 Fighters, on the presented Scene; Assisted mode with the Speed Factor initiative; a Wolf token and a Goblin token; the review Encounter started and in round 2).
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- Done in [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md): P1 built **Ember**, a level 3 Wizard with Shield and Hold Person prepared and 1st-level slots. Ember is not seated yet; the setup step has P1 swap to her.
+- **The Campaign** has Aria (P1), Bryn (P2) and Cade (P3), level 1 Fighters each player built, seated; Assisted mode with the Speed Factor initiative; and a running Encounter in round 2 with tokens for the three Fighters, a Wolf and a Goblin, as the GM built it in [UAT-ENCOUNTER-1](../ENCOUNTER/UAT-ENCOUNTER-1.md) (steps 12 to 16) and played on.
 
 ## Accounts and windows
 
-- **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Roles used:** GM, P1, P2, P5 (P5 is not a member of The Campaign)
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **GM:** In Review: Shield and Hold use **Next turn** until a new round starts and Ember's Shield reaction is available again.
+S1. **GM:** Choose **Complete encounter** on any running Encounter. **P1:** Use **Change Character** to put Ember in The Campaign in place of Aria. **GM:** Create and start an Encounter in Assisted mode with Ember, a Wolf and a Goblin, and use **Next turn** until Ember's Shield reaction is available.
 
-1. [ ] **GM:** Open the tabletop of Review: Shield and Hold and advance to the Wolf's turn.
+1. [ ] **GM:** Open the tabletop of The Campaign and advance to the Wolf's turn.
 2. [ ] **GM:** Have the Wolf attack Ember from the action drawer.
 3. [ ] **GM:** Read the Encounter panel while the attack is waiting.
 4. [ ] **P1:** Read the reaction prompt that appears for Ember (Shield).
@@ -32,7 +30,8 @@ S1. **GM:** In Review: Shield and Hold use **Next turn** until a new round start
 7. [ ] **P1:** If asked, roll or enter the dice and let the attack complete.
 8. [ ] **GM:** Read the Encounter history for this attack.
 9. [ ] **GM:** Advance through Ember's turn (her reaction becomes available again) to the Wolf's next turn. Repeat steps 2-4, then choose **Skip decision** instead of waiting.
-10. [ ] **P2:** In P2's own window, try to open the tabletop of Review: Shield and Hold (paste its address).
+10. [ ] **P5:** Paste the address of The Campaign's tabletop (the GM sends it) and try to open it. P5 is not a member.
+        R1. **GM:** Complete the Encounter. **P1:** Use **Change Character** to put Aria back in The Campaign in place of Ember.
 
 ## Expected
 
@@ -42,12 +41,13 @@ S1. **GM:** In Review: Shield and Hold use **Next turn** until a new round start
 - Step 7: after the answer, the attack finishes once: Shield's bonus applies to that attack (a hit can become a miss) and a first-level slot is spent.
 - Step 8: the history shows one attack, the reaction, and the outcome, each once.
 - Step 9: **Skip decision** treats a declinable choice as declined and play continues; no slot is spent.
-- Step 10: P2 is refused (not a member); nothing of the Campaign is shown.
+- Step 10: P5 is refused (not a member); nothing of the Campaign is shown.
 
 ## Other users see
 
 - **GM:** Sees the pending state and the final result.
-- **P2:** In the Party in the Field window sees nothing of this Campaign's decision, dice or prompts at any step.
+- **P2:** As a seated player watching the table, sees the held attack and the result but never a prompt, decision or private dice belonging to Ember.
+- **P5:** Sees nothing of The Campaign at any step.
 
 ## ACs covered
 
@@ -61,7 +61,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

@@ -2,21 +2,21 @@
 
 Initiative and optional-combat combinations pass end to end.
 
-Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 144 of 190
+Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 145 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
-- The review data provides the account **P3**, who owns Cade (in Review: Party in the Field) and is also a member of Review: Sandbox.
-- Done in [UAT-ENCOUNTER-1](UAT-ENCOUNTER-1.md): the Party Encounter is complete and the Sandbox Encounter has been rebuilt.
-- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1, P2 and P3 are seated in the Sandbox Campaign with their Characters.
+- The account **GM** exists and hosts The Campaign.
+- The account **P1** exists and is seated as a player in The Campaign.
+- The account **P2** exists and is seated as a player in The Campaign.
+- The account **P3** exists and is seated as a player in The Campaign.
+- Done in [UAT-ENCOUNTER-1](UAT-ENCOUNTER-1.md): the Party Encounter is complete and The Campaign's Encounter has been rebuilt (Assisted mode).
+- Done in [UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md): P1, P2 and P3 are seated in The Campaign with their Characters.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2, P3
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -24,7 +24,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 S1. **P1, P2, P3:** Auto-roll ON for the first half of the scenario, OFF for the second.
 
-1. [ ] **GM:** Open the Campaign's table settings. Note the current **Initiative policy** (Speed Factor on the review Campaigns) and **Initiative tie resolver**. Under **Optional combat rules**, select every rule that is offered (up to 14; use only those actually listed). Save.
+1. [ ] **GM:** Open the Campaign's table settings. Note the current **Initiative policy** (Speed Factor in The Campaign) and **Initiative tie resolver**. Under **Optional combat rules**, select every rule that is offered (up to 14; use only those actually listed). Save.
 2. [ ] **GM:** Start a new Encounter with the three Characters and the Wolf and Goblin. Confirm the Encounter drawer shows the chosen rules as active (for example "Facing rule is active").
 3. [ ] **P1, P2, P3:** Each use **Declare actions** (the declaration button in the decision drawer) for your Character and pick different actions; at least one player picks a light action and one a heavy action. Do not pick the same Speed Factor as another player so order changes.
 4. [ ] **GM:** Declare Speed Factor for the Wolf and Goblin too, then read the turn order. It must follow the Speed Factor numbers plus modifiers (light actions earlier than heavy ones).
@@ -61,7 +61,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

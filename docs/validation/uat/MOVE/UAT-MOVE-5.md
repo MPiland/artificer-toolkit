@@ -2,18 +2,17 @@
 
 Moving outside an Encounter and in a sandbox.
 
-Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1) · Path position 72 of 190
+Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1) · Path position 65 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- Done in [UAT-SCENE-4](../SCENE/UAT-SCENE-4.md): "UAT Cavern" is presented in the Sandbox Campaign with a token for UAT Dara, and no Encounter is running.
+- **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
+- Done in [UAT-SCENE-4](../SCENE/UAT-SCENE-4.md): "UAT Cavern" is presented in The Campaign with a token for **Aria** (P1's level 1 Fighter), and no Encounter is running.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -48,7 +47,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

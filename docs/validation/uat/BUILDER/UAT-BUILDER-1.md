@@ -1,31 +1,30 @@
-# UAT-BUILDER-1: Build a Character for a review player, save, resume and commit
+# UAT-BUILDER-1: Build a Character, save, resume and commit
 
-Build a Character for a review player, save, resume and commit.
+Build a Character, save, resume and commit.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 40 of 190
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 33 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- The review data provides the account **GM**, owner of the four review Campaigns.
+- The account **P1** exists and has no Character yet (P1 has 0 of 6 personal Characters).
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
 1. [ ] **P1:** Open `<STAGING_URL>/characters` and choose **Create Character**.
-2. [ ] **P1:** Enter **Character Name** "UAT Dara" and choose a Race, a Class and a Background.
+2. [ ] **P1:** Enter **Character Name** "Aria" (the Character P1 will play in The Campaign) and choose the Dwarf Race (it has darkvision, which a later scenario needs), the Fighter Class and a Background (Aria is a Level 1 Fighter).
 3. [ ] **P1:** Fill the ability scores (use the **Ability Method** the page offers) and pick the equipment choices.
 4. [ ] **P1:** Choose **Save Character Draft**.
 5. [ ] **P1:** Close the tab. Reopen `<STAGING_URL>/characters` and find the draft; open it.
 6. [ ] **P1:** Confirm your earlier choices are intact, then change the Background and save the draft again.
 7. [ ] **P1:** Start a second Character, enter the name "UAT Throwaway", save the draft, then choose **Discard draft** and confirm.
-8. [ ] **P1:** Back on "UAT Dara", go to the **Review** step.
+8. [ ] **P1:** Back on "Aria", go to the **Review** step.
 9. [ ] **P1:** Read the status. If it says **Needs attention**, open the listed items and fix them until it says **Ready to activate**.
 10. [ ] **P1:** Choose **Activate** to commit the Character.
 11. [ ] **P1:** Open the new Character's Sheet.
@@ -41,9 +40,9 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 ## Cross-role check
 
-Owner follow-up, run after the tester finishes, from the same set's GM profile (not part of the tester's run):
+Run by a second person signed in as GM in their own browser, after the tester finishes:
 
-- **GM:** After step 4 and after step 10, open Review: Party in the Field's Party panel: "UAT Dara" and the draft are not shown (P1's Character there is still Aria).
+- **GM:** After step 4 and after step 10, open your own **Characters** list: Aria and the draft are not shown (private Characters are visible only to their owner).
 
 ## ACs covered
 
@@ -57,7 +56,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

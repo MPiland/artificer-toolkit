@@ -2,23 +2,24 @@
 
 Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke).
 
-Level 5 (Reliability, performance and release) · Feature PERF · Mode: Group (GM, P1, P2) · Path position 189 of 190
+Level 5 (Reliability, performance and release) · Feature PERF · Mode: Group (GM, P1, P2) · Path position 190 of 191
 
 ## Prerequisites
 
-- The review data provides a staging build (blocked until gap G4 is fixed: see [Known UAT gaps](../OPERATOR.md#known-uat-gaps)).
-- The review data provides the account **GM**, owner of the four review Campaigns.
+- A staging build is available (managed staging credentials are needed; run only on an approved staging smoke).
+- **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
+- The Campaign has a presented Scene with a door and a token hidden from players (a GM-only token), built as in the [SCENE](../SCENE/README.md) scenarios.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **GM, P1 and P2:** Each opens the live table of the managed fixture Campaign in a separate browser profile.
+1. [ ] **GM, P1 and P2:** Each opens the live table of The Campaign in their own browser.
 2. [ ] **GM:** Open or close a door on the presented Scene.
 3. [ ] **P1 and P2:** Watch their windows until the door changes and note how many seconds it took.
 4. [ ] **P1:** Drag a token across the Scene.
@@ -53,7 +54,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

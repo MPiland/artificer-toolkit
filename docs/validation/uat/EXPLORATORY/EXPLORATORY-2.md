@@ -2,24 +2,25 @@
 
 Write down a spell you know from another game or from memory, publish it, and cast it at the table.
 
-Level 0 (Orientation and exploratory tasks) · Feature EXPLORATORY · Mode: Solo (P1) with a facilitator playing GM · Path position 3 of 190
+Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P1 is the tester, GM follows the script) · Path position 83 of 191
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 
 ## Prerequisites
 
-- The review data provides the account P1, who owns Aria and is a member of Review: Party in the Field.
-- The review data provides the Campaign **Review: Party in the Field** with Aria's turn available in round 2 of the running Encounter.
+- The account **P1** exists and is seated in The Campaign. P1 has Aria as their Campaign Character: a Level 1 Fighter that P1 built in the Character Builder.
+- **The Campaign** is hosted by GM, with Aria's turn available in round 2 of the running Encounter.
 
-## Roles and windows
+## Accounts and windows
 
 - **Roles used:** P1, GM
-- **Tester role:** P1. You use one account from your set, in your normal browser, and you never act as another role.
-- **Facilitator:** the owner, signed in as GM in a separate browser profile, following the script below. The facilitator does only what the script says, when the trigger happens, and does not explain controls.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
+- **Tester:** P1, in their own browser. You never act as another role.
+- **GM:** a second person, in their own browser and signed in to their own GM account, following the script below. They do only what the script says, when the trigger happens, and do not explain controls.
 
-## Facilitator script
+## Script for the second person
 
-1. Before the tester starts: GM signs in in a separate profile and opens Review: Party in the Field.
+1. Before the tester starts: GM opens The Campaign.
 2. When the tester says the Spell is published and shared: GM adds the Spell to the Campaign if the tester asks for it, and says so.
 3. When the tester says they want to cast it: GM makes Aria the active actor (**Next turn** as needed) and tells the tester.
 4. If the Spell needs a ruling the tool cannot make, GM answers as a human GM would and records what was ruled in the Result.
@@ -30,7 +31,7 @@ Do not open the scripted scenario files before your Result is written: they name
 - **Scope:** Use whichever authoring mode you prefer. The goal is met when the spell resolves at the table, even if part of it is adjudicated by the GM.
 - **Look for:** which parts of your spell the form could and could not express; whether you chose Guided or Advanced and why; where you wanted to copy an SRD spell instead.
 
-Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop. Tell the facilitator in words when a trigger in the script happens (for example "my Character is ready").
+Follow [how to run a task](README.md#how-to-run-a-task) and write the Result below when you stop. Tell the second person in words when a trigger in the script happens (for example "my Character is ready").
 
 ## Afterwards
 
@@ -48,8 +49,6 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:** P1
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Time:** minutes from start to goal, or to the moment you gave up
 - **Outcome:** reached / reached with help / gave up

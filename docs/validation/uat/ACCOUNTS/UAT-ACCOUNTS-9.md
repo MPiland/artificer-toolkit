@@ -2,17 +2,16 @@
 
 Ordinary users cannot use superadmin tools.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1) · Path position 20 of 190
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (GM, P1) · Path position 13 of 191
 
 ## Prerequisites
 
-- The review data provides the account **GM**, owner of the four review Campaigns.
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
+- **GM** and **P1** each have an account and are signed in on their own devices.
 
 ## Accounts and windows
 
 - **Roles used:** GM, P1
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -24,12 +23,12 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 ## Expected
 
-- Steps 1 and 2: access is refused (a denied, not-found or redirect result); no moderation list or review actions are shown, even though the GM owns Campaigns and has a higher plan.
+- Steps 1 and 2: access is refused (a denied, not-found or redirect result); no moderation list or review actions are shown, whoever the account is.
 - Step 3: no moderation link is offered to the GM.
 
 ## Other users see
 
-- Not applicable: both are refused independently.
+- **GM and P1:** Each is refused independently; neither sees anything the other did.
 
 ## ACs covered
 
@@ -43,7 +42,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

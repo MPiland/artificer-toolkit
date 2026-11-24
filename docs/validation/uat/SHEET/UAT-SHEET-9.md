@@ -2,23 +2,23 @@
 
 Speed on the overview and the Movement panel.
 
-Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 52 of 190
+Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 45 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
-- Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): "UAT Dara" is committed and in no Campaign.
+- The account **P1** exists.
+- Done in [UAT-BUILDER-1](../BUILDER/UAT-BUILDER-1.md): Aria is committed and in no Campaign.
 
 ## Accounts and windows
 
 - **Roles used:** P1
-- **Windows:** One browser window, signed in as P1 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P1.
 
 ## Steps
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] **P1:** Open UAT Dara's Sheet overview and read the Speed value.
+1. [ ] **P1:** Open Aria's Sheet overview and read the Speed value.
 2. [ ] **P1:** Open the Movement panel from the Speed value.
 3. [ ] **P1:** If the Character has more than one movement type, use **Movement shown on the sheet** to choose another type.
 4. [ ] **P1:** Close the panel and re-read the overview Speed.
@@ -46,7 +46,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

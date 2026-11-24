@@ -2,16 +2,16 @@
 
 Choice-heavy builds — multiclass and spellcaster.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P2) · Path position 42 of 190
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P2) · Path position 35 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P2**, who owns Bryn (in Review: Party in the Field) and Pyra (in Review: Fire and Thunder) and is also a member of Review: Sandbox.
+- The account **P2** exists.
 
 ## Accounts and windows
 
 - **Roles used:** P2
-- **Windows:** One browser window, signed in as P2 with the account from your set. Your normal browser is fine.
+- **Windows:** One browser, signed in as P2.
 
 ## Steps
 
@@ -26,6 +26,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 7. [ ] **P2:** On the Sheet open the spells, check the prepared list and slots, cast a leveled spell from the Sheet and watch the slot count.
 8. [ ] **P2:** In the Builder start "UAT Dragon": a Dragonborn; choose the ancestry options and finish.
 9. [ ] **P2:** On the Sheet check the breath weapon and resistance match the ancestry you chose.
+10. [ ] **P2:** Open **Characters** and delete "UAT Multi", "UAT Cleric" and "UAT Dragon" (confirm each). P2 is back to 0 of 6 personal Characters; Bryn is built in [UAT-BUILDER-7](UAT-BUILDER-7.md).
 
 ## Expected
 
@@ -33,6 +34,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 - Step 7: the prepared spells match the choices; slots match the Cleric level; casting a spell lowers that slot by one.
 - Step 9: ancestry-dependent features (damage type of the breath weapon, resistance) match your choice.
 - Each build commits with no error and a clean Sheet.
+- Step 10: the three Characters are gone from the list and P2 has none left.
 
 ## Other users see
 
@@ -50,7 +52,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**

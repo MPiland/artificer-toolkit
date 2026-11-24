@@ -2,17 +2,16 @@
 
 Phone width: Sheet death saves and summons.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2) · Path position 178 of 190
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (P1, P2) · Path position 179 of 191
 
 ## Prerequisites
 
-- The review data provides the account **P1**, who owns Aria (in Review: Party in the Field) and Ember (in Review: Shield and Hold) and is also a member of Review: Sandbox.
 - Done in [UAT-SPELLS-1](UAT-SPELLS-1.md): Sage and her familiar exist (still in Extras).
 
 ## Accounts and windows
 
 - **Roles used:** P1, P2
-- **Windows:** Owner-run: one browser profile per role ([Role setup](../README.md#role-setup-for-the-owner)); the owner drives every window and switches role by switching profile, never by signing out.
+- **Windows:** Each role is a different person in their own browser, signed in to their own account.
 
 ## Steps
 
@@ -44,7 +43,5 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Date:**
 - **Build:**
 - **Tester:**
-- **Set:**
-- **Role:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**
