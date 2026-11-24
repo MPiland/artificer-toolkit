@@ -30,7 +30,7 @@ browser Builder, commit and the room hydrate instead of compiling the documents.
 rebuild replaces format 2 objects; no format 1 or 2 compatibility is kept.
 The shared local R2 fixture bridge and in-memory content-token secret wiring are implemented locally;
 complete browser Builder and snapshot-list proof remains pending.
-See [the implementation plan](../handoffs/adr-0036-implementation-plan.md) for slice evidence and local integration gaps.
+See the implementation plan for slice evidence and local integration gaps.
 
 ## Context
 
@@ -92,4 +92,4 @@ Q16 makes Convex database I/O the binding free-tier constraint. Published conten
 
 **Removed:** `builder.get`, `builder.resolve`, `builder.preview` and full-catalogue Builder loading, with no compatibility layer (pre-launch). S11 also removed `content/catalogue:list`, `search` and `summary`: the list pages read the `list` part in the browser.
 
-See [the implementation plan](../handoffs/adr-0036-implementation-plan.md).
+See the implementation plan.

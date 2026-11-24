@@ -13,7 +13,7 @@ Account avatars, Character portraits, authored artwork, future Campaign files, M
 
 Store stable asset and immutable variant metadata in Convex and bytes in private R2 storage. Convex media functions authorize exact signed transfer permissions and verify, normalize, attach, and delete asset metadata under the owning domain policy.
 
-Domain tables own real references: profiles own avatars, Characters own portraits, and authored route identities own explicit active/draft image slots. Authored activation promotes draft artwork transactionally under [ADR 0011](0011-active-authored-content-and-json-drafts.md). No authored revision or generic `owner_type + owner_id` model is introduced.
+Domain tables own real references: profiles own avatars, Characters own portraits, and authored route identities own explicit active/draft image slots. Authored activation promotes draft artwork transactionally under ADR 0011. No authored revision or generic `owner_type + owner_id` model is introduced.
 
 Phase 02 enables only image profiles required by current product surfaces. Campaign supporting files, public Marketplace derivatives, and resumable VTT maps extend the same identity later without prebuilding their scanners, permissions, or processing outputs.
 

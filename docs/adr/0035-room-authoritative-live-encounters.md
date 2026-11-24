@@ -29,7 +29,7 @@ time separately from lifecycle time. Frontend held Sheet routing and subscriptio
 Fenced delta checkpoints, Builder reload reconciliation and corruption recovery into a fresh epoch
 are integrated in source with execution evidence pending. S3 completion and S5–S9 (shadow parity,
 complete authority switch, held Sheet actions, outside views/chat, budgets and cleanup) remain.
-See [the implementation plan](../handoffs/adr-0035-implementation-plan.md)
+See the implementation plan
 for slice evidence and [the acceptance contract](../roadmap/08-2-convex-cutover-acceptance.md) for final proof.
 
 ## Context
@@ -119,7 +119,7 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
 
 ## Amendments from implementation planning (2026-09-27)
 
-Accepted after the code mapping in [the implementation plan](../handoffs/adr-0035-implementation-plan.md).
+Accepted after the code mapping in the implementation plan.
 
 1. **Steady-state commands never call Convex. Lifecycle commands do.** START, COMPLETE, DELETE, and adding or removing a Character actor wait for a synchronous checkpoint before they acknowledge. The first command after an invalidation reloads only the stale inputs.
 2. **Rehydrating.**
@@ -145,7 +145,7 @@ Accepted after the code mapping in [the implementation plan](../handoffs/adr-003
    - Scene publications fold into checkpoints, replacing per-command `state:publish` and the Convex-first external commit path (D27 and D52).
    - Transient preview samples must not write a SQLite row per sample, because the free plan's rows-written limit is 100,000 a day.
 7. **Replay.** A same-sequence checkpoint retry returns `REPLAYED`. Command replay across epochs is served by a replay index loaded from Convex receipts at hydrate. D68 clarifies that a retry is byte-identical while the Run is at that command's version; after later commands it returns the receipt plus the current projection, without a second effect or reroll.
-8. **The broadcast fan-out is new work.** Other members see pending decisions, timeline entries and roll cards through the room with the privacy projection, not through Convex subscriptions. D69 extends this to all live chat: messages and roll cards fan out through the room and persist to Convex by checkpoint with stable IDs. Chat outside live play keeps its bounded Convex path. See [D68 and D69](../handoffs/phase-08-2-open-questions.md).
+8. **The broadcast fan-out is new work.** Other members see pending decisions, timeline entries and roll cards through the room with the privacy projection, not through Convex subscriptions. D69 extends this to all live chat: messages and roll cards fan out through the room and persist to Convex by checkpoint with stable IDs. Chat outside live play keeps its bounded Convex path. See [D68 and D69](../releases/open-questions.md).
 9. **Decision 9 budgets include Cloudflare.** They cover Durable Object requests, duration, rows written and CPU per command, alongside Convex I/O. Checked 2026-09-27: Durable Objects on Workers Free get 30 s of CPU per request (the 10 ms Workers Free limit does not apply); 100,000 requests a day; 13,000 GB-s a day; 5M rows read and 100,000 rows written a day; 5 GB stored.
 10. **Also superseded:**
     - ADR 0034 §4's "the Sheet is the single writer of play state" while a Character is held;
@@ -155,7 +155,7 @@ Accepted after the code mapping in [the implementation plan](../handoffs/adr-003
 
 ## Amendments from the S0 measurements (2026-09-27)
 
-Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
+Based on the S0 record:
 
 - **Room CPU:** 16–26 ms warm and 125–176 ms cold per 11-actor action; 84–144 ms warm at 100 actors.
 - **Durable Object cost:** about 570 requests and 2,300–3,800 rows written per session, well inside Workers Free.
@@ -214,7 +214,7 @@ retired private Character payloads to bounded deferred steps.
 **Implementation status:** native ledger schema, writers, reader adapters and cleanup are integrated
 into source. The integrated storage/cleanup suite passed 54 checks; dependency builds, Convex
 TypeScript, local codegen/deploy and native maximum-size/pagination/rollback/private-retirement
-proofs passed. See the [2026-09-30 validation record](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
+proofs passed. See the 2026-09-30 validation record.
 Checkpoint publication, the complete local lifecycle and Q16 remain pending. This implementation
 has not advanced acceptance; the ledger remains 51/75.
 
@@ -259,15 +259,15 @@ rows, not its Encounter history.
 
 **Status:** source integrated; focused local native deletion, rollback, retry and privacy proofs
 passed with three 4 MiB ledgers. See the
-[2026-09-30 validation record](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
+2026-09-30 validation record.
 Final integration and the complete local lifecycle remain pending. This decision does not advance
 Phase 8.2 acceptance or establish a Q16 budget pass.
 
 ## D86: write-behind state flush; live views read the room — 2026-10-03
 
 **Decided by the product owner on 2026-10-03 (VS-8).** Recorded as D86 in the
-[decisions log](../handoffs/phase-08-2-decisions.md). Not yet implemented; see the
-[slice plan](../handoffs/adr-0035-implementation-plan.md#write-behind-flush-slices-d86).
+[decisions log](../releases/v0.1.0-decisions.md). Not yet implemented; see the
+slice plan.
 
 **Why.** The REL-5 V15 runs showed the checkpoint path costs more than the commands it persists:
 
@@ -276,7 +276,7 @@ Phase 8.2 acceptance or establish a Q16 budget pass.
   to renew the lease, and receipt-ledger collision and orphan checks (A35-S10a removed this floor:
   a one-actor HP flush now reads about 8.9 KB in 11 documents, the same for a 4- and a 40-member
   Campaign, and does not grow with checkpoint count; see
-  [the measurement](../validation/phase-08-2/a35-s10a-flush-io-2026-10-03.md));
+  the measurement);
 - token binding, removal and every socket admission force a synchronous checkpoint, so ordinary
   table actions wait on Convex;
 - pages outside the table that show room-owned state read Convex, which lags by up to 120 s;
@@ -394,7 +394,7 @@ means no flush and no Convex call.
 ## D89: a woken room keeps its players — 2026-10-05
 
 **Decided by the product owner on 2026-10-05 (REL-5).** Recorded as D89 in the
-[decisions log](../handoffs/phase-08-2-decisions.md).
+[decisions log](../releases/v0.1.0-decisions.md).
 
 **Why.** Cloudflare hibernates a room after about 10 s without work (Amendment 16 requires it, so an
 idle table bills no duration). Each wake challenged every surviving socket. The V15 runs showed the
@@ -424,9 +424,9 @@ evictions, which wake a room the same way.
 ## D90: Convex receives a running table at save points — 2026-10-05
 
 **Decided by the product owner on 2026-10-05 (REL-5).** Recorded as D90 in the
-[decisions log](../handoffs/phase-08-2-decisions.md). **Status: current** (A35-S11 slices; measured by
+[decisions log](../releases/v0.1.0-decisions.md). **Status: current** (A35-S11 slices; measured by
 V15 run a84 at 4.44 MB per modelled session,
-[validation](../validation/phase-08-2/v15-workload-2026-10-05.md)). Amendment 17's interval is retired.
+validation). Amendment 17's interval is retired.
 
 **Why.** The first passing six-browser V15 run (a76) measured the interval checkpoints. Modelled on
 the product owner's session (2,000 combat commands, 120 minutes out of combat), a session would use

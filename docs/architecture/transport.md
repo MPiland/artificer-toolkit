@@ -91,8 +91,8 @@ module load is paid on every call. `packages/schema` builds no schema at module 
   actions use Convex's builders directly. `functionBundleBudget.test.ts` bounds the module floor of
   the 2–3 MB Sheet and departure modules, which were 41–83 ms before this change.
 
-Evidence: [D59 rollout](../validation/phase-08-2/d59-lazy-schema-rollout-2026-09-27.md) and the
-[D55 spike](../validation/phase-08-2/d55-lazy-schema-spike-2026-09-27.md).
+Evidence: D59 rollout and the
+D55 spike.
 
 ## Historical transport record
 

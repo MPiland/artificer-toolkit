@@ -5,7 +5,7 @@
 - **Scope:** domain data lifecycle and cross-package model boundaries
 - **Update when:** a model is reused across vocabulary, authored, compiled, persistence, or engine layers
 - **Verification:** `packages/schema/src/vocabulary`; `packages/shared/src/domains/**/authored`; `packages/shared/src/domains/**/compilers`; `packages/rules-runtime`; `apps/apis/convex`
-- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaced active normalized authored operational reads and ephemeral-only mechanics assembly with domain-specific versioned projections. [ADR 0029](0029-convex-backend-cutover.md) replaces the SQL persistence representation with Convex documents. PLATFORM-20 (2026-10-16) removed dead and copy-only compilers and records the compile stage as built below.
+- **Amended:** ADR 0022 replaced active normalized authored operational reads and ephemeral-only mechanics assembly with domain-specific versioned projections. [ADR 0029](0029-convex-backend-cutover.md) replaces the SQL persistence representation with Convex documents. PLATFORM-20 (2026-10-16) removed dead and copy-only compilers and records the compile stage as built below.
 
 ## Context
 

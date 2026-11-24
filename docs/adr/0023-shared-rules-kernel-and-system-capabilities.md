@@ -99,6 +99,5 @@ System-specific decision family into Kernel behavior.
   local tests and trace inspection remain ordinary development tools for the TypeScript Rules Kernel.
 
 This decision supersedes the runtime ownership and immutable rule-pack selection portions of ADRs
-[0008](0008-ruleset-identity-and-content-binding.md),
-[0018](0018-embedded-rule-packs-and-encounter-resolution.md), and
-[0019](0019-versioned-cross-domain-rules-runtime.md).
+0008,
+0018, and 0019.

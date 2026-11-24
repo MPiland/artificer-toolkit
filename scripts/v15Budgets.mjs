@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 // Convex's document limit is binary (1 MiB); the I/O budget is decimal (D209).
 const MIB = 1024 * 1024
 
-// Q16 (docs/handoffs/phase-08-2-decisions.md): 100 Free users, 20 of them hosting four 4-hour
+// Q16 (docs/releases/v0.1.0-decisions.md): 100 Free users, 20 of them hosting four 4-hour
 // sessions a month, with 50% headroom against the free allowances.
 const SESSIONS_PER_MONTH = 20 * 4
 const DAYS_PER_MONTH = 30

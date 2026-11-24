@@ -230,7 +230,7 @@ describe('owner delete coverage', () => {
     })
   })
 
-  it('keeps the pending list to the rulings recorded in docs/validation', () => {
+  it('keeps the pending list to the rulings recorded in the v0.1.0 decisions log', () => {
     expect(Object.keys(PENDING).sort()).toEqual(
       [
         'Campaign announcements',

@@ -5,7 +5,7 @@
 > **Status:** complete — final-validated in the [Phase 00 implementation ledger](00-character-sheet-play-depth-and-overrides-implementation.md)
 > **Depends on:** current authenticated Character Builder, Sheet, engine, and web baseline
 > **Unlocks:** transparent Character inspection, complete web play controls, portable Sheet panels, native Sheet parity, and future Campaign GM inspection
-> **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0005 pure rules-system engine](../adr/0005-pure-rules-system-engine.md), [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0010 portable semantics](../adr/0010-platform-neutral-design-system.md)
+> **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), 0005 pure rules-system engine, [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0010 portable semantics](../adr/0010-platform-neutral-design-system.md)
 
 ## Goal
 
@@ -76,7 +76,7 @@ Every adjustment records a stable identity, typed target, optional `sourceNote`,
 
 Before schemas or migrations are accepted, the phase subplan must define stable target and resource-owner identities. Repeated feature grants and spell sources use an acquisition or grant-instance identity; items and companions use their owned-instance identity. A reusable definition ID is never sufficient when multiple runtime instances may exist.
 
-This adjustment layer changes load-bearing engine inputs and the Builder/Sheet ownership seam. Implementation must update [ADR 0005](../adr/0005-pure-rules-system-engine.md), [ADR 0006](../adr/0006-character-builder-sheet-boundary.md), and their canonical architecture guides before the first adjustment contract or migration is merged.
+This adjustment layer changes load-bearing engine inputs and the Builder/Sheet ownership seam. Implementation must update ADR 0005, [ADR 0006](../adr/0006-character-builder-sheet-boundary.md), and their canonical architecture guides before the first adjustment contract or migration is merged.
 
 ### Calculation transparency
 

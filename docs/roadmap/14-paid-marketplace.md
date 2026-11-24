@@ -3,7 +3,7 @@
 > **Status:** deferred; commercial/legal decisions required before implementation
 > **Depends on:** [Phase 09](09-entitlements-and-subscriptions.md) and [Phase 13](13-free-marketplace.md)
 > **Unlocks:** creator content revenue
-> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0011](../adr/0011-active-authored-content-and-json-drafts.md)
+> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), 0008, 0011
 
 ## Goal
 

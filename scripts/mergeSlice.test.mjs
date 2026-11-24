@@ -189,7 +189,7 @@ describe('runsVerdict', () => {
 describe('docsOnly', () => {
   it('accepts no change and changes under docs/ only', () => {
     expect(docsOnly([])).toBe(true)
-    expect(docsOnly(['docs/roadmap/08-phase-ledger.json', 'docs/handoffs/x.md'])).toBe(true)
+    expect(docsOnly(['docs/roadmap/08-phase-ledger.json', 'docs/releases/x.md'])).toBe(true)
   })
 
   it('rejects any change outside docs/', () => {

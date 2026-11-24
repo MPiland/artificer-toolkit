@@ -5,7 +5,7 @@
 - **Revised:** 2026-09-29
 - **Scope:** live-table admission and lifecycle, Scene presentation ownership, Encounter Run ownership and lifecycle, Campaign Session meaning
 - **Update when:** live-table admission/lifecycle, presentation, Encounter Run ownership/status, or Session behavior changes
-- **Supersedes:** Session presentation and the `Campaign → Session → …` dependency order in [ADR 0027](0027-campaign-scenes-and-encounter-bindings.md); Session-scoped room identity in [ADR 0029](0029-convex-backend-cutover.md) and [ADR 0020](0020-local-and-remote-live-session-host.md). All other decisions in those ADRs remain in force.
+- **Supersedes:** Session presentation and the `Campaign → Session → …` dependency order in [ADR 0027](0027-campaign-scenes-and-encounter-bindings.md); Session-scoped room identity in [ADR 0029](0029-convex-backend-cutover.md) and ADR 0020. All other decisions in those ADRs remain in force.
 
 ## Context
 
