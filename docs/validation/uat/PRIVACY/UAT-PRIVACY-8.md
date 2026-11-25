@@ -2,7 +2,7 @@
 
 Campaign content stays hidden until revealed.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1) · Path position 132 of 191
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1) · Path position 136 of 195
 
 ## Prerequisites
 

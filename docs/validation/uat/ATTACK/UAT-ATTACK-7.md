@@ -2,7 +2,7 @@
 
 Optional combat rules in play.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 133 of 191
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 137 of 195
 
 ## Prerequisites
 

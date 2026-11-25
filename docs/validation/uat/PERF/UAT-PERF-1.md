@@ -2,7 +2,7 @@
 
 Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke).
 
-Level 5 (Reliability, performance and release) · Feature PERF · Mode: Group (GM, P1, P2) · Path position 190 of 191
+Level 5 (Reliability, performance and release) · Feature PERF · Mode: Group (GM, P1, P2) · Path position 194 of 195
 
 ## Prerequisites
 

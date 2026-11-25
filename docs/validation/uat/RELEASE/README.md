@@ -10,7 +10,7 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                          | Title                              |
 | ------------- | ----- | --------------------------------- | ---------------------------------- |
-| 189           | 5     | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
+| 193           | 5     | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
 
 ## Covered elsewhere
 

@@ -2,7 +2,7 @@
 
 Choose, change and protect a username.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 9 of 191
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 9 of 195
 
 ## Prerequisites
 

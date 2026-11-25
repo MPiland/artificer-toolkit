@@ -2,7 +2,7 @@
 
 Seat the whole party in The Campaign.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2, P3, P4) · Path position 49 of 191
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2, P3, P4) · Path position 49 of 195
 
 ## Prerequisites
 
@@ -22,9 +22,9 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 1. [ ] **GM:** Open The Campaign (the copy with the "Plot" notes from [CAMPAIGN-1](../CAMPAIGN/UAT-CAMPAIGN-1.md)) and open its **Party** panel. Note which of P1, P2, P3 and P4 are members and which Character each has.
 2. [ ] **GM:** For each of P2, P3 and P4 who is not a member, open **Social**, open the player's profile and invite them to The Campaign. **P2 / P3 / P4:** open **Social**, **Received invitations**, and accept.
-3. [ ] **P2:** In The Campaign choose **Add Character** (or **Change Character**) and assign Bryn.
+3. [ ] **P2:** In The Campaign choose **Add Character** and pick Bryn. Confirm Bryn shows as the Active Character.
 4. [ ] **P3:** Do the same with Cade.
-5. [ ] **P1:** If the Party panel shows no Character for you, assign Aria.
+5. [ ] **P1:** If the Party panel shows no Character for you, choose **Add Character** and pick Aria.
 6. [ ] **GM:** Reload the Party panel.
 
 ## Expected

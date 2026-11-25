@@ -2,7 +2,7 @@
 
 Cones, lines, Self cubes and aiming on the map.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 158 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 162 of 195
 
 ## Prerequisites
 

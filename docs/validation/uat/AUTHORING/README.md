@@ -23,8 +23,8 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 | 29            | 1     | [UAT-AUTHORING-13](UAT-AUTHORING-13.md) | Author a Fire Bolt-like cantrip from scratch                          |
 | 30            | 1     | [UAT-AUTHORING-14](UAT-AUTHORING-14.md) | Author a Fireball-like spell from scratch                             |
 | 31            | 1     | [UAT-AUTHORING-15](UAT-AUTHORING-15.md) | Author an Empowered Spell-like feature that spends a resource pool    |
-| 52            | 2     | [UAT-AUTHORING-11](UAT-AUTHORING-11.md) | Share homebrew with a Campaign, then withdraw it                      |
-| 93            | 3     | [UAT-AUTHORING-6](UAT-AUTHORING-6.md)   | Creature copy, computed AC and the item loadout                       |
+| 53            | 2     | [UAT-AUTHORING-11](UAT-AUTHORING-11.md) | Share homebrew with a Campaign, then withdraw it                      |
+| 94            | 3     | [UAT-AUTHORING-6](UAT-AUTHORING-6.md)   | Creature copy, computed AC and the item loadout                       |
 
 ## Authoring feedback
 

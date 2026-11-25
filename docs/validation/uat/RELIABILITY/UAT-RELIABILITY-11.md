@@ -2,7 +2,7 @@
 
 Authoring selects, labels and lists.
 
-Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 184 of 191
+Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 188 of 195
 
 ## Prerequisites
 

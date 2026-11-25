@@ -2,7 +2,7 @@
 
 Create, edit, copy, archive and delete a Campaign.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Solo (GM) · Path position 47 of 191
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Solo (GM) · Path position 47 of 195
 
 ## Prerequisites
 

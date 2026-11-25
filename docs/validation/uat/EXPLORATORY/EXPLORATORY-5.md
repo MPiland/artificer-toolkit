@@ -2,7 +2,7 @@
 
 Make a tougher version of an existing creature and use it in an Encounter.
 
-Level 3 (Core play) · Feature EXPLORATORY · Mode: Solo (GM) · Path position 86 of 191
+Level 3 (Core play) · Feature EXPLORATORY · Mode: Solo (GM) · Path position 87 of 195
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 

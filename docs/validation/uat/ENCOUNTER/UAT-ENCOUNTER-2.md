@@ -2,7 +2,7 @@
 
 Initiative and optional-combat combinations pass end to end.
 
-Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 145 of 191
+Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 149 of 195
 
 ## Prerequisites
 

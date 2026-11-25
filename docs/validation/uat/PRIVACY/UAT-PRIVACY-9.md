@@ -2,12 +2,12 @@
 
 A hidden Concentration source stays hidden.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 119 of 191
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 123 of 195
 
 ## Prerequisites
 
 - **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
-- P1 has switched to Ember in The Campaign (Change Character), who has Shield and Hold Person.
+- P1's Active Character in The Campaign is Ember, who has Shield and Hold Person. She is benched in The Campaign from [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md); P1 marks her active between Encounters, before the Encounter below starts (the party's wizard joins for this arc).
 - An Encounter is running in The Campaign in Assisted mode with a Wolf, a Goblin and Ember ([UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5).
 
 ## Accounts and windows

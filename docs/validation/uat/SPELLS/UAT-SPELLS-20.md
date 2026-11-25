@@ -2,7 +2,7 @@
 
 Multi-target spells and teleports.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 174 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 178 of 195
 
 ## Prerequisites
 

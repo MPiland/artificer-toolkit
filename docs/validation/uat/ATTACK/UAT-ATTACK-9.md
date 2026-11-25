@@ -2,7 +2,7 @@
 
 Class features in play.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 134 of 191
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 138 of 195
 
 ## Prerequisites
 
@@ -21,20 +21,20 @@ Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 1
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
 S1. **P1:** In the Builder (as in [BUILDER-2](../BUILDER/UAT-BUILDER-2.md)) build and commit: a Barbarian, a Rogue holding two light melee weapons, a Fighter of level 5 (Extra Attack, Second Wind, Action Surge) and a Paladin with spell slots. (Aria, Ember and these four make 6 of 6; step 9 needs three more, so P1 deletes the first three from `/characters` before building those.)
-S2. **P1:** Before each group of steps use **Change Character** on your seat in the Party panel (a player has one Character per Campaign, swapped only between Encounters; the GM completes the Encounter first). Set **Auto-roll** ON for P1 and OFF for the GM.
+S2. **P1:** Before each group of steps, bring in the build that group needs: choose **Add Character** on the Party roster (it lands on the bench; P1 is trying a different build in each fight), then **Mark active**. Do this between Encounters: the GM completes the Encounter first, so no approval is needed. Set **Auto-roll** ON for P1 and OFF for the GM.
 
-1. [ ] **P1:** Seat the Barbarian with **Change Character**. **GM:** Start an Encounter with a Wolf.
+1. [ ] **P1:** Add the Barbarian and mark it active. **GM:** Start an Encounter with a Wolf.
 2. [ ] **P1:** As the Barbarian, use Rage as a bonus action. Confirm a rage charge is spent and resistance and the damage bonus apply.
 3. [ ] **P1:** As the Barbarian, try to cast a spell while raging. Read the refusal. End Rage by choice.
 4. [ ] **GM:** Undo the Rage action. Confirm the charge returns.
 5. [ ] **P1:** As the Barbarian, Rage again and end the turn without attacking a hostile or taking damage. Confirm Rage ends at the end of the turn (ATTACK-9.6).
-6. [ ] **GM:** Complete the Encounter. **P1:** Seat the Rogue. **GM:** Start an Encounter. **P1:** As the Rogue, make a hit with advantage. Confirm Sneak Attack dice are added once. Hit a second time in the same turn; confirm no second dice.
-   - 6a. **GM:** Complete. **P1:** Seat the Fighter 5. **GM:** Start an Encounter. **P1:** Take the Attack action. Confirm the drawer shows "Attack 1 of 2" with the last weapon and target kept, make the first attack, then make the second without a warning. **GM:** Undo the second attack and confirm its slot is returned and the first attack stays.
+6. [ ] **GM:** Complete the Encounter. **P1:** Add the Rogue and mark it active. **GM:** Start an Encounter. **P1:** As the Rogue, make a hit with advantage. Confirm Sneak Attack dice are added once. Hit a second time in the same turn; confirm no second dice.
+   - 6a. **GM:** Complete. **P1:** Add the Fighter 5 and mark it active. **GM:** Start an Encounter. **P1:** Take the Attack action. Confirm the drawer shows "Attack 1 of 2" with the last weapon and target kept, make the first attack, then make the second without a warning. **GM:** Undo the second attack and confirm its slot is returned and the first attack stays.
    - 6b. **P1:** As the Fighter 5, use Second Wind (heals 1d10 + level) and Action Surge (extra action). Confirm each is limited to its uses per short rest.
-7. [ ] **GM:** Complete. **P1:** Seat the Paladin. **GM:** Start an Encounter. **P1:** Hit with a melee weapon. Confirm the app offers Divine Smite; spend a slot and confirm the radiant dice.
-8. [ ] **GM:** Complete. **P1:** Seat the Rogue with two light weapons (it is the one from step 6). **GM:** Start an Encounter. **P1:** Attack with the main hand and confirm the off-hand bonus attack is offered and adds no positive ability modifier.
-9. [ ] **P1:** Delete the Barbarian, Rogue and Paladin from `/characters`, then build and commit Fighter 5 / Ranger 5, Fighter 11 / Paladin 5 and Fighter 20. For each multiclass in turn (**P1:** seat it; **GM:** complete the old Encounter and start a new one), **P1:** open the Attack action and read how many attacks it offers (Fighter 5 / Ranger 5 makes 2, Fighter 11 / Paladin 5 makes 3, Fighter 20 makes 4).
-       R1. **GM:** Complete the Encounter. **P1:** Use **Change Character** to put Aria back on your seat.
+7. [ ] **GM:** Complete. **P1:** Add the Paladin and mark it active. **GM:** Start an Encounter. **P1:** Hit with a melee weapon. Confirm the app offers Divine Smite; spend a slot and confirm the radiant dice.
+8. [ ] **GM:** Complete. **P1:** Mark the Rogue with two light weapons active again (it has been on the bench since step 6). **GM:** Start an Encounter. **P1:** Attack with the main hand and confirm the off-hand bonus attack is offered and adds no positive ability modifier.
+9. [ ] **P1:** Use **Remove Character** on the Barbarian, Rogue, Fighter 5 and Paladin (removing the Active Character leaves nobody active until the next Character is added or marked), delete the Barbarian, Rogue and Paladin from `/characters`, then build and commit Fighter 5 / Ranger 5, Fighter 11 / Paladin 5 and Fighter 20. For each multiclass in turn (**GM:** complete the old Encounter; **P1:** add it to The Campaign and, if it is not already Active, mark it active; **GM:** start a new Encounter), **P1:** open the Attack action and read how many attacks it offers (Fighter 5 / Ranger 5 makes 2, Fighter 11 / Paladin 5 makes 3, Fighter 20 makes 4).
+       R1. **GM:** Complete the Encounter. **P1:** Choose **Mark active** on Aria (benched since step 1) and use **Remove Character** on each multiclass Character.
        R2. **P1:** Delete the Fighter 5, Fighter 5 / Ranger 5, Fighter 11 / Paladin 5 and Fighter 20 Characters from `/characters`. P1 is back to 2 of 6 (Aria and Ember).
 
 ## Expected

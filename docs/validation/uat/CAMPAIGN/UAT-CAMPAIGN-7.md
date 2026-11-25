@@ -2,7 +2,7 @@
 
 The GM plays a Character.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 56 of 191
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 57 of 195
 
 ## Prerequisites
 

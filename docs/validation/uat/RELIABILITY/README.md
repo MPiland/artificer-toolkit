@@ -10,19 +10,19 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                                    | Title                                                                |
 | ------------- | ----- | ------------------------------------------- | -------------------------------------------------------------------- |
-| 70            | 2     | [UAT-RELIABILITY-4](UAT-RELIABILITY-4.md)   | A new Scene measures lengths correctly in every unit                 |
-| 120           | 3     | [UAT-RELIABILITY-1](UAT-RELIABILITY-1.md)   | Privacy, replay, rollback, concurrency and performance hold together |
-| 121           | 3     | [UAT-RELIABILITY-2](UAT-RELIABILITY-2.md)   | Two users act at the same moment                                     |
-| 122           | 3     | [UAT-RELIABILITY-3](UAT-RELIABILITY-3.md)   | The room closes after everyone leaves and reopens with state intact  |
-| 123           | 3     | [UAT-RELIABILITY-6](UAT-RELIABILITY-6.md)   | A contested passage holds, then spends once                          |
-| 124           | 3     | [UAT-RELIABILITY-8](UAT-RELIABILITY-8.md)   | The Sheet shows correct rests, ability checks and hit points         |
-| 139           | 3     | [UAT-RELIABILITY-7](UAT-RELIABILITY-7.md)   | Authored speed and sense bonuses use the right length unit           |
-| 140           | 3     | [UAT-RELIABILITY-9](UAT-RELIABILITY-9.md)   | Roll reasons and initiative read the right source                    |
-| 182           | 5     | [UAT-RELIABILITY-5](UAT-RELIABILITY-5.md)   | Forms and sign-out recover without silent data loss                  |
-| 183           | 5     | [UAT-RELIABILITY-10](UAT-RELIABILITY-10.md) | Builder and party inventory values are right                         |
-| 184           | 5     | [UAT-RELIABILITY-11](UAT-RELIABILITY-11.md) | Authoring selects, labels and lists                                  |
-| 185           | 5     | [UAT-RELIABILITY-12](UAT-RELIABILITY-12.md) | Core pages open with their data                                      |
-| 188           | 5     | [UAT-RELIABILITY-13](UAT-RELIABILITY-13.md) | Account deletion closes the live table                               |
+| 71            | 2     | [UAT-RELIABILITY-4](UAT-RELIABILITY-4.md)   | A new Scene measures lengths correctly in every unit                 |
+| 124           | 3     | [UAT-RELIABILITY-1](UAT-RELIABILITY-1.md)   | Privacy, replay, rollback, concurrency and performance hold together |
+| 125           | 3     | [UAT-RELIABILITY-2](UAT-RELIABILITY-2.md)   | Two users act at the same moment                                     |
+| 126           | 3     | [UAT-RELIABILITY-3](UAT-RELIABILITY-3.md)   | The room closes after everyone leaves and reopens with state intact  |
+| 127           | 3     | [UAT-RELIABILITY-6](UAT-RELIABILITY-6.md)   | A contested passage holds, then spends once                          |
+| 128           | 3     | [UAT-RELIABILITY-8](UAT-RELIABILITY-8.md)   | The Sheet shows correct rests, ability checks and hit points         |
+| 143           | 3     | [UAT-RELIABILITY-7](UAT-RELIABILITY-7.md)   | Authored speed and sense bonuses use the right length unit           |
+| 144           | 3     | [UAT-RELIABILITY-9](UAT-RELIABILITY-9.md)   | Roll reasons and initiative read the right source                    |
+| 186           | 5     | [UAT-RELIABILITY-5](UAT-RELIABILITY-5.md)   | Forms and sign-out recover without silent data loss                  |
+| 187           | 5     | [UAT-RELIABILITY-10](UAT-RELIABILITY-10.md) | Builder and party inventory values are right                         |
+| 188           | 5     | [UAT-RELIABILITY-11](UAT-RELIABILITY-11.md) | Authoring selects, labels and lists                                  |
+| 189           | 5     | [UAT-RELIABILITY-12](UAT-RELIABILITY-12.md) | Core pages open with their data                                      |
+| 192           | 5     | [UAT-RELIABILITY-13](UAT-RELIABILITY-13.md) | Account deletion closes the live table                               |
 
 ## Covered elsewhere
 

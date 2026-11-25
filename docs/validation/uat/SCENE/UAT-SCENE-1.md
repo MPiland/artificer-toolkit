@@ -2,7 +2,7 @@
 
 Upload a map, calibrate and create a Scene.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 58 of 191
+Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 59 of 195
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 GM Public and Private rolls with reveals.
 
-Level 3 (Core play) · Feature SHEET · Mode: Solo (GM) · Path position 91 of 191
+Level 3 (Core play) · Feature SHEET · Mode: Solo (GM) · Path position 92 of 195
 
 ## Prerequisites
 

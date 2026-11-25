@@ -2,7 +2,7 @@
 
 Invitations and Social Hub navigation.
 
-Level 2 (GM setup) · Feature SOCIAL · Mode: Group (P3, P5) · Path position 51 of 191
+Level 2 (GM setup) · Feature SOCIAL · Mode: Group (P3, P5) · Path position 52 of 195
 
 ## Prerequisites
 

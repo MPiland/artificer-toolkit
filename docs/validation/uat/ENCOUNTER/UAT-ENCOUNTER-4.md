@@ -2,7 +2,7 @@
 
 Controllers, dispositions and removing a member.
 
-Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 143 of 191
+Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 147 of 195
 
 ## Prerequisites
 

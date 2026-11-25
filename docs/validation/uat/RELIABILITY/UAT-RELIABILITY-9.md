@@ -2,7 +2,7 @@
 
 Roll reasons and initiative read the right source.
 
-Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 140 of 191
+Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 144 of 195
 
 ## Prerequisites
 

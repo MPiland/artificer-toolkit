@@ -2,7 +2,7 @@
 
 Zones, auras and lasting hazards.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 173 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 177 of 195
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Pat
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **GM:** Complete the Encounter. **P3:** Use **Change Character** to swap Vex for Moss. **GM:** Rebuild the arena as in [SPELLS-2](../SPELLS/UAT-SPELLS-2.md) steps 4 and 5.
+S1. **GM:** Complete the Encounter. **P3:** Choose **Add Character** and pick Moss (it lands on the bench beside Vex), then choose **Mark active** on Moss (the druid joins the party for the next arc). **GM:** Rebuild the arena as in [SPELLS-2](../SPELLS/UAT-SPELLS-2.md) steps 4 and 5.
 S2. Hale has Spirit Guardians and Blade Barrier; Moss has Spike Growth, Moonbeam and Entangle; Sage has Caltrops (bag of 20), Oil (flask) and Hunting Trap. Remove old grants first.
 
 1. [ ] **P2:** Hale casts **Spirit Guardians**. Confirm an aura circle drawn on the map centered on her and that it moves when she moves.

@@ -2,7 +2,7 @@
 
 A player moves their own token.
 
-Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 105 of 191
+Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 106 of 195
 
 ## Prerequisites
 

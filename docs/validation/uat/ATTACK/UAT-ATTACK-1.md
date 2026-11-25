@@ -2,7 +2,7 @@
 
 Effects, movement, reactions and the turn lifecycle pass end to end.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2, P3) · Path position 94 of 191
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2, P3) · Path position 95 of 195
 
 ## Prerequisites
 

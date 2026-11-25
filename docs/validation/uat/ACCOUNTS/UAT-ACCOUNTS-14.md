@@ -2,7 +2,7 @@
 
 Change your password in Account Settings.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 7 of 191
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 7 of 195
 
 ## Prerequisites
 

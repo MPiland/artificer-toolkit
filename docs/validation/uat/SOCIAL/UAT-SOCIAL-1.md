@@ -2,7 +2,7 @@
 
 Create a listing, apply, accept and fill a table.
 
-Level 2 (GM setup) · Feature SOCIAL · Mode: Group (P3, P1, P2, P5) · Path position 50 of 191
+Level 2 (GM setup) · Feature SOCIAL · Mode: Group (P3, P1, P2, P5) · Path position 51 of 195
 
 ## Prerequisites
 

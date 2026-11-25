@@ -10,15 +10,15 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                    | Title                                              |
 | ------------- | ----- | --------------------------- | -------------------------------------------------- |
-| 65            | 2     | [UAT-MOVE-5](UAT-MOVE-5.md) | Moving outside an Encounter and in a sandbox       |
-| 66            | 2     | [UAT-MOVE-6](UAT-MOVE-6.md) | Peers converge, reload and departure               |
-| 105           | 3     | [UAT-MOVE-1](UAT-MOVE-1.md) | A player moves their own token                     |
-| 106           | 3     | [UAT-MOVE-3](UAT-MOVE-3.md) | Opportunity attack pauses the move                 |
-| 107           | 3     | [UAT-MOVE-4](UAT-MOVE-4.md) | Undo last token move                               |
-| 108           | 3     | [UAT-MOVE-7](UAT-MOVE-7.md) | Overrun, Shove Aside and Tumble                    |
-| 126           | 3     | [UAT-MOVE-2](UAT-MOVE-2.md) | Refusals at walls, hostile spaces and the map edge |
-| 127           | 3     | [UAT-MOVE-8](UAT-MOVE-8.md) | Hidden hazards, traps and auras                    |
-| 128           | 3     | [UAT-MOVE-9](UAT-MOVE-9.md) | Climb onto a larger creature                       |
+| 66            | 2     | [UAT-MOVE-5](UAT-MOVE-5.md) | Moving outside an Encounter and in a sandbox       |
+| 67            | 2     | [UAT-MOVE-6](UAT-MOVE-6.md) | Peers converge, reload and departure               |
+| 106           | 3     | [UAT-MOVE-1](UAT-MOVE-1.md) | A player moves their own token                     |
+| 107           | 3     | [UAT-MOVE-3](UAT-MOVE-3.md) | Opportunity attack pauses the move                 |
+| 108           | 3     | [UAT-MOVE-4](UAT-MOVE-4.md) | Undo last token move                               |
+| 109           | 3     | [UAT-MOVE-7](UAT-MOVE-7.md) | Overrun, Shove Aside and Tumble                    |
+| 130           | 3     | [UAT-MOVE-2](UAT-MOVE-2.md) | Refusals at walls, hostile spaces and the map edge |
+| 131           | 3     | [UAT-MOVE-8](UAT-MOVE-8.md) | Hidden hazards, traps and auras                    |
+| 132           | 3     | [UAT-MOVE-9](UAT-MOVE-9.md) | Climb onto a larger creature                       |
 
 ## Covered elsewhere
 

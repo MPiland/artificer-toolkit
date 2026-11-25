@@ -2,12 +2,12 @@
 
 A Concentration save shows its result on the roll card.
 
-Level 4 (Advanced play) · Feature PLATFORM · Mode: Group (GM, P1) · Path position 161 of 191
+Level 4 (Advanced play) · Feature PLATFORM · Mode: Group (GM, P1) · Path position 165 of 195
 
 ## Prerequisites
 
 - **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
-- P1 has switched to Ember in The Campaign (Change Character), who has Shield and Hold Person.
+- P1's Active Character in The Campaign is Ember, who has Shield and Hold Person. She is benched in The Campaign from [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md); P1 marks her active between Encounters, before the Encounter below starts (the party's wizard joins for this arc).
 - An Encounter is running in The Campaign in Assisted mode with a Wolf, a Goblin and Ember ([UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5).
 - Done in [UAT-SPELLS-7](../SPELLS/UAT-SPELLS-7.md): steps 1 to 7 are finished: Sage holds Concentration on Hold Person and the Wolf has bitten Sage.
 

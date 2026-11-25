@@ -2,7 +2,7 @@
 
 Delete my account, shared history survives.
 
-Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Mode: Group (OWN, P3) · Path position 191 of 191
+Level 5 (Reliability, performance and release) · Feature ACCOUNTS · Mode: Group (OWN, P3) · Path position 195 of 195
 
 ## Prerequisites
 

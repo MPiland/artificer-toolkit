@@ -15,7 +15,7 @@ UAT is not tracked work: there are no PBIs or tasks for it. The ledger holds one
 ## Solo and Group
 
 - **Solo** scenarios need one role. Other roles that only observe are checked afterwards by the owner (the scenario's Cross-role check). You run them signed in to one account in your normal browser. Some Solo scenarios and all exploratory tasks also need a **facilitator**, the owner acting as the GM or another player, who follows a numbered script with trigger points ("when the tester says their Character is ready, add it to the Encounter"). You never act as two roles.
-- **Group** scenarios need two or more roles to act at the same live table (146 of 191). Each role needs its own signed-in browser, whether one person drives them all or one person plays each role.
+- **Group** scenarios need two or more roles to act at the same live table (150 of 195). Each role needs its own signed-in browser, whether one person drives them all or one person plays each role.
 
 | Level | Name                                 | Solo | Group | First scenario                                        |
 | ----- | ------------------------------------ | ---- | ----- | ----------------------------------------------------- |

@@ -2,7 +2,7 @@
 
 Shield prompts the right player while the attacker waits.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path position 110 of 191
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path position 111 of 195
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
 S0. **P1:** In the Builder (as in [BUILDER-1](../BUILDER/UAT-BUILDER-1.md) steps 1 to 10) build and activate **Ember**, a level 3 Wizard who has Shield and Hold Person prepared and first-level spell slots. Later scenarios reuse her.
-S1. **GM:** Choose **Complete encounter** on any running Encounter. **P1:** Use **Change Character** to put Ember in The Campaign in place of Aria. **GM:** Create and start an Encounter in Assisted mode with Ember, a Wolf and a Goblin, and use **Next turn** until Ember's Shield reaction is available.
+S1. **GM:** Choose **Complete encounter** on any running Encounter. **P1:** In The Campaign choose **Add Character** and pick Ember (she lands on the bench beside Aria), then choose **Mark active** on her, because the party's wizard joins for this arc. **GM:** Create and start an Encounter in Assisted mode with Ember, a Wolf and a Goblin, and use **Next turn** until Ember's Shield reaction is available.
 S2. **P1:** Auto-roll ON.
 
 1. [ ] **GM:** Open the live table. Note Ember's hit points, armor class, remaining first-level slots and that her reaction is available.
@@ -35,7 +35,7 @@ S2. **P1:** Auto-roll ON.
 11. [ ] **GM:** Repeat steps 2 to 3 once more, then **P1:** choose **Use**. Then, in the same round, have the Wolf (or the other hostile) attack Ember again. Confirm no second reaction is offered (one reaction per round).
 12. [ ] **GM:** Advance to the next round and confirm Ember's reaction is available again.
 13. [ ] **P1:** On Ember's turn, try to cast Shield from the ordinary action list (not as a reaction). Read the refusal.
-        R1. **GM:** Complete the Encounter. **P1:** Use **Change Character** to put Aria back in The Campaign in place of Ember.
+        R1. **GM:** Complete the Encounter. **P1:** Choose **Mark active** on Aria again (the wizard sits out the next arc); Ember stays on the bench in The Campaign.
 
 ## Expected
 

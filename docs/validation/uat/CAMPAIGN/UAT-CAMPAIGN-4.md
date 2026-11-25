@@ -2,7 +2,7 @@
 
 Campaign content, sources and removals.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 54 of 191
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 55 of 195
 
 ## Prerequisites
 
@@ -26,9 +26,9 @@ S2. **GM:** Open `<STAGING_URL>/races/new`, create a homebrew Race named "UAT GM
 3. [ ] **GM:** Reload the Settings page and check that the share persisted.
 4. [ ] **P1:** Open the Builder for a new Character in this Campaign and check which content is offered.
 5. [ ] **GM:** Open Campaign **Content** and try to share the homebrew Spell without its parent source being shared, if you skipped that in step 2. (A share from a different Game System cannot be tried: only one Game System exists locally.)
-6. [ ] **P1:** Build a Character that uses the homebrew Spell and, on the Campaign Party panel, choose **Change Character** to assign it in place of Aria.
+6. [ ] **P1:** Build a Character that uses the homebrew Spell (the party's new caster) and, on the Campaign Party panel, choose **Add Character** and pick it (it lands on the bench beside Aria), then choose **Mark active**.
 7. [ ] **GM:** Try to remove the homebrew Spell from the Campaign.
-8. [ ] **P1:** Choose **Change Character** and put Aria back, then delete the Character you built in step 6 from **Characters** (P1 is back to 1 of 6). **GM:** Then remove the Spell from the Campaign.
+8. [ ] **P1:** Choose **Mark active** on Aria (she has stayed on the bench), use **Remove Character** on the Character you built in step 6, then delete it from **Characters** (P1 is back to 1 of 6). **GM:** Then remove the Spell from the Campaign.
 9. [ ] **GM:** Reload the Settings page.
 10. [ ] **GM:** In Settings, change the text presentation option (for example mature content wording) if offered, then view a shared item as P1 and as yourself.
 

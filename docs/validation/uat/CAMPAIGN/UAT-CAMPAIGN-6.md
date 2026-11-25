@@ -2,7 +2,7 @@
 
 Announcements.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 57 of 191
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1, P2) · Path position 58 of 195
 
 ## Prerequisites
 

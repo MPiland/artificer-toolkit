@@ -2,7 +2,7 @@
 
 Sign out in one tab and every other tab of your own account is signed out too; other people stay signed in.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (P1, GM) · Path position 12 of 191
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Group (P1, GM) · Path position 12 of 195
 
 ## Prerequisites
 

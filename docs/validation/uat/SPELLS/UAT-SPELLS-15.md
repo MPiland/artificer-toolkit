@@ -2,7 +2,7 @@
 
 Grant spells and their lifetimes.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 169 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 173 of 195
 
 ## Prerequisites
 

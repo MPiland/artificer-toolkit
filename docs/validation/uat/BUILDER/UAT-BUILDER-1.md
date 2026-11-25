@@ -2,7 +2,7 @@
 
 Build a Character, save, resume and commit.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 33 of 191
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 33 of 195
 
 ## Prerequisites
 

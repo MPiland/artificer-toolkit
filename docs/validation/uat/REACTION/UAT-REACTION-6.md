@@ -2,7 +2,7 @@
 
 Disarm evidence from participants.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2) · Path position 138 of 191
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2) · Path position 142 of 195
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Assisted and Manual Encounter journeys pass.
 
-Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 144 of 191
+Level 4 (Advanced play) · Feature ENCOUNTER · Mode: Group (GM, P1, P2, P3) · Path position 148 of 195
 
 ## Prerequisites
 

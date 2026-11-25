@@ -2,7 +2,7 @@
 
 Attack and check modifiers from conditions.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 162 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 166 of 195
 
 ## Prerequisites
 

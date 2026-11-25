@@ -2,7 +2,7 @@
 
 Authored speed and sense bonuses use the right length unit.
 
-Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 139 of 191
+Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 143 of 195
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Archiving a Campaign closes its live room.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (P4, P1) · Path position 89 of 191
+Level 3 (Core play) · Feature ROOM · Mode: Group (P4, P1) · Path position 90 of 195
 
 ## Prerequisites
 

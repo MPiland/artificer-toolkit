@@ -2,7 +2,7 @@
 
 A contested passage holds, then spends once.
 
-Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 123 of 191
+Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 127 of 195
 
 ## Prerequisites
 

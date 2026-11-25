@@ -2,7 +2,7 @@
 
 Set up the Spell Arena Encounter (Assisted).
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 155 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 159 of 195
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 1. [ ] **GM:** Open **The Campaign**, open the Live tabletop and choose **Complete encounter** on any Encounter that is still running (skip this if none is). If the GM is offered to advance the Campaign clock, choose **Not now**.
 2. [ ] **GM:** In the Campaign's table settings confirm Automation mode is Assisted and the Initiative policy is the Speed Factor variant. Make sure **Automatic cover** is ticked. Save table settings if you changed anything.
-3. [ ] **P1:** On the Campaign's Party roster choose **Change Character** and pick **Sage** in the Character picker (it replaces Aria). **P2:** choose **Change Character** and pick **Hale**. **P3:** choose **Change Character** and pick **Vex**.
+3. [ ] **P1:** On the Campaign's Party roster choose **Add Character** and pick **Sage** in the Character picker (she lands on the bench beside Aria), then choose **Mark active** on her. **P2:** do the same with **Hale** (beside Bryn). **P3:** do the same with **Vex** (beside Cade). Each Character is the player's new spell-focused Character for this arc, and no Encounter is running, so no approval is needed.
 4. [ ] **GM:** Present a Scene with a map and create a new Encounter. Add Sage, Hale and Vex's tokens (not Aria's, Bryn's or Cade's), and Goblin x3 in a group about 6 squares from the party, one Wolf adjacent to Sage, one Giant Spider, two Bandits, one Ogre.
 5. [ ] **GM:** Start the Encounter and set initiative for everyone. Choose a turn for Sage.
 6. [ ] **P1:** In the action drawer find the spell **Fireball**. Confirm it is listed once per slot level Sage can cast it at, such as "Fireball (3rd level)", "Fireball (4th level)" and "Fireball (5th level)", that cantrips appear once, and that the choice shows the spell's component text (it is shown, not enforced).

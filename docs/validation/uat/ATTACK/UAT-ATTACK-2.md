@@ -2,7 +2,7 @@
 
 Players control only their own actors.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2, P3) · Path position 95 of 191
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2, P3) · Path position 96 of 195
 
 ## Prerequisites
 

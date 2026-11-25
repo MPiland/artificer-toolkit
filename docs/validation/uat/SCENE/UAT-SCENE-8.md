@@ -2,7 +2,7 @@
 
 GM loot tables.
 
-Level 4 (Advanced play) · Feature SCENE · Mode: Group (GM, P1) · Path position 146 of 191
+Level 4 (Advanced play) · Feature SCENE · Mode: Group (GM, P1) · Path position 150 of 195
 
 ## Prerequisites
 

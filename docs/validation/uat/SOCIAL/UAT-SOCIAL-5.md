@@ -2,7 +2,7 @@
 
 Notification feed, read state and preferences.
 
-Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (GM, P1, P2) · Path position 153 of 191
+Level 4 (Advanced play) · Feature SOCIAL · Mode: Group (GM, P1, P2) · Path position 157 of 195
 
 ## Prerequisites
 

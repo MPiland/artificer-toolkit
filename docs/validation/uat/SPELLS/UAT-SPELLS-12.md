@@ -2,7 +2,7 @@
 
 Single-use items and Antitoxin.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 166 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 170 of 195
 
 ## Prerequisites
 

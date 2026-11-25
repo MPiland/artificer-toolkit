@@ -10,7 +10,7 @@ Generated from the scenario files' "ACs covered" sections and the ledger: every 
 | RULES       | [RULES](RULES/README.md)             | 5         | 14      | 5                     | 0                | 9                 | 0             |
 | BUILDER     | [BUILDER](BUILDER/README.md)         | 8         | 17      | 15                    | 0                | 2                 | 0             |
 | SHEET       | [SHEET](SHEET/README.md)             | 11        | 25      | 22                    | 0                | 3                 | 0             |
-| CAMPAIGN    | [CAMPAIGN](CAMPAIGN/README.md)       | 9         | 24      | 19                    | 0                | 5                 | 0             |
+| CAMPAIGN    | [CAMPAIGN](CAMPAIGN/README.md)       | 13        | 24      | 19                    | 0                | 5                 | 0             |
 | SOCIAL      | [SOCIAL](SOCIAL/README.md)           | 6         | 11      | 8                     | 0                | 3                 | 0             |
 | ROOM        | [ROOM](ROOM/README.md)               | 10        | 38      | 20                    | 0                | 18                | 0             |
 | SCENE       | [SCENE](SCENE/README.md)             | 9         | 16      | 15                    | 0                | 1                 | 0             |
@@ -25,9 +25,9 @@ Generated from the scenario files' "ACs covered" sections and the ledger: every 
 | PERF        | [PERF](PERF/README.md)               | 2         | 21      | 5                     | 1                | 16                | 0             |
 | QUALITY     | [QUALITY](QUALITY/README.md)         | 0         | 2       | 0                     | 0                | 2                 | 0             |
 | RELEASE     | [RELEASE](RELEASE/README.md)         | 1         | 20      | 5                     | 0                | 10                | 5             |
-| **Total**   |                                      | **183**   | **726** | **508**               | **1**            | **213**           | **5**         |
+| **Total**   |                                      | **187**   | **726** | **508**               | **1**            | **213**           | **5**         |
 
-Scenarios counted are the scripted ones (183); the orientation scenario and the 7 exploratory tasks (run in the middle of Level 3) cover no AC.
+Scenarios counted are the scripted ones (187); the orientation scenario and the 7 exploratory tasks (run in the middle of Level 3) cover no AC. [UAT-CAMPAIGN-10](CAMPAIGN/UAT-CAMPAIGN-10.md) to [UAT-CAMPAIGN-13](CAMPAIGN/UAT-CAMPAIGN-13.md) cover decision D236 (the Active Character and bench model, and the GM-approved mid-fight swap), which has no ledger AC, so they add no row to the AC counts.
 
 ## AC map
 

@@ -2,7 +2,7 @@
 
 Withdrawing shared content reconciles assigned Characters.
 
-Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 53 of 191
+Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 54 of 195
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 
 S1. **P1:** Share the Feat "UAT Sharp Eyes" with The Campaign as in [AUTHORING-11](../AUTHORING/UAT-AUTHORING-11.md).
 S2. **P1:** Build and activate a Character named "UAT Shared" that takes the Feat "UAT Sharp Eyes" (as in [BUILDER-1](UAT-BUILDER-1.md) steps 1 to 10).
-S3. **P1:** On The Campaign's Party panel choose **Change Character** and assign "UAT Shared" in place of Aria.
+S3. **P1:** On The Campaign's Party panel choose **Add Character** and pick "UAT Shared" (it lands on the bench beside Aria), then choose **Mark active** on it (the build with the new Feat joins the party for this arc).
 
 1. [ ] **P1:** Confirm "UAT Shared" in The Campaign has the Feat on the Sheet.
 2. [ ] **P1:** Remove the share of the Feat from The Campaign content list.
@@ -31,7 +31,7 @@ S3. **P1:** On The Campaign's Party panel choose **Change Character** and assign
 4. [ ] **P1:** Use the Builder to commit the repair, or reassign the Character's content as the page offers.
 5. [ ] **GM:** Reload The Campaign page.
 6. [ ] **P1:** Share the Feat again ([UAT-AUTHORING-11](../AUTHORING/UAT-AUTHORING-11.md) step 2), then **GM:** use **Remove player** on P1 in The Campaign Party. **P1:** open "UAT Shared" and your Characters list.
-       R1. **GM:** Invite P1 back into The Campaign (the invite steps in the CAMPAIGN scenarios). **P1:** Accept, then on the Party panel choose **Change Character** and put Aria back. Then delete "UAT Shared" from **Characters** (P1 is back to 1 of 6 personal Characters).
+       R1. **GM:** Invite P1 back into The Campaign (the invite steps in the CAMPAIGN scenarios). **P1:** Accept, then on the Party panel choose **Add Character** and pick Aria (the removal released both Characters, so Aria is the Active Character again at once). Then delete "UAT Shared" from **Characters** (P1 is back to 1 of 6 personal Characters).
 
 ## Expected
 

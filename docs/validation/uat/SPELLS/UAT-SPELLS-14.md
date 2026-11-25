@@ -2,7 +2,7 @@
 
 Reaction countdown timer.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 168 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 172 of 195
 
 ## Prerequisites
 

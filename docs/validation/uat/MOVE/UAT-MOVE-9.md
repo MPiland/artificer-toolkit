@@ -2,7 +2,7 @@
 
 Climb onto a larger creature.
 
-Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 128 of 191
+Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 132 of 195
 
 ## Prerequisites
 

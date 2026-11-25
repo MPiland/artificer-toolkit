@@ -2,7 +2,7 @@
 
 Background lifecycle — create, save, publish, replace, export, delete.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 21 of 191
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 21 of 195
 
 ## Prerequisites
 

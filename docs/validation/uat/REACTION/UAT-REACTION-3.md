@@ -2,13 +2,13 @@
 
 Roll prompts, Auto-roll on versus off.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position 111 of 191
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position 115 of 195
 
 ## Prerequisites
 
 - **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
 - **The Campaign** has Aria (P1), Bryn (P2) and Cade (P3), level 1 Fighters each player built, seated; Assisted mode with the Speed Factor initiative; and a running Encounter in round 2 with tokens for the three Fighters, a Wolf and a Goblin, as the GM built it in [UAT-ENCOUNTER-1](../ENCOUNTER/UAT-ENCOUNTER-1.md) (steps 12 to 16) and played on.
-- Done in [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md): P1 built **Ember**, a level 3 Wizard with Shield and Hold Person prepared and 1st-level slots. Ember is not seated yet; the setup step has P1 swap to her.
+- Done in [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md): P1 built **Ember**, a level 3 Wizard with Shield and Hold Person prepared and 1st-level slots. Ember is benched in The Campaign (added in REACTION-1); the setup step has P1 mark her active.
 
 ## Accounts and windows
 
@@ -19,7 +19,7 @@ Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. For step 6 only: **P1** swaps to Ember with **Change Character** (the **GM** completes the running Encounter first), and the **GM** starts a new Encounter with Ember, a Wolf and a Goblin and uses **Next turn** until Ember's Shield reaction is available.
+S1. For step 6 only: **P1** chooses **Mark active** on Ember (the party's wizard joins for this fight; the **GM** completes the running Encounter first, so no approval is needed), and the **GM** starts a new Encounter with Ember, a Wolf and a Goblin and uses **Next turn** until Ember's Shield reaction is available.
 S2. Run steps 1 to 5 first with P1's Auto-roll OFF (the default), then again with it ON. If step 4 finds no advantage or disadvantage, **GM:** apply Prone to the Wolf first.
 
 1. [ ] **P1:** Confirm the **Auto-roll** switch is OFF. On Aria's turn attack the Wolf.
@@ -30,7 +30,7 @@ S2. Run steps 1 to 5 first with P1's Auto-roll OFF (the default), then again wit
 6. [ ] **P1:** As Ember (see S1), get a reaction prompt for Ember (as in [UAT-REACTION-1](UAT-REACTION-1.md) steps 2 to 3) while Auto-roll is on. Confirm you are still asked **Use** or **Decline**; only dice are rolled for you.
 7. [ ] **P1:** Open Settings, Preferences, and confirm **Roll my dice automatically** shows on; open the same account on a second device or browser and confirm it is on there too.
 8. [ ] **GM:** Turn your own Auto-roll OFF and ON; confirm it only affects the GM's creatures' rolls.
-       R1. **GM:** Remove Prone from the Wolf if you applied it, and complete the Encounter. **P1:** Use **Change Character** to put Aria back in The Campaign in place of Ember.
+       R1. **GM:** Remove Prone from the Wolf if you applied it, and complete the Encounter. **P1:** Choose **Mark active** on Aria again (the wizard sits out the next arc); Ember stays on the bench.
 
 ## Expected
 
