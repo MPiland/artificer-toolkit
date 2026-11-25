@@ -5,6 +5,7 @@ import type {
   CampaignAssignmentResult,
   CampaignDetailDto,
   CreateCampaignInput,
+  SetActiveCampaignCharacterResult,
   assignCampaignCharacterInputSchema,
   setActiveCampaignCharacterInputSchema,
   unassignCampaignCharacterInputSchema
@@ -47,7 +48,7 @@ const unassign = makeFunctionReference<
 const setActive = makeFunctionReference<
   'mutation',
   z.input<typeof setActiveCampaignCharacterInputSchema>,
-  CampaignAssignmentResult
+  SetActiveCampaignCharacterResult
 >('campaigns/assignments:setActive')
 const saveCurrency = makeFunctionReference<
   'mutation',
@@ -672,7 +673,7 @@ describe('native Campaign Character assignments', () => {
         campaignId: base.campaign.id,
         characterId: committed.character.id
       })
-    ).resolves.toEqual({ ok: true })
+    ).resolves.toEqual({ status: 'SWITCHED' })
 
     expect(await readOverlays()).toEqual(overlaysBefore)
     const rows = await base.t.run((ctx) =>

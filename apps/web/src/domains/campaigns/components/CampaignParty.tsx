@@ -10,7 +10,7 @@ import {
   UnstyledButton
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useMutation, useQueries } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { convexQuery } from '@convex-dev/react-query'
 import { useMutation as useConvexMutation } from 'convex/react'
@@ -25,13 +25,18 @@ import type {
   removeCampaignMemberInputSchema
 } from '@artificer-toolkit/schema/api/campaignCore'
 import { useGetCharacterList, getCharacterSheetSlice } from '#app/data/characters/queries'
-import { useGetCampaignList } from '#app/data/campaigns/queries'
+import {
+  getCampaignActiveCharacterRequests,
+  getMyCampaignActiveCharacterRequest,
+  useGetCampaignList
+} from '#app/data/campaigns/queries'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
 import { attachedCharacters } from '../campaignCharacters'
 import { resolveHitPoints } from '../vtt/liveCampaignSummary'
 import { useCampaignLiveSummary } from '../vtt/useCampaignLiveSummary'
 import * as sharedStyles from '../campaigns.css'
 import * as partyStyles from './party.css'
+import { ActiveCharacterRequestCard } from './ActiveCharacterRequests/ActiveCharacterRequestCard'
 import { CampaignRosterPortrait } from './CampaignRosterPortrait'
 import { CharacterControllersField } from './CharacterControllersField'
 
@@ -51,6 +56,18 @@ export function CampaignParty({
   const assignCharacter = useConvexMutation(convexApi.campaigns.assignments.assign)
   const unassignCharacter = useConvexMutation(convexApi.campaigns.assignments.unassign)
   const setActiveCharacter = useConvexMutation(convexApi.campaigns.assignments.setActive)
+  const cancelActiveCharacterRequest = useConvexMutation(
+    convexApi.campaigns.activeCharacterRequests.cancel
+  )
+  // A swap while the Active Character fights waits for the GM (D236).
+  const gmRequests = useQuery({
+    ...getCampaignActiveCharacterRequests(campaign.id),
+    enabled: campaign.role === 'OWNER'
+  })
+  const myRequest = useQuery({
+    ...getMyCampaignActiveCharacterRequest(campaign.id),
+    enabled: campaign.capabilities.assignOwnCharacter
+  })
   const removeMember = useConvexMutation(convexApi.campaigns.membershipDeparture.removeMember)
   const [membershipError, setMembershipError] = useState<string | null>(null)
   const [characterPickerOpened, characterPicker] = useDisclosure(false)
@@ -132,6 +149,10 @@ export function CampaignParty({
     mutationFn: (input: z.infer<typeof setActiveCampaignCharacterInputSchema>) =>
       setActiveCharacter(input)
   })
+  const cancelRequest = useMutation({
+    retry: false,
+    mutationFn: () => cancelActiveCharacterRequest({ campaignId: campaign.id })
+  })
   const assign = useMutation({
     retry: false,
     mutationFn: (input: z.infer<typeof assignCampaignCharacterInputSchema>) =>
@@ -164,6 +185,7 @@ export function CampaignParty({
 
         {unassign.error ? <Alert color='red'>{unassign.error.message}</Alert> : null}
         {markActive.error ? <Alert color='red'>{markActive.error.message}</Alert> : null}
+        {cancelRequest.error ? <Alert color='red'>{cancelRequest.error.message}</Alert> : null}
 
         {rosterMembers.length ? (
           <SimpleGrid className={partyStyles.partyGrid} cols={{ base: 1, sm: 2, lg: 3 }}>
@@ -179,6 +201,10 @@ export function CampaignParty({
                 fullSheetShown && character
                   ? resolveHitPoints(liveSummary, character.id, sheet?.overview)
                   : undefined
+              const gmRequest = gmRequests.data?.find(
+                (request) => request.toCharacterId === character?.id
+              )
+              const requested = character !== null && myRequest.data?.toCharacterId === character.id
               return (
                 <article className={partyStyles.partyCard} key={character?.id ?? member.userId}>
                   <Group align='flex-start' justify='space-between' wrap='nowrap'>
@@ -262,6 +288,7 @@ export function CampaignParty({
                       assignedUserId={member.userId}
                     />
                   ) : null}
+                  {gmRequest ? <ActiveCharacterRequestCard request={gmRequest} /> : null}
                   {campaign.capabilities.manageMembers && member.role === 'PLAYER' ? (
                     <Group gap='xs'>
                       {character ? (
@@ -300,7 +327,21 @@ export function CampaignParty({
                   member.userId === currentUserId &&
                   character ? (
                     <Group gap='xs'>
-                      {active ? null : (
+                      {active ? null : requested ? (
+                        <>
+                          <Text c='dimmed' size='sm'>
+                            Requested, waiting for the GM
+                          </Text>
+                          <Button
+                            loading={cancelRequest.isPending}
+                            size='sm'
+                            variant='default'
+                            onClick={() => cancelRequest.mutate()}
+                          >
+                            Cancel request
+                          </Button>
+                        </>
+                      ) : (
                         <Button
                           loading={markActive.isPending}
                           size='sm'

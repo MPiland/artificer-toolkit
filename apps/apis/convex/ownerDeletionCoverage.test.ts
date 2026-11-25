@@ -176,6 +176,7 @@ const NOT_OWNER_CONTENT: Record<string, string> = {
   campaignConversationMembers: 'membership state',
   campaignMemberships: 'membership state',
   campaignCharacterAssignments: 'membership state',
+  campaignActiveCharacterRequests: 'membership state',
   socialProfileInvalidations: 'derived',
   socialProfiles: 'part of the account profile',
   importUploadClaims: 'upload bookkeeping',

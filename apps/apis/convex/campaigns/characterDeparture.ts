@@ -17,6 +17,7 @@ import { freezeEncounterCharacterStates } from '@artificer-toolkit/encounter-per
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { isRoomHeldRun } from '../liveSessions/authorityGuard'
 import { encounterWriteTransaction } from '../encounters/encounterPorts'
+import { deleteActiveCharacterRequests } from './activeCharacterSwitch'
 
 /**
  * D81: each listed Character no longer assigned to the Campaign loses what the Campaign put on its
@@ -108,6 +109,7 @@ export async function removeCampaignCharacterAssignment(input: {
       q.eq('campaignId', campaign.id).eq('characterId', character.id)
     ))
     await ctx.db.delete(prompt._id)
+  await deleteActiveCharacterRequests(ctx, campaign.id, assignment.userId, character.id)
   const persistedContextChange = await persistCharacterContextChange(ctx, record, returned.state)
   await queueCharacterReconcile(ctx, {
     campaignId: campaign.id,

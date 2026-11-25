@@ -51,44 +51,53 @@ export async function readEncounterWaitingOn(
   if (!ownerMembership) throw new Error('The Campaign owner membership is unavailable.')
   const decision = await readPendingRunDecision(ctx, row, campaign, ownerMembership)
   if (!decision) return null
-  if (decision.kind === 'AREA_SAVES') {
-    const controllers = await Promise.all(
-      [...decision.saves, ...decision.windows, ...decision.legendaryResistance].map(
-        async ({ actorId }) =>
-          readEncounterActorPrimaryController(
-            ctx,
-            campaign,
-            await readRunActor(ctx, readRunState(row), actorId)
-          )
+  const controllers = await Promise.all(
+    pendingDecisionActorIds(decision).map(async (actorId) =>
+      readEncounterActorPrimaryController(
+        ctx,
+        campaign,
+        await readRunActor(ctx, readRunState(row), actorId)
       )
     )
-    return controllers.every((controller) => controller === campaign.ownerUserId) ? 'GM' : 'PLAYER'
+  )
+  return controllers.every((controller) => controller === campaign.ownerUserId) ? 'GM' : 'PLAYER'
+}
+
+/** The actors a pending decision waits on; none when only the GM can answer it. */
+export function pendingDecisionActorIds(
+  decision: PendingEncounterRuleOccurrenceSummaryDto
+): string[] {
+  return decisionActorIds(decision).filter((actorId): actorId is string => actorId !== null)
+}
+
+function decisionActorIds(decision: PendingEncounterRuleOccurrenceSummaryDto): (string | null)[] {
+  switch (decision.kind) {
+    case 'AREA_SAVES':
+      return [...decision.saves, ...decision.windows, ...decision.legendaryResistance].map(
+        ({ actorId }) => actorId
+      )
+    case 'D20_EVIDENCE':
+    case 'ACTION_OUTCOME_EVIDENCE':
+    case 'RECHARGE_EVIDENCE':
+      return [decision.rollerActorId]
+    case 'INITIATIVE_DECLARATION':
+      return [decision.actorId]
+    case 'REACTION_OFFER':
+      return [decision.reactorActorId]
+    case 'MOVEMENT_PASSAGE_CHOICE':
+    case 'FORCED_MOVEMENT_DESTINATION':
+      return [decision.sourceActorId]
+    case 'LEGENDARY_ACTION_CHOICE':
+      return [decision.ownerActorId]
+    case 'LEGENDARY_RESISTANCE_CHOICE':
+    case 'REACTION_CHOICE':
+      return [decision.targetActorId]
+    case 'ON_HIT_CHOICE':
+    case 'ATTACK_RETARGET_CHOICE':
+      return [decision.attackerActorId]
+    default:
+      return []
   }
-  const actorId =
-    decision.kind === 'D20_EVIDENCE' ||
-    decision.kind === 'ACTION_OUTCOME_EVIDENCE' ||
-    decision.kind === 'RECHARGE_EVIDENCE'
-      ? decision.rollerActorId
-      : decision.kind === 'INITIATIVE_DECLARATION'
-        ? decision.actorId
-        : decision.kind === 'REACTION_OFFER'
-          ? decision.reactorActorId
-          : decision.kind === 'MOVEMENT_PASSAGE_CHOICE' ||
-              decision.kind === 'FORCED_MOVEMENT_DESTINATION'
-            ? decision.sourceActorId
-            : decision.kind === 'LEGENDARY_ACTION_CHOICE'
-              ? decision.ownerActorId
-              : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
-                  decision.kind === 'REACTION_CHOICE'
-                ? decision.targetActorId
-                : decision.kind === 'ON_HIT_CHOICE' || decision.kind === 'ATTACK_RETARGET_CHOICE'
-                  ? decision.attackerActorId
-                  : null
-  if (!actorId) return 'GM'
-  const actor = await readRunActor(ctx, readRunState(row), actorId)
-  return (await readEncounterActorPrimaryController(ctx, campaign, actor)) === campaign.ownerUserId
-    ? 'GM'
-    : 'PLAYER'
 }
 
 export async function readPendingRunDecision(

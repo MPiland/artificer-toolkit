@@ -274,6 +274,82 @@ export function persistRoomSceneTokenRemove(args: {
   return writeDirectSceneCommand({ ...args, input, change, result, state })
 }
 
+/**
+ * Stages the Scene rows that point a bound token at the Character that replaced its actor's (D236):
+ * the token keeps its place, ordinal and vision and takes the new Character's id and name, so it
+ * derives no fog. The command names the replacement as its origin when the room made it.
+ */
+export function persistRoomSceneTokenCharacter(args: {
+  transaction: RoomTransaction
+  header: SceneLiveStateHeader
+  scene: CampaignSceneStateDto
+  baseOrdinals: SceneBaseOrdinals
+  tokenId: string
+  character: { id: string; label: string }
+  commandId: string
+  actorUserId: string
+  presentationVersion: number
+  saveId: string
+  now: number
+  /** The swap's replacement; absent when repointing a token a Convex swap left stale. */
+  actionOrigin?: { encounterId: string; commandId: string }
+}) {
+  const { transaction, header, scene } = args
+  const current = scene.tokens.find(({ id }) => id.toLowerCase() === args.tokenId.toLowerCase())
+  if (!current) throw new Error('Scene token is unavailable.')
+  const token = sceneStoredTokenDtoSchema.parse({
+    ...current,
+    characterId: args.character.id,
+    label: args.character.label
+  })
+  const supplied = {
+    type: 'UPSERT_SCENE_TOKEN' as const,
+    commandId: args.commandId,
+    sceneId: header.id,
+    expectedSceneVersion: header.version,
+    token
+  }
+  const input = normalizeGeometryInput(supplied)
+  const target = geometryTarget(input)
+  const result = sceneCommandResultDtoSchema.parse({
+    commandId: input.commandId,
+    delta: target.delta,
+    occurrence: null,
+    replayed: false,
+    sceneId: header.id,
+    version: header.version + 1
+  })
+  const { state } = beginDirectSceneCommand({ ...args, supplied, result })
+  const overrideRow = readRoomSceneRow(transaction, 'sceneLiveEntities', [
+    header.id,
+    'tokens',
+    target.entityId
+  ])
+  const ordinal = overrideRow
+    ? sceneStoredLiveEntitySchema.parse(overrideRow).ordinal
+    : args.baseOrdinals.tokens.find(({ tokenId }) => tokenId.toLowerCase() === target.entityId)
+        ?.baseOrdinal
+  if (ordinal === null || ordinal === undefined || !Number.isSafeInteger(ordinal) || ordinal < 0)
+    throw new Error('Room Scene target ordinal is unavailable.')
+  const change = liveEntityChange({
+    sceneId: header.id,
+    collection: 'tokens',
+    entityId: target.entityId,
+    value: normalizeSceneGeometryEntity({ collection: 'tokens', entity: token }),
+    doorState: null,
+    ordinal,
+    version: state.version
+  })
+  return writeDirectSceneCommand({
+    ...args,
+    actionOrigin: args.actionOrigin,
+    input,
+    change,
+    result,
+    state
+  })
+}
+
 type LiveEntity = ReturnType<typeof sceneStoredLiveEntitySchema.parse>
 
 function liveEntityChange(row: Omit<LiveEntity, 'checksum'>): LiveEntity {

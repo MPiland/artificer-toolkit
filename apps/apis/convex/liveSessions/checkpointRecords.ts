@@ -593,6 +593,11 @@ export async function applyCheckpointRecords(
     tracking.touchPlay(frame.campaignId)
     for (const characterId of await carryOverRunGrants(ctx, frame.campaignId, encounterId))
       carriedOver.add(characterId)
+    // A mid-fight swap request goes with its Run (D236); the player switches freely now.
+    for await (const request of ctx.db
+      .query('campaignActiveCharacterRequests')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', frame.campaignId)))
+      if (request.encounterId === encounterId) await ctx.db.delete(request._id)
   }
   await applyCheckpointScenes(ctx, frame, records.scenes)
   await io.mark('scenes')

@@ -27,8 +27,8 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
 ## Decision
 
 1. **Control belongs to the actor (Foundry ownership).**
-   - Each Run actor has GM-set controller users. A Character actor's Campaign-assigned player is always
-     a controller.
+   - Each Run actor has GM-set controller users. The player who attached a Character actor's Character to
+     the Campaign, active or benched (D236), is always a controller.
    - One predicate answers "can user U act for actor A": the GM (Campaign owner) always can, and a
      controller can for that actor.
    - It governs actions, ending the actor's turn, initiative, the actor's rolls and responses, and
@@ -116,7 +116,7 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
 
 ## Amendment (SCENE-5.1, D162)
 
-- The GM can grant other active players control of an assigned Character, stored on the Character's Campaign
+- The GM can grant other active players control of an attached Character, stored on the Character's Campaign
   assignment and derived at read time. The Run actor's own `controllerUserIds` stays per-Run and survives a revoke.
 - The 8-controller cap applies only to the per-Run list; Campaign grants allow up to 32 players.
 

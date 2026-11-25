@@ -190,6 +190,14 @@ export async function removeCampaignState(ctx: MutationCtx, job: Doc<'campaignDe
       deletePage(
         ctx,
         await ctx.db
+          .query('campaignActiveCharacterRequests')
+          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+          .take(PAGE_SIZE)
+      ),
+    async () =>
+      deletePage(
+        ctx,
+        await ctx.db
           .query('campaignNotebookSections')
           .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaignId))
           .take(PAGE_SIZE)
