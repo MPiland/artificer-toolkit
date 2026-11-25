@@ -454,9 +454,6 @@ export function CampaignParty({
                 }
               >
                 <Text fw={700}>{character.label}</Text>
-                <Text c='dimmed' size='sm'>
-                  Active Character
-                </Text>
               </UnstyledButton>
             ))}
           </SimpleGrid>

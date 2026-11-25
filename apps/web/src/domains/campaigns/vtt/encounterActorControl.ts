@@ -1,6 +1,7 @@
 import { actorOwnerChain } from '@artificer-toolkit/shared/campaign/actorOwnership'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { EncounterPlayerProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import { attachedCharacters } from '../campaignCharacters'
 
 type EncounterActor = Pick<
   EncounterPlayerProjectionDto['actors'][number],
@@ -26,9 +27,7 @@ export function isEncounterActorMine(
         candidate.controllerUserIds.includes(currentUserId) ||
         (candidate.kind === 'CHARACTER' &&
           candidate.sourceId !== null &&
-          [campaign.activeCharacter, ...campaign.benchedCharacters].some(
-            (character) => character?.id === candidate.sourceId
-          ))
+          attachedCharacters(campaign).some((character) => character.id === candidate.sourceId))
     )
   )
 }
