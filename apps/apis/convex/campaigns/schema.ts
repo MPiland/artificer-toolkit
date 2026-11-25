@@ -314,6 +314,7 @@ export const campaignTables = {
     .index('by_userId_status_joinedAt', ['userId', 'status', 'joinedAt']),
   campaignCharacterAssignments: defineTable(zodToConvexFields(campaignStoredAssignmentSchema.shape))
     .index('by_campaignId_userId', ['campaignId', 'userId'])
+    .index('by_campaignId_userId_active', ['campaignId', 'userId', 'active'])
     .index('by_campaignId', ['campaignId'])
     .index('by_characterId', ['characterId']),
   campaignPlaySettings: defineTable(zodToConvexFields(campaignPlaySettingsDtoSchema.shape)).index(

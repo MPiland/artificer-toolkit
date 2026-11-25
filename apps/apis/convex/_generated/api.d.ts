@@ -927,14 +927,20 @@ export declare const api: {
         "public",
         { campaignId: string; expectedVersion: number },
         {
-          additionalRulesCatalogueIds: Array<string>;
-          assignedCharacter: {
+          activeCharacter: {
             id: string;
             label: string;
             publicId: string;
             systemId: string;
           } | null;
+          additionalRulesCatalogueIds: Array<string>;
           attunementSlotOverride: number | null;
+          benchedCharacters: Array<{
+            id: string;
+            label: string;
+            publicId: string;
+            systemId: string;
+          }>;
           capabilities: {
             archive: boolean;
             assignOwnCharacter: boolean;
@@ -963,12 +969,18 @@ export declare const api: {
           memberships: Array<{
             acceptedAt: string;
             accessStartedAt: string;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
@@ -1008,10 +1020,16 @@ export declare const api: {
         { campaignId: string; characterId: string },
         { ok: true }
       >;
+      setActive: FunctionReference<
+        "mutation",
+        "public",
+        { campaignId: string; characterId: string },
+        { ok: true }
+      >;
       unassign: FunctionReference<
         "mutation",
         "public",
-        { campaignId: string; characterId?: string },
+        { campaignId: string; characterId: string },
         { ok: true }
       >;
     };
@@ -7431,14 +7449,20 @@ export declare const api: {
         "public",
         { campaignId: string; commandId: string; expectedVersion: number },
         {
-          additionalRulesCatalogueIds: Array<string>;
-          assignedCharacter: {
+          activeCharacter: {
             id: string;
             label: string;
             publicId: string;
             systemId: string;
           } | null;
+          additionalRulesCatalogueIds: Array<string>;
           attunementSlotOverride: number | null;
+          benchedCharacters: Array<{
+            id: string;
+            label: string;
+            publicId: string;
+            systemId: string;
+          }>;
           capabilities: {
             archive: boolean;
             assignOwnCharacter: boolean;
@@ -7467,12 +7491,18 @@ export declare const api: {
           memberships: Array<{
             acceptedAt: string;
             accessStartedAt: string;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
@@ -7520,14 +7550,20 @@ export declare const api: {
           copyId: string;
           createdAt: string;
           destination: {
-            additionalRulesCatalogueIds: Array<string>;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            additionalRulesCatalogueIds: Array<string>;
             attunementSlotOverride: number | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             capabilities: {
               archive: boolean;
               assignOwnCharacter: boolean;
@@ -7556,12 +7592,18 @@ export declare const api: {
             memberships: Array<{
               acceptedAt: string;
               accessStartedAt: string;
-              assignedCharacter: {
+              activeCharacter: {
                 id: string;
                 label: string;
                 publicId: string;
                 systemId: string;
               } | null;
+              benchedCharacters: Array<{
+                id: string;
+                label: string;
+                publicId: string;
+                systemId: string;
+              }>;
               characterControllerUserIds: Array<string>;
               role: "OWNER" | "PLAYER";
               userId: string;
@@ -7609,14 +7651,20 @@ export declare const api: {
           copyId: string;
           createdAt: string;
           destination: {
-            additionalRulesCatalogueIds: Array<string>;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            additionalRulesCatalogueIds: Array<string>;
             attunementSlotOverride: number | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             capabilities: {
               archive: boolean;
               assignOwnCharacter: boolean;
@@ -7645,12 +7693,18 @@ export declare const api: {
             memberships: Array<{
               acceptedAt: string;
               accessStartedAt: string;
-              assignedCharacter: {
+              activeCharacter: {
                 id: string;
                 label: string;
                 publicId: string;
                 systemId: string;
               } | null;
+              benchedCharacters: Array<{
+                id: string;
+                label: string;
+                publicId: string;
+                systemId: string;
+              }>;
               characterControllerUserIds: Array<string>;
               role: "OWNER" | "PLAYER";
               userId: string;
@@ -7708,14 +7762,20 @@ export declare const api: {
             copyId: string;
             createdAt: string;
             destination: {
-              additionalRulesCatalogueIds: Array<string>;
-              assignedCharacter: {
+              activeCharacter: {
                 id: string;
                 label: string;
                 publicId: string;
                 systemId: string;
               } | null;
+              additionalRulesCatalogueIds: Array<string>;
               attunementSlotOverride: number | null;
+              benchedCharacters: Array<{
+                id: string;
+                label: string;
+                publicId: string;
+                systemId: string;
+              }>;
               capabilities: {
                 archive: boolean;
                 assignOwnCharacter: boolean;
@@ -7744,12 +7804,18 @@ export declare const api: {
               memberships: Array<{
                 acceptedAt: string;
                 accessStartedAt: string;
-                assignedCharacter: {
+                activeCharacter: {
                   id: string;
                   label: string;
                   publicId: string;
                   systemId: string;
                 } | null;
+                benchedCharacters: Array<{
+                  id: string;
+                  label: string;
+                  publicId: string;
+                  systemId: string;
+                }>;
                 characterControllerUserIds: Array<string>;
                 role: "OWNER" | "PLAYER";
                 userId: string;
@@ -7801,14 +7867,20 @@ export declare const api: {
           copyId: string;
           createdAt: string;
           destination: {
-            additionalRulesCatalogueIds: Array<string>;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            additionalRulesCatalogueIds: Array<string>;
             attunementSlotOverride: number | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             capabilities: {
               archive: boolean;
               assignOwnCharacter: boolean;
@@ -7837,12 +7909,18 @@ export declare const api: {
             memberships: Array<{
               acceptedAt: string;
               accessStartedAt: string;
-              assignedCharacter: {
+              activeCharacter: {
                 id: string;
                 label: string;
                 publicId: string;
                 systemId: string;
               } | null;
+              benchedCharacters: Array<{
+                id: string;
+                label: string;
+                publicId: string;
+                systemId: string;
+              }>;
               characterControllerUserIds: Array<string>;
               role: "OWNER" | "PLAYER";
               userId: string;
@@ -7907,14 +7985,20 @@ export declare const api: {
           >;
         },
         {
-          additionalRulesCatalogueIds: Array<string>;
-          assignedCharacter: {
+          activeCharacter: {
             id: string;
             label: string;
             publicId: string;
             systemId: string;
           } | null;
+          additionalRulesCatalogueIds: Array<string>;
           attunementSlotOverride: number | null;
+          benchedCharacters: Array<{
+            id: string;
+            label: string;
+            publicId: string;
+            systemId: string;
+          }>;
           capabilities: {
             archive: boolean;
             assignOwnCharacter: boolean;
@@ -7943,12 +8027,18 @@ export declare const api: {
           memberships: Array<{
             acceptedAt: string;
             accessStartedAt: string;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
@@ -9070,14 +9160,20 @@ export declare const api: {
         "public",
         { campaignId: string },
         {
-          additionalRulesCatalogueIds: Array<string>;
-          assignedCharacter: {
+          activeCharacter: {
             id: string;
             label: string;
             publicId: string;
             systemId: string;
           } | null;
+          additionalRulesCatalogueIds: Array<string>;
           attunementSlotOverride: number | null;
+          benchedCharacters: Array<{
+            id: string;
+            label: string;
+            publicId: string;
+            systemId: string;
+          }>;
           capabilities: {
             archive: boolean;
             assignOwnCharacter: boolean;
@@ -9106,12 +9202,18 @@ export declare const api: {
           memberships: Array<{
             acceptedAt: string;
             accessStartedAt: string;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
@@ -9504,14 +9606,20 @@ export declare const api: {
         "public",
         { id: string },
         {
-          additionalRulesCatalogueIds: Array<string>;
-          assignedCharacter: {
+          activeCharacter: {
             id: string;
             label: string;
             publicId: string;
             systemId: string;
           } | null;
+          additionalRulesCatalogueIds: Array<string>;
           attunementSlotOverride: number | null;
+          benchedCharacters: Array<{
+            id: string;
+            label: string;
+            publicId: string;
+            systemId: string;
+          }>;
           capabilities: {
             archive: boolean;
             assignOwnCharacter: boolean;
@@ -9540,12 +9648,18 @@ export declare const api: {
           memberships: Array<{
             acceptedAt: string;
             accessStartedAt: string;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
@@ -9592,13 +9706,19 @@ export declare const api: {
           continueCursor: string;
           isDone: boolean;
           page: Array<{
-            additionalRulesCatalogueIds: Array<string>;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            additionalRulesCatalogueIds: Array<string>;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             capabilities: {
               archive: boolean;
               assignOwnCharacter: boolean;
@@ -9663,14 +9783,20 @@ export declare const api: {
         "public",
         { id: string },
         {
-          additionalRulesCatalogueIds: Array<string>;
-          assignedCharacter: {
+          activeCharacter: {
             id: string;
             label: string;
             publicId: string;
             systemId: string;
           } | null;
+          additionalRulesCatalogueIds: Array<string>;
           attunementSlotOverride: number | null;
+          benchedCharacters: Array<{
+            id: string;
+            label: string;
+            publicId: string;
+            systemId: string;
+          }>;
           capabilities: {
             archive: boolean;
             assignOwnCharacter: boolean;
@@ -9699,12 +9825,18 @@ export declare const api: {
           memberships: Array<{
             acceptedAt: string;
             accessStartedAt: string;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
@@ -10618,14 +10750,20 @@ export declare const api: {
           >;
         },
         {
-          additionalRulesCatalogueIds: Array<string>;
-          assignedCharacter: {
+          activeCharacter: {
             id: string;
             label: string;
             publicId: string;
             systemId: string;
           } | null;
+          additionalRulesCatalogueIds: Array<string>;
           attunementSlotOverride: number | null;
+          benchedCharacters: Array<{
+            id: string;
+            label: string;
+            publicId: string;
+            systemId: string;
+          }>;
           capabilities: {
             archive: boolean;
             assignOwnCharacter: boolean;
@@ -10654,12 +10792,18 @@ export declare const api: {
           memberships: Array<{
             acceptedAt: string;
             accessStartedAt: string;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
@@ -305428,14 +305572,20 @@ export declare const api: {
         "public",
         { expectedVersion: number; invitePublicId: string },
         {
-          additionalRulesCatalogueIds: Array<string>;
-          assignedCharacter: {
+          activeCharacter: {
             id: string;
             label: string;
             publicId: string;
             systemId: string;
           } | null;
+          additionalRulesCatalogueIds: Array<string>;
           attunementSlotOverride: number | null;
+          benchedCharacters: Array<{
+            id: string;
+            label: string;
+            publicId: string;
+            systemId: string;
+          }>;
           capabilities: {
             archive: boolean;
             assignOwnCharacter: boolean;
@@ -305464,12 +305614,18 @@ export declare const api: {
           memberships: Array<{
             acceptedAt: string;
             accessStartedAt: string;
-            assignedCharacter: {
+            activeCharacter: {
               id: string;
               label: string;
               publicId: string;
               systemId: string;
             } | null;
+            benchedCharacters: Array<{
+              id: string;
+              label: string;
+              publicId: string;
+              systemId: string;
+            }>;
             characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
@@ -307368,6 +307524,36 @@ export declare const internal: {
         null
       >;
     };
+    assignmentActiveMigration: {
+      markAssignmentsActive: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
     characterReconcileSteps: {
       run: FunctionReference<
         "mutation",
@@ -307399,7 +307585,6 @@ export declare const internal: {
             | "UNSHARE"
             | "MEMBER_LEFT"
             | "MEMBER_REMOVED"
-            | "CHARACTER_REPLACED"
             | "CHARACTER_UNASSIGNED"
             | "CHARACTER_DELETED"
             | "CAMPAIGN_DELETED";
@@ -307437,7 +307622,6 @@ export declare const internal: {
             | "UNSHARE"
             | "MEMBER_LEFT"
             | "MEMBER_REMOVED"
-            | "CHARACTER_REPLACED"
             | "CHARACTER_UNASSIGNED"
             | "CHARACTER_DELETED"
             | "CAMPAIGN_DELETED";
@@ -311141,6 +311325,7 @@ export declare const internal: {
         {
           campaign?: {
             assignments: Array<{
+              active: boolean;
               characterId: string;
               controllerUserIds?: Array<string>;
               userId: string;

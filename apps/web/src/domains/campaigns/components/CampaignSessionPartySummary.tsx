@@ -29,7 +29,7 @@ export function CampaignSessionPartySummary({
   )
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null)
   const assigned = campaign.memberships.flatMap((membership) =>
-    membership.assignedCharacter ? [{ membership, character: membership.assignedCharacter }] : []
+    membership.activeCharacter ? [{ membership, character: membership.activeCharacter }] : []
   )
   const sheets = useQueries({
     queries: assigned.map(({ character }) =>

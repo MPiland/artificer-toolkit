@@ -229,6 +229,7 @@ export const encounterStoreIndexes = {
   },
   campaignCharacterAssignments: {
     by_campaignId_userId: ['campaignId', 'userId'],
+    by_campaignId_userId_active: ['campaignId', 'userId', 'active'],
     by_campaignId: ['campaignId'],
     by_characterId: ['characterId']
   },

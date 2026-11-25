@@ -36,7 +36,7 @@ import type { MutationCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { readActiveCampaignMembers, requireCampaignAuthority } from '../campaigns/authority'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { readCampaignActiveCharacter } from '../campaigns/assignedCharacter'
 import { loadCharacterSheet } from '../characters/sheetPreparation'
 import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintEnemySnapshot'
 import { readBlueprint } from './blueprints'
@@ -103,7 +103,7 @@ export async function createEncounterRun(
     throw new Error('Encounter Blueprint does not match the Campaign Game System.')
   const party: string[] = []
   for (const member of await readActiveCampaignMembers(ctx, campaign)) {
-    const character = await readCampaignAssignedCharacter(ctx, campaign, member)
+    const character = await readCampaignActiveCharacter(ctx, campaign, member)
     if (character) party.push(character.id)
   }
   if (party.length + blueprint.enemies.length > MAX_ENCOUNTER_ACTORS)

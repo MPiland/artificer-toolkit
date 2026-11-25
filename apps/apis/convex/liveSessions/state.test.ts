@@ -64,7 +64,8 @@ it('keeps Character Sheet commands in Convex while Scene authority is active and
       campaignId: campaign.id,
       userId: player.userId,
       characterId: base.character.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   })
   const authority = await player.caller.mutation(claim, { campaignId: campaign.id })

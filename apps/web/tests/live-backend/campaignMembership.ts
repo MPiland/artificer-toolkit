@@ -492,7 +492,7 @@ export async function verifyCampaignMembershipBrowser<T>(
     await expect(roster).toBeVisible()
     // The GM is on the roster only while playing their own Character (CAMPAIGN-7).
     const players = campaign.memberships.filter(
-      (member) => member.role === 'PLAYER' || member.assignedCharacter
+      (member) => member.role === 'PLAYER' || member.activeCharacter
     )
     await expect(roster.getByRole('article')).toHaveCount(players.length, { timeout: 30_000 })
     for (const member of players) {
@@ -501,25 +501,25 @@ export async function verifyCampaignMembershipBrowser<T>(
         .filter({ has: page.getByText(`@${member.username}`, { exact: true }) })
       await expect(card).toHaveCount(1)
       await expect(
-        card.getByText(member.assignedCharacter ? 'Ready' : 'Needs Character', { exact: true })
+        card.getByText(member.activeCharacter ? 'Active' : 'Needs Character', { exact: true })
       ).toBeVisible()
-      if (member.assignedCharacter)
-        await expect(card.getByText(member.assignedCharacter.label, { exact: true })).toBeVisible()
+      if (member.activeCharacter)
+        await expect(card.getByText(member.activeCharacter.label, { exact: true })).toBeVisible()
       await expect(card.getByRole('button', { name: 'Remove player', exact: true })).toHaveCount(
         campaign.capabilities.manageMembers && member.role === 'PLAYER' ? 1 : 0
       )
       await expect(card.getByRole('button', { name: 'Unassign', exact: true })).toHaveCount(
-        campaign.capabilities.manageMembers && member.role === 'PLAYER' && member.assignedCharacter
+        campaign.capabilities.manageMembers && member.role === 'PLAYER' && member.activeCharacter
           ? 1
           : 0
       )
       await expect(card.getByRole('button', { name: 'Inspect Sheet', exact: true })).toHaveCount(
-        campaign.role === 'OWNER' && member.assignedCharacter ? 1 : 0
+        campaign.role === 'OWNER' && member.activeCharacter ? 1 : 0
       )
       await expect(card.getByRole('button', { name: 'Remove Character', exact: true })).toHaveCount(
         campaign.capabilities.assignOwnCharacter &&
           member.userId === membership.userId &&
-          member.assignedCharacter
+          member.activeCharacter
           ? 1
           : 0
       )
@@ -527,12 +527,9 @@ export async function verifyCampaignMembershipBrowser<T>(
     await expect(roster.getByRole('button', { name: 'Leave Campaign', exact: true })).toHaveCount(
       campaign.role === 'PLAYER' && campaign.status === 'ACTIVE' ? 1 : 0
     )
-    await expect(
-      roster.getByRole('button', {
-        name: membership.assignedCharacter ? 'Change Character' : 'Add Character',
-        exact: true
-      })
-    ).toHaveCount(campaign.capabilities.assignOwnCharacter ? 1 : 0)
+    await expect(roster.getByRole('button', { name: 'Add Character', exact: true })).toHaveCount(
+      campaign.capabilities.assignOwnCharacter ? 1 : 0
+    )
   }
 
   async function evidence(stage: string, pass: string) {

@@ -17,7 +17,7 @@ import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
-import { readCampaignAssignedCharacter } from './assignedCharacter'
+import { readCampaignActiveCharacter } from './assignedCharacter'
 import { requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
 import {
@@ -153,7 +153,7 @@ export async function postCampaignChatEntry(
   await consumeUserRateLimit(ctx, 'campaignConversation', userId)
   const character =
     input.mode === 'ROLEPLAY'
-      ? await readCampaignAssignedCharacter(ctx, authority.campaign, authority.membership)
+      ? await readCampaignActiveCharacter(ctx, authority.campaign, authority.membership)
       : null
   if (
     input.mode === 'ROLEPLAY' &&

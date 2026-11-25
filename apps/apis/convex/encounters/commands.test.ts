@@ -414,7 +414,8 @@ async function setupCharacterAutomatic(classOptions?: Parameters<typeof readyCha
       campaignId: campaign.id,
       userId: base.owner.userId,
       characterId: character.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   })
   const initiativePolicyDefinitionId = await configureAutomaticInitiative(base.t)

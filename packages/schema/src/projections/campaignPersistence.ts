@@ -14,7 +14,8 @@ export const campaignStoredRecordSchema = lazySchema(() =>
       memberCount: true,
       playerCount: true,
       capabilities: true,
-      assignedCharacter: true,
+      activeCharacter: true,
+      benchedCharacters: true,
       memberships: true,
       rollModes: true,
       version: true,
@@ -56,6 +57,8 @@ export const campaignStoredAssignmentSchema = lazySchema(() =>
     userId: uuidSchema,
     characterId: uuidSchema,
     assignedAt: timestampSchema,
+    /** The one attached Character the player plays at the table; the rest are benched (D236). */
+    active: z.boolean(),
     /** Players the GM gave control of the Character; absent means none (SCENE-5.1, D162). */
     controllerUserIds: z.optional(campaignCharacterControllerUserIdsSchema)
   })

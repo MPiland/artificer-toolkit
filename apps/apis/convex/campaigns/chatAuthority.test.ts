@@ -187,7 +187,8 @@ describe('native conversation authority', () => {
         campaignId: campaign.id,
         userId: player.userId,
         characterId: character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     })
     const command: SendCampaignChatEntryInput = {

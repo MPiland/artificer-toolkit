@@ -19,6 +19,7 @@ import type { z } from 'zod'
 import type {
   CampaignDetailDto,
   assignCampaignCharacterInputSchema,
+  setActiveCampaignCharacterInputSchema,
   unassignCampaignCharacterInputSchema,
   leaveCampaignInputSchema,
   removeCampaignMemberInputSchema
@@ -26,6 +27,7 @@ import type {
 import { useGetCharacterList, getCharacterSheetSlice } from '#app/data/characters/queries'
 import { useGetCampaignList } from '#app/data/campaigns/queries'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
+import { attachedCharacters } from '../campaignCharacters'
 import { resolveHitPoints } from '../vtt/liveCampaignSummary'
 import { useCampaignLiveSummary } from '../vtt/useCampaignLiveSummary'
 import * as sharedStyles from '../campaigns.css'
@@ -48,6 +50,7 @@ export function CampaignParty({
   const liveSummary = useCampaignLiveSummary(campaign.id)
   const assignCharacter = useConvexMutation(convexApi.campaigns.assignments.assign)
   const unassignCharacter = useConvexMutation(convexApi.campaigns.assignments.unassign)
+  const setActiveCharacter = useConvexMutation(convexApi.campaigns.assignments.setActive)
   const removeMember = useConvexMutation(convexApi.campaigns.membershipDeparture.removeMember)
   const [membershipError, setMembershipError] = useState<string | null>(null)
   const [characterPickerOpened, characterPicker] = useDisclosure(false)
@@ -55,18 +58,30 @@ export function CampaignParty({
   const [membershipConfirm, setMembershipConfirm] = useState<
     { kind: 'REMOVE'; userId: string; username: string } | { kind: 'LEAVE' } | null
   >(null)
-  const currentMembership = campaign.memberships.find((member) => member.userId === currentUserId)
   // The GM joins the roster only while playing a Character of their own.
   const rosterMembers = campaign.memberships.filter(
-    (member) => member.role === 'PLAYER' || member.assignedCharacter
+    (member) =>
+      member.role === 'PLAYER' || member.activeCharacter || member.benchedCharacters.length
   )
-  const assignedCharacters = rosterMembers.flatMap((member) =>
-    member.assignedCharacter ? [{ member, character: member.assignedCharacter }] : []
+  // One card per attached Character, the Active Character first; a member with none gets one card.
+  const rosterEntries = rosterMembers.flatMap((member) => {
+    const attached = attachedCharacters(member)
+    const cards: ReadonlyArray<(typeof attached)[number] | null> = attached.length
+      ? attached
+      : [null]
+    return cards.map((character) => ({
+      member,
+      character,
+      active: character !== null && character.id === member.activeCharacter?.id
+    }))
+  })
+  const attachedEntries = rosterEntries.flatMap(({ member, character }) =>
+    character ? [{ member, character }] : []
   )
   // Every member sees roster basics; full Sheets are the GM's, the player's own, or another
   // player's while its "Party can view" is on and it is being inspected (ADR 0034 decision 5).
   const basics = useQueries({
-    queries: assignedCharacters.map(({ character }) =>
+    queries: attachedEntries.map(({ character }) =>
       convexQuery(convexApi.campaigns.characterBasics.get, {
         campaignId: campaign.id,
         characterId: character.id
@@ -74,7 +89,7 @@ export function CampaignParty({
     )
   })
   const sheets = useQueries({
-    queries: assignedCharacters.map(({ member, character }) => ({
+    queries: attachedEntries.map(({ member, character }) => ({
       ...getCharacterSheetSlice(character.id, 'COMMON', campaign.id),
       enabled:
         member.userId === currentUserId ||
@@ -82,21 +97,20 @@ export function CampaignParty({
         inspectCharacterId === character.id
     }))
   })
-  const selectedIndex = assignedCharacters.findIndex(
+  const selectedIndex = attachedEntries.findIndex(
     ({ character }) => character.id === inspectCharacterId
   )
-  const selected = selectedIndex >= 0 ? assignedCharacters[selectedIndex] : null
+  const selected = selectedIndex >= 0 ? attachedEntries[selectedIndex] : null
   const selectedSheet = selectedIndex >= 0 ? sheets[selectedIndex]?.data : undefined
   const pickerDataEnabled = campaign.capabilities.assignOwnCharacter && characterPickerOpened
   const characters = useGetCharacterList(pickerDataEnabled)
   const campaigns = useGetCampaignList(pickerDataEnabled)
-  const assignedElsewhere = new Set(
-    (campaigns.data ?? []).flatMap((item) =>
-      item.id !== campaign.id && item.assignedCharacter ? [item.assignedCharacter.id] : []
-    )
+  // A Character belongs to at most one Campaign, so any attached Character is off the picker (D236).
+  const attachedAnywhere = new Set(
+    (campaigns.data ?? []).flatMap(attachedCharacters).map((character) => character.id)
   )
   const eligibleCharacters = (characters.data?.items ?? []).filter(
-    (character) => character.status === 'ACTIVE' && !assignedElsewhere.has(character.id)
+    (character) => character.status === 'ACTIVE' && !attachedAnywhere.has(character.id)
   )
 
   useEffect(() => {
@@ -112,6 +126,11 @@ export function CampaignParty({
     retry: false,
     mutationFn: (input: z.infer<typeof unassignCampaignCharacterInputSchema>) =>
       unassignCharacter(input)
+  })
+  const markActive = useMutation({
+    retry: false,
+    mutationFn: (input: z.infer<typeof setActiveCampaignCharacterInputSchema>) =>
+      setActiveCharacter(input)
   })
   const assign = useMutation({
     retry: false,
@@ -138,19 +157,19 @@ export function CampaignParty({
               loading={assign.isPending}
               onClick={characterPicker.open}
             >
-              {currentMembership?.assignedCharacter ? 'Change Character' : 'Add Character'}
+              Add Character
             </Button>
           ) : null}
         </Group>
 
         {unassign.error ? <Alert color='red'>{unassign.error.message}</Alert> : null}
+        {markActive.error ? <Alert color='red'>{markActive.error.message}</Alert> : null}
 
         {rosterMembers.length ? (
           <SimpleGrid className={partyStyles.partyGrid} cols={{ base: 1, sm: 2, lg: 3 }}>
-            {rosterMembers.map((member) => {
-              const character = member.assignedCharacter
+            {rosterEntries.map(({ member, character, active }) => {
               const assignedIndex = character
-                ? assignedCharacters.findIndex((entry) => entry.character.id === character.id)
+                ? attachedEntries.findIndex((entry) => entry.character.id === character.id)
                 : -1
               const basic = assignedIndex >= 0 ? basics[assignedIndex]?.data : undefined
               const fullSheetShown = member.userId === currentUserId || campaign.role === 'OWNER'
@@ -161,7 +180,7 @@ export function CampaignParty({
                   ? resolveHitPoints(liveSummary, character.id, sheet?.overview)
                   : undefined
               return (
-                <article className={partyStyles.partyCard} key={member.userId}>
+                <article className={partyStyles.partyCard} key={character?.id ?? member.userId}>
                   <Group align='flex-start' justify='space-between' wrap='nowrap'>
                     <Group gap='sm' wrap='nowrap'>
                       {character ? (
@@ -182,7 +201,9 @@ export function CampaignParty({
                     </Group>
                     <Group gap='xs' wrap='nowrap'>
                       {member.role === 'OWNER' ? <Badge variant='light'>GM</Badge> : null}
-                      <Badge variant='light'>{character ? 'Ready' : 'Needs Character'}</Badge>
+                      <Badge variant='light'>
+                        {character ? (active ? 'Active' : 'Benched') : 'Needs Character'}
+                      </Badge>
                     </Group>
                   </Group>
                   {!character ? (
@@ -232,7 +253,7 @@ export function CampaignParty({
                       View Sheet
                     </Button>
                   ) : null}
-                  {campaign.role === 'OWNER' && character && member.role === 'PLAYER' ? (
+                  {campaign.role === 'OWNER' && character && active && member.role === 'PLAYER' ? (
                     <CharacterControllersField
                       campaignId={campaign.id}
                       character={character}
@@ -278,14 +299,32 @@ export function CampaignParty({
                   {campaign.capabilities.assignOwnCharacter &&
                   member.userId === currentUserId &&
                   character ? (
-                    <Button
-                      loading={unassign.isPending}
-                      size='sm'
-                      variant='default'
-                      onClick={() => unassign.mutate({ campaignId: campaign.id })}
-                    >
-                      Remove Character
-                    </Button>
+                    <Group gap='xs'>
+                      {active ? null : (
+                        <Button
+                          loading={markActive.isPending}
+                          size='sm'
+                          onClick={() =>
+                            markActive.mutate({
+                              campaignId: campaign.id,
+                              characterId: character.id
+                            })
+                          }
+                        >
+                          Mark active
+                        </Button>
+                      )}
+                      <Button
+                        loading={unassign.isPending}
+                        size='sm'
+                        variant='default'
+                        onClick={() =>
+                          unassign.mutate({ campaignId: campaign.id, characterId: character.id })
+                        }
+                      >
+                        Remove Character
+                      </Button>
+                    </Group>
                   ) : null}
                 </article>
               )
@@ -394,7 +433,7 @@ export function CampaignParty({
         closeButtonProps={{ 'aria-label': 'Close Character picker' }}
         opened={characterPickerOpened}
         size='lg'
-        title={currentMembership?.assignedCharacter ? 'Change Character' : 'Add Character'}
+        title='Add Character'
         onClose={characterPicker.close}
       >
         {assign.error ? <Alert color='red'>{assign.error.message}</Alert> : null}
@@ -402,31 +441,24 @@ export function CampaignParty({
           <Text role='status'>Loading eligible Characters…</Text>
         ) : eligibleCharacters.length ? (
           <SimpleGrid className={partyStyles.characterPickerGrid} cols={{ base: 1, sm: 2 }}>
-            {eligibleCharacters.map((character) => {
-              const selectedCharacter = currentMembership?.assignedCharacter?.id === character.id
-              return (
-                <UnstyledButton
-                  className={partyStyles.characterPickerCard}
-                  data-selected={selectedCharacter || undefined}
-                  disabled={selectedCharacter || assign.isPending}
-                  key={character.id}
-                  onClick={() =>
-                    assign.mutate({
-                      campaignId: campaign.id,
-                      characterId: character.id
-                    })
-                  }
-                >
-                  <Group justify='space-between' gap='xs'>
-                    <Text fw={700}>{character.label}</Text>
-                    {selectedCharacter ? <Badge variant='light'>Assigned</Badge> : null}
-                  </Group>
-                  <Text c='dimmed' size='sm'>
-                    {selectedCharacter ? 'Currently playing in this Campaign' : 'Active Character'}
-                  </Text>
-                </UnstyledButton>
-              )
-            })}
+            {eligibleCharacters.map((character) => (
+              <UnstyledButton
+                className={partyStyles.characterPickerCard}
+                disabled={assign.isPending}
+                key={character.id}
+                onClick={() =>
+                  assign.mutate({
+                    campaignId: campaign.id,
+                    characterId: character.id
+                  })
+                }
+              >
+                <Text fw={700}>{character.label}</Text>
+                <Text c='dimmed' size='sm'>
+                  Active Character
+                </Text>
+              </UnstyledButton>
+            ))}
           </SimpleGrid>
         ) : (
           <Text c='dimmed'>

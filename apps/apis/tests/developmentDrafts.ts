@@ -2457,7 +2457,8 @@ try {
               })
               // Leaving the Campaign takes the shared Background away: the Character needs repair.
               await secondPlayer.client.mutation(api.campaigns.assignments.unassign, {
-                campaignId: created.id
+                campaignId: created.id,
+                characterId: repairId
               })
               return { publicId: committed.publicId, label }
             },
@@ -4842,8 +4843,8 @@ try {
       const characterIds = players.map((player) => {
         const member = campaign.memberships.find((entry) => entry.userId === player.identity.userId)
         assert.equal(member?.role, 'PLAYER')
-        assert.ok(member?.assignedCharacter)
-        return member.assignedCharacter.id
+        assert.ok(member?.activeCharacter)
+        return member.activeCharacter.id
       }) as [string, string]
       const shares = await owner.client.query(api.campaigns.contentShares.list, {
         campaignId: campaign.id,

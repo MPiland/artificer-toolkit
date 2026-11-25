@@ -192,9 +192,10 @@ export async function readRoomAuthorization(
             ownerUserId: campaign.ownerUserId,
             members,
             assignments: assignments
-              .map(({ characterId, userId, controllerUserIds }) => ({
+              .map(({ characterId, userId, active, controllerUserIds }) => ({
                 characterId,
                 userId,
+                active,
                 ...(controllerUserIds?.length && { controllerUserIds })
               }))
               .sort((left, right) => left.characterId.localeCompare(right.characterId))

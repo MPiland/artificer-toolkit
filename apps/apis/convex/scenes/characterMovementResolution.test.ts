@@ -904,10 +904,9 @@ describe('native Character movement-decision authority', () => {
     const before = await gameplayRows(value)
     await expect(executeInRoom(unrelated.caller, { command })).rejects.toThrow()
     expect(await gameplayRows(value)).toEqual(before)
-    if (!value.second) throw new Error('Missing replacement Character.')
-    await value.player.caller.mutation(api.campaigns.assignments.assign, {
+    await value.player.caller.mutation(api.campaigns.assignments.unassign, {
       campaignId: value.campaign.id,
-      characterId: value.second.id
+      characterId: value.first.id
     })
     await deliverQueuedRoomControl(value.base.t)
     // D74: the room freezes the unassigned Character's actor in the reconcile the notice starts, and

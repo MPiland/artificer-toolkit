@@ -100,11 +100,11 @@ const campaign = {
   memberships: [
     ...baseCampaign.memberships.map((membership) => ({
       ...membership,
-      assignedCharacter: { ...membership.assignedCharacter!, id: ownCharacterId }
+      activeCharacter: { ...membership.activeCharacter!, id: ownCharacterId }
     })),
     {
       ...baseCampaign.memberships[0]!,
-      assignedCharacter: grantedCharacter,
+      activeCharacter: grantedCharacter,
       characterControllerUserIds: [tabletopCurrentUserId],
       userId: '00000000-0000-4000-8000-0000000000bb',
       username: 'brindle-player'

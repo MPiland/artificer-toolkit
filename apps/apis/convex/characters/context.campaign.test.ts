@@ -97,7 +97,8 @@ async function setup() {
       campaignId: campaign.id,
       userId: base.owner.userId,
       characterId: base.character.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   )
   return { ...base, campaign, membershipId, assignmentId }

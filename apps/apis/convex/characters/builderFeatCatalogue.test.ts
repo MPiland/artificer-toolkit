@@ -63,7 +63,8 @@ it('reads the complete authorized Feat catalogue from roots while selected mecha
       campaignId: campaign.id,
       userId: base.owner.userId,
       characterId: base.character.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   })
   const direct = {

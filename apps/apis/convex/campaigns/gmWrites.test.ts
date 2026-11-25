@@ -94,7 +94,8 @@ async function setup() {
       campaignId: campaign.id,
       userId: player.userId,
       characterId: base.character.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   )
   const input = { campaignId: campaign.id, characterId: base.character.id }

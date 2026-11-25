@@ -537,12 +537,12 @@ export function CampaignVttStage({
   const encounterActors = activeEncounter?.actors ?? []
   // Bound tokens move for their actor's controllers (a GM preview checks as the previewed player).
   const boundTokenControl = useMemo(() => {
+    const previewed = campaign.memberships.find((member) => member.userId === gmPreviewUserId)
     const viewer = gmPreviewUserId
       ? {
           role: 'PLAYER' as const,
-          assignedCharacter:
-            campaign.memberships.find((membership) => membership.userId === gmPreviewUserId)
-              ?.assignedCharacter ?? null
+          activeCharacter: previewed?.activeCharacter ?? null,
+          benchedCharacters: previewed?.benchedCharacters ?? []
         }
       : campaign
     return controlledActorByTokenId(viewer, viewerUserId, encounterActors, actorIdByTokenId)

@@ -33,7 +33,7 @@ describe('isEncounterActorMine', () => {
     ).toBe(true)
     expect(
       isEncounterActorMine(
-        { ...player, assignedCharacter: null },
+        { ...player, activeCharacter: null },
         tabletopCurrentUserId,
         character,
         actors
@@ -51,7 +51,7 @@ describe('isEncounterActorMine', () => {
     expect(isEncounterActorMine(player, tabletopCurrentUserId, summon, [summon])).toBe(false)
     expect(
       isEncounterActorMine(
-        { ...player, assignedCharacter: null },
+        { ...player, activeCharacter: null },
         tabletopCurrentUserId,
         summon,
         chain

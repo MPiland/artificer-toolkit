@@ -296,7 +296,8 @@ describe('native Encounter current Character conditions', () => {
     expect(storedAfter).toEqual(storedBefore)
 
     await player.caller.mutation(api.campaigns.assignments.unassign, {
-      campaignId: campaign.id
+      campaignId: campaign.id,
+      characterId: character.id
     })
     const detachedRow = await t.run((ctx) =>
       ctx.db

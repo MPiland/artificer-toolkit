@@ -121,7 +121,8 @@ describe('Character Sheet fingerprint inputs', () => {
         campaignId: campaign.id,
         userId: owner.userId,
         characterId: character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     })
     const assigned = await readTables()

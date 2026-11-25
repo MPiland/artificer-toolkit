@@ -386,7 +386,7 @@ export async function verifyCampaignMembershipLifecycle(
   assert.equal(forwardOwner?.role, 'OWNER')
   assert.equal(forwardFormerOwner?.role, 'PLAYER')
   // The new GM keeps playing their Character (CAMPAIGN-7).
-  assert.equal(forwardOwner?.assignedCharacter?.id, player0CharacterId)
+  assert.equal(forwardOwner?.activeCharacter?.id, player0CharacterId)
   assert.ok(
     Date.parse(forwardOwner?.accessStartedAt ?? '') > Date.parse(beforePlayer0Epoch) &&
       Date.parse(forwardFormerOwner?.accessStartedAt ?? '') > Date.parse(beforeOwnerEpoch),
@@ -466,7 +466,7 @@ export async function verifyCampaignMembershipLifecycle(
     [player1UserId, player1CharacterId]
   ] as const)
     assert.equal(
-      settled.memberships.find((entry) => entry.userId === userId)?.assignedCharacter?.id,
+      settled.memberships.find((entry) => entry.userId === userId)?.activeCharacter?.id,
       characterId
     )
 

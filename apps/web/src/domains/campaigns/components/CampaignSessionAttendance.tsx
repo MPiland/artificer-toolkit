@@ -19,8 +19,8 @@ export function CampaignSessionAttendance({
     { campaignId: campaign.id, sessionId: session.id },
     { initialNumItems: 32 }
   )
-  const assignedCharacters = campaign.memberships.flatMap((membership) =>
-    membership.assignedCharacter ? [membership.assignedCharacter] : []
+  const activeCharacters = campaign.memberships.flatMap((membership) =>
+    membership.activeCharacter ? [membership.activeCharacter] : []
   )
   const setAttendance = useMutation({
     mutationFn: ({ characterId, present }: { characterId: string; present: boolean }) =>
@@ -33,7 +33,7 @@ export function CampaignSessionAttendance({
       })
   })
   const canEdit = campaign.status === 'ACTIVE' && session.status === 'OPEN'
-  const presentCount = assignedCharacters.filter((character) =>
+  const presentCount = activeCharacters.filter((character) =>
     isPresent(attendance.results, character.id)
   ).length
 
@@ -49,19 +49,19 @@ export function CampaignSessionAttendance({
         <Badge variant='light'>
           {attendance.status === 'LoadingFirstPage'
             ? 'Loading'
-            : `${presentCount}/${assignedCharacters.length} present`}
+            : `${presentCount}/${activeCharacters.length} present`}
         </Badge>
       </Group>
       {attendance.status === 'LoadingFirstPage' ? (
         <Text c='dimmed'>Loading attendance…</Text>
       ) : null}
       {setAttendance.error ? <Alert color='red'>Attendance couldn’t be updated.</Alert> : null}
-      {attendance.status !== 'LoadingFirstPage' && assignedCharacters.length ? (
+      {attendance.status !== 'LoadingFirstPage' && activeCharacters.length ? (
         <SimpleGrid
           className={sessionsStyles.sessionAttendanceGrid}
           cols={{ base: 1, sm: 2, md: 4 }}
         >
-          {assignedCharacters.map((character) => {
+          {activeCharacters.map((character) => {
             const present = isPresent(attendance.results, character.id)
             return (
               <Button

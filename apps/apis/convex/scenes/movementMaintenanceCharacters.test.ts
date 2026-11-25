@@ -472,7 +472,8 @@ it('ends the Run effects on a Character that leaves the Campaign (D81)', async (
   const before = await snapshot(value)
   const detachedBefore = before.characters.find((row) => row.id === value.detached.id)!
   await value.party.caller.mutation(api.campaigns.assignments.unassign, {
-    campaignId: value.campaign.id
+    campaignId: value.campaign.id,
+    characterId: value.detached.id
   })
   // The Character's reconcile step waits for subscribers to settle (D216).
   await runDueScheduledWork(value.t)

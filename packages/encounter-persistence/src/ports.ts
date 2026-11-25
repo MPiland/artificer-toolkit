@@ -72,10 +72,6 @@ export interface EncounterReadPorts {
   readCharacterSheetState(row: EncounterCharacterRow): CharacterSheetState
   /** The play record's fields, verified against its checksum. */
   readCharacterPlay(play: EncounterDocument<'characterPlayStates'>): CharacterPlayState
-  readAssignedCharacter(
-    campaign: EncounterDocument<'campaigns'>,
-    membership: EncounterDocument<'campaignMemberships'>
-  ): Promise<{ id: string } | null>
   /**
    * The Campaign's own conditions on an assigned Character, which a Run projection layers on. The
    * Character must be the Campaign's assigned, ACTIVE Character in its System, as stored.

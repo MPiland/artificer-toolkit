@@ -156,7 +156,8 @@ async function addThirdAssignedPlayer(base: Awaited<ReturnType<typeof setup>>) {
       campaignId: base.campaign.id,
       characterId: committed.character.id,
       userId: identity.userId,
-      assignedAt: new Date().toISOString()
+      assignedAt: new Date().toISOString(),
+      active: true
     })
   })
   return {

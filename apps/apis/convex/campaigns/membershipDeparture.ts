@@ -85,13 +85,12 @@ async function depart(
     throw new Error('Campaign membership changed before this action completed.')
   await requireCampaignVersion(ctx, campaign.id, input.expectedCampaignVersion)
 
-  const assignment = await ctx.db
+  for (const assignment of await ctx.db
     .query('campaignCharacterAssignments')
     .withIndex('by_campaignId_userId', (q) =>
       q.eq('campaignId', campaign.id).eq('userId', departingUserId)
     )
-    .unique()
-  if (assignment)
+    .collect())
     await removeCampaignCharacterAssignment({ ctx, campaign, assignment, actorUserId, reason })
 
   const direct = ctx.db

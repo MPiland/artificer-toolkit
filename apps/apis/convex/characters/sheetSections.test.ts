@@ -120,7 +120,8 @@ async function setup() {
       campaignId: campaign.id,
       userId: player.userId,
       characterId: character.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   })
   const party = await createPartyPlayer(t, campaign)
@@ -170,7 +171,8 @@ async function setup() {
         campaignId: campaign.id,
         userId: member.userId,
         characterId: another.character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     })
     await t.finishAllScheduledFunctions(vi.runAllTimers)
@@ -1070,7 +1072,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     // assignment, route and Character again, and the preparation manifest reads the content head.
     expect(repeated).toEqual([
       ['authoredRouteIds', 3, 2],
-      ['campaignCharacterAssignments', 3, 1],
+      ['campaignCharacterAssignments', 2, 1],
       ['characters', 2, 1],
       ['contentSnapshotHeads', 2, 1]
     ])

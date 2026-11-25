@@ -265,7 +265,8 @@ describe('native Character live holds', () => {
     const attuned = async () =>
       readCharacterRecord((await base.readState()).character!).state.equipment.attuned
     await base.player.caller.mutation(api.campaigns.assignments.unassign, {
-      campaignId: base.campaign.id
+      campaignId: base.campaign.id,
+      characterId: base.character.id
     })
     // The room still holds the Character's play until it freezes the departed actor.
     expect(await attuned()).toEqual(itemIds)
@@ -296,7 +297,8 @@ describe('native Character live holds', () => {
     const shown = await readRun()
     const stored = await readStored()
     await base.player.caller.mutation(api.campaigns.assignments.unassign, {
-      campaignId: base.campaign.id
+      campaignId: base.campaign.id,
+      characterId: base.character.id
     })
 
     // Convex writes no actor of a held Run, and the read shows the departed Character's values.

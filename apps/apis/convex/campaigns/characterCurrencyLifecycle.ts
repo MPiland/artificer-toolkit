@@ -13,7 +13,7 @@ import {
   type CharacterRow
 } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
-import { readCampaignAssignedCharacter } from './assignedCharacter'
+import { readCampaignAttachedCharacter } from './assignedCharacter'
 import { requireCampaignAuthority } from './authority'
 
 type CharacterCurrencyGroup = CharacterAuthored['state']['currency'][number]
@@ -122,27 +122,23 @@ export async function prepareCampaignCharacterCurrencyRewrites(
   ctx: MutationCtx,
   input: CharacterCurrencyRewriteInput
 ): Promise<CharacterCurrencyRewrite[]> {
-  const assignments: ReturnType<typeof campaignStoredAssignmentSchema.parse>[] = []
-  const userIds = new Set<string>()
+  const assignments: Doc<'campaignCharacterAssignments'>[] = []
   const characterIds = new Set<string>()
   for await (const row of ctx.db
     .query('campaignCharacterAssignments')
     .withIndex('by_campaignId', (q) => q.eq('campaignId', input.campaign.id))) {
     const { _id, _creationTime, ...stored } = row
     const assignment = campaignStoredAssignmentSchema.parse(stored)
-    if (userIds.has(assignment.userId) || characterIds.has(assignment.characterId))
+    if (characterIds.has(assignment.characterId))
       throw new Error('Stored Campaign Character assignments must be unique.')
-    userIds.add(assignment.userId)
     characterIds.add(assignment.characterId)
-    assignments.push(assignment)
+    assignments.push(row)
   }
 
   const rewrites: CharacterCurrencyRewrite[] = []
   for (const assignment of assignments) {
     const { membership } = await requireCampaignAuthority(ctx, input.campaign.id, assignment.userId)
-    const assigned = await readCampaignAssignedCharacter(ctx, input.campaign, membership)
-    if (!assigned || assigned.id !== assignment.characterId)
-      throw new Error('Stored Campaign Character assignment mismatch.')
+    await readCampaignAttachedCharacter(ctx, input.campaign, membership, assignment)
     const record = await readCharacterRow(ctx, assignment.characterId)
     if (!record) throw new Error('Stored Campaign Character is unavailable.')
     const character = readCharacterRecord(record)

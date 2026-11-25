@@ -33,6 +33,7 @@ import {
   inventoryCurrencyKey,
   parseOwner
 } from './campaignInventory.utils'
+import { attachedCharacters } from '../campaignCharacters'
 import * as sharedStyles from '../campaigns.css'
 import * as inventoryStyles from './inventory.css'
 
@@ -50,10 +51,8 @@ export function CampaignInventory({
   const retryCleanup = useConvexMutation(convexApi.campaigns.inventoryCleanup.retry)
   const [ownerValue, setOwnerValue] = useState('PARTY')
   const [destinationValue, setDestinationValue] = useState(() => {
-    const assignedCharacter = campaign.memberships.find((member) => member.assignedCharacter)
-    return assignedCharacter?.assignedCharacter
-      ? `CHARACTER:${assignedCharacter.assignedCharacter.id}`
-      : ''
+    const character = campaign.memberships.flatMap(attachedCharacters)[0]
+    return character ? `CHARACTER:${character.id}` : ''
   })
   const [assetValue, setAssetValue] = useState('')
   const [amount, setAmount] = useState(1)

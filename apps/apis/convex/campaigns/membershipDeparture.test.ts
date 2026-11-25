@@ -95,7 +95,8 @@ async function assign(base: Awaited<ReturnType<typeof setup>>) {
       campaignId: base.campaign.id,
       userId: base.owner.userId,
       characterId: base.character.id,
-      assignedAt: base.campaign.createdAt
+      assignedAt: base.campaign.createdAt,
+      active: true
     })
     const overlay = { adjustments: [], conditions: [] }
     await ctx.db.insert('campaignCharacterStates', {
@@ -381,6 +382,39 @@ describe('native Campaign membership departure', () => {
     expect(after.memberships.find((member) => member.userId === base.owner.userId)?.status).toBe(
       'LEFT'
     )
+  })
+
+  it('removes the Active and every benched Character assignment and overlay when the player departs (D236)', async () => {
+    const base = await setup()
+    await assign(base)
+    const second = await base.createCharacter()
+    const benched = await base.owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: second.draft.id,
+      mode: 'create',
+      character: second.character
+    })
+    await base.t.run(async (ctx) => {
+      await ctx.db.insert('campaignCharacterAssignments', {
+        campaignId: base.campaign.id,
+        userId: base.owner.userId,
+        characterId: benched.character.id,
+        assignedAt: base.campaign.createdAt,
+        active: false
+      })
+      const overlay = { adjustments: [], conditions: [] }
+      await ctx.db.insert('campaignCharacterStates', {
+        campaignId: base.campaign.id,
+        characterId: benched.character.id,
+        documentJson: JSON.stringify(overlay),
+        checksum: checksumRuleDocument(overlay)
+      })
+    })
+    expect((await base.snapshot()).assignments).toHaveLength(2)
+    await base.owner.caller.mutation(leave, base.request)
+    await runDueScheduledWork(base.t)
+    const after = await base.snapshot()
+    expect(after.assignments).toEqual([])
+    expect(after.overlays).toEqual([])
   })
 
   it('removes the departing author’s shares without pruning that author’s personal content', async () => {

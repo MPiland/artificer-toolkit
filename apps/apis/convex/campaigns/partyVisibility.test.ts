@@ -89,7 +89,8 @@ async function setup() {
       campaignId: campaign.id,
       userId: player.userId,
       characterId: character.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   })
   const party = await createPartyPlayer(t, campaign)

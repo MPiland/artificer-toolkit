@@ -289,7 +289,8 @@ async function seedPreservedSceneRows(base: Awaited<ReturnType<typeof setup>>) {
       campaignId: base.campaign.id,
       userId: base.owner.userId,
       characterId: character.id,
-      assignedAt: base.campaign.createdAt
+      assignedAt: base.campaign.createdAt,
+      active: true
     })
 
     await ctx.db.insert(

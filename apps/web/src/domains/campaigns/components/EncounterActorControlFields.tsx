@@ -39,7 +39,7 @@ export function EncounterActorControlFields({
   // The assigned player always controls their Character; that control is derived, not granted.
   const assignedPlayer =
     actor.kind === 'CHARACTER' && actor.sourceId
-      ? players.find((membership) => membership.assignedCharacter?.id === actor.sourceId)
+      ? players.find((membership) => membership.activeCharacter?.id === actor.sourceId)
       : undefined
 
   return (

@@ -10,7 +10,7 @@ import { readVerifiedPublicationDocument } from '../content/publicationDocumentR
 import { readAuthoringSources } from '../content/sources'
 import { contentStream } from '../content/streams'
 import { requireRulesCatalogueSources } from '../content/catalogueBinding'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
+import { readCampaignAttachedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority, type CampaignInternalScope } from '../campaigns/authority'
 import { readCampaignSharedAuthorizedRoot } from '../campaigns/contentAccess'
 import { isImportRowVisible } from '../imports/visibility'
@@ -37,7 +37,8 @@ export async function readCharacterCampaign(
     if (
       assignment.userId !== userId ||
       campaign.gameSystemId !== systemId ||
-      (await readCampaignAssignedCharacter(ctx, campaign, membership))?.id !== character.id
+      (await readCampaignAttachedCharacter(ctx, campaign, membership, assignment)).id !==
+        character.id
     )
       throw new Error('Stored Campaign Character assignment mismatch.')
     return campaign

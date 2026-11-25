@@ -310,7 +310,7 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
       ).toBeUndefined()
       expect(
         readActiveTurn(
-          { ...player, assignedCharacter: null },
+          { ...player, activeCharacter: null },
           tabletopCurrentUserId,
           state(summonTurn)
         ).summonTurn
@@ -420,7 +420,7 @@ describe('Campaign VTT main Character (SCENE-5.2)', () => {
     characterControllerUserIds: string[] = []
   ) => ({
     ...base,
-    assignedCharacter: assigned,
+    activeCharacter: assigned,
     characterControllerUserIds,
     userId
   })

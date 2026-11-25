@@ -43,7 +43,7 @@ it('stages typed play only in the parent transaction, rolls back failed evaluati
         { userId: campaignOwnerId, role: 'OWNER', membershipEpoch: owner.createdAt },
         { userId: owner.userId, role: 'PLAYER', membershipEpoch: owner.createdAt }
       ],
-      assignments: [{ userId: owner.userId, characterId: owner.id }]
+      assignments: [{ userId: owner.userId, characterId: owner.id, active: true }]
     }
   )
   if (authority.kind !== 'AUTHORITY') throw new Error('Missing authority fixture.')

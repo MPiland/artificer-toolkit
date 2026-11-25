@@ -34,7 +34,11 @@ import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
 import { characterSheetInputsFixture } from './characterSheetInputsFixture.js'
 import { darkvisionDefinition, srdSenseDefinition } from './srdSenseInputsFixture.js'
-import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
+import {
+  ROOM_AUTHORIZATION_PATH,
+  roomAuthorizationResponse,
+  type RoomAuthorizationAssignment
+} from './roomAuthorizationFixture.js'
 import {
   ROOM_INPUTS_PATH,
   rawSceneDefinitionInputs,
@@ -198,7 +202,7 @@ function emptyScene(): RoomSceneFixture['scene'] {
 
 /** Convex's room authorization beyond membership; tests change it to model assignments and grants. */
 type RoomAuthorizationState = {
-  assignments?: LiveSessionRoomAuthorization['campaign']['assignments']
+  assignments?: readonly RoomAuthorizationAssignment[]
   characterRevisions?: LiveSessionRoomAuthorization['revisions']['characters']
   play?: LiveSessionRoomAuthorization['play']
 }

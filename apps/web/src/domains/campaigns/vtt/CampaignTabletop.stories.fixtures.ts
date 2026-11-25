@@ -40,12 +40,12 @@ const tabletopMapDataUrl =
     <circle cx="1120" cy="650" r="105" fill="#293b40"/>
   </svg>`)
 
-const assignedCharacter = {
+const activeCharacter = {
   id: '33333333-3333-4333-8333-333333333333',
   publicId: 'embers-wake',
   label: "Ember's Wake",
   systemId: SRD_SYSTEM_ID
-} satisfies NonNullable<CampaignDetailDto['assignedCharacter']>
+} satisfies NonNullable<CampaignDetailDto['activeCharacter']>
 
 export const tabletopSceneDefinition = {
   annotations: [
@@ -251,7 +251,7 @@ const actorBases = [
     manualOrder: null,
     absence: null,
     public: true,
-    sourceId: assignedCharacter.id,
+    sourceId: activeCharacter.id,
     sourceRevision: null
   },
   {
@@ -287,7 +287,7 @@ const encounterBase = {
   createdAt: '2026-08-15T22:05:00.000Z',
   currentActorId: actorBases[0].id,
   id: tabletopEncounterId,
-  gameSystemId: assignedCharacter.systemId,
+  gameSystemId: activeCharacter.systemId,
   initiativePolicy: null,
   name: 'Vault confrontation',
   optionalCombatRules: [] as EncounterPlayerProjectionDto['optionalCombatRules'],
@@ -332,7 +332,7 @@ export const tabletopGmEncounter = {
     resources: {},
     stableTieKey: actor.id,
     statBlock: null,
-    systemId: index === 0 ? assignedCharacter.systemId : null,
+    systemId: index === 0 ? activeCharacter.systemId : null,
     tempHitPoints: 0
   })),
   reminders: []
@@ -340,7 +340,8 @@ export const tabletopGmEncounter = {
 
 export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetailDto {
   return campaignDetailDtoSchema.parse({
-    assignedCharacter: role === 'PLAYER' ? assignedCharacter : null,
+    activeCharacter: role === 'PLAYER' ? activeCharacter : null,
+    benchedCharacters: [],
     attunementSlotOverride: null,
     rollModes: [
       { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
@@ -352,14 +353,15 @@ export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetail
     createdAt: '2026-08-01T12:00:00.000Z',
     description: '<p>A city of glass, smoke, and buried promises.</p>',
     format: 'ONGOING',
-    gameSystemId: assignedCharacter.systemId,
+    gameSystemId: activeCharacter.systemId,
     id: tabletopCampaignId,
     memberCount: 5,
     memberships: [
       {
         acceptedAt: '2026-08-01T12:00:00.000Z',
         accessStartedAt: '2026-08-01T12:00:00.000Z',
-        assignedCharacter,
+        activeCharacter,
+        benchedCharacters: [],
         characterControllerUserIds: [],
         role: 'PLAYER',
         userId: tabletopCurrentUserId,

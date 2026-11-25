@@ -143,7 +143,7 @@ describe('the GM plays a Character like any other player (CAMPAIGN-7)', () => {
     for (const caller of [gm.caller, player.caller]) {
       const detail = await caller.query(getCampaign, { id: campaign.id })
       expect(
-        detail.memberships.find((member) => member.userId === gm.userId)?.assignedCharacter?.id
+        detail.memberships.find((member) => member.userId === gm.userId)?.activeCharacter?.id
       ).toBe(gmCharacterId)
     }
 
@@ -230,10 +230,10 @@ describe('the GM plays a Character like any other player (CAMPAIGN-7)', () => {
     const history = decodeCampaignEventPage(await gm.caller.query(listEvents, input))
     expect(history.events.map((event) => event.id)).toContain(notice.id)
 
-    // The GM removes their own Character the way a player does, without naming it.
-    await gm.caller.mutation(unassign, { campaignId: campaign.id })
+    // The GM removes their own Character the way a player does.
+    await gm.caller.mutation(unassign, { campaignId: campaign.id, characterId: gmCharacterId })
     const after = await gm.caller.query(getCampaign, { id: campaign.id })
-    expect(after.memberships.find((member) => member.userId === gm.userId)?.assignedCharacter).toBe(
+    expect(after.memberships.find((member) => member.userId === gm.userId)?.activeCharacter).toBe(
       null
     )
   }, 120_000)
@@ -247,7 +247,7 @@ describe('the GM plays a Character like any other player (CAMPAIGN-7)', () => {
     const detail = await player.caller.mutation(acceptTransfer, { campaignId: campaign.id })
     expect(detail.role).toBe('OWNER')
     expect(
-      detail.memberships.find((member) => member.userId === player.userId)?.assignedCharacter?.id
+      detail.memberships.find((member) => member.userId === player.userId)?.activeCharacter?.id
     ).toBe(character.id)
     const own = await player.caller.query(sheet, {
       campaignId: campaign.id,

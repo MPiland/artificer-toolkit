@@ -104,7 +104,7 @@ export async function removeAccountCharacterActors(
   )
     throw new Error('A current or departed player membership is required.')
 
-  const [characters, assignment] = await Promise.all([
+  const [characters, assignments] = await Promise.all([
     ctx.db
       .query('characters')
       .withIndex('by_userId', (q) => q.eq('userId', userId))
@@ -114,10 +114,10 @@ export async function removeAccountCharacterActors(
       .withIndex('by_campaignId_userId', (q) =>
         q.eq('campaignId', campaign.id).eq('userId', userId)
       )
-      .unique()
+      .collect()
   ])
   const characterIds = new Set(characters.map((character) => character.id))
-  if (assignment) characterIds.add(assignment.characterId)
+  for (const assignment of assignments) characterIds.add(assignment.characterId)
 
   const targets: Array<{ encounterId: string; actorId: string }> = []
   const rows = await ctx.db

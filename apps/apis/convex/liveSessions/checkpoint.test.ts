@@ -524,7 +524,8 @@ it('reads the same bytes for a one-actor flush however many members and actors t
         campaignId: crowded.campaign.id,
         userId,
         characterId: crypto.randomUUID(),
-        assignedAt: crowded.campaign.createdAt
+        assignedAt: crowded.campaign.createdAt,
+        active: true
       })
     }
   })

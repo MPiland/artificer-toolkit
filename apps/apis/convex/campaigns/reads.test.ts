@@ -74,26 +74,29 @@ describe('native Campaign read boundaries', () => {
         campaignId: campaign.id,
         userId: player.userId,
         characterId: character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     })
     const result = await gm.caller.query(get, { id: campaign.id })
-    expect(result.assignedCharacter).toBeNull()
-    expect(result.memberships[1]!.assignedCharacter).toEqual({
+    expect(result.activeCharacter).toBeNull()
+    expect(result.benchedCharacters).toEqual([])
+    expect(result.memberships[1]!.activeCharacter).toEqual({
       id: character.id,
       publicId: committed.publicId,
       label: character.label,
       systemId: character.systemId
     })
-    expect((await player.caller.query(get, { id: campaign.id })).assignedCharacter).toEqual(
-      result.memberships[1]!.assignedCharacter
+    expect((await player.caller.query(get, { id: campaign.id })).activeCharacter).toEqual(
+      result.memberships[1]!.activeCharacter
     )
     const duplicate = await t.run((ctx) =>
       ctx.db.insert('campaignCharacterAssignments', {
         campaignId: crypto.randomUUID(),
         userId: player.userId,
         characterId: character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     )
     await expect(gm.caller.query(get, { id: campaign.id })).rejects.toThrow()

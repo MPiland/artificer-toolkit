@@ -36,7 +36,8 @@ export function createCampaignDetail(
       { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' },
       { code: 'DISADVANTAGE', label: 'Disadvantage', keep: 'LOWER' }
     ],
-    assignedCharacter: null,
+    activeCharacter: null,
+    benchedCharacters: [],
     memberships: [],
     capabilities: getCampaignCapabilities(status, role),
     ...overrides,

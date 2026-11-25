@@ -690,7 +690,8 @@ it('keeps the Assisted Concentration check sealed under the reaction’s own act
   // The controller leaves the Campaign through the real mutation (D81). A Run the room holds
   // keeps its actors in the room (D74), so the notice the mutation queues reaches the room first.
   await value.player.caller.mutation(api.campaigns.assignments.unassign, {
-    campaignId: value.base.campaign.id
+    campaignId: value.base.campaign.id,
+    characterId: value.base.character.id
   })
   await deliverQueuedRoomControl(value.base.t)
   // The room reloads authorization before it admits the answer, so the departed player is no

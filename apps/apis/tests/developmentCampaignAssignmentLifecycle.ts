@@ -309,7 +309,7 @@ export async function verifyCampaignAssignmentLifecycle(
     const campaign = await owner.query(api.campaigns.queries.get, { id: campaignId })
     assert.ok(campaign)
     const firstMembership = campaign.memberships.find((entry) => entry.userId === firstUserId)
-    if (firstMembership?.assignedCharacter?.id !== originalId)
+    if (firstMembership?.activeCharacter?.id !== originalId)
       await first.client.mutation(api.campaigns.assignments.assign, {
         campaignId,
         characterId: originalId
@@ -473,7 +473,8 @@ export async function verifyCampaignAssignmentLifecycle(
         event.payload !== null &&
         typeof event.payload === 'object' &&
         !Array.isArray(event.payload) &&
-        event.payload.reason === reason
+        event.payload.reason === reason &&
+        event.payload.streamVersion === streamVersion
     )
     assert.equal(receipts.length, 1)
     const receipt = receipts[0]
@@ -512,12 +513,11 @@ export async function verifyCampaignAssignmentLifecycle(
   assert.ok(sharedBackgroundId, 'Second Character needs its published Background.')
   assert.ok(secondIntent.startingEquipment?.background)
   assert.equal(
-    initial.campaign.memberships.find((entry) => entry.userId === firstUserId)?.assignedCharacter
-      ?.id,
+    initial.campaign.memberships.find((entry) => entry.userId === firstUserId)?.activeCharacter?.id,
     originalId
   )
   assert.equal(
-    initial.campaign.memberships.find((entry) => entry.userId === secondUserId)?.assignedCharacter
+    initial.campaign.memberships.find((entry) => entry.userId === secondUserId)?.activeCharacter
       ?.id,
     secondId
   )
@@ -543,11 +543,17 @@ export async function verifyCampaignAssignmentLifecycle(
         }),
       /unavailable|character/i
     )
-    // Without a Character the GM removes only their own, which they do not have (CAMPAIGN-7).
+    // Unassigning a Character the Campaign does not hold refuses without writing (CAMPAIGN-7).
     const noOwnerCharacter = await snapshot()
-    assert.deepEqual(await owner.mutation(api.campaigns.assignments.unassign, { campaignId }), {
-      ok: true
-    })
+    await refuse(
+      'owner unassignment of an unattached Character',
+      () =>
+        owner.mutation(api.campaigns.assignments.unassign, {
+          campaignId,
+          characterId: crypto.randomUUID()
+        }),
+      /assigned.*not found/i
+    )
     assert.deepEqual(
       await snapshot(),
       noOwnerCharacter,
@@ -782,11 +788,16 @@ export async function verifyCampaignAssignmentLifecycle(
       } satisfies CampaignPartyInventoryMutationInput
     })
     const beforeReplacement = await snapshot()
+    // Swapping Characters is an unassign then an assign: a second attach would only bench it (D236).
+    await first.client.mutation(api.campaigns.assignments.unassign, {
+      campaignId,
+      characterId: originalId
+    })
     await first.client.mutation(api.campaigns.assignments.assign, {
       campaignId,
       characterId: replacementId
     })
-    // The departure settles the replaced Character in its queued step (D81).
+    // The departure settles the removed Character in its queued step (D81).
     await awaitCharacterReconcile(originalId, first.client)
     const replaced = await snapshot()
     const overflowPurseAmounts = replaced.currencies
@@ -802,11 +813,11 @@ export async function verifyCampaignAssignmentLifecycle(
       beforeReplacement,
       replaced,
       'DRAFT',
-      'CHARACTER_REPLACED',
+      'CHARACTER_UNASSIGNED',
       currencySystem.id
     )
     assert.equal(
-      replaced.campaign.memberships.find((entry) => entry.userId === firstUserId)?.assignedCharacter
+      replaced.campaign.memberships.find((entry) => entry.userId === firstUserId)?.activeCharacter
         ?.id,
       replacementId
     )
@@ -856,7 +867,7 @@ export async function verifyCampaignAssignmentLifecycle(
       false
     )
     assert.equal(JSON.stringify(replaced.history).includes('Assignment private note'), false)
-    assert.equal(JSON.stringify(replaced.audit).includes('CHARACTER_REPLACED'), true)
+    assert.equal(JSON.stringify(replaced.audit).includes('CHARACTER_UNASSIGNED'), true)
 
     const noWriteReplacement = await snapshot()
     assert.deepEqual(
@@ -900,6 +911,10 @@ export async function verifyCampaignAssignmentLifecycle(
       mode: 'edit',
       character: repaired.payload.character
     })
+    await first.client.mutation(api.campaigns.assignments.unassign, {
+      campaignId,
+      characterId: replacementId
+    })
     await first.client.mutation(api.campaigns.assignments.assign, {
       campaignId,
       characterId: originalId
@@ -907,8 +922,8 @@ export async function verifyCampaignAssignmentLifecycle(
     await awaitCharacterReconcile(replacementId, first.client)
     const reassigned = await snapshot()
     assert.equal(
-      reassigned.campaign.memberships.find((entry) => entry.userId === firstUserId)
-        ?.assignedCharacter?.id,
+      reassigned.campaign.memberships.find((entry) => entry.userId === firstUserId)?.activeCharacter
+        ?.id,
       originalId
     )
     assert.equal(reassigned.replacementActive.status, 'ACTIVE')
@@ -916,7 +931,7 @@ export async function verifyCampaignAssignmentLifecycle(
     const replacementSubjectHistory = await history(first.client, originalId)
     const replacementReceipt = proveReconciliation(
       replacementSubjectHistory,
-      'CHARACTER_REPLACED',
+      'CHARACTER_UNASSIGNED',
       'DRAFT',
       replacementVersion
     )
@@ -995,7 +1010,7 @@ export async function verifyCampaignAssignmentLifecycle(
     )
     assert.equal(
       unassigned.campaign.memberships.find((entry) => entry.userId === firstUserId)
-        ?.assignedCharacter,
+        ?.activeCharacter,
       null
     )
     assert.equal(unassigned.firstCharacter.status, 'ACTIVE')
@@ -1032,9 +1047,14 @@ export async function verifyCampaignAssignmentLifecycle(
       /assigned|not found|authorized|permission/i
     )
     const noWriteUnassign = await snapshot()
-    assert.deepEqual(
-      await first.client.mutation(api.campaigns.assignments.unassign, { campaignId }),
-      { ok: true }
+    await refuse(
+      'repeated player unassignment',
+      () =>
+        first.client.mutation(api.campaigns.assignments.unassign, {
+          campaignId,
+          characterId: originalId
+        }),
+      /assigned.*not found/i
     )
     assert.deepEqual(
       await snapshot(),

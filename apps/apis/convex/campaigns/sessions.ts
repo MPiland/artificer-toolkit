@@ -17,7 +17,7 @@ import {
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
-import { readCampaignAssignedCharacter } from './assignedCharacter'
+import { readCampaignActiveCharacter } from './assignedCharacter'
 import { requireCampaignAuthority, readActiveCampaignMembers } from './authority'
 import { presentSession, requireSession } from './sessionDocuments'
 
@@ -105,7 +105,7 @@ export const create = mutation({
     })
     await ctx.db.insert('campaignSessions', session)
     for (const member of await readActiveCampaignMembers(ctx, campaign)) {
-      const character = await readCampaignAssignedCharacter(ctx, campaign, member)
+      const character = await readCampaignActiveCharacter(ctx, campaign, member)
       if (character)
         await ctx.db.insert('campaignSessionAttendance', {
           campaignId: campaign.id,

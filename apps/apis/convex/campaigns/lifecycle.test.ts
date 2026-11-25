@@ -83,9 +83,16 @@ describe('native Campaign creation and member reads', () => {
       memberCount: 1,
       playerCount: 0,
       additionalRulesCatalogueIds: [],
-      assignedCharacter: null,
+      activeCharacter: null,
+      benchedCharacters: [],
       memberships: [
-        { userId: owner.userId, username: 'CampaignOwner', role: 'OWNER', assignedCharacter: null }
+        {
+          userId: owner.userId,
+          username: 'CampaignOwner',
+          role: 'OWNER',
+          activeCharacter: null,
+          benchedCharacters: []
+        }
       ],
       capabilities: { edit: true, readTableChat: true, readPartyChat: false }
     })

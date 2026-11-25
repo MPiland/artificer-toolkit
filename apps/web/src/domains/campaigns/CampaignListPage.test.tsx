@@ -117,7 +117,7 @@ describe('Campaign list play entry', () => {
 
   it('lets the GM play their own assigned Character, as a player does (CAMPAIGN-7)', () => {
     const player = createTabletopCampaign('PLAYER')
-    mocks.campaigns = [{ ...campaign, assignedCharacter: player.assignedCharacter }]
+    mocks.campaigns = [{ ...campaign, activeCharacter: player.activeCharacter }]
     const view = renderWithAppProviders(<CampaignListPage />)
     expect(screen.getByRole('button', { name: 'Play Character' })).toBeVisible()
 

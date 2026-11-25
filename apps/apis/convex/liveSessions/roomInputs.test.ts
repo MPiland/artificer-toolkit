@@ -942,7 +942,8 @@ describe('raw room authority inputs', () => {
         campaignId: other.id,
         userId: crypto.randomUUID(),
         characterId: crypto.randomUUID(),
-        assignedAt: now
+        assignedAt: now,
+        active: true
       })
       return {
         campaign,
@@ -1075,7 +1076,8 @@ describe('raw room authority inputs', () => {
           campaignId: base.campaign.id,
           userId,
           characterId: crypto.randomUUID(),
-          assignedAt: now
+          assignedAt: now,
+          active: true
         })
       }
       return { memberships: memberships.length, assignments: assignments.length }

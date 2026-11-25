@@ -395,8 +395,8 @@ export function EncounterActorCard({
             key={sheet.data.meta.characterId}
             characterPublicId={
               campaign.memberships.find(
-                (membership) => membership.assignedCharacter?.id === actor.sourceId
-              )?.assignedCharacter?.publicId ??
+                (membership) => membership.activeCharacter?.id === actor.sourceId
+              )?.activeCharacter?.publicId ??
               sheet.data.publicId ??
               actor.sourceId ??
               ''

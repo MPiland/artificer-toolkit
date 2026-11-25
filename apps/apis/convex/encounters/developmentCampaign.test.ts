@@ -481,7 +481,8 @@ describe('development Campaign fixture cleanup', () => {
           campaignId: base.campaign.id,
           userId: base.other.userId,
           characterId: base.cleanup.characterId,
-          assignedAt: base.campaign.createdAt
+          assignedAt: base.campaign.createdAt,
+          active: true
         })
       })
       const before = await campaignState(base)
@@ -529,7 +530,8 @@ describe('development Campaign fixture cleanup', () => {
         campaignId: base.campaign.id,
         userId: base.other.userId,
         characterId: base.cleanup.characterId,
-        assignedAt: base.campaign.createdAt
+        assignedAt: base.campaign.createdAt,
+        active: true
       })
     )
     const readCollaboration = () =>

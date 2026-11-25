@@ -231,7 +231,6 @@ async function settledAttack(
           status: 'ACTIVE'
         }
       }),
-      readAssignedCharacter: async () => null,
       readCurrentDefinition: (definitionId: string) => srdDefinitions.requireCurrent(definitionId)
     }
   } as unknown as Parameters<typeof persistReactionOfferAnswer>[0] &
