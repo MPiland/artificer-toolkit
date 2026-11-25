@@ -2,7 +2,7 @@
 
 Assisted warnings and "Do it anyway".
 
-Level 4 (Advanced play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 147 of 191
+Level 4 (Advanced play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 151 of 195
 
 ## Prerequisites
 

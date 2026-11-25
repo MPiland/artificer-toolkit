@@ -2,7 +2,7 @@
 
 Keyboard, screen reader and low zoom.
 
-Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1) · Path position 118 of 191
+Level 3 (Core play) · Feature VTT_UI · Mode: Group (GM, P1) · Path position 122 of 195
 
 ## Prerequisites
 

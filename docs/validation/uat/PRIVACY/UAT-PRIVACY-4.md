@@ -2,7 +2,7 @@
 
 Ownership transfer changes who sees what.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1) · Path position 129 of 191
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1) · Path position 133 of 195
 
 ## Prerequisites
 

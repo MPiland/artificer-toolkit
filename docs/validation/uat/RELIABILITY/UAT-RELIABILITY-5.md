@@ -2,7 +2,7 @@
 
 Forms and sign-out recover without silent data loss.
 
-Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 182 of 191
+Level 5 (Reliability, performance and release) · Feature RELIABILITY · Mode: Group (GM, P1) · Path position 186 of 195
 
 ## Prerequisites
 

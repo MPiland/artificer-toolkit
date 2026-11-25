@@ -2,7 +2,7 @@
 
 Counterspell and chains.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2) · Path position 137 of 191
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2) · Path position 141 of 195
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2) · Path posi
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-S1. **P1 and P2:** Each in their own account, in the Builder (as in [BUILDER-2](../BUILDER/UAT-BUILDER-2.md)) build a level 5 caster who knows Counterspell with a third-level slot and commit it. In The Campaign each uses **Change Character** (between Encounters) to seat it (P1: "UAT Counter A", P2: "UAT Counter B").
+S1. **P1 and P2:** Each in their own account, in the Builder (as in [BUILDER-2](../BUILDER/UAT-BUILDER-2.md)) build a level 5 caster who knows Counterspell with a third-level slot and commit it. In The Campaign each chooses **Add Character** to bring it in (it lands on the bench), then **Mark active**, between Encounters (the party's counterspellers join for this arc) (P1: "UAT Counter A", P2: "UAT Counter B").
 S2. **GM:** Start an Encounter with a Mage creature; all three tokens are in range of each other. Players' Auto-roll ON; GM's OFF.
 
 1. [ ] **GM:** Have the Mage cast a leveled spell at P1's Character.
@@ -28,7 +28,7 @@ S2. **GM:** Start an Encounter with a Mage creature; all three tokens are in ran
 4. [ ] **GM:** Repeat with P2 using a lower slot. Confirm the ability check is asked and a failed check still spends the slot.
 5. [ ] **P1:** When P2 counters, answer **Use** for your own Counterspell on P2's cast. Confirm the chain resolves innermost first.
 6. [ ] **GM:** Read the history of the single triggering occurrence.
-       R1. **GM:** Complete the Encounter. **P1 and P2:** use **Change Character** to put Aria and Bryn back, then delete "UAT Counter A" and "UAT Counter B" from `/characters` so P1 and P2 are back to their earlier Character counts.
+       R1. **GM:** Complete the Encounter. **P1 and P2:** choose **Mark active** on Aria and Bryn again, use **Remove Character** on "UAT Counter A" and "UAT Counter B", then delete them from `/characters` so P1 and P2 are back to their earlier Character counts.
 
 ## Expected
 

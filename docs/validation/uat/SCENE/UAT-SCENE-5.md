@@ -2,7 +2,7 @@
 
 Doors.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1) · Path position 62 of 191
+Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1) · Path position 63 of 195
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Prepare, start, delete and persist a Run.
 
-Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 67 of 191
+Level 2 (GM setup) · Feature ENCOUNTER · Mode: Group (GM, P1) · Path position 68 of 195
 
 ## Prerequisites
 

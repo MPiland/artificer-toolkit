@@ -2,7 +2,7 @@
 
 Only the right controller answers; GM Skip decision.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path position 109 of 191
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1, P2, P3) · Path position 110 of 195
 
 ## Prerequisites
 

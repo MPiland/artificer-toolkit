@@ -2,7 +2,7 @@
 
 Reset a forgotten password (wrong code, mismatch, then success).
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 6 of 191
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 6 of 195
 
 ## Prerequisites
 

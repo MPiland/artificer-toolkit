@@ -2,7 +2,7 @@
 
 Dragons, breath weapons and Legendary Resistance.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 172 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 176 of 195
 
 ## Prerequisites
 

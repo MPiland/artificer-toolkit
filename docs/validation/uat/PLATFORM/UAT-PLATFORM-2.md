@@ -2,7 +2,7 @@
 
 Upload, replace and remove an avatar.
 
-Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P3, P1) · Path position 16 of 191
+Level 1 (Single-user basics) · Feature PLATFORM · Mode: Group (P3, P1) · Path position 16 of 195
 
 ## Prerequisites
 

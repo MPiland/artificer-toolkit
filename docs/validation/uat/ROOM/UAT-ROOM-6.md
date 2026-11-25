@@ -2,7 +2,7 @@
 
 Notes — private and shared.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 78 of 191
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 79 of 195
 
 ## Prerequisites
 

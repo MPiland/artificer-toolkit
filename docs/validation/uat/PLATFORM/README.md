@@ -14,7 +14,7 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 | 16            | 1     | [UAT-PLATFORM-2](UAT-PLATFORM-2.md) | Upload, replace and remove an avatar                   |
 | 17            | 1     | [UAT-PLATFORM-3](UAT-PLATFORM-3.md) | Artwork is private to its owner until shared           |
 | 18            | 1     | [UAT-PLATFORM-4](UAT-PLATFORM-4.md) | Password reset email is requested from the app         |
-| 161           | 4     | [UAT-PLATFORM-5](UAT-PLATFORM-5.md) | A Concentration save shows its result on the roll card |
+| 165           | 4     | [UAT-PLATFORM-5](UAT-PLATFORM-5.md) | A Concentration save shows its result on the roll card |
 
 ## Covered elsewhere
 

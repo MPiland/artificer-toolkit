@@ -2,7 +2,7 @@
 
 Create a new level-3 spellcasting Character and play one round of combat with it.
 
-Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P3 is the tester, GM follows the script) · Path position 82 of 191
+Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P3 is the tester, GM follows the script) · Path position 83 of 195
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 
@@ -21,8 +21,8 @@ Do not open the scripted scenario files before your Result is written: they name
 ## Script for the second person
 
 1. Before the tester starts: GM opens The Campaign. Do nothing else.
-2. When the tester says their new Character is committed: GM opens the Party panel and waits. The tester assigns the new Character to their own seat with **Change Character**; GM confirms it shows on the roster.
-3. When the tester says they are ready to play: GM adds the Character to the running Encounter (a token and an initiative entry) and tells the tester when it is their turn.
+2. When the tester says their new Character is committed: GM opens the Party panel and waits. The tester adds the new Character to The Campaign (it lands on the bench); GM confirms it shows on the roster as Benched.
+3. When the tester says they are ready to play: Cade is in the running Encounter, so marking the new Character active sends a request. GM approves it only then (do not point the tester to it; note whether the tester found the "Requested, waiting for the GM" message). The new Character takes Cade's token and initiative slot; GM tells the tester when it is their turn.
 4. Keep acting only on the tester's say-so. Do not explain controls; note every question the tester asks in the Result.
 
 ## Task
@@ -35,7 +35,7 @@ Follow [how to run a task](README.md#how-to-run-a-task) and write the Result bel
 
 ## Afterwards
 
-- P3: use **Change Character** to put Cade back on your seat. GM: remove the new Character's token from the Encounter, and P3 deletes the new Character.
+- GM: complete the Encounter. P3: choose **Mark active** on Cade again, use **Remove Character** on the new Character and delete it.
 
 ## ACs covered
 

@@ -2,7 +2,7 @@
 
 Sign in with your own account and check that it works and that nothing belongs to it yet.
 
-Level 0 (Orientation and exploratory tasks) · Feature ORIENTATION · Mode: Solo (any one role) · Path position 1 of 191
+Level 0 (Orientation and exploratory tasks) · Feature ORIENTATION · Mode: Solo (any one role) · Path position 1 of 195
 
 ## Prerequisites
 

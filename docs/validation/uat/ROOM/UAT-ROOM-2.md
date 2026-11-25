@@ -2,7 +2,7 @@
 
 Previews and pings.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 75 of 191
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 76 of 195
 
 ## Prerequisites
 

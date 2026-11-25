@@ -1,6 +1,6 @@
 # UAT tracker
 
-The one ordered path through every UAT scenario and exploratory task (191 in all), in the order to run them. Each scenario builds on the ones before it, so run them in this order, once. The starting point is the accounts GM and P1 to P5 and nothing else; the scenarios build the Campaigns, Characters and Scenes they use. This file is the one record of progress; the orchestrator copies accepted results into the ledger's `uat` items.
+The one ordered path through every UAT scenario and exploratory task (195 in all), in the order to run them. Each scenario builds on the ones before it, so run them in this order, once. The starting point is the accounts GM and P1 to P5 and nothing else; the scenarios build the Campaigns, Characters and Scenes they use. This file is the one record of progress; the orchestrator copies accepted results into the ledger's `uat` items.
 
 For each line: tick the box once the scenario has been run, whatever the outcome, and replace **NOT RUN** with **PASSED**, **FAILED**, **BLOCKED** (a gap or an earlier failure stopped it) or **SKIPPED**, plus the date, for example `**PASSED** 2026-11-04`. Failure details go in the Result block at the end of the scenario's file, with the tester and the scenario ID. A scenario marked "facilitator needed" has the owner act as the GM or another player from a numbered script. How to run: [README](README.md); coverage: [COVERAGE](COVERAGE.md).
 
@@ -56,11 +56,12 @@ For each line: tick the box once the scenario has been run, whatever the outcome
 - [ ] [UAT-SHEET-9](SHEET/UAT-SHEET-9.md): Speed on the overview and the Movement panel (SHEET) - Solo, roles P1 - **NOT RUN**
 - [ ] [UAT-SHEET-10](SHEET/UAT-SHEET-10.md): Sheet at phone width (SHEET) - Solo, roles P1 - **NOT RUN**
 
-## Level 2: GM setup (25 scenarios: 4 Solo, 21 Group)
+## Level 2: GM setup (26 scenarios: 4 Solo, 22 Group)
 
 - [ ] [UAT-CAMPAIGN-1](CAMPAIGN/UAT-CAMPAIGN-1.md): Create, edit, copy, archive and delete a Campaign (CAMPAIGN) - Solo, roles GM - **NOT RUN**
 - [ ] [UAT-CAMPAIGN-2](CAMPAIGN/UAT-CAMPAIGN-2.md): Invite, accept, leave, remove, rejoin and transfer (CAMPAIGN) - Group, roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-CAMPAIGN-9](CAMPAIGN/UAT-CAMPAIGN-9.md): Seat the whole party in The Campaign (CAMPAIGN) - Group, roles GM, P1, P2, P3, P4 - **NOT RUN**
+- [ ] [UAT-CAMPAIGN-10](CAMPAIGN/UAT-CAMPAIGN-10.md): Bench a second Character and mark it active (CAMPAIGN) - Group, roles GM, P1, P2 - **NOT RUN**
 - [ ] [UAT-SOCIAL-1](SOCIAL/UAT-SOCIAL-1.md): Create a listing, apply, accept and fill a table (SOCIAL) - Group, roles P3, P1, P2, P5 - **NOT RUN**
 - [ ] [UAT-SOCIAL-2](SOCIAL/UAT-SOCIAL-2.md): Invitations and Social Hub navigation (SOCIAL) - Group, roles P3, P5 - **NOT RUN**
 - [ ] [UAT-AUTHORING-11](AUTHORING/UAT-AUTHORING-11.md): Share homebrew with a Campaign, then withdraw it (AUTHORING) - Group, roles GM, P1, P2, P5 - **NOT RUN**
@@ -84,7 +85,7 @@ For each line: tick the box once the scenario has been run, whatever the outcome
 - [ ] [UAT-RELIABILITY-4](RELIABILITY/UAT-RELIABILITY-4.md): A new Scene measures lengths correctly in every unit (RELIABILITY) - Solo, roles GM - **NOT RUN**
 - [ ] [UAT-SCENE-7](SCENE/UAT-SCENE-7.md): Map ownership and deletion (SCENE) - Group, roles GM, P1 - **NOT RUN**
 
-## Level 3: Core play (70 scenarios: 4 Solo, 66 Group)
+## Level 3: Core play (73 scenarios: 4 Solo, 69 Group)
 
 - [ ] [UAT-CAMPAIGN-8](CAMPAIGN/UAT-CAMPAIGN-8.md): Not a member (CAMPAIGN) - Group, roles GM, P5 - **NOT RUN**
 - [ ] [UAT-CAMPAIGN-3](CAMPAIGN/UAT-CAMPAIGN-3.md): Players see only what the GM made visible (CAMPAIGN) - Group, roles GM, P1, P2 - **NOT RUN**
@@ -125,6 +126,9 @@ For each line: tick the box once the scenario has been run, whatever the outcome
 - [ ] [UAT-MOVE-7](MOVE/UAT-MOVE-7.md): Overrun, Shove Aside and Tumble (MOVE) - Group, roles GM, P1 - **NOT RUN**
 - [ ] [UAT-REACTION-2](REACTION/UAT-REACTION-2.md): Only the right controller answers; GM Skip decision (REACTION) - Group, roles GM, P1, P2, P3 - **NOT RUN**
 - [ ] [UAT-REACTION-1](REACTION/UAT-REACTION-1.md): Shield prompts the right player while the attacker waits (REACTION) - Group, roles GM, P1, P2, P3 - **NOT RUN**
+- [ ] [UAT-CAMPAIGN-11](CAMPAIGN/UAT-CAMPAIGN-11.md): Mid-fight Character swap needs the GM's approval (CAMPAIGN) - Group, roles GM, P1, P2, P3 - **NOT RUN**
+- [ ] [UAT-CAMPAIGN-12](CAMPAIGN/UAT-CAMPAIGN-12.md): Character swap on the player's own turn (CAMPAIGN) - Group, roles GM, P1, P2, P3 - **NOT RUN**
+- [ ] [UAT-CAMPAIGN-13](CAMPAIGN/UAT-CAMPAIGN-13.md): Swap in a Prepared Encounter needs no request (CAMPAIGN) - Group, roles GM, P1 - **NOT RUN**
 - [ ] [UAT-REACTION-3](REACTION/UAT-REACTION-3.md): Roll prompts, Auto-roll on versus off (REACTION) - Group, roles GM, P1 - **NOT RUN**
 - [ ] [UAT-REACTION-5](REACTION/UAT-REACTION-5.md): An authored reaction spell (Absorb Elements) (REACTION) - Group, roles GM, P1 - **NOT RUN**
 - [ ] [UAT-REACTION-7](REACTION/UAT-REACTION-7.md): Reconnect while a decision is open (REACTION) - Group, roles GM, P1 - **NOT RUN**

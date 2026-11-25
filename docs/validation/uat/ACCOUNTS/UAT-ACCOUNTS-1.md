@@ -2,7 +2,7 @@
 
 Sign in, reload, sign out, sign back in by username.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path position 2 of 191
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path position 2 of 195
 
 ## Prerequisites
 

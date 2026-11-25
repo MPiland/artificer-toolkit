@@ -2,7 +2,7 @@
 
 Create an account from an invitation.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 5 of 191
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 5 of 195
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Peers converge, reload and departure.
 
-Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 66 of 191
+Level 2 (GM setup) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 67 of 195
 
 ## Prerequisites
 

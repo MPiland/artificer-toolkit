@@ -23,8 +23,8 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 | 12            | 1     | [UAT-ACCOUNTS-3](UAT-ACCOUNTS-3.md)   | Sign-out ends every tab of your account and nobody else's              |
 | 13            | 1     | [UAT-ACCOUNTS-9](UAT-ACCOUNTS-9.md)   | Ordinary users cannot use superadmin tools                             |
 | 14            | 1     | [UAT-ACCOUNTS-10](UAT-ACCOUNTS-10.md) | Superadmin moderation                                                  |
-| 186           | 5     | [UAT-ACCOUNTS-11](UAT-ACCOUNTS-11.md) | Refused account deletions                                              |
-| 191           | 5     | [UAT-ACCOUNTS-12](UAT-ACCOUNTS-12.md) | Delete my account, shared history survives                             |
+| 190           | 5     | [UAT-ACCOUNTS-11](UAT-ACCOUNTS-11.md) | Refused account deletions                                              |
+| 195           | 5     | [UAT-ACCOUNTS-12](UAT-ACCOUNTS-12.md) | Delete my account, shared history survives                             |
 
 ## Covered elsewhere
 

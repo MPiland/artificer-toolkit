@@ -2,7 +2,7 @@
 
 Two Concentrations with an authored ring.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 171 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 175 of 195
 
 ## Prerequisites
 

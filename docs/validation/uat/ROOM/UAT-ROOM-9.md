@@ -2,7 +2,7 @@
 
 Live play commands go through the room.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1) · Path position 80 of 191
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1) · Path position 81 of 195
 
 ## Prerequisites
 

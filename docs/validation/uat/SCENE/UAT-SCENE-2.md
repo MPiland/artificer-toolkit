@@ -2,7 +2,7 @@
 
 Map upload refusals.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 59 of 191
+Level 2 (GM setup) · Feature SCENE · Mode: Solo (GM) · Path position 60 of 195
 
 ## Prerequisites
 

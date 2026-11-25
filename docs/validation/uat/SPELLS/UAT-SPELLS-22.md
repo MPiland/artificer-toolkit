@@ -2,7 +2,7 @@
 
 Summons: turns, groups and ends.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 176 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 180 of 195
 
 ## Prerequisites
 

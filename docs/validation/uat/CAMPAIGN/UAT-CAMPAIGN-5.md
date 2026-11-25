@@ -2,7 +2,7 @@
 
 Party inventory and Vehicles.
 
-Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 55 of 191
+Level 2 (GM setup) · Feature CAMPAIGN · Mode: Group (GM, P1) · Path position 56 of 195
 
 ## Prerequisites
 

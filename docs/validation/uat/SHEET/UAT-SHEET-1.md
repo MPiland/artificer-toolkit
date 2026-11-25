@@ -2,7 +2,7 @@
 
 Edit a personal Sheet and reload.
 
-Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 39 of 191
+Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 39 of 195
 
 ## Prerequisites
 

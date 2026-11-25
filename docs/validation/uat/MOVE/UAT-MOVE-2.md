@@ -2,7 +2,7 @@
 
 Refusals at walls, hostile spaces and the map edge.
 
-Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 126 of 191
+Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1) · Path position 130 of 195
 
 ## Prerequisites
 

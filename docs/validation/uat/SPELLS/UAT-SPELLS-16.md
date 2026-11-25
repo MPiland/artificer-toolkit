@@ -2,7 +2,7 @@
 
 Grants and Concentration carry over after the Encounter.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 170 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 174 of 195
 
 ## Prerequisites
 

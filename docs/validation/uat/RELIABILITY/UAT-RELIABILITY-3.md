@@ -2,7 +2,7 @@
 
 The room closes after everyone leaves and reopens with state intact.
 
-Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P3) · Path position 122 of 191
+Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P3) · Path position 126 of 195
 
 ## Prerequisites
 

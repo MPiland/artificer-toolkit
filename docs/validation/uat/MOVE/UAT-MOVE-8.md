@@ -2,7 +2,7 @@
 
 Hidden hazards, traps and auras.
 
-Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 127 of 191
+Level 3 (Core play) · Feature MOVE · Mode: Group (GM, P1, P2) · Path position 131 of 195
 
 ## Prerequisites
 

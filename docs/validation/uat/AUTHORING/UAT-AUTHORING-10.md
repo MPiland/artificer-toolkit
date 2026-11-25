@@ -2,7 +2,7 @@
 
 Another account cannot see or edit your drafts.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (GM, P1, P2) · Path position 22 of 191
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Group (GM, P1, P2) · Path position 22 of 195
 
 ## Prerequisites
 

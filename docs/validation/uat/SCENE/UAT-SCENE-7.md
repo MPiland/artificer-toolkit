@@ -2,7 +2,7 @@
 
 Map ownership and deletion.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1) · Path position 71 of 191
+Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1) · Path position 72 of 195
 
 ## Prerequisites
 

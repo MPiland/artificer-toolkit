@@ -2,7 +2,7 @@
 
 Grapple, shove and basic actions.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 98 of 191
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1, P2) · Path position 99 of 195
 
 ## Prerequisites
 
@@ -32,8 +32,8 @@ S1. **P1 and P2:** Switch **Auto-roll** ON. **GM:** Switch it OFF. **GM:** Move 
 10. [ ] **GM:** Add a Cloaker and have it Bite Aria so she is grappled. **P2:** On Bryn's turn use Bryn's Action to make the escape check for Aria. Confirm Aria is freed on success (ATTACK-7.9).
 11. [ ] **GM:** Use Dash, Disengage, Dodge, Help and First Aid once each; confirm they work as before and appear unavailable when the actor does not meet the restriction.
 12. [ ] **GM:** Open the System's basic actions catalogue. Confirm SRD basic actions are read-only and can be copied into a homebrew System.
-13. [ ] **GM:** Create a homebrew Crusher feat (any-direction 5-foot push on a bludgeoning hit) from a copy of the SRD feat, and have **P2** build a Character who has it in the Character Builder (Aria, Bryn and Cade do not), **P2:** seat that Character with **Change Character** between Encounters. **GM:** add it to a new Encounter. **P2:** hit a creature with a bludgeoning weapon. Confirm the mover can pick a legal unoccupied square.
-        R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters. If P2 swapped Characters in step 13, **P2** uses **Change Character** to put Bryn back and deletes the Crusher Character from `/characters`.
+13. [ ] **GM:** Create a homebrew Crusher feat (any-direction 5-foot push on a bludgeoning hit) from a copy of the SRD feat, and have **P2** build a Character who has it in the Character Builder (Aria, Bryn and Cade do not), **GM:** Complete the running Encounter. **P2:** Choose **Add Character** and pick that Character (it lands on the bench), then **Mark active** on it, because P2 is bringing the new build into the next fight. **GM:** add it to a new Encounter. **P2:** hit a creature with a bludgeoning weapon. Confirm the mover can pick a legal unoccupied square.
+        R1. **GM:** Remove the creatures you added from the Encounter, so the Encounter is again the Wolf, the Goblin and the three Characters. If P2 brought in the Crusher Character in step 13, the **GM** completes that Encounter, then **P2** chooses **Mark active** on Bryn again, uses **Remove Character** on the Crusher Character and deletes it from `/characters`.
 
 ## Expected
 

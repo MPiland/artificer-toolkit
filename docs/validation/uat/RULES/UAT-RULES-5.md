@@ -2,7 +2,7 @@
 
 An attack with two damage parts keeps each part visible.
 
-Level 4 (Advanced play) · Feature RULES · Mode: Group (GM, P2) · Path position 150 of 191
+Level 4 (Advanced play) · Feature RULES · Mode: Group (GM, P2) · Path position 154 of 195
 
 ## Prerequisites
 

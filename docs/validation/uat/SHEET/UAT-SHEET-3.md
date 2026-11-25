@@ -2,7 +2,7 @@
 
 Learn, prepare and cast spells from the Sheet.
 
-Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 41 of 191
+Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 41 of 195
 
 ## Prerequisites
 

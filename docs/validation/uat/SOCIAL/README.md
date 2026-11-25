@@ -10,12 +10,12 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                        | Title                                            |
 | ------------- | ----- | ------------------------------- | ------------------------------------------------ |
-| 50            | 2     | [UAT-SOCIAL-1](UAT-SOCIAL-1.md) | Create a listing, apply, accept and fill a table |
-| 51            | 2     | [UAT-SOCIAL-2](UAT-SOCIAL-2.md) | Invitations and Social Hub navigation            |
-| 151           | 4     | [UAT-SOCIAL-3](UAT-SOCIAL-3.md) | Blocks and what they do                          |
-| 152           | 4     | [UAT-SOCIAL-4](UAT-SOCIAL-4.md) | Private profiles and masking                     |
-| 153           | 4     | [UAT-SOCIAL-5](UAT-SOCIAL-5.md) | Notification feed, read state and preferences    |
-| 187           | 5     | [UAT-SOCIAL-6](UAT-SOCIAL-6.md) | Plan limits and capacity                         |
+| 51            | 2     | [UAT-SOCIAL-1](UAT-SOCIAL-1.md) | Create a listing, apply, accept and fill a table |
+| 52            | 2     | [UAT-SOCIAL-2](UAT-SOCIAL-2.md) | Invitations and Social Hub navigation            |
+| 155           | 4     | [UAT-SOCIAL-3](UAT-SOCIAL-3.md) | Blocks and what they do                          |
+| 156           | 4     | [UAT-SOCIAL-4](UAT-SOCIAL-4.md) | Private profiles and masking                     |
+| 157           | 4     | [UAT-SOCIAL-5](UAT-SOCIAL-5.md) | Notification feed, read state and preferences    |
+| 191           | 5     | [UAT-SOCIAL-6](UAT-SOCIAL-6.md) | Plan limits and capacity                         |
 
 ## Covered elsewhere
 

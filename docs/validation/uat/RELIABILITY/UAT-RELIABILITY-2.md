@@ -2,12 +2,12 @@
 
 Two users act at the same moment.
 
-Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P2, P3) · Path position 121 of 191
+Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P2, P3) · Path position 125 of 195
 
 ## Prerequisites
 
 - **The Campaign** exists, hosted by GM, with P1, P2, P3 and P4 seated as players ([UAT-CAMPAIGN-9](../CAMPAIGN/UAT-CAMPAIGN-9.md)).
-- P1 has switched to Ember in The Campaign (Change Character), who has Shield and Hold Person. P2 has Bryn and P3 has Cade.
+- P1's Active Character in The Campaign is Ember, who has Shield and Hold Person. She is benched in The Campaign from [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md); P1 marks her active between Encounters, before the Encounter below starts (the party's wizard joins for this arc). P2 has Bryn and P3 has Cade.
 - An Encounter is running in The Campaign in Assisted mode with a Wolf, a Goblin, Ember, Bryn and Cade ([UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5). Ember's Shield reaction has not been used this round.
 - **P3's Campaign** exists, hosted by P3 (done in [UAT-SOCIAL-1](../SOCIAL/UAT-SOCIAL-1.md); P1 and P5 are members). P3 hosts it because GM already hosts The Campaign and the FREE plan allows one active hosted Campaign per account. It has no Scene yet.
 - Three Scenes exist in The Campaign ("UAT Cavern" from [UAT-SCENE-1](../SCENE/UAT-SCENE-1.md) and the two from [UAT-RELIABILITY-4](UAT-RELIABILITY-4.md)).

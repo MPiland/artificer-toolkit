@@ -2,7 +2,7 @@
 
 Change your email in Account Settings.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 8 of 191
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (OWN) · Path position 8 of 195
 
 ## Prerequisites
 

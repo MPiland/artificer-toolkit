@@ -2,7 +2,7 @@
 
 A new Scene measures lengths correctly in every unit.
 
-Level 2 (GM setup) · Feature RELIABILITY · Mode: Solo (GM) · Path position 70 of 191
+Level 2 (GM setup) · Feature RELIABILITY · Mode: Solo (GM) · Path position 71 of 195
 
 ## Prerequisites
 

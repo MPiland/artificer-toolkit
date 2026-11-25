@@ -2,7 +2,7 @@
 
 Weapons in hand, loadouts and Disarm.
 
-Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 135 of 191
+Level 3 (Core play) · Feature ATTACK · Mode: Group (GM, P1) · Path position 139 of 195
 
 ## Prerequisites
 

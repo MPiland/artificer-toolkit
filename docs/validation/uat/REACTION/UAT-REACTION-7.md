@@ -2,13 +2,13 @@
 
 Reconnect while a decision is open.
 
-Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position 113 of 191
+Level 3 (Core play) · Feature REACTION · Mode: Group (GM, P1) · Path position 117 of 195
 
 ## Prerequisites
 
 - **The Campaign** is hosted by GM with P1, P2 and P3 seated as players.
-- Done in [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md): P1 built **Ember**, a level 3 Wizard with Shield and Hold Person prepared and 1st-level slots. Ember is not seated yet; the setup step has P1 swap to her.
-- Done in [UAT-REACTION-1](UAT-REACTION-1.md): setup and steps 1 to 3 (Ember seated, a running Encounter, and a reaction prompt for P1 that is still waiting; do not answer it yet).
+- Done in [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md): P1 built **Ember**, a level 3 Wizard with Shield and Hold Person prepared and 1st-level slots. Ember is benched in The Campaign (added in REACTION-1).
+- Done in [UAT-REACTION-1](UAT-REACTION-1.md): setup and steps 1 to 3 (Ember is P1's Active Character, a running Encounter, and a reaction prompt for P1 that is still waiting; do not answer it yet).
 
 ## Accounts and windows
 
@@ -23,7 +23,7 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 2. [ ] **P1:** Confirm the page reconnects by itself and the Shield prompt is still waiting.
 3. [ ] **GM:** Meanwhile confirm the attack is still held.
 4. [ ] **P1:** Answer **Use**. Confirm the result is applied once.
-       R1. **GM:** Complete the Encounter. **P1:** Use **Change Character** to put Aria back in The Campaign in place of Ember.
+       R1. **GM:** Complete the Encounter. **P1:** Choose **Mark active** on Aria again (the wizard sits out the next arc); Ember stays on the bench.
 
 ## Expected
 

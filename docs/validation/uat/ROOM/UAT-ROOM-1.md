@@ -2,7 +2,7 @@
 
 GM and three players join at once.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2, P3) · Path position 74 of 191
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2, P3) · Path position 75 of 195
 
 ## Prerequisites
 

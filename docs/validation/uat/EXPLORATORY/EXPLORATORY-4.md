@@ -2,7 +2,7 @@
 
 Join a Campaign you have never seen, find your Character and take your first turn.
 
-Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P5 is the tester, GM follows the script) · Path position 85 of 191
+Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P5 is the tester, GM follows the script) · Path position 86 of 195
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 

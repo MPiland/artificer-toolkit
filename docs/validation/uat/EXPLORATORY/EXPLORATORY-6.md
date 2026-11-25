@@ -2,7 +2,7 @@
 
 Work out why something at the table did not behave as you expected, and fix it or report it.
 
-Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P2 is the tester, GM follows the script) · Path position 87 of 191
+Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P2 is the tester, GM follows the script) · Path position 88 of 195
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 

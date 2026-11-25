@@ -2,7 +2,7 @@
 
 Share homebrew with a Campaign, then withdraw it.
 
-Level 2 (GM setup) · Feature AUTHORING · Mode: Group (GM, P1, P2, P5) · Path position 52 of 191
+Level 2 (GM setup) · Feature AUTHORING · Mode: Group (GM, P1, P2, P5) · Path position 53 of 195
 
 ## Prerequisites
 

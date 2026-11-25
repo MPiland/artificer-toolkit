@@ -2,7 +2,7 @@
 
 Wrong password and unknown account are refused.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path position 3 of 191
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (P1) · Path position 3 of 195
 
 ## Prerequisites
 

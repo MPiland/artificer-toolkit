@@ -2,7 +2,7 @@
 
 Short and long rest.
 
-Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 40 of 191
+Level 1 (Single-user basics) · Feature SHEET · Mode: Solo (P1) · Path position 40 of 195
 
 ## Prerequisites
 

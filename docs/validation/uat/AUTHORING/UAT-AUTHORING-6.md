@@ -2,7 +2,7 @@
 
 Creature copy, computed AC and the item loadout.
 
-Level 3 (Core play) · Feature AUTHORING · Mode: Solo (GM) · Path position 93 of 191
+Level 3 (Core play) · Feature AUTHORING · Mode: Solo (GM) · Path position 94 of 195
 
 ## Prerequisites
 

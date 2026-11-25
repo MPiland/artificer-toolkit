@@ -10,16 +10,16 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                      | Title                                     |
 | ------------- | ----- | ----------------------------- | ----------------------------------------- |
-| 74            | 3     | [UAT-ROOM-1](UAT-ROOM-1.md)   | GM and three players join at once         |
-| 75            | 3     | [UAT-ROOM-2](UAT-ROOM-2.md)   | Previews and pings                        |
-| 76            | 3     | [UAT-ROOM-4](UAT-ROOM-4.md)   | Chat — Table, Party and Direct            |
-| 77            | 3     | [UAT-ROOM-5](UAT-ROOM-5.md)   | Rolls, private GM rolls and chat limits   |
-| 78            | 3     | [UAT-ROOM-6](UAT-ROOM-6.md)   | Notes — private and shared                |
-| 79            | 3     | [UAT-ROOM-8](UAT-ROOM-8.md)   | Plan and log Sessions                     |
-| 80            | 3     | [UAT-ROOM-9](UAT-ROOM-9.md)   | Live play commands go through the room    |
-| 81            | 3     | [UAT-ROOM-7](UAT-ROOM-7.md)   | Show a map to players without presenting  |
-| 89            | 3     | [UAT-ROOM-10](UAT-ROOM-10.md) | Archiving a Campaign closes its live room |
-| 130           | 3     | [UAT-ROOM-3](UAT-ROOM-3.md)   | Reconnect after a dropped connection      |
+| 75            | 3     | [UAT-ROOM-1](UAT-ROOM-1.md)   | GM and three players join at once         |
+| 76            | 3     | [UAT-ROOM-2](UAT-ROOM-2.md)   | Previews and pings                        |
+| 77            | 3     | [UAT-ROOM-4](UAT-ROOM-4.md)   | Chat — Table, Party and Direct            |
+| 78            | 3     | [UAT-ROOM-5](UAT-ROOM-5.md)   | Rolls, private GM rolls and chat limits   |
+| 79            | 3     | [UAT-ROOM-6](UAT-ROOM-6.md)   | Notes — private and shared                |
+| 80            | 3     | [UAT-ROOM-8](UAT-ROOM-8.md)   | Plan and log Sessions                     |
+| 81            | 3     | [UAT-ROOM-9](UAT-ROOM-9.md)   | Live play commands go through the room    |
+| 82            | 3     | [UAT-ROOM-7](UAT-ROOM-7.md)   | Show a map to players without presenting  |
+| 90            | 3     | [UAT-ROOM-10](UAT-ROOM-10.md) | Archiving a Campaign closes its live room |
+| 134           | 3     | [UAT-ROOM-3](UAT-ROOM-3.md)   | Reconnect after a dropped connection      |
 
 ## Covered elsewhere
 

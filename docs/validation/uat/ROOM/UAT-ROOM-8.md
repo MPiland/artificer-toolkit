@@ -2,7 +2,7 @@
 
 Plan and log Sessions.
 
-Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 79 of 191
+Level 3 (Core play) · Feature ROOM · Mode: Group (GM, P1, P2) · Path position 80 of 195
 
 ## Prerequisites
 

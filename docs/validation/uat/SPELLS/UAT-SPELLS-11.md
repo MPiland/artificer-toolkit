@@ -2,7 +2,7 @@
 
 Stabilizing: Spare the Dying, Healer's Kit and first aid.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 165 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2, P3) · Path position 169 of 195
 
 ## Prerequisites
 

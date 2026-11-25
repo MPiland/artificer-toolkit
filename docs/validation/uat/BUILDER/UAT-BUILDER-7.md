@@ -2,7 +2,7 @@
 
 Build the Characters P2 and P3 will use in The Campaign.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Group (P1, P2, P3) · Path position 36 of 191
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Group (P1, P2, P3) · Path position 36 of 195
 
 ## Prerequisites
 

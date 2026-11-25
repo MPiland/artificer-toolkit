@@ -2,7 +2,7 @@
 
 BLOCKED until AUTHORING-21 merges: the link between the modifier and its pool is changing from a typed Charge ID to a picker, and this scenario is written against the picker. Mark it BLOCKED in the Result block until then.
 
-Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 31 of 191
+Level 1 (Single-user basics) · Feature AUTHORING · Mode: Solo (P1) · Path position 31 of 195
 
 ## Prerequisites
 

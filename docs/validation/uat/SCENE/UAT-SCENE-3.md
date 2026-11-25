@@ -2,7 +2,7 @@
 
 Present a Scene and build it live.
 
-Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2) · Path position 60 of 191
+Level 2 (GM setup) · Feature SCENE · Mode: Group (GM, P1, P2) · Path position 61 of 195
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Public sign-up is closed.
 
-Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (any one role) · Path position 4 of 191
+Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (any one role) · Path position 4 of 195
 
 ## Prerequisites
 

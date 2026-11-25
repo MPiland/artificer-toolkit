@@ -2,7 +2,7 @@
 
 Privacy, replay, rollback, concurrency and performance hold together.
 
-Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P2) · Path position 120 of 191
+Level 3 (Core play) · Feature RELIABILITY · Mode: Group (GM, P1, P2) · Path position 124 of 195
 
 ## Prerequisites
 

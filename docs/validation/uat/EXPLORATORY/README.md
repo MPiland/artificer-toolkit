@@ -29,10 +29,10 @@ Screenshots of confusing screens go in the ignored `local-validation/uat/<YYYY-M
 
 | Path position | Level | Scenario                          | Title                                           |
 | ------------- | ----- | --------------------------------- | ----------------------------------------------- |
-| 82            | 0     | [EXPLORATORY-1](EXPLORATORY-1.md) | Build a level-3 caster and play one round       |
-| 83            | 0     | [EXPLORATORY-2](EXPLORATORY-2.md) | Author a homebrew spell from memory and cast it |
-| 84            | 0     | [EXPLORATORY-3](EXPLORATORY-3.md) | Set up a new encounter on an uploaded map as GM |
-| 85            | 0     | [EXPLORATORY-4](EXPLORATORY-4.md) | Run a short session as a first-time player      |
-| 86            | 0     | [EXPLORATORY-5](EXPLORATORY-5.md) | Copy and change an existing monster             |
-| 87            | 0     | [EXPLORATORY-6](EXPLORATORY-6.md) | Find out what went wrong                        |
-| 88            | 0     | [EXPLORATORY-7](EXPLORATORY-7.md) | Hand over a Character mid-campaign              |
+| 83            | 0     | [EXPLORATORY-1](EXPLORATORY-1.md) | Build a level-3 caster and play one round       |
+| 84            | 0     | [EXPLORATORY-2](EXPLORATORY-2.md) | Author a homebrew spell from memory and cast it |
+| 85            | 0     | [EXPLORATORY-3](EXPLORATORY-3.md) | Set up a new encounter on an uploaded map as GM |
+| 86            | 0     | [EXPLORATORY-4](EXPLORATORY-4.md) | Run a short session as a first-time player      |
+| 87            | 0     | [EXPLORATORY-5](EXPLORATORY-5.md) | Copy and change an existing monster             |
+| 88            | 0     | [EXPLORATORY-6](EXPLORATORY-6.md) | Find out what went wrong                        |
+| 89            | 0     | [EXPLORATORY-7](EXPLORATORY-7.md) | Hand over a Character mid-campaign              |

@@ -2,7 +2,7 @@
 
 Plan limits and capacity.
 
-Level 5 (Reliability, performance and release) · Feature SOCIAL · Mode: Group (GM, P1, SUPERADMIN) · Path position 187 of 191
+Level 5 (Reliability, performance and release) · Feature SOCIAL · Mode: Group (GM, P1, SUPERADMIN) · Path position 191 of 195
 
 ## Prerequisites
 

@@ -2,7 +2,7 @@
 
 Health display settings.
 
-Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 103 of 191
+Level 3 (Core play) · Feature PRIVACY · Mode: Group (GM, P1, P2) · Path position 104 of 195
 
 ## Prerequisites
 

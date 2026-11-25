@@ -18,9 +18,9 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 | 44            | 1     | [UAT-SHEET-8](UAT-SHEET-8.md)   | Hands, two-handed weapons and shields                 |
 | 45            | 1     | [UAT-SHEET-9](UAT-SHEET-9.md)   | Speed on the overview and the Movement panel          |
 | 46            | 1     | [UAT-SHEET-10](UAT-SHEET-10.md) | Sheet at phone width                                  |
-| 90            | 3     | [UAT-SHEET-4](UAT-SHEET-4.md)   | Roll from the Sheet and choose who sees it            |
-| 91            | 3     | [UAT-SHEET-5](UAT-SHEET-5.md)   | GM Public and Private rolls with reveals              |
-| 92            | 3     | [UAT-SHEET-11](UAT-SHEET-11.md) | Sheet during live play and after reconnect            |
+| 91            | 3     | [UAT-SHEET-4](UAT-SHEET-4.md)   | Roll from the Sheet and choose who sees it            |
+| 92            | 3     | [UAT-SHEET-5](UAT-SHEET-5.md)   | GM Public and Private rolls with reveals              |
+| 93            | 3     | [UAT-SHEET-11](UAT-SHEET-11.md) | Sheet during live play and after reconnect            |
 
 ## Covered elsewhere
 

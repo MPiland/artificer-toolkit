@@ -2,7 +2,7 @@
 
 Healing keeps its dice and modifier visible in the roll card.
 
-Level 3 (Core play) · Feature RULES · Mode: Group (GM, P1) · Path position 115 of 191
+Level 3 (Core play) · Feature RULES · Mode: Group (GM, P1) · Path position 119 of 195
 
 ## Prerequisites
 

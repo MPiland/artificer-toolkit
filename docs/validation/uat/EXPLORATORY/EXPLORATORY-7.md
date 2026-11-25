@@ -2,7 +2,7 @@
 
 Level a Character up between Sessions and play the next Session with the new abilities.
 
-Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P2 is the tester, GM follows the script) · Path position 88 of 191
+Level 3 (Core play) · Feature EXPLORATORY · Mode: Group (P2 is the tester, GM follows the script) · Path position 89 of 195
 
 Do not open the scripted scenario files before your Result is written: they name every button and would hide the confusion this task exists to find. This task is not pass/fail.
 
@@ -21,8 +21,8 @@ Do not open the scripted scenario files before your Result is written: they name
 ## Script for the second person
 
 1. Before the tester starts: GM opens The Campaign.
-2. When the tester says the levelled copy "Bryn (levelled)" is committed: GM opens the Party panel and waits. The tester assigns the copy to their own seat with **Change Character**; GM confirms it shows on the roster.
-3. When the tester says they are ready to play a round: GM makes the copy the active actor and tells the tester.
+2. When the tester says the levelled copy "Bryn (levelled)" is committed: GM opens the Party panel and waits. The tester adds the copy to The Campaign (it lands on the bench); GM confirms it shows on the roster as Benched.
+3. When the tester says they are ready to play a round: if Bryn is in a running Encounter, marking the copy active sends a request. GM approves it only then (do not point the tester to it; note whether the tester found the "Requested, waiting for the GM" message). GM makes the copy the active actor and tells the tester.
 
 ## Task
 
@@ -34,7 +34,7 @@ Follow [how to run a task](README.md#how-to-run-a-task) and write the Result bel
 
 ## Afterwards
 
-- P2: use **Change Character** to put Bryn back on your seat. P2: delete the levelled copy.
+- GM: complete any running Encounter. P2: choose **Mark active** on Bryn again, use **Remove Character** on the levelled copy and delete it.
 
 ## ACs covered
 

@@ -2,7 +2,7 @@
 
 Exact cleanup and final acceptance.
 
-Level 5 (Reliability, performance and release) · Feature RELEASE · Mode: Group (GM, P1, P2, P3) · Path position 189 of 191
+Level 5 (Reliability, performance and release) · Feature RELEASE · Mode: Group (GM, P1, P2, P3) · Path position 193 of 195
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ Level 5 (Reliability, performance and release) · Feature RELEASE · Mode: Group
 - P1 has Aria, P2 has Bryn and P3 has Cade as their Characters in The Campaign (each a Level 1 Fighter, built by their player in the Character Builder).
 - The Campaign has a Scene presented and an Encounter started in Assisted mode with a Wolf, a Goblin and the party's Characters, in round 2 ([UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5, then **Next turn** until round 2).
 - **P3's Campaign** exists, hosted by P3, with P1 as a member and no presented Scene (done in [UAT-SOCIAL-1](../SOCIAL/UAT-SOCIAL-1.md); [UAT-RELIABILITY-2](../RELIABILITY/UAT-RELIABILITY-2.md) removed its Scene). P3 hosts it because GM already hosts The Campaign and the FREE plan allows one active hosted Campaign per account.
-- P2 has Pyra (built in [UAT-VTT_UI-2](../VTT_UI/UAT-VTT_UI-2.md)) and P1 has Ember (built in [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md)).
+- P2 has Pyra (built in [UAT-VTT_UI-2](../VTT_UI/UAT-VTT_UI-2.md)) and P1 has Ember (built in [UAT-REACTION-1](../REACTION/UAT-REACTION-1.md)); both are benched in The Campaign, and Aria and Bryn are the Active Characters.
 - The [alpha play guide](../../../guides/alpha-play-guide.md) is open beside the app.
 
 ## Accounts and windows
@@ -31,8 +31,8 @@ Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until
 7. [ ] **P1:** Drag Aria away from the Wolf. Check the **Pending decision** with **Use reaction** and **Decline reaction**, and "Waiting on a movement decision." for other moves.
 8. [ ] **GM:** Check the turn controls exist: Current turn, Previous turn, Next turn, Undo last action, Complete encounter.
 9. [ ] **P1:** Attack from the action drawer. Check advantage or disadvantage reasons are shown, and that hidden or unseen targets are refused.
-10. [ ] **P1:** Switch to Ember in The Campaign (**Change Character**), then check spell rows read like "Name (Nth level)", rituals show as unavailable, and reaction spells such as Shield appear as prompts.
-11. [ ] **P2:** Switch to Pyra in The Campaign (**Change Character**), then cast Fireball so that it catches both the Wolf and the Goblin, and check each creature gets its own save prompt (the GM answers for monsters).
+10. [ ] **P1:** Choose **Mark active** on Ember on the Party roster (Aria is in the running Encounter, so this sends a request: the roster shows "Requested, waiting for the GM"). **GM:** Approve it from the Party roster or the header **Character swap request** button; Ember takes Aria's place in the fight. **P1:** Then check spell rows read like "Name (Nth level)", rituals show as unavailable, and reaction spells such as Shield appear as prompts.
+11. [ ] **P2:** Choose **Mark active** on Pyra and have the **GM** approve the request as in step 10 (Pyra takes Bryn's place), then cast Fireball so that it catches both the Wolf and the Goblin, and check each creature gets its own save prompt (the GM answers for monsters).
 12. [ ] **GM:** Check the **Public / Private** switch (**Roll visibility**), the **My rolls** and **Enemy rolls** areas, and the **Show roll** and **Show that I rolled** buttons (each works once).
 13. [ ] **GM:** Check **Undo last token move** (stage icon) and **Undo last action**. Confirm players have neither.
 14. [ ] **GM:** Read the guide's contents and check it has a Player section and a GM section that together cover joining a Session, Scenes, tokens and movement, Manual versus Assisted, initiative, the turn stages (Recharge, death saves, start-of-turn effects), attacks, saves, spells and reactions, Public and Private rolls and reveals, the auto-roll preference, and what can and cannot be undone. Record any flow with no section.

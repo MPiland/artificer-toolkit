@@ -2,7 +2,7 @@
 
 Cover from walls and manual cover.
 
-Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 159 of 191
+Level 4 (Advanced play) · Feature SPELLS · Mode: Group (GM, P1, P2) · Path position 163 of 195
 
 ## Prerequisites
 

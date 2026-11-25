@@ -14,11 +14,11 @@ These scenarios play real casters and monsters through saves, conditions, dying,
 - Scenario 27 builds three more one-off Characters for P3 (a Hill Dwarf, a Lightfoot Halfling and a Warlock).
 - GM Creatures used (add from the SRD list): Goblin, Wolf, Bandit, Ogre, Gargoyle, Zombie, Giant Spider, Magma Mephit, Unicorn, Adult Red Dragon, Silver Dragon Wyrmling, Gorgon.
 
-**Which Campaign, which Character, and when to swap.** Every scenario from 2 on runs in **The Campaign** (members P1, P2, P3). A player can have only one Character assigned to a Campaign at a time (the Party roster's **Add Character** / **Change Character** button, then pick from the Character picker), and a Character can sit in only one Campaign. So nobody ever has two Characters in this Campaign at once; they swap, and **only between Encounters** (GM chooses **Complete encounter**, the player changes Character, the GM rebuilds the arena with scenario 2 steps 4 and 5):
+**Which Campaign, which Character, and when to swap.** Every scenario from 2 on runs in **The Campaign** (members P1, P2, P3). A player can keep several Characters in a Campaign, but only one is the Active Character that plays at the table; the others are Benched. A player adds a Character with the Party roster's **Add Character** button (pick it from the Character picker; it lands on the bench) and chooses **Mark active** on it, and a Character can sit in only one Campaign. Each player brings in the Character for the next arc **only between Encounters** (GM chooses **Complete encounter**, the player marks the new Character active, the GM rebuilds the arena with scenario 2 steps 4 and 5), so no GM approval is involved (a swap during a running Encounter is covered in [UAT-CAMPAIGN-11](../CAMPAIGN/UAT-CAMPAIGN-11.md)):
 
-- **P1** plays **Sage** in every scenario (she replaces Aria in scenario 2; Aria's, Bryn's and Cade's tokens are removed from the arena because they are no longer in the Party).
-- **P2** plays **Hale** in every scenario except scenario 26 part B, where P2 swaps to **Kade** (and ends the scenario as Kade).
-- **P3** plays **Vex** in scenarios 2 to 18, swaps to **Moss** at the start of scenario 19 and stays Moss through scenario 26. Scenario 27 swaps P3 through three one-off Characters.
+- **P1** plays **Sage** in every scenario (she becomes P1's Active Character in scenario 2; Aria, Bryn and Cade stay on the bench, so their tokens are removed from the arena).
+- **P2** plays **Hale** in every scenario except scenario 26 part B, where P2 marks **Kade** active (and ends the scenario as Kade).
+- **P3** plays **Vex** in scenarios 2 to 18, marks **Moss** active at the start of scenario 19 and stays Moss through scenario 26. Scenario 27 brings P3 through three one-off Characters.
 - Where a scenario completes the Encounter (6, 12, 16, 22 part B, 23), its last step says to rebuild the arena. A rebuilt arena keeps hit points, slots and conditions the Characters already have; if a caster runs short of slots, take a **Long Rest** on the Sheet between scenarios. Remove stray conditions and Exhaustion from a Character before the next scenario.
 - The Encounter, the Auto-roll switch and Undo are the GM's. Players cannot undo anything.
 
@@ -30,33 +30,33 @@ One file per scenario, listed in the order the [tracker](../TRACKER.md) runs the
 
 | Path position | Level | Scenario                          | Title                                                                                       |
 | ------------- | ----- | --------------------------------- | ------------------------------------------------------------------------------------------- |
-| 154           | 4     | [UAT-SPELLS-1](UAT-SPELLS-1.md)   | Build the casters and cast from the Sheet outside an Encounter                              |
-| 155           | 4     | [UAT-SPELLS-2](UAT-SPELLS-2.md)   | Set up the Spell Arena Encounter (Assisted)                                                 |
-| 156           | 4     | [UAT-SPELLS-3](UAT-SPELLS-3.md)   | Fireball on a group with saves answered by different controllers                            |
-| 157           | 4     | [UAT-SPELLS-4](UAT-SPELLS-4.md)   | Area caster cannot see a hidden creature                                                    |
-| 158           | 4     | [UAT-SPELLS-5](UAT-SPELLS-5.md)   | Cones, lines, Self cubes and aiming on the map                                              |
-| 159           | 4     | [UAT-SPELLS-6](UAT-SPELLS-6.md)   | Cover from walls and manual cover                                                           |
-| 160           | 4     | [UAT-SPELLS-7](UAT-SPELLS-7.md)   | Hold Person, Concentration, damage checks, replacement and end                              |
-| 162           | 4     | [UAT-SPELLS-8](UAT-SPELLS-8.md)   | Attack and check modifiers from conditions                                                  |
-| 163           | 4     | [UAT-SPELLS-9](UAT-SPELLS-9.md)   | Exhaustion 4 and 6, Petrified resistance, nonmagical defenses and automatic failures        |
-| 164           | 4     | [UAT-SPELLS-10](UAT-SPELLS-10.md) | Dying, death saves, healing and kills                                                       |
-| 165           | 4     | [UAT-SPELLS-11](UAT-SPELLS-11.md) | Stabilizing: Spare the Dying, Healer's Kit and first aid                                    |
-| 166           | 4     | [UAT-SPELLS-12](UAT-SPELLS-12.md) | Single-use items and Antitoxin                                                              |
-| 167           | 4     | [UAT-SPELLS-13](UAT-SPELLS-13.md) | Reaction spells: Shield and Counterspell, one-roll grants                                   |
-| 168           | 4     | [UAT-SPELLS-14](UAT-SPELLS-14.md) | Reaction countdown timer                                                                    |
-| 169           | 4     | [UAT-SPELLS-15](UAT-SPELLS-15.md) | Grant spells and their lifetimes                                                            |
-| 170           | 4     | [UAT-SPELLS-16](UAT-SPELLS-16.md) | Grants and Concentration carry over after the Encounter                                     |
-| 171           | 4     | [UAT-SPELLS-17](UAT-SPELLS-17.md) | Two Concentrations with an authored ring                                                    |
-| 172           | 4     | [UAT-SPELLS-18](UAT-SPELLS-18.md) | Dragons, breath weapons and Legendary Resistance                                            |
-| 173           | 4     | [UAT-SPELLS-19](UAT-SPELLS-19.md) | Zones, auras and lasting hazards                                                            |
-| 174           | 4     | [UAT-SPELLS-20](UAT-SPELLS-20.md) | Multi-target spells and teleports                                                           |
-| 175           | 4     | [UAT-SPELLS-21](UAT-SPELLS-21.md) | Invisibility, Sanctuary, Fear and Blindness                                                 |
-| 176           | 4     | [UAT-SPELLS-22](UAT-SPELLS-22.md) | Summons: turns, groups and ends                                                             |
-| 177           | 4     | [UAT-SPELLS-23](UAT-SPELLS-23.md) | Manual mode raises no rules prompts                                                         |
-| 178           | 4     | [UAT-SPELLS-24](UAT-SPELLS-24.md) | Privacy and permissions refusals                                                            |
-| 179           | 4     | [UAT-SPELLS-25](UAT-SPELLS-25.md) | Phone width: Sheet death saves and summons                                                  |
-| 180           | 4     | [UAT-SPELLS-26](UAT-SPELLS-26.md) | Sheet attack rows match the room, and an always-on feature that rests restore (Tranquility) |
-| 181           | 4     | [UAT-SPELLS-27](UAT-SPELLS-27.md) | Racial traits, creature traits and Eldritch Blast                                           |
+| 158           | 4     | [UAT-SPELLS-1](UAT-SPELLS-1.md)   | Build the casters and cast from the Sheet outside an Encounter                              |
+| 159           | 4     | [UAT-SPELLS-2](UAT-SPELLS-2.md)   | Set up the Spell Arena Encounter (Assisted)                                                 |
+| 160           | 4     | [UAT-SPELLS-3](UAT-SPELLS-3.md)   | Fireball on a group with saves answered by different controllers                            |
+| 161           | 4     | [UAT-SPELLS-4](UAT-SPELLS-4.md)   | Area caster cannot see a hidden creature                                                    |
+| 162           | 4     | [UAT-SPELLS-5](UAT-SPELLS-5.md)   | Cones, lines, Self cubes and aiming on the map                                              |
+| 163           | 4     | [UAT-SPELLS-6](UAT-SPELLS-6.md)   | Cover from walls and manual cover                                                           |
+| 164           | 4     | [UAT-SPELLS-7](UAT-SPELLS-7.md)   | Hold Person, Concentration, damage checks, replacement and end                              |
+| 166           | 4     | [UAT-SPELLS-8](UAT-SPELLS-8.md)   | Attack and check modifiers from conditions                                                  |
+| 167           | 4     | [UAT-SPELLS-9](UAT-SPELLS-9.md)   | Exhaustion 4 and 6, Petrified resistance, nonmagical defenses and automatic failures        |
+| 168           | 4     | [UAT-SPELLS-10](UAT-SPELLS-10.md) | Dying, death saves, healing and kills                                                       |
+| 169           | 4     | [UAT-SPELLS-11](UAT-SPELLS-11.md) | Stabilizing: Spare the Dying, Healer's Kit and first aid                                    |
+| 170           | 4     | [UAT-SPELLS-12](UAT-SPELLS-12.md) | Single-use items and Antitoxin                                                              |
+| 171           | 4     | [UAT-SPELLS-13](UAT-SPELLS-13.md) | Reaction spells: Shield and Counterspell, one-roll grants                                   |
+| 172           | 4     | [UAT-SPELLS-14](UAT-SPELLS-14.md) | Reaction countdown timer                                                                    |
+| 173           | 4     | [UAT-SPELLS-15](UAT-SPELLS-15.md) | Grant spells and their lifetimes                                                            |
+| 174           | 4     | [UAT-SPELLS-16](UAT-SPELLS-16.md) | Grants and Concentration carry over after the Encounter                                     |
+| 175           | 4     | [UAT-SPELLS-17](UAT-SPELLS-17.md) | Two Concentrations with an authored ring                                                    |
+| 176           | 4     | [UAT-SPELLS-18](UAT-SPELLS-18.md) | Dragons, breath weapons and Legendary Resistance                                            |
+| 177           | 4     | [UAT-SPELLS-19](UAT-SPELLS-19.md) | Zones, auras and lasting hazards                                                            |
+| 178           | 4     | [UAT-SPELLS-20](UAT-SPELLS-20.md) | Multi-target spells and teleports                                                           |
+| 179           | 4     | [UAT-SPELLS-21](UAT-SPELLS-21.md) | Invisibility, Sanctuary, Fear and Blindness                                                 |
+| 180           | 4     | [UAT-SPELLS-22](UAT-SPELLS-22.md) | Summons: turns, groups and ends                                                             |
+| 181           | 4     | [UAT-SPELLS-23](UAT-SPELLS-23.md) | Manual mode raises no rules prompts                                                         |
+| 182           | 4     | [UAT-SPELLS-24](UAT-SPELLS-24.md) | Privacy and permissions refusals                                                            |
+| 183           | 4     | [UAT-SPELLS-25](UAT-SPELLS-25.md) | Phone width: Sheet death saves and summons                                                  |
+| 184           | 4     | [UAT-SPELLS-26](UAT-SPELLS-26.md) | Sheet attack rows match the room, and an always-on feature that rests restore (Tranquility) |
+| 185           | 4     | [UAT-SPELLS-27](UAT-SPELLS-27.md) | Racial traits, creature traits and Eldritch Blast                                           |
 
 ## Covered elsewhere
 

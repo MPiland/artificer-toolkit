@@ -2,7 +2,7 @@
 
 A started Encounter pauses for answers and resumes with nothing half-applied.
 
-Level 4 (Advanced play) · Feature RULES · Mode: Group (GM, P2) · Path position 149 of 191
+Level 4 (Advanced play) · Feature RULES · Mode: Group (GM, P2) · Path position 153 of 195
 
 ## Prerequisites
 

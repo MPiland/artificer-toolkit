@@ -2,7 +2,7 @@
 
 A player permanently deletes their own Character from the Characters list and from the Sheet; the Campaign and its running Encounter let it go.
 
-Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 69 of 191
+Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 70 of 195
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ Level 2 (GM setup) · Feature BUILDER · Mode: Group (GM, P1) · Path position 6
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
 S1. **P1:** Build and activate two Fighters named "UAT Delete Me" and "UAT Keep Me" ([BUILDER-1](UAT-BUILDER-1.md) steps 1 to 10).
-S2. **P1:** On The Campaign's Party panel choose **Change Character** and assign "UAT Delete Me".
+S2. **GM:** Choose **Complete encounter** on the running Encounter. **P1:** On The Campaign's Party panel choose **Add Character** and pick "UAT Delete Me" (it lands on the bench beside Aria), then choose **Mark active** on it. No approval is needed because no Encounter is running.
 S3. **GM:** Start an Encounter in The Campaign that includes "UAT Delete Me" and leave it running.
 
 1. [ ] **GM:** Try to find a way to delete "UAT Delete Me" (open the Campaign Party panel and the Character link).
@@ -29,7 +29,7 @@ S3. **GM:** Start an Encounter in The Campaign that includes "UAT Delete Me" and
 5. [ ] **GM:** Reload The Campaign and look at the Party panel and the running Encounter.
 6. [ ] **P1:** Open "UAT Keep Me" and check it is unchanged. Then open it and use the trash icon in the Sheet header: confirm the dialog names "UAT Keep Me", choose **Cancel**.
 7. [ ] **P1:** Check the Characters list and the Party panel once more.
-       R1. **P1:** Delete "UAT Keep Me" from **Characters**, then on the Party panel choose **Add Character** and assign Aria (P1 has 1 of 6 personal Characters again). **GM:** Complete the Encounter and start a new one on the presented Scene with the Wolf, the Goblin and Aria, Bryn and Cade as in [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5.
+       R1. **P1:** Delete "UAT Keep Me" from **Characters**, then on the Party panel choose **Mark active** on Aria, who has stayed on the bench since S2 (P1 has 1 of 6 personal Characters again). **GM:** Complete the Encounter and start a new one on the presented Scene with the Wolf, the Goblin and Aria, Bryn and Cade as in [UAT-ENCOUNTER-3](../ENCOUNTER/UAT-ENCOUNTER-3.md) steps 3 to 5.
 
 ## Expected
 

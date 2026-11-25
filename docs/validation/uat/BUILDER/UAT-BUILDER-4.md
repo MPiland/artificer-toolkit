@@ -2,7 +2,7 @@
 
 Removing content a Character uses repairs the Character.
 
-Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 37 of 191
+Level 1 (Single-user basics) · Feature BUILDER · Mode: Solo (P1) · Path position 37 of 195
 
 ## Prerequisites
 
