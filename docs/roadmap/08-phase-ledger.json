@@ -6620,6 +6620,41 @@
           "status": "NOT_RUN",
           "origin": [],
           "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-8.md"
+        },
+        {
+          "id": "CAMPAIGN-UAT-9",
+          "title": "Seat the whole party in The Campaign",
+          "status": "NOT_RUN",
+          "origin": [],
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-9.md"
+        },
+        {
+          "id": "CAMPAIGN-UAT-10",
+          "title": "Bench a second Character and mark it active",
+          "status": "NOT_RUN",
+          "origin": [],
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-10.md"
+        },
+        {
+          "id": "CAMPAIGN-UAT-11",
+          "title": "Mid-fight Character swap needs the GM's approval",
+          "status": "NOT_RUN",
+          "origin": [],
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-11.md"
+        },
+        {
+          "id": "CAMPAIGN-UAT-12",
+          "title": "Character swap on the player's own turn",
+          "status": "NOT_RUN",
+          "origin": [],
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-12.md"
+        },
+        {
+          "id": "CAMPAIGN-UAT-13",
+          "title": "Swap in a Prepared Encounter needs no request",
+          "status": "NOT_RUN",
+          "origin": [],
+          "scenario": "docs/validation/uat/CAMPAIGN/UAT-CAMPAIGN-13.md"
         }
       ],
       "pbis": [
