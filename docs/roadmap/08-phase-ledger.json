@@ -25027,31 +25027,43 @@
         {
           "id": "VTT_UI-6",
           "title": "The live tabletop opens only on large tablets and computers",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/tests/e2e/storybook/tabletopDevices.spec.ts"],
+          "journeyStatus": "verified",
           "origin": ["D237"],
-          "note": "Registered 2026-11-25 from UAT round 1 (D237, user-approved).",
+          "note": "Registered 2026-11-25 from UAT round 1 (D237, user-approved). Done at m907 (f35b8eec9): Tests 45664903411 (incl. Storybook e2e) and Browser journeys 45664903281 green on 7bf6c6ffa.",
           "acs": [
             {
               "id": "VTT_UI-6.1",
               "text": "On a device whose screen's longer side is under 1024 CSS px (a phone or small tablet), every control that opens the live tabletop (the Live tabletop panel's Open tabletop window and the Sheet's Open live tabletop window) is hidden. On a device whose longer side is 1024 px or more, they show in either orientation and at any window width.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/ui/hooks/tabletopDevice.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEntryControls.test.tsx",
+                "apps/web/tests/e2e/storybook/tabletopDevices.spec.ts"
+              ],
               "origin": ["D237"]
             },
             {
               "id": "VTT_UI-6.2",
               "text": "Opening the tabletop address directly on a smaller device shows a message that the live tabletop needs a large tablet or a computer, with a link back to the Campaign, and does not join the room.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDeviceGate.test.tsx › says the tabletop needs a large tablet or a computer, links back and never joins the room",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDeviceGate.test.tsx › renders nothing on the server, which cannot know the screen",
+                "apps/web/tests/e2e/storybook/tabletopDevices.spec.ts"
+              ],
               "origin": ["D237"]
             },
             {
               "id": "VTT_UI-6.3",
               "text": "On a capable device whose window is narrower than 1024 px (a large tablet in portrait, or a narrowed desktop window), the tabletop is covered by a prompt to turn the tablet to landscape or widen the window; turning or widening shows the tabletop without a reload.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDeviceGate.test.tsx › covers the tabletop with the rotate-or-widen prompt, then shows it again without remounting",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDeviceGate.test.tsx › covers a narrowed window and uncovers it on widening",
+                "apps/web/tests/e2e/storybook/tabletopDevices.spec.ts"
+              ],
               "origin": ["D237"]
             }
           ],
@@ -25064,7 +25076,7 @@
           "tasks": [
             {
               "id": "VTT_UI-6.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["VTT_UI-6.1", "VTT_UI-6.2", "VTT_UI-6.3"],
               "wsjf": {
                 "bv": 5,
@@ -25074,7 +25086,8 @@
               },
               "text": "D237: one web-side classification of tabletop capability (screen longer side >= 1024 px) and fit (viewport width >= 1024 px), owned next to the existing breakpoints; hide the tabletop entry controls on incapable devices, gate the tabletop route with the larger-screen message before it joins the room, and cover it with the rotate-or-widen prompt when capable but too narrow. Update the alpha play guide's supported devices. Unit tests for the classification, component tests for the controls and the gate, one browser journey at phone and tablet-portrait viewports."
             }
-          ]
+          ],
+          "mergedAt": "2026-11-25T17:56:20Z"
         }
       ]
     },
