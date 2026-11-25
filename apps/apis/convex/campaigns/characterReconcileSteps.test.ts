@@ -161,7 +161,10 @@ async function departedStep() {
   await seatPlayer(base, campaign, base.owner.userId, base.character.id)
   const itemIds = await overAttune(base)
   holdScheduledWork()
-  await measure(base.owner.caller, unassign, { campaignId: campaign.id })
+  await measure(base.owner.caller, unassign, {
+    campaignId: campaign.id,
+    characterId: base.character.id
+  })
   const [step, ...others] = await queuedSteps(base.t)
   if (!step || others.length) throw new Error('Expected one queued step.')
   return { base, campaign, step, itemIds }
@@ -222,7 +225,8 @@ async function seatPlayer(
       campaignId: campaign.id,
       userId,
       characterId,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   })
 }
@@ -364,7 +368,10 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
     const before = await base.readState()
 
     holdScheduledWork()
-    const departure = await measure(base.owner.caller, unassign, { campaignId: campaign.id })
+    const departure = await measure(base.owner.caller, unassign, {
+      campaignId: campaign.id,
+      characterId: base.character.id
+    })
     console.info('PERF-6.T6 unassign reads', departure.reads)
     expect(departure.reads).toBeLessThanOrEqual(TRANSACTION_READ_DOCUMENTS)
     expect(await readAttuned(base)).toEqual(itemIds)
@@ -425,7 +432,10 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
     const before = (await base.readState()).character!
 
     holdScheduledWork()
-    const departure = await measure(base.owner.caller, unassign, { campaignId: campaign.id })
+    const departure = await measure(base.owner.caller, unassign, {
+      campaignId: campaign.id,
+      characterId: base.character.id
+    })
     expect(departure.reads).toBeLessThanOrEqual(TRANSACTION_READ_DOCUMENTS)
     expect(await queuedSteps(base.t)).toHaveLength(1)
     const departed = (await base.readState()).character!
@@ -503,7 +513,8 @@ describe('Campaign Character reconcile steps (PERF-6.T6)', () => {
     expect(await sheetState()).toBe('CURRENT')
 
     await base.owner.caller.mutation(api.campaigns.assignments.unassign, {
-      campaignId: campaign.id
+      campaignId: campaign.id,
+      characterId: base.character.id
     })
     expect(await reconcileState()).toBe('PENDING')
     // The window: the departure removed the Background's share, so the queued Sheet store lands

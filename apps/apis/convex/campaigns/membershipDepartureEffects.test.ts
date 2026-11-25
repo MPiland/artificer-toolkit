@@ -116,7 +116,8 @@ describe('native Campaign membership departure effects', () => {
         campaignId: base.campaign.id,
         userId: base.owner.userId,
         characterId: base.character.id,
-        assignedAt: base.campaign.createdAt
+        assignedAt: base.campaign.createdAt,
+        active: true
       })
       await ctx.db.insert('campaignCharacterStates', {
         campaignId: base.campaign.id,
@@ -231,7 +232,8 @@ describe('native Campaign membership departure effects', () => {
         campaignId: base.campaign.id,
         userId: base.owner.userId,
         characterId: base.character.id,
-        assignedAt: base.campaign.createdAt
+        assignedAt: base.campaign.createdAt,
+        active: true
       })
       await editCharacterRecord(ctx, base.character.id, (character) => ({
         ...character,

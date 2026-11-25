@@ -52,16 +52,16 @@ export function CampaignChat({
   const lastMarkedRead = useRef<string | undefined>(undefined)
   const chatLog = useRef<HTMLDivElement>(null)
   const currentMember = campaign.memberships.find((member) => member.userId === currentUserId)
-  const assignedCharacter = currentMember?.assignedCharacter ?? null
+  const activeCharacter = currentMember?.activeCharacter ?? null
   const chatModeKey = `campaign:${campaign.id}:chat-mode`
   const [mode, setMode] = useState<'OOC' | 'ROLEPLAY'>(
-    () => readSavedChatMode(chatModeKey, Boolean(assignedCharacter)) ?? 'OOC'
+    () => readSavedChatMode(chatModeKey, Boolean(activeCharacter)) ?? 'OOC'
   )
-  const savedModeScope = `${chatModeKey}:${assignedCharacter?.id ?? ''}`
+  const savedModeScope = `${chatModeKey}:${activeCharacter?.id ?? ''}`
   const [appliedModeScope, setAppliedModeScope] = useState(savedModeScope)
   if (appliedModeScope !== savedModeScope) {
     setAppliedModeScope(savedModeScope)
-    const savedMode = readSavedChatMode(chatModeKey, Boolean(assignedCharacter))
+    const savedMode = readSavedChatMode(chatModeKey, Boolean(activeCharacter))
     if (savedMode) setMode(savedMode)
   }
   const conversations = useQuery(getCampaignConversations(campaign.id))
@@ -153,7 +153,7 @@ export function CampaignChat({
         directUserId: room === 'DIRECT' ? directUserId : undefined,
         mode,
         body,
-        assignedCharacterId: mode === 'ROLEPLAY' ? assignedCharacter?.id : undefined,
+        assignedCharacterId: mode === 'ROLEPLAY' ? activeCharacter?.id : undefined,
         clientNonce: crypto.randomUUID()
       }),
     onSuccess: () => {
@@ -275,9 +275,7 @@ export function CampaignChat({
               className={chatStyles.chatVoice}
               data={[
                 { label: `@${currentMember?.username ?? 'username'}`, value: 'OOC' },
-                ...(assignedCharacter
-                  ? [{ label: assignedCharacter.label, value: 'ROLEPLAY' }]
-                  : [])
+                ...(activeCharacter ? [{ label: activeCharacter.label, value: 'ROLEPLAY' }] : [])
               ]}
               size='xs'
               value={mode}

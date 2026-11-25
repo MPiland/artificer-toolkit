@@ -18,7 +18,7 @@ import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projec
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { LiveSessionTransientMember } from '@artificer-toolkit/schema/api/liveSessionTransient'
-import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
+import type { RoomAuthorizationAssignment } from './roomAuthorizationFixture.js'
 
 export const ROOM_INPUTS_PATH = LIVE_SESSION_ROUTE_PATHS.roomInputs
 
@@ -58,7 +58,7 @@ export function roomInputsResponse(
     systemId: string
     ownerUserId?: string
     members?: readonly LiveSessionTransientMember[]
-    assignments?: LiveSessionRoomAuthorization['campaign']['assignments']
+    assignments?: readonly RoomAuthorizationAssignment[]
     accountUserIds?: readonly string[]
     authorityDocuments?: LiveRoomInputsDocument[]
     characterInputs?: RoomCharacterInputs
@@ -130,6 +130,7 @@ export function roomInputsResponse(
               `fixture:assignment:${assignment.characterId}`,
               campaignStoredAssignmentSchema.parse({
                 campaignId,
+                active: true,
                 ...assignment,
                 assignedAt: fixtureTime
               })

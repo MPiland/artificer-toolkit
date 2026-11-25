@@ -24,7 +24,6 @@ export const campaignCharacterReconcileStepSchema = lazySchema(() =>
       'UNSHARE',
       'MEMBER_LEFT',
       'MEMBER_REMOVED',
-      'CHARACTER_REPLACED',
       'CHARACTER_UNASSIGNED',
       'CHARACTER_DELETED',
       'CAMPAIGN_DELETED'

@@ -5,7 +5,7 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { getCharacterSheetAdjustmentSlotKey } from '@artificer-toolkit/rules-runtime/character/sheetAdjustmentIdentity'
 import type { QueryCtx } from '../_generated/server'
-import { readCampaignAssignedCharacter } from './assignedCharacter'
+import { readCampaignAttachedCharacter } from './assignedCharacter'
 import { requireCampaignAuthority, type CampaignInternalScope } from './authority'
 
 /** Exact assignment authority; this never grants access to a personal Character endpoint. */
@@ -40,8 +40,8 @@ export async function requireCampaignCharacterAuthority(
     )
     .unique()
   if (!member || member.status !== 'ACTIVE') throw new Error('Assigned Character not found.')
-  const character = await readCampaignAssignedCharacter(ctx, campaign, member)
-  if (character?.id !== characterId)
+  const character = await readCampaignAttachedCharacter(ctx, campaign, member, assignment)
+  if (character.id !== characterId)
     throw new Error('Stored Campaign Character assignment mismatch.')
   return { campaign, membership, assignment }
 }

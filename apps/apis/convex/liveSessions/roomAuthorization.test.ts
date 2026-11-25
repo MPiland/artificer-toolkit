@@ -71,7 +71,8 @@ async function setup() {
       campaignId: campaign.id,
       userId: player.userId,
       characterId: character.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   })
   const epoch = crypto.randomUUID()
@@ -159,7 +160,7 @@ describe('live room authorization (ADR 0035 Amendment 14)', () => {
         { membershipEpoch: expect.any(String), role: 'OWNER', userId: base.gm.userId },
         { membershipEpoch: base.campaign.createdAt, role: 'PLAYER', userId: base.player.userId }
       ]),
-      assignments: [{ characterId: base.character.id, userId: base.player.userId }]
+      assignments: [{ characterId: base.character.id, userId: base.player.userId, active: true }]
     })
     expect(full.characters).toEqual([
       {

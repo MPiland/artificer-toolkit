@@ -78,7 +78,8 @@ describe('compact Campaign Spell selector access', () => {
         campaignId: campaign.id,
         userId: owner.userId,
         characterId: character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     })
     await other.caller.mutation(api.campaigns.contentShares.share, {

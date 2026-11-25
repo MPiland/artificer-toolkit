@@ -151,7 +151,10 @@ export const characterSheetInputs: { [TableName in TableNames]?: CharacterSheetI
         ].map((characterId) => ({ characterId }))
     },
     campaignCharacterStates: ownCharacter<'campaignCharacterStates'>((state) => state.checksum),
-    campaignCharacterAssignments: allFields,
+    // Marking a Character active or benched changes nothing a Sheet reads.
+    campaignCharacterAssignments: ownCharacter<'campaignCharacterAssignments'>(
+      ({ active: _active, ...assignment }) => assignment
+    ),
     campaigns: {
       queue: (_, { oldDoc, newDoc }) =>
         oldDoc &&
@@ -165,23 +168,24 @@ export const characterSheetInputs: { [TableName in TableNames]?: CharacterSheetI
       queue: (_, { oldDoc, newDoc }) => [{ campaignId: (newDoc ?? oldDoc)!.campaignId }]
     },
     // A Sheet reads two memberships: its Character owner's (Campaign authority) and, for shared
-    // content, the member who shared it. So a status or role change queues that member's assigned
-    // Character, and the whole party only when the member shared content (D216).
+    // content, the member who shared it. So a status or role change queues that member's attached
+    // Characters, and the whole party only when the member shared content (D216).
     campaignMemberships: {
       queue: async (db, { oldDoc, newDoc }) => {
         if (!oldDoc || (newDoc && oldDoc.status === newDoc.status && oldDoc.role === newDoc.role))
           return []
         const { campaignId, userId } = oldDoc
-        const assignment = await db
+        const assignments = await db
           .query('campaignCharacterAssignments')
           .withIndex('by_campaignId_userId', (q) =>
             q.eq('campaignId', campaignId).eq('userId', userId)
           )
-          .unique()
+          .collect()
         return [
-          ...(assignment
-            ? [{ characterId: assignment.characterId, afterCampaignSettle: true as const }]
-            : []),
+          ...assignments.map(({ characterId }) => ({
+            characterId,
+            afterCampaignSettle: true as const
+          })),
           ...((await memberSharesContent(db, campaignId, userId)) ? [{ campaignId }] : [])
         ]
       }

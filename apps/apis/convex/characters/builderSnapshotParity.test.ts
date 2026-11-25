@@ -357,7 +357,8 @@ describe('Builder resolution from content snapshots', () => {
         campaignId: campaign.id,
         userId: owner.userId,
         characterId: character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     })
     const unshared = await publishDuplicate(other.caller, 'BACKGROUND', acolyte.id, 'Unshared')

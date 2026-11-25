@@ -74,34 +74,6 @@ export async function roomEncounterReadTransaction(input: {
       throw new Error('Room Campaign authority facts are stale.')
     return { campaign, membership }
   }
-  const readAssignedCharacter: EncounterReadPorts['readAssignedCharacter'] = async (
-    campaign,
-    member
-  ) => {
-    const assignment = await db
-      .query('campaignCharacterAssignments')
-      .withIndex('by_campaignId_userId', (q) =>
-        q.eq('campaignId', campaign.id).eq('userId', member.userId)
-      )
-      .unique()
-    if (!assignment) return null
-    const [unique, part] = await Promise.all([
-      db
-        .query('campaignCharacterAssignments')
-        .withIndex('by_characterId', (q) => q.eq('characterId', assignment.characterId))
-        .unique(),
-      inputs.character(assignment.characterId, observed, transaction)
-    ])
-    const row = part.inputs?.owner
-    if (
-      !row ||
-      unique?._id !== assignment._id ||
-      row.userId !== member.userId ||
-      row.systemId !== campaign.gameSystemId
-    )
-      throw new Error('Stored Campaign Character assignment mismatch.')
-    return { id: row.id }
-  }
   const ports: EncounterCommandReadPorts = {
     requireIdentity: async () => ({ userId, role: 'user' }),
     requireActiveLiveAuthority: async (scope) => {
@@ -127,10 +99,14 @@ export async function roomEncounterReadTransaction(input: {
           q.eq('campaignId', id).eq('userId', assignment.userId)
         )
         .unique()
+      if (!member || member.status !== 'ACTIVE') throw new Error('Assigned Character not found.')
+      const part = await inputs.character(characterId, observed, transaction)
+      const row = part.inputs?.owner
       if (
-        !member ||
-        member.status !== 'ACTIVE' ||
-        (await readAssignedCharacter(current.campaign, member))?.id !== characterId
+        !row ||
+        row.id !== characterId ||
+        row.userId !== member.userId ||
+        row.systemId !== current.campaign.gameSystemId
       )
         throw new Error('Stored Campaign Character assignment mismatch.')
       return { ...current, assignment }
@@ -199,7 +175,6 @@ export async function roomEncounterReadTransaction(input: {
     },
     readCharacterSheetState,
     readCharacterPlay,
-    readAssignedCharacter,
     readCampaignCharacterConditions: async (campaign, characterId) => {
       if (campaign.id !== campaignId) throw new Error('Room Campaign authority scope changed.')
       const part = await inputs.character(characterId, observed, transaction)

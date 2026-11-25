@@ -12,12 +12,13 @@ import type {
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { characterCurrencyIdentity } from '@artificer-toolkit/schema/shared/characterCurrency'
 import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
+import { attachedCharacters } from '../campaignCharacters'
 
 type VehicleOption = { id: string; label: string | null }
 type InventoryCurrency = InventoryDto['currencies'][number]
 type InventoryMembership = Pick<
   CampaignDetailDto['memberships'][number],
-  'assignedCharacter' | 'userId'
+  'activeCharacter' | 'benchedCharacters' | 'userId'
 >
 type InventoryCampaign = Pick<CampaignDetailDto, 'role'> & {
   memberships: ReadonlyArray<InventoryMembership>
@@ -44,14 +45,10 @@ export function getAuthorizedSourceOwners(
   return [
     { value: 'PARTY', label: 'Party inventory' },
     ...memberships.flatMap((member) =>
-      member.assignedCharacter
-        ? [
-            {
-              value: `CHARACTER:${member.assignedCharacter.id}`,
-              label: member.assignedCharacter.label
-            }
-          ]
-        : []
+      attachedCharacters(member).map((character) => ({
+        value: `CHARACTER:${character.id}`,
+        label: character.label
+      }))
     ),
     ...vehicles.map((vehicle) => ({
       value: `VEHICLE:${vehicle.id}`,
@@ -67,14 +64,10 @@ export function getTransferDestinationOwners(
   return [
     { value: 'PARTY', label: 'Party inventory' },
     ...campaign.memberships.flatMap((member) =>
-      member.assignedCharacter
-        ? [
-            {
-              value: `CHARACTER:${member.assignedCharacter.id}`,
-              label: member.assignedCharacter.label
-            }
-          ]
-        : []
+      attachedCharacters(member).map((character) => ({
+        value: `CHARACTER:${character.id}`,
+        label: character.label
+      }))
     ),
     ...vehicles.map((vehicle) => ({
       value: `VEHICLE:${vehicle.id}`,

@@ -28,7 +28,6 @@ type EncounterActorControl = 'GM' | 'CONTROLLER'
 
 /** What a player's control of Character actors rests on besides the Run's own controllers. */
 type CharacterControl = {
-  assignedCharacterId: string | null
   /** The Campaign assignments of those actors' Characters, with the GM's grants (D162). */
   assignments: readonly CharacterControlAssignment[]
 }
@@ -45,11 +44,10 @@ function directlyControls(
   return (
     actor.controllerUserIds.includes(membership.userId) ||
     (actor.kind === 'CHARACTER' &&
-      (actor.sourceId === control.assignedCharacterId ||
-        controlsAssignedCharacter(
-          control.assignments.find((assignment) => assignment.characterId === actor.sourceId),
-          membership.userId
-        )))
+      controlsAssignedCharacter(
+        control.assignments.find((assignment) => assignment.characterId === actor.sourceId),
+        membership.userId
+      ))
   )
 }
 
@@ -97,30 +95,26 @@ async function readOwnerChains<Actor extends ControlledActor>(
   return chains
 }
 
-/** The member's assigned Character and the Campaign assignments (with grants) of `actors`' Characters. */
+/** The Campaign assignments (with grants) of the Characters `chains`' actors stand for. */
 async function readCharacterControl(
   ctx: EncounterReadTransaction,
   input: ControlInput & { chains: ReadonlyMap<string, OwnerChain> }
 ): Promise<CharacterControl> {
-  if (input.membership.role !== 'PLAYER') return { assignedCharacterId: null, assignments: [] }
+  if (input.membership.role !== 'PLAYER') return { assignments: [] }
   const characterIds = new Set(
     [...input.chains.values()]
       .flat()
       .flatMap((actor) => (actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []))
   )
-  const [assigned, rows] = await Promise.all([
-    ctx.ports.readAssignedCharacter(input.campaign, input.membership),
-    Promise.all(
-      [...characterIds].map((characterId) =>
-        ctx.db
-          .query('campaignCharacterAssignments')
-          .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
-          .unique()
-      )
+  const rows = await Promise.all(
+    [...characterIds].map((characterId) =>
+      ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+        .unique()
     )
-  ])
+  )
   return {
-    assignedCharacterId: assigned?.id ?? null,
     assignments: rows.flatMap((row) => (row?.campaignId === input.campaign.id ? [row] : []))
   }
 }
@@ -135,8 +129,8 @@ export async function readActorOwnerChain<Actor extends ControlledActor>(
 
 /**
  * The one answer to "can this member act for this Run actor" (ADR 0034 decision 1): the Campaign
- * owner always can; a player can when the GM granted them control or the actor is the Character
- * assigned to them in this Campaign.
+ * owner always can; a player can when the GM granted them control or the actor's Character is one
+ * they attached to this Campaign.
  */
 export async function readEncounterActorControl(
   ctx: EncounterReadTransaction,

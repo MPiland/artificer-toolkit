@@ -25,21 +25,23 @@ describe('Campaign inventory owners', () => {
           memberships: [
             {
               userId: 'current-user',
-              assignedCharacter: {
+              activeCharacter: {
                 id: 'my-character',
                 publicId: 'my-character',
                 label: 'My Character',
                 systemId: 'system-id'
-              }
+              },
+              benchedCharacters: []
             },
             {
               userId: 'other-user',
-              assignedCharacter: {
+              activeCharacter: {
                 id: 'other-character',
                 publicId: 'other-character',
                 label: 'Other Character',
                 systemId: 'system-id'
-              }
+              },
+              benchedCharacters: []
             }
           ]
         },

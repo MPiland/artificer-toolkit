@@ -17,7 +17,7 @@ export function CharacterControllersField({
   assignedUserId
 }: {
   campaignId: string
-  character: NonNullable<CampaignDetailDto['memberships'][number]['assignedCharacter']>
+  character: NonNullable<CampaignDetailDto['memberships'][number]['activeCharacter']>
   controllerUserIds: string[]
   memberships: CampaignDetailDto['memberships']
   assignedUserId: string

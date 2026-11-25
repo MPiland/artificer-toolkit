@@ -2272,8 +2272,7 @@ describe('the Run version a held Scene move takes its next answer at (QUALITY-18
             role: 'OWNER',
             status: 'ACTIVE'
           }
-        }),
-        readAssignedCharacter: async () => null
+        })
       }
     } as unknown as Parameters<typeof readMovementResponseAuthority>[0] &
       Parameters<typeof revertLastEncounterAction>[0]

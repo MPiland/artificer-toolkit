@@ -4,6 +4,12 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { LiveSessionTransientMember } from '@artificer-toolkit/schema/api/liveSessionTransient'
 
+/** An assignment is the Active Character unless the test marks it benched (D236). */
+export type RoomAuthorizationAssignment = Omit<
+  LiveSessionRoomAuthorization['campaign']['assignments'][number],
+  'active'
+> & { active?: boolean }
+
 export const ROOM_AUTHORIZATION_PATH = '/live-sessions/room-authorization'
 
 /**
@@ -12,7 +18,7 @@ export const ROOM_AUTHORIZATION_PATH = '/live-sessions/room-authorization'
  */
 export function roomAuthorizationResponse(input: {
   members: readonly LiveSessionTransientMember[]
-  assignments?: LiveSessionRoomAuthorization['campaign']['assignments']
+  assignments?: readonly RoomAuthorizationAssignment[]
   characterRevisions?: LiveSessionRoomAuthorization['revisions']['characters']
   play?: LiveSessionRoomAuthorization['play']
   /** Members whose stored preference rolls dice automatically. */
@@ -23,7 +29,10 @@ export function roomAuthorizationResponse(input: {
   const members = [...new Map(input.members.map((member) => [member.userId, member])).values()]
   const ownerUserId =
     members.find((member) => member.role === 'OWNER')?.userId ?? crypto.randomUUID()
-  const assignments = input.assignments ?? []
+  const assignments = (input.assignments ?? []).map((assignment) => ({
+    active: true,
+    ...assignment
+  }))
   const characterRevisions = input.characterRevisions ?? []
   return {
     revisions: {

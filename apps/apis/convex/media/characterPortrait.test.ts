@@ -365,7 +365,8 @@ it('lets only active members read the portrait of a Character assigned in their 
       campaignId: campaign.id,
       userId: base.owner.userId,
       characterId: assigned.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   })
   const member = await createPartyPlayer(base.t, campaign)

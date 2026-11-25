@@ -17,6 +17,7 @@ import { useState, type ReactNode } from 'react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ScenePoint, SceneTokenVision } from '@artificer-toolkit/shared/vtt'
+import { attachedCharacters } from '../campaignCharacters'
 import { convertSceneLightKind, sceneBarrierLabel } from './CampaignSceneObjectInspector.model'
 import * as styles from './CampaignScenePreparation.css'
 
@@ -69,8 +70,8 @@ export function CampaignSceneObjectInspector({
   const playerOptions = memberships
     .filter((membership) => membership.role === 'PLAYER')
     .map((membership) => ({
-      label: membership.assignedCharacter
-        ? `${membership.username} · ${membership.assignedCharacter.label}`
+      label: membership.activeCharacter
+        ? `${membership.username} · ${membership.activeCharacter.label}`
         : membership.username,
       value: membership.userId
     }))
@@ -882,11 +883,10 @@ export function CampaignSceneObjectInspector({
               />
               <Select
                 clearable
-                data={memberships.flatMap(({ assignedCharacter }) =>
-                  assignedCharacter
-                    ? [{ label: assignedCharacter.label, value: assignedCharacter.id }]
-                    : []
-                )}
+                data={memberships.flatMap(attachedCharacters).map((character) => ({
+                  label: character.label,
+                  value: character.id
+                }))}
                 description='Anyone granted control of this Character can move the token.'
                 label='Linked Character'
                 value={token.characterId ?? null}

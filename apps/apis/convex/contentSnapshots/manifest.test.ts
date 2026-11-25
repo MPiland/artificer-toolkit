@@ -93,7 +93,8 @@ async function setup() {
         campaignId: campaign.id,
         userId: owner.userId,
         characterId: base.character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     })
   }

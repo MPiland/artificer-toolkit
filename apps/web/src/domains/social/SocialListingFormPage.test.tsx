@@ -72,7 +72,8 @@ const laterCampaign = campaignSummaryDtoSchema.parse({
   createdAt: '2026-08-01T12:00:00.000Z',
   updatedAt: '2026-08-01T12:00:00.000Z',
   capabilities: getCampaignCapabilities('ACTIVE', 'OWNER'),
-  assignedCharacter: null
+  activeCharacter: null,
+  benchedCharacters: []
 })
 const campaignPages = vi.hoisted(() => ({
   results: [] as unknown[],

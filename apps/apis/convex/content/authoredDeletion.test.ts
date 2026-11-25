@@ -198,7 +198,8 @@ describe('native authored deletion source-loss cleanup', () => {
         campaignId: activeCampaign.id,
         userId: base.owner.userId,
         characterId: base.character.id,
-        assignedAt: activeCampaign.createdAt
+        assignedAt: activeCampaign.createdAt,
+        active: true
       })
     })
     for (const campaign of [activeCampaign, archivedCampaign]) {
@@ -271,7 +272,8 @@ describe('native authored deletion source-loss cleanup', () => {
         campaignId: archivedCampaign.id,
         userId: base.other.userId,
         characterId: otherDraft.payload.character.id,
-        assignedAt: archivedCampaign.createdAt
+        assignedAt: archivedCampaign.createdAt,
+        active: true
       })
     )
     const personalDraft = await base.owner.caller.mutation(api.characters.drafts.create, {
@@ -481,7 +483,8 @@ describe('native authored deletion source-loss cleanup', () => {
         campaignId: campaign.id,
         userId: base.owner.userId,
         characterId: base.character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
       await editCharacterRecord(
         ctx,

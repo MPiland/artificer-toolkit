@@ -3,7 +3,6 @@ import type {
   EncounterReadTransaction
 } from '@artificer-toolkit/encounter-persistence/ports'
 import type { QueryCtx } from '../_generated/server'
-import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import {
   readCampaignCharacterState,
@@ -53,8 +52,6 @@ export function encounterReadPorts(ctx: QueryCtx): EncounterReadPorts {
     readCharacterRow: (characterId) => readCharacterRow(ctx, characterId),
     readCharacterSheetState,
     readCharacterPlay,
-    readAssignedCharacter: (campaign, membership) =>
-      readCampaignAssignedCharacter(ctx, campaign, membership),
     readCampaignCharacterConditions: async (campaign, characterId) => {
       await requireIntactAssignedActiveCharacter(ctx, campaign, characterId, campaign.ownerUserId)
       return (await readCampaignCharacterState(ctx, campaign.id, characterId)).state.conditions

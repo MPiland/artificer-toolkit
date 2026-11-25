@@ -861,8 +861,7 @@ export const removeFixtureState = internalMutation({
       const payload = campaignEventDtoSchema.shape.payload.parse(JSON.parse(event.payloadJson))
       if (payload === null || typeof payload !== 'object' || Array.isArray(payload))
         throw new Error('Fixture membership currency payload mismatch.')
-      const assignmentReason =
-        payload.reason === 'CHARACTER_REPLACED' || payload.reason === 'CHARACTER_UNASSIGNED'
+      const assignmentReason = payload.reason === 'CHARACTER_UNASSIGNED'
       const assignmentIndex = event.subjectCharacterId
         ? characterIds.indexOf(event.subjectCharacterId)
         : -1
@@ -1013,7 +1012,7 @@ export const removeFixtureState = internalMutation({
         throw new Error('Fixture membership Character source identity mismatch.')
       const removalEventId =
         typeof payload.removalEventId === 'string' ? payload.removalEventId : undefined
-      if (payload.reason === 'CHARACTER_REPLACED' || payload.reason === 'CHARACTER_UNASSIGNED') {
+      if (payload.reason === 'CHARACTER_UNASSIGNED') {
         const characterIndex = event.subjectCharacterId
           ? characterIds.indexOf(event.subjectCharacterId)
           : -1

@@ -9,12 +9,12 @@ type EncounterActor = Pick<
 
 /**
  * Whether the viewer may act for a Run actor (ADR 0034 decision 1): the GM acts for everyone, a
- * player for actors the GM granted them and for their own assigned Character, and for a summon,
+ * player for actors the GM granted them and for any Character of their own (active or benched), and for a summon,
  * pet or companion whose owner chain reaches one of those (D200). The server enforces the same
  * predicate; this only decides which controls to offer.
  */
 export function isEncounterActorMine(
-  campaign: Pick<CampaignDetailDto, 'assignedCharacter' | 'role'>,
+  campaign: Pick<CampaignDetailDto, 'activeCharacter' | 'benchedCharacters' | 'role'>,
   currentUserId: string,
   actor: EncounterActor,
   actors: readonly EncounterActor[]
@@ -26,7 +26,9 @@ export function isEncounterActorMine(
         candidate.controllerUserIds.includes(currentUserId) ||
         (candidate.kind === 'CHARACTER' &&
           candidate.sourceId !== null &&
-          candidate.sourceId === campaign.assignedCharacter?.id)
+          [campaign.activeCharacter, ...campaign.benchedCharacters].some(
+            (character) => character?.id === candidate.sourceId
+          ))
     )
   )
 }

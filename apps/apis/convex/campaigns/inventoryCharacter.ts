@@ -3,7 +3,7 @@ import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { requireCampaignAuthority } from './authority'
-import { readCampaignAssignedCharacter } from './assignedCharacter'
+import { readCampaignAttachedCharacter } from './assignedCharacter'
 
 /** Destination write fences permit giving; they grant no player-facing inventory read. */
 export async function readAssignedInventoryCharacter(
@@ -25,7 +25,7 @@ export async function readAssignedInventoryCharacter(
   if (access !== 'DESTINATION' && member.role !== 'OWNER' && assignment.userId !== member.userId)
     throw new Error('Only the assigned player or Campaign owner can access this inventory.')
   const { membership: target } = await requireCampaignAuthority(ctx, campaign.id, assignment.userId)
-  if ((await readCampaignAssignedCharacter(ctx, campaign, target))?.id !== characterId)
+  if ((await readCampaignAttachedCharacter(ctx, campaign, target, row)).id !== characterId)
     throw new Error('Stored Campaign Character assignment mismatch.')
   const record = await readCharacterRow(ctx, characterId)
   if (!record) throw new Error('Assigned Character is unavailable in this Campaign.')

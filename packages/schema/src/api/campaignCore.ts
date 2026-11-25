@@ -135,8 +135,11 @@ export const campaignMembershipDtoSchema = lazySchema(() =>
     role: campaignRoleDtoSchema,
     accessStartedAt: timestampSchema,
     acceptedAt: timestampSchema,
-    assignedCharacter: z.nullable(campaignCharacterSummaryDtoSchema),
-    /** The members the GM granted control of the assigned Character (D162); empty without one. */
+    /** The Character the member plays at the table (D236); null until they mark one active. */
+    activeCharacter: z.nullable(campaignCharacterSummaryDtoSchema),
+    /** Characters the member attached but did not mark active; they keep their Campaign state. */
+    benchedCharacters: z.array(campaignCharacterSummaryDtoSchema),
+    /** The members the GM granted control of the Active Character (D162); empty without one. */
     characterControllerUserIds: campaignCharacterControllerUserIdsSchema
   })
 )
@@ -161,7 +164,9 @@ const campaignBaseDtoSchema = lazySchema(() =>
     createdAt: timestampSchema,
     updatedAt: timestampSchema,
     capabilities: campaignCapabilitiesDtoSchema,
-    assignedCharacter: z.nullable(campaignCharacterSummaryDtoSchema)
+    /** The caller's own Active Character and bench in this Campaign (D236). */
+    activeCharacter: z.nullable(campaignCharacterSummaryDtoSchema),
+    benchedCharacters: z.array(campaignCharacterSummaryDtoSchema)
   })
 )
 export const campaignSummaryDtoSchema = campaignBaseDtoSchema
@@ -268,7 +273,13 @@ export const assignCampaignCharacterInputSchema = lazySchema(() =>
 export const unassignCampaignCharacterInputSchema = lazySchema(() =>
   z.strictObject({
     campaignId: uuidSchema,
-    characterId: z.optional(uuidSchema)
+    characterId: uuidSchema
+  })
+)
+export const setActiveCampaignCharacterInputSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema,
+    characterId: uuidSchema
   })
 )
 /** Players the GM gave control of an assigned Character; the assigned player is never listed (D162). */

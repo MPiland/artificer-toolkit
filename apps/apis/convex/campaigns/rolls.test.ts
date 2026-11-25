@@ -104,7 +104,8 @@ async function setup() {
     campaignId: campaign.id,
     userId: player.userId,
     characterId: base.character.id,
-    assignedAt: campaign.createdAt
+    assignedAt: campaign.createdAt,
+    active: true
   }
   const assignmentId = await base.t.run((ctx) =>
     ctx.db.insert('campaignCharacterAssignments', assignment)
@@ -790,7 +791,8 @@ describe('native Campaign authoritative rolls', () => {
         campaignId: campaign.id,
         userId: player.userId,
         characterId: character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     )
     await t.run((ctx) => ctx.db.patch(row._id, { status: 'ARCHIVED' }))

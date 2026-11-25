@@ -229,10 +229,10 @@ export function characterControlAssignments(
   memberships: readonly CampaignMembership[]
 ): CharacterControlAssignment[] {
   return memberships.flatMap((membership) =>
-    membership.assignedCharacter
+    membership.activeCharacter
       ? [
           {
-            characterId: membership.assignedCharacter.id,
+            characterId: membership.activeCharacter.id,
             controllerUserIds: membership.characterControllerUserIds,
             userId: membership.userId
           }
@@ -245,14 +245,14 @@ export function characterControlAssignments(
 export function controlledCharacters(
   memberships: readonly CampaignMembership[],
   userId: string
-): NonNullable<CampaignMembership['assignedCharacter']>[] {
+): NonNullable<CampaignMembership['activeCharacter']>[] {
   const controlled = memberships.flatMap((membership) =>
-    membership.assignedCharacter &&
+    membership.activeCharacter &&
     controlsAssignedCharacter(
       { controllerUserIds: membership.characterControllerUserIds, userId: membership.userId },
       userId
     )
-      ? [{ character: membership.assignedCharacter, own: membership.userId === userId }]
+      ? [{ character: membership.activeCharacter, own: membership.userId === userId }]
       : []
   )
   return [...controlled.filter(({ own }) => own), ...controlled.filter(({ own }) => !own)].map(
@@ -298,7 +298,7 @@ type EncounterActors = NonNullable<EncounterSessionStateDto['encounter']>['actor
 
 /** Whether the viewer acts for the actor bound to each Scene token. */
 export function controlledActorByTokenId(
-  campaign: Pick<CampaignDetailDto, 'assignedCharacter' | 'role'>,
+  campaign: Pick<CampaignDetailDto, 'activeCharacter' | 'benchedCharacters' | 'role'>,
   viewerUserId: string,
   actors: EncounterActors,
   actorIdByTokenId: ReadonlyMap<string, string>
@@ -319,7 +319,7 @@ export function controlledActorByTokenId(
  * owner (SPELLS-35.5); the GM reads every turn in the order and is not prompted.
  */
 export function readActiveTurn(
-  campaign: Pick<CampaignDetailDto, 'assignedCharacter' | 'role'>,
+  campaign: Pick<CampaignDetailDto, 'activeCharacter' | 'benchedCharacters' | 'role'>,
   currentUserId: string,
   state: EncounterSessionStateDto | undefined
 ) {

@@ -57,8 +57,8 @@ function fullResponse(): Response {
       ownerUserId: ownerId,
       members: members(playerId, otherPlayerId),
       assignments: [
-        { characterId, userId: playerId },
-        { characterId: otherCharacterId, userId: otherPlayerId }
+        { characterId, userId: playerId, active: true },
+        { characterId: otherCharacterId, userId: otherPlayerId, active: true }
       ]
     },
     characters: [
@@ -330,7 +330,7 @@ describe('room authorization cache', () => {
       campaign: {
         ownerUserId: ownerId,
         members: members(playerId),
-        assignments: [{ characterId, userId: playerId }]
+        assignments: [{ characterId, userId: playerId, active: true }]
       },
       characters: []
     }
@@ -370,7 +370,7 @@ describe('room authorization cache', () => {
       campaign: {
         ownerUserId: ownerId,
         members: members(playerId),
-        assignments: [{ characterId, userId: playerId }]
+        assignments: [{ characterId, userId: playerId, active: true }]
       },
       characters: []
     }
@@ -401,8 +401,8 @@ describe('room authorization cache', () => {
         ownerUserId: ownerId,
         members: members(playerId, otherPlayerId),
         assignments: [
-          { characterId, userId: playerId, controllerUserIds: [otherPlayerId] },
-          { characterId: otherCharacterId, userId: otherPlayerId }
+          { characterId, userId: playerId, active: true, controllerUserIds: [otherPlayerId] },
+          { characterId: otherCharacterId, userId: otherPlayerId, active: true }
         ]
       },
       characters: []
@@ -480,8 +480,8 @@ describe('room authorization cache', () => {
       campaign: {
         ...first.campaign!,
         assignments: [
-          { characterId, userId: otherPlayerId },
-          { characterId: otherCharacterId, userId: playerId }
+          { characterId, userId: otherPlayerId, active: true },
+          { characterId: otherCharacterId, userId: playerId, active: true }
         ]
       },
       characters: []

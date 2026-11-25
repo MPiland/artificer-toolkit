@@ -37,6 +37,8 @@ const liveSessionRoomCampaignAuthorizationSchema = lazySchema(() =>
         z.strictObject({
           characterId: uuidSchema,
           userId: uuidSchema,
+          /** The owner's Active Character plays; the rest are benched (D236). */
+          active: z.boolean(),
           /** GM-granted controllers of the Character (D162); absent means none. */
           controllerUserIds: z.optional(campaignCharacterControllerUserIdsSchema)
         })

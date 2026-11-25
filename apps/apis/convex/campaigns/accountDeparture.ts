@@ -64,13 +64,13 @@ export async function departAccountCampaignMembership(
   )
     throw new Error('Stored Campaign membership changed during account deletion.')
 
-  const assignment = await ctx.db
+  const assignments = await ctx.db
     .query('campaignCharacterAssignments')
     .withIndex('by_campaignId_userId', (q) =>
       q.eq('campaignId', freshCampaign.id).eq('userId', userId)
     )
-    .unique()
-  if (assignment) {
+    .collect()
+  for (const assignment of assignments) {
     if (
       membership.status !== 'ACTIVE' ||
       assignment.campaignId !== freshCampaign.id ||

@@ -60,7 +60,7 @@ export async function removeCampaignCustodyFixture(cohort: CampaignCustodyCohort
   for (const [index, player] of cohort.players.entries()) {
     const expectedCharacterId = cohort.characterIds[index]!
     const member = detail.memberships.find((entry) => entry.userId === cohort.playerUserIds[index])
-    const assignedCharacterId = member?.assignedCharacter?.id
+    const assignedCharacterId = member?.activeCharacter?.id
     if (assignedCharacterId && assignedCharacterId !== expectedCharacterId)
       throw new Error('Custody fixture has a conflicting Character assignment.')
     if (!assignedCharacterId) {

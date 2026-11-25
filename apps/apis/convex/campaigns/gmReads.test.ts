@@ -64,7 +64,8 @@ async function setup() {
       campaignId: campaign.id,
       userId: player.userId,
       characterId: base.character.id,
-      assignedAt: campaign.createdAt
+      assignedAt: campaign.createdAt,
+      active: true
     })
   )
   const input = { campaignId: campaign.id, characterId: base.character.id }
@@ -247,7 +248,8 @@ describe('native Campaign GM state reads', () => {
         campaignId: input.campaignId,
         userId,
         characterId: id,
-        assignedAt: current.createdAt
+        assignedAt: current.createdAt,
+        active: true
       })
       return id
     })
@@ -279,7 +281,8 @@ describe('native Campaign GM state reads', () => {
         campaignId: crypto.randomUUID(),
         userId: player.userId,
         characterId: character.id,
-        assignedAt: new Date().toISOString()
+        assignedAt: new Date().toISOString(),
+        active: true
       })
     )
     await expect(gm.caller.query(adjustments, input)).rejects.toThrow()

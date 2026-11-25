@@ -402,7 +402,7 @@ function sceneDocuments() {
  * number of Worker subrequests.
  */
 function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: number) {
-  const assignedCharacters = [
+  const activeCharacters = [
     ...new Set(actors.flatMap((actor) => (typeof actor === 'string' ? [actor] : [])))
   ]
   const authority = roomInputsResponse(
@@ -413,15 +413,16 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
       ownerUserId: uuid(4),
       members: [
         { userId: uuid(4), role: 'OWNER', membershipEpoch: '2026-09-29T00:00:00.000Z' },
-        ...assignedCharacters.map((characterId) => ({
+        ...activeCharacters.map((characterId) => ({
           userId: characterInputs(characterId).owner.userId,
           role: 'PLAYER' as const,
           membershipEpoch: '2026-09-29T00:00:00.000Z'
         }))
       ],
-      assignments: assignedCharacters.map((characterId) => ({
+      assignments: activeCharacters.map((characterId) => ({
         characterId,
-        userId: characterInputs(characterId).owner.userId
+        userId: characterInputs(characterId).owner.userId,
+        active: true
       }))
     }
   )

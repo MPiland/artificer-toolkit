@@ -13,19 +13,19 @@ import type { Doc } from '../_generated/dataModel'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import type { QueryCtx } from '../_generated/server'
 import { readAuthUsers } from '../lib/authUserReads'
-import { readCampaignAssignedCharacter } from './assignedCharacter'
+import { readCampaignAttachedCharacters } from './assignedCharacter'
 import { readActiveCampaignMembers, requireCampaignAuthority } from './authority'
 import { readCampaignRevision } from './revisions'
 
 export { readActiveCampaignMembers, requireCampaignAuthority } from './authority'
-export { readCampaignAssignedCharacter } from './assignedCharacter'
+export { readCampaignAttachedCharacters } from './assignedCharacter'
 
 export function presentCampaignSummary(
   campaign: Doc<'campaigns'>,
   revision: Doc<'campaignRevisions'>,
   membership: Doc<'campaignMemberships'>,
   members: Doc<'campaignMemberships'>[],
-  assignedCharacter: CampaignSummaryDto['assignedCharacter'],
+  characters: Pick<CampaignSummaryDto, 'activeCharacter' | 'benchedCharacters'>,
   privateOwnerView = false
 ): CampaignSummaryDto {
   const maturity = campaign.contentMaturity
@@ -55,7 +55,8 @@ export function presentCampaignSummary(
     createdAt: campaign.createdAt,
     updatedAt: revision.updatedAt,
     capabilities: getCampaignCapabilities(campaign.status, membership.role),
-    assignedCharacter
+    activeCharacter: characters.activeCharacter,
+    benchedCharacters: characters.benchedCharacters
   })
 }
 
@@ -69,25 +70,25 @@ export async function readCampaignDetail(
     readActiveCampaignMembers(ctx, campaign),
     readCampaignRevision(ctx, campaign.id)
   ])
-  const grantsByUserId = new Map(
+  const grantsByCharacterId = new Map(
     (
       await ctx.db
         .query('campaignCharacterAssignments')
         .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
         .collect()
-    ).map(({ userId, controllerUserIds }) => [userId, controllerUserIds ?? []])
+    ).map(({ characterId, controllerUserIds }) => [characterId, controllerUserIds ?? []])
   )
   const memberDetails = await Promise.all(
     members.map(async (member) => {
-      const [profile, assignedCharacter] = await Promise.all([
+      const [profile, characters] = await Promise.all([
         ctx.db
           .query('userProfiles')
           .withIndex('by_userId', (q) => q.eq('userId', member.userId))
           .unique(),
-        readCampaignAssignedCharacter(ctx, campaign, member)
+        readCampaignAttachedCharacters(ctx, campaign, member)
       ])
       if (!profile) throw new Error('Campaign member profile is unavailable.')
-      return { assignedCharacter, member, profile }
+      return { characters, member, profile }
     })
   )
   const users = await readAuthUsers(
@@ -95,7 +96,7 @@ export async function readCampaignDetail(
     memberDetails.map(({ profile }) => profile.authUserId)
   )
   const usersById = new Map(users.map((user) => [String(user._id), user]))
-  const memberships = memberDetails.map(({ assignedCharacter, member, profile }) => {
+  const memberships = memberDetails.map(({ characters, member, profile }) => {
     const user = usersById.get(profile.authUserId)
     if (!user) throw new Error('Campaign member account is unavailable.')
     return {
@@ -104,21 +105,16 @@ export async function readCampaignDetail(
       role: member.role,
       accessStartedAt: member.accessStartedAt,
       acceptedAt: member.joinedAt,
-      assignedCharacter,
-      characterControllerUserIds: assignedCharacter ? (grantsByUserId.get(member.userId) ?? []) : []
+      ...characters,
+      characterControllerUserIds: characters.activeCharacter
+        ? (grantsByCharacterId.get(characters.activeCharacter.id) ?? [])
+        : []
     }
   })
   const own = memberships.find((member) => member.userId === membership.userId)
   if (!own) throw new Error('Stored Campaign membership authority mismatch.')
   return campaignDetailDtoSchema.parse({
-    ...presentCampaignSummary(
-      campaign,
-      revision,
-      membership,
-      members,
-      own.assignedCharacter,
-      privateOwnerView
-    ),
+    ...presentCampaignSummary(campaign, revision, membership, members, own, privateOwnerView),
     attunementSlotOverride: campaign.attunementSlotOverride,
     rollModes: rollModeCapabilityRegistry.offeredRollModes(campaign.gameSystemId),
     memberships

@@ -91,21 +91,21 @@ export function CampaignListPage({ deletingCampaignId }: { deletingCampaignId?: 
               </Group>
               {campaign.role === 'PLAYER' &&
               campaign.status === 'ACTIVE' &&
-              !campaign.assignedCharacter ? (
+              !campaign.activeCharacter ? (
                 <Text c='dimmed' size='sm'>
                   Add an eligible Character before play.
                 </Text>
               ) : null}
               <Group gap='xs'>
-                {campaign.status === 'ACTIVE' && campaign.assignedCharacter ? (
+                {campaign.status === 'ACTIVE' && campaign.activeCharacter ? (
                   <Button
                     onClick={() =>
-                      campaign.assignedCharacter
+                      campaign.activeCharacter
                         ? navigate({
                             to: '/characters/$characterPublicId/$characterSlug',
                             params: buildCharacterRouteParams(
-                              campaign.assignedCharacter.publicId,
-                              campaign.assignedCharacter.label
+                              campaign.activeCharacter.publicId,
+                              campaign.activeCharacter.label
                             )
                           })
                         : undefined
@@ -117,7 +117,7 @@ export function CampaignListPage({ deletingCampaignId }: { deletingCampaignId?: 
                 ) : null}
                 {campaign.status === 'ACTIVE' &&
                 campaign.role === 'PLAYER' &&
-                !campaign.assignedCharacter ? (
+                !campaign.activeCharacter ? (
                   <Button
                     onClick={() =>
                       (() => {

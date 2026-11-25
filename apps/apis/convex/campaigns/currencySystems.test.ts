@@ -181,7 +181,8 @@ async function setAssignedCurrency(
         campaignId: base.campaign.id,
         userId: base.player.userId,
         characterId: base.character.id,
-        assignedAt: base.campaign.createdAt
+        assignedAt: base.campaign.createdAt,
+        active: true
       })
     await editCharacterRecord(ctx, base.character.id, (character) => ({
       ...character,
@@ -878,7 +879,8 @@ describe('native Campaign currency systems', () => {
         campaignId: campaign.id,
         userId: player.userId,
         characterId: character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     )
     await player.caller.mutation(api.campaigns.characterSheet.execute, {

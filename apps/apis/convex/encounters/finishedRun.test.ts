@@ -169,7 +169,8 @@ it('reads a finished Run after its Character departs the Campaign (D74, D81)', a
   expect(await frozenActors()).toEqual([{ id: expect.any(String), frozen: true }])
 
   await player.caller.mutation(api.campaigns.assignments.unassign, {
-    campaignId: fixture.campaign.id
+    campaignId: fixture.campaign.id,
+    characterId: fixture.character.id
   })
   const finished = await owner.caller.query(api.encounters.projectionReads.get, {
     encounterId: run.id

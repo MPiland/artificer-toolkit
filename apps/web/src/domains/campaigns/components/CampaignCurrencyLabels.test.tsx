@@ -142,12 +142,13 @@ describe('Campaign currency labels', () => {
           role: 'OWNER',
           accessStartedAt: '2026-09-01T00:00:00.000Z',
           acceptedAt: '2026-09-01T00:00:00.000Z',
-          assignedCharacter: {
+          activeCharacter: {
             id: fixture.character.id,
             publicId: 'aria',
             label: 'Aria',
             systemId: system.id
           },
+          benchedCharacters: [],
           characterControllerUserIds: []
         }
       ]

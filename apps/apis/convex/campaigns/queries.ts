@@ -23,7 +23,7 @@ import { readCampaignContentUsage } from './contentUsage'
 import {
   presentCampaignSummary,
   readActiveCampaignMembers,
-  readCampaignAssignedCharacter,
+  readCampaignAttachedCharacters,
   readCampaignDetail,
   requireCampaignAuthority
 } from './documents'
@@ -115,18 +115,12 @@ export const list = query({
               member.campaignId,
               userId
             )
-            const [revision, members, assignedCharacter] = await Promise.all([
+            const [revision, members, characters] = await Promise.all([
               readCampaignRevision(ctx, campaign.id),
               readActiveCampaignMembers(ctx, campaign),
-              readCampaignAssignedCharacter(ctx, campaign, membership)
+              readCampaignAttachedCharacters(ctx, campaign, membership)
             ])
-            return presentCampaignSummary(
-              campaign,
-              revision,
-              membership,
-              members,
-              assignedCharacter
-            )
+            return presentCampaignSummary(campaign, revision, membership, members, characters)
           })
         )
       ).filter((campaign) => campaign !== null)

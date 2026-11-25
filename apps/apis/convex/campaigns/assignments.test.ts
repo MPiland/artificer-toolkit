@@ -6,6 +6,7 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput,
   assignCampaignCharacterInputSchema,
+  setActiveCampaignCharacterInputSchema,
   unassignCampaignCharacterInputSchema
 } from '@artificer-toolkit/schema/api/campaignCore'
 import type {
@@ -43,6 +44,11 @@ const unassign = makeFunctionReference<
   z.input<typeof unassignCampaignCharacterInputSchema>,
   CampaignAssignmentResult
 >('campaigns/assignments:unassign')
+const setActive = makeFunctionReference<
+  'mutation',
+  z.input<typeof setActiveCampaignCharacterInputSchema>,
+  CampaignAssignmentResult
+>('campaigns/assignments:setActive')
 const saveCurrency = makeFunctionReference<
   'mutation',
   SaveCampaignCurrencySystemInput,
@@ -437,7 +443,10 @@ describe('native Campaign Character assignments', () => {
     })
 
     await expect(
-      base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
+      base.owner.caller.mutation(unassign, {
+        campaignId: base.campaign.id,
+        characterId: base.character.id
+      })
     ).resolves.toEqual({ ok: true })
     await runDueScheduledWork(base.t)
     const after = await base.t.run(async (ctx) => ({
@@ -540,10 +549,13 @@ describe('native Campaign Character assignments', () => {
       }
     })
     const before = await base.readState()
-    // Without a Character the GM removes only their own, which they do not have here (CAMPAIGN-7).
+    // Unassigning a Character the Campaign does not hold refuses without writing (CAMPAIGN-7).
     await expect(
-      base.other.caller.mutation(unassign, { campaignId: base.campaign.id })
-    ).resolves.toEqual({ ok: true })
+      base.other.caller.mutation(unassign, {
+        campaignId: base.campaign.id,
+        characterId: crypto.randomUUID()
+      })
+    ).rejects.toThrow('Assigned Character not found')
     expect(await base.readState()).toEqual(before)
     await base.other.caller.mutation(unassign, {
       campaignId: base.campaign.id,
@@ -558,7 +570,12 @@ describe('native Campaign Character assignments', () => {
     expect(after.character?.sheetState).toEqual(before.character?.sheetState)
     expect(after.receipts).toEqual(before.receipts)
     expect(await base.assignmentRows()).toEqual([])
-    await base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
+    await expect(
+      base.owner.caller.mutation(unassign, {
+        campaignId: base.campaign.id,
+        characterId: base.character.id
+      })
+    ).rejects.toThrow('Assigned Character not found')
     expect(await base.readState()).toEqual(after)
   })
 
@@ -585,7 +602,10 @@ describe('native Campaign Character assignments', () => {
         }
       }))
     )
-    await base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
+    await base.owner.caller.mutation(unassign, {
+      campaignId: base.campaign.id,
+      characterId: base.character.id
+    })
     await runDueScheduledWork(base.t)
     const character = readCharacterRecord((await base.readState()).character!)
     expect(character.state.equipment.attuned).toEqual(itemIds.slice(0, 3))
@@ -594,7 +614,7 @@ describe('native Campaign Character assignments', () => {
     )
   })
 
-  it('replaces the player Character atomically and preserves the old ready Character', async () => {
+  it('attaches a second Character to the bench without touching the Active one (D236)', async () => {
     const base = await setup()
     const second = await base.createCharacter()
     const committed = await base.owner.caller.mutation(api.characters.commit.commit, {
@@ -611,7 +631,8 @@ describe('native Campaign Character assignments', () => {
       campaignId: base.campaign.id,
       characterId: committed.character.id
     })
-    expect(await base.assignmentRows()).toEqual([])
+    expect(await base.assignmentRows()).toHaveLength(1)
+    expect(await base.readState()).toEqual(before)
     const rows = await base.t.run((ctx) =>
       ctx.db
         .query('campaignCharacterAssignments')
@@ -620,18 +641,65 @@ describe('native Campaign Character assignments', () => {
         )
         .collect()
     )
-    expect(rows).toHaveLength(1)
-    expect(rows[0]?.characterId).toBe(committed.character.id)
-    expect(await base.readState()).toEqual(before)
-    await expect(
-      base.owner.caller.mutation(unassign, {
-        campaignId: base.campaign.id,
-        characterId: base.character.id
-      })
-    ).rejects.toThrow('Assigned Character not found')
+    expect(rows.map(({ characterId, active }) => ({ characterId, active }))).toEqual([
+      { characterId: base.character.id, active: true },
+      { characterId: committed.character.id, active: false }
+    ])
   })
 
-  it('rolls back replacement currency, Character repair, overlays and audit if the candidate fails', async () => {
+  it('marks another attached Character active and keeps both Campaign overlays (D236)', async () => {
+    const base = await setup()
+    const second = await base.createCharacter()
+    const committed = await base.owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: second.draft.id,
+      mode: 'create',
+      character: second.character
+    })
+    for (const characterId of [base.character.id, committed.character.id])
+      await base.owner.caller.mutation(assign, { campaignId: base.campaign.id, characterId })
+    const readOverlays = () =>
+      base.t.run((ctx) =>
+        ctx.db
+          .query('campaignCharacterStates')
+          .withIndex('by_campaignId_characterId', (q) => q.eq('campaignId', base.campaign.id))
+          .collect()
+      )
+    const overlaysBefore = await readOverlays()
+    expect(overlaysBefore).toHaveLength(2)
+
+    await expect(
+      base.owner.caller.mutation(setActive, {
+        campaignId: base.campaign.id,
+        characterId: committed.character.id
+      })
+    ).resolves.toEqual({ ok: true })
+
+    expect(await readOverlays()).toEqual(overlaysBefore)
+    const rows = await base.t.run((ctx) =>
+      ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
+        .collect()
+    )
+    expect(
+      Object.fromEntries(rows.map(({ characterId, active }) => [characterId, active]))
+    ).toEqual({ [base.character.id]: false, [committed.character.id]: true })
+    // Removing the Active Character promotes nobody (D236).
+    await base.owner.caller.mutation(unassign, {
+      campaignId: base.campaign.id,
+      characterId: committed.character.id
+    })
+    const remaining = await base.t.run((ctx) =>
+      ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
+        .collect()
+    )
+    expect(remaining.map(({ characterId, active }) => ({ characterId, active }))).toEqual([
+      { characterId: base.character.id, active: false }
+    ])
+  })
+  it('rolls back the attach, Character repair, overlays and audit if the candidate fails', async () => {
     const base = await setup()
     const second = await base.createCharacter()
     const committed = await base.owner.caller.mutation(api.characters.commit.commit, {
@@ -774,7 +842,10 @@ describe('native Campaign Character assignments', () => {
           .collect()
       }))
     await expect(
-      base.owner.caller.mutation(unassign, { campaignId: base.campaign.id })
+      base.owner.caller.mutation(unassign, {
+        campaignId: base.campaign.id,
+        characterId: base.character.id
+      })
     ).resolves.toEqual({ ok: true })
     await runDueScheduledWork(base.t)
     const after = await snapshot()

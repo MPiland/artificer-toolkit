@@ -146,7 +146,8 @@ it('rejects current or retained Campaign membership and assignments without dele
       campaignId: campaign.id,
       userId: base.owner.userId,
       characterId: base.character.id,
-      assignedAt: now
+      assignedAt: now,
+      active: true
     })
   })
   await expect(base.t.mutation(remove, input)).rejects.toThrow('Campaign-linked')

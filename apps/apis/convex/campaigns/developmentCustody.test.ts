@@ -589,7 +589,9 @@ describe('development custody fixture cleanup', () => {
     const reconciliation = before.events.find(
       (event) =>
         event.type === 'CAMPAIGN_CHARACTER_RECONCILED' &&
-        (JSON.parse(event.payloadJson) as { reason: string }).reason === 'CHARACTER_REPLACED'
+        (JSON.parse(event.payloadJson) as { reason: string; status: string }).reason ===
+          'CHARACTER_UNASSIGNED' &&
+        (JSON.parse(event.payloadJson) as { status: string }).status === 'DRAFT'
     )
     const custody = before.events.find(
       (event) =>
@@ -862,7 +864,8 @@ describe('development custody fixture cleanup', () => {
         campaignId: base.campaign.id,
         characterId: second.characterId,
         userId: second.userId,
-        assignedAt: new Date().toISOString()
+        assignedAt: new Date().toISOString(),
+        active: true
       })
       await ctx.db.insert('campaignPartyInventories', {
         campaignId: base.campaign.id,
@@ -945,7 +948,8 @@ describe('development custody fixture cleanup', () => {
         campaignId: base.campaign.id,
         characterId: second.characterId,
         userId: second.userId,
-        assignedAt: new Date().toISOString()
+        assignedAt: new Date().toISOString(),
+        active: true
       })
       await ctx.db.insert('campaignPartyItems', {
         campaignId: base.campaign.id,

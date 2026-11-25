@@ -16,7 +16,11 @@ const names = {
 
 const mocks = vi.hoisted(() => ({
   page: {
-    results: [] as { id: string; assignedCharacter: { id: string } | null }[],
+    results: [] as {
+      id: string
+      activeCharacter: { id: string } | null
+      benchedCharacters: { id: string }[]
+    }[],
     status: 'Exhausted',
     loadMore: vi.fn()
   },
@@ -33,6 +37,7 @@ const mocks = vi.hoisted(() => ({
   uuid: vi.fn<() => ReturnType<typeof crypto.randomUUID>>(),
   assign: vi.fn(),
   unassign: vi.fn(),
+  setActive: vi.fn(),
   setControllers: vi.fn(),
   remove: vi.fn(),
   personalSheet: vi.fn(),
@@ -53,6 +58,8 @@ vi.mock('convex/react', async (importOriginal) => ({
         return mocks.assign
       case getFunctionName(convexApi.campaigns.assignments.unassign):
         return mocks.unassign
+      case getFunctionName(convexApi.campaigns.assignments.setActive):
+        return mocks.setActive
       case getFunctionName(convexApi.campaigns.characterControllers.setControllers):
         return mocks.setControllers
       case getFunctionName(convexApi.campaigns.membershipDeparture.removeMember):
@@ -111,7 +118,8 @@ const playerMembership = {
   role: 'PLAYER' as const,
   accessStartedAt,
   acceptedAt: accessStartedAt,
-  assignedCharacter: null,
+  activeCharacter: null,
+  benchedCharacters: [] as CampaignDetailDto['memberships'][number]['benchedCharacters'],
   characterControllerUserIds: [] as string[]
 }
 const playerCampaign = createCampaignDetail({ role: 'PLAYER', memberships: [playerMembership] })
@@ -126,6 +134,7 @@ describe('CampaignParty native transport', () => {
     mocks.characters.isLoading = false
     mocks.assign.mockResolvedValue({ ok: true })
     mocks.unassign.mockResolvedValue({ ok: true })
+    mocks.setActive.mockResolvedValue({ ok: true })
     mocks.setControllers.mockResolvedValue({ ok: true })
     mocks.uuid.mockReturnValue('77777777-7777-4777-8777-777777777777')
     vi.spyOn(crypto, 'randomUUID').mockImplementation(mocks.uuid)
@@ -175,7 +184,9 @@ describe('CampaignParty native transport', () => {
         openCharacterPicker
       />
     )
-    mocks.page.results = [{ id: 'another-campaign', assignedCharacter: { id: 'character-1' } }]
+    mocks.page.results = [
+      { id: 'another-campaign', activeCharacter: null, benchedCharacters: [{ id: 'character-1' }] }
+    ]
     mocks.page.status = 'Exhausted'
     mocks.characters.isLoading = true
     view.rerender(
@@ -311,7 +322,7 @@ describe('CampaignParty native transport', () => {
         onLeave={onLeave}
         campaign={{
           ...playerCampaign,
-          memberships: [{ ...playerMembership, assignedCharacter: character }]
+          memberships: [{ ...playerMembership, activeCharacter: character }]
         }}
         currentUserId={playerId}
       />
@@ -321,7 +332,10 @@ describe('CampaignParty native transport', () => {
       expect(screen.getByText('Archived Campaigns are read-only.')).toBeInTheDocument()
     )
     expect(mocks.unassign).toHaveBeenCalledTimes(1)
-    expect(mocks.unassign).toHaveBeenCalledWith({ campaignId: campaign.id })
+    expect(mocks.unassign).toHaveBeenCalledWith({
+      campaignId: campaign.id,
+      characterId: character.id
+    })
   })
 
   it('uses the private Campaign Sheet endpoint for GM roster inspection', () => {
@@ -336,7 +350,7 @@ describe('CampaignParty native transport', () => {
         onLeave={onLeave}
         campaign={{
           ...campaign,
-          memberships: [{ ...playerMembership, assignedCharacter: character }]
+          memberships: [{ ...playerMembership, activeCharacter: character }]
         }}
         currentUserId='owner-1'
       />
@@ -361,7 +375,7 @@ describe('CampaignParty native transport', () => {
         onLeave={onLeave}
         campaign={{
           ...playerCampaign,
-          memberships: [{ ...playerMembership, assignedCharacter: character }]
+          memberships: [{ ...playerMembership, activeCharacter: character }]
         }}
         currentUserId={playerId}
       />
@@ -406,12 +420,12 @@ describe('CampaignParty native transport', () => {
           campaign={{
             ...playerCampaign,
             memberships: [
-              { ...playerMembership, assignedCharacter: own },
+              { ...playerMembership, activeCharacter: own },
               {
                 ...playerMembership,
                 userId: '33333333-3333-4333-8333-333333333333',
                 username: 'borin',
-                assignedCharacter: other
+                activeCharacter: other
               }
             ]
           }}
@@ -469,12 +483,12 @@ describe('CampaignParty native transport', () => {
     const campaignWithBoth = {
       ...playerCampaign,
       memberships: [
-        { ...playerMembership, assignedCharacter: own },
+        { ...playerMembership, activeCharacter: own },
         {
           ...playerMembership,
           userId: '33333333-3333-4333-8333-333333333333',
           username: 'borin',
-          assignedCharacter: other
+          activeCharacter: other
         }
       ]
     }
@@ -541,7 +555,7 @@ describe('CampaignParty native transport', () => {
         onLeave={onLeave}
         campaign={{
           ...campaign,
-          memberships: [{ ...gmMembership, assignedCharacter: bram }, playerMembership]
+          memberships: [{ ...gmMembership, activeCharacter: bram }, playerMembership]
         }}
         currentUserId={gmId}
       />
@@ -551,9 +565,49 @@ describe('CampaignParty native transport', () => {
     expect(within(card).getByText('GM')).toBeVisible()
     expect(within(card).queryByRole('button', { name: 'Remove player' })).not.toBeInTheDocument()
     expect(within(card).queryByRole('button', { name: 'Unassign' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Change Character' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Add Character' })).toBeEnabled()
     await user.click(within(card).getByRole('button', { name: 'Remove Character' }))
-    await waitFor(() => expect(mocks.unassign).toHaveBeenCalledWith({ campaignId: campaign.id }))
+    await waitFor(() =>
+      expect(mocks.unassign).toHaveBeenCalledWith({ campaignId: campaign.id, characterId: bram.id })
+    )
+  })
+
+  it('marks a benched Character active from its own roster card (D236)', async () => {
+    const user = userEvent.setup()
+    const aria = {
+      id: 'character-1',
+      publicId: 'aria',
+      label: 'Aria',
+      systemId: campaign.gameSystemId
+    }
+    const borin = {
+      id: 'character-2',
+      publicId: 'borin',
+      label: 'Borin',
+      systemId: campaign.gameSystemId
+    }
+    renderWithAppProviders(
+      <CampaignParty
+        onLeave={onLeave}
+        campaign={{
+          ...playerCampaign,
+          memberships: [{ ...playerMembership, activeCharacter: aria, benchedCharacters: [borin] }]
+        }}
+        currentUserId={playerId}
+      />
+    )
+    const active = screen.getByText('Aria').closest('article')!
+    expect(within(active).getByText('Active')).toBeVisible()
+    expect(within(active).queryByRole('button', { name: 'Mark active' })).not.toBeInTheDocument()
+    const benched = screen.getByText('Borin').closest('article')!
+    expect(within(benched).getByText('Benched')).toBeVisible()
+    await user.click(within(benched).getByRole('button', { name: 'Mark active' }))
+    await waitFor(() =>
+      expect(mocks.setActive).toHaveBeenCalledWith({
+        campaignId: campaign.id,
+        characterId: borin.id
+      })
+    )
   })
 
   it('lets only the GM grant and revoke control of an assigned Character (SCENE-5.1)', async () => {
@@ -566,7 +620,7 @@ describe('CampaignParty native transport', () => {
     }
     const borinId = '33333333-3333-4333-8333-333333333333'
     const memberships = [
-      { ...playerMembership, assignedCharacter: aria, characterControllerUserIds: [] },
+      { ...playerMembership, activeCharacter: aria, characterControllerUserIds: [] },
       { ...playerMembership, userId: borinId, username: 'borin' }
     ]
     const view = renderWithAppProviders(

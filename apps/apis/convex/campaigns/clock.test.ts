@@ -448,7 +448,8 @@ describe('native Campaign clock', () => {
         campaignId: campaign.id,
         userId: base.owner.userId,
         characterId: character.id,
-        assignedAt: campaign.createdAt
+        assignedAt: campaign.createdAt,
+        active: true
       })
     })
     const sheet = await base.owner.caller.query(api.characters.sheet.get, {

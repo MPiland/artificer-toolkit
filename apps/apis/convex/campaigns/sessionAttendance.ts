@@ -13,7 +13,7 @@ import {
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
-import { readCampaignAssignedCharacter } from './assignedCharacter'
+import { readCampaignAttachedCharacter } from './assignedCharacter'
 import { requireCampaignAuthority } from './authority'
 import { requireSession } from './sessionDocuments'
 
@@ -63,9 +63,13 @@ export const set = mutation({
     if (!assignment || assignment.campaignId !== campaign.id)
       throw new Error('Character is not assigned to this Campaign.')
     const member = await requireCampaignAuthority(ctx, campaign.id, assignment.userId)
-    const character = await readCampaignAssignedCharacter(ctx, campaign, member.membership)
-    if (character?.id !== characterId)
-      throw new Error('Character is not assigned to this Campaign.')
+    const character = await readCampaignAttachedCharacter(
+      ctx,
+      campaign,
+      member.membership,
+      assignment
+    )
+    if (character.id !== characterId) throw new Error('Character is not assigned to this Campaign.')
     const row = campaignSessionAttendanceDtoSchema.parse({
       campaignId: campaign.id,
       sessionId: session.id,

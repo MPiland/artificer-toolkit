@@ -202,7 +202,8 @@ async function addThirdAssignedPlayer(base: Fixture) {
       campaignId: base.campaign.id,
       characterId: committed.character.id,
       userId: identity.userId,
-      assignedAt: new Date().toISOString()
+      assignedAt: new Date().toISOString(),
+      active: true
     })
   })
   return { caller, characterId: committed.character.id, streamVersion: committed.streamVersion }
