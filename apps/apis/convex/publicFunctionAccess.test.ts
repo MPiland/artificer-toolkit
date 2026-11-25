@@ -60,6 +60,13 @@ const ACCESS: Record<string, Record<string, Access>> = {
     featureFlags: { public: 'Deployment feature flags the sign-up page reads before sign-in' }
   },
   'authoring/nodeRuntime': { normalizeValues: 'self', resolve: 'self' },
+  'campaigns/activeCharacterRequests': {
+    approve: 'gm',
+    cancel: 'member',
+    decline: 'gm',
+    list: 'gm',
+    mine: 'member'
+  },
   'campaigns/announcements': { create: 'gm', get: 'member', list: 'member' },
   'campaigns/archive': { archive: 'gm' },
   'campaigns/assignments': { assign: 'owner', setActive: 'owner', unassign: 'member' },

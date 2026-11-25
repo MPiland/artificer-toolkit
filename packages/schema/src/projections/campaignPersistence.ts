@@ -64,6 +64,23 @@ export const campaignStoredAssignmentSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A player's one open ask to make a benched Character active while their Active Character fights in
+ * an ACTIVE Run (D236). The GM approves or declines; the request goes with either Character, the
+ * player's membership or the Run.
+ */
+export const campaignStoredActiveCharacterRequestSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    campaignId: uuidSchema,
+    userId: uuidSchema,
+    fromCharacterId: uuidSchema,
+    toCharacterId: uuidSchema,
+    encounterId: uuidSchema,
+    requestedAt: timestampSchema
+  })
+)
+
 export const campaignStoredOwnershipTransferSchema = lazySchema(() =>
   z.strictObject({
     campaignId: uuidSchema,

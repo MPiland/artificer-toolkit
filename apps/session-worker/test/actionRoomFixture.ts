@@ -487,6 +487,7 @@ export interface ActionRoomConfig extends Pick<
   | 'formCreatures'
   | 'secondCharacter'
   | 'thirdCharacter'
+  | 'benchedCharacterId'
   | 'hiddenActorIds'
   | 'definitions'
   | 'seed'

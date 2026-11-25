@@ -303,6 +303,30 @@ export const setCampaignCharacterControllersInputSchema = lazySchema(() =>
 export const campaignAssignmentResultSchema = lazySchema(() =>
   z.strictObject({ ok: z.literal(true) })
 )
+/** A free switch takes effect at once; mid-fight it waits on the GM as a request (D236). */
+export const setActiveCampaignCharacterResultSchema = lazySchema(() =>
+  z.strictObject({ status: z.enum(['SWITCHED', 'REQUESTED']) })
+)
+/** A player's open ask to swap their Active Character mid-fight, as its player and the GM see it. */
+export const campaignActiveCharacterRequestDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: uuidSchema,
+    campaignId: uuidSchema,
+    userId: uuidSchema,
+    fromCharacterId: uuidSchema,
+    fromCharacterName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100)),
+    toCharacterId: uuidSchema,
+    toCharacterName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(100)),
+    encounterId: uuidSchema,
+    requestedAt: timestampSchema
+  })
+)
+export const campaignActiveCharacterRequestInputSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema,
+    requestId: uuidSchema
+  })
+)
 export const campaignMembershipDepartureResultSchema = lazySchema(() =>
   z.strictObject({ ok: z.literal(true) })
 )
@@ -432,6 +456,12 @@ export type CampaignContentUsageDto = z.infer<typeof campaignContentUsageDtoSche
 export type CampaignSummaryDto = z.infer<typeof campaignSummaryDtoSchema>
 export type CampaignDetailDto = z.infer<typeof campaignDetailDtoSchema>
 export type CampaignAssignmentResult = z.infer<typeof campaignAssignmentResultSchema>
+export type SetActiveCampaignCharacterResult = z.infer<
+  typeof setActiveCampaignCharacterResultSchema
+>
+export type CampaignActiveCharacterRequestDto = z.infer<
+  typeof campaignActiveCharacterRequestDtoSchema
+>
 export type CampaignFormatDto = z.infer<typeof campaignFormatDtoSchema>
 export type CampaignToneTagDto = z.infer<typeof campaignToneTagDtoSchema>
 export type CampaignContentMaturityDto = z.infer<typeof campaignContentMaturityDtoSchema>

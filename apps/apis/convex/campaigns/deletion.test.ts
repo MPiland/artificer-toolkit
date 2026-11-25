@@ -150,6 +150,7 @@ describe('native Campaign deletion', () => {
       'campaignClockSegments',
       'campaignClockRecoveries',
       'campaignClockRecoveryPrompts',
+      'campaignActiveCharacterRequests',
       'encounterRuns',
       'encounterRunActors',
       'encounterRunCommands',

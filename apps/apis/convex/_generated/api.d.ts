@@ -853,6 +853,58 @@ export declare const api: {
     };
   };
   campaigns: {
+    activeCharacterRequests: {
+      approve: FunctionReference<
+        "mutation",
+        "public",
+        { campaignId: string; requestId: string },
+        null
+      >;
+      cancel: FunctionReference<
+        "mutation",
+        "public",
+        { campaignId: string },
+        null
+      >;
+      decline: FunctionReference<
+        "mutation",
+        "public",
+        { campaignId: string; requestId: string },
+        null
+      >;
+      list: FunctionReference<
+        "query",
+        "public",
+        { campaignId: string },
+        Array<{
+          campaignId: string;
+          encounterId: string;
+          fromCharacterId: string;
+          fromCharacterName: string;
+          id: string;
+          requestedAt: string;
+          toCharacterId: string;
+          toCharacterName: string;
+          userId: string;
+        }>
+      >;
+      mine: FunctionReference<
+        "query",
+        "public",
+        { campaignId: string },
+        {
+          campaignId: string;
+          encounterId: string;
+          fromCharacterId: string;
+          fromCharacterName: string;
+          id: string;
+          requestedAt: string;
+          toCharacterId: string;
+          toCharacterName: string;
+          userId: string;
+        } | null
+      >;
+    };
     announcements: {
       create: FunctionReference<
         "mutation",
@@ -1024,7 +1076,7 @@ export declare const api: {
         "mutation",
         "public",
         { campaignId: string; characterId: string },
-        { ok: true }
+        { status: "SWITCHED" | "REQUESTED" }
       >;
       unassign: FunctionReference<
         "mutation",
@@ -307522,36 +307574,6 @@ export declare const internal: {
         "internal",
         { jobId: Id<"accountDeletionJobs">; token: string },
         null
-      >;
-    };
-    assignmentActiveMigration: {
-      markAssignmentsActive: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
-      run: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
       >;
     };
     characterReconcileSteps: {

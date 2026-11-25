@@ -506,6 +506,23 @@ unassigned Character this epoch still holds. A GM removal of a Character takes i
 keeps its actor until the Run ends (D82). Room reconciliation clamps current HP to the evaluated
 maximum.
 
+**Active Character swaps (D236).** When a player's Active Character changes while their benched Character stands as an unfrozen actor in an
+open Run the room holds, the room puts the new Character into that actor
+([settleRoomActiveCharacterSwaps](../../apps/session-worker/src/roomActiveCharacterSwap.ts)). It runs in the
+same post-commit and membership-reload task as the departure reconcile, before it, so a CAMPAIGN notice for
+the switch settles the swap before a barrier that follows it. The swaps come from the authorization's
+assignments (`selectRunCharacterSwaps`: a player's first benched actor per Run, while their Active Character
+stands in no actor of that Run). A decision the actor owes is voided first as the GM, as its own room command
+whose post-commit step settles the swap; a decision a void refuses holds the swap until it is answered. Every
+clear swap then commits in one `RoomEncounterStore` transaction (a journal entry, `delta: null`,
+`ACTIVE_CHARACTER_SWAP` fingerprint) through
+[replaceRunCharacterActor](../../packages/encounter-persistence/src/actorCharacterReplacement.ts), repoints the
+actor's bound token on a Scene the room holds to the new Character with the replacement as its action origin,
+and repoints any bound token of the presented Scene that still names another Character than its actor plays
+(a Run Convex swapped while no room held it). It checkpoints before the receipt, then drops cached play and
+Scene and challenges every socket. A swap on the actor's turn then ends that turn once with `ADVANCE_TURN`.
+A failed swap is logged and the next trigger retries it.
+
 **Departures (D74, D81).** For an open Run the room owns, `removeCampaignCharacterAssignment`,
 `removeEncounterActorController` and account deletion write no Run actors in Convex; Convex sends
 `EVICT_USER` and `INVALIDATE_INPUTS`. The room runs

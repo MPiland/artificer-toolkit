@@ -81,6 +81,16 @@ export function getCampaignClockRecoveryPrompts(campaignId: string) {
   return convexQuery(convexApi.campaigns.clock.recoveryPrompts, { campaignId })
 }
 
+/** Campaign GM only: players' open asks to swap their Active Character mid-fight (D236). */
+export function getCampaignActiveCharacterRequests(campaignId: string) {
+  return convexQuery(convexApi.campaigns.activeCharacterRequests.list, { campaignId })
+}
+
+/** The viewer's own open ask to swap their Active Character, or null. */
+export function getMyCampaignActiveCharacterRequest(campaignId: string) {
+  return convexQuery(convexApi.campaigns.activeCharacterRequests.mine, { campaignId })
+}
+
 /** Non-null while the live room holds authority; other pages then show its last checkpoint. */
 export function getCampaignLiveAuthority(campaignId: string | undefined) {
   return {

@@ -17,7 +17,10 @@ export async function appendSystemRunEntry(
     encounterId: string
     userId: string
     occurredAt: string
-    command: { type: 'CONCENTRATION_DROPPED_OUTSIDE' | 'RETURNED_TO_PLAY'; commandId: string }
+    command: {
+      type: 'CONCENTRATION_DROPPED_OUTSIDE' | 'RETURNED_TO_PLAY' | 'CHARACTER_REPLACED'
+      commandId: string
+    }
     label: string
     ruleOverrides?: EncounterRuleWarningDto[]
   }

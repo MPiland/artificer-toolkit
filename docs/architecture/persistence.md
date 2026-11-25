@@ -1295,7 +1295,8 @@ single-Class budget is asserted in `characters/commitReadBudget.test.ts`.
 ## Campaigns
 
 Campaign roots are `campaigns`, with `campaignMemberships` (role, status, access epoch),
-`campaignCharacterAssignments` (one Character per player, one Campaign per Character), `campaignPlaySettings`
+`campaignCharacterAssignments` (a player's attached Characters, one of them active; one Campaign per Character),
+`campaignActiveCharacterRequests` (a player's open swap request during a fight, D236), `campaignPlaySettings`
 and a reserved route in `authoredRouteIds`. `shared/campaign/capabilities` is the single capability policy:
 OWNER never gains PARTY access and archived Campaigns expose only read capabilities. Mutations derive authority
 from the current identity and indexed ownership; roster reads use the tier maximum of twelve players plus one
@@ -1473,8 +1474,22 @@ PARTY additionally needs player conversation membership. There is no edit or del
 
 ### Assignment, departure and ownership
 
-`campaignCharacterAssignments` enforces one Character per player and one Campaign per Character through indexed
-reads. The row also stores the GM's Character control grants as an optional `controllerUserIds` (SCENE-5.1, D162): other
+`campaignCharacterAssignments` enforces one Campaign per Character through indexed reads. A player attaches any
+number of their own Characters; the `active` flag marks the one Active Character that plays at the table, and the
+rest are benched (D236). Removing the Active Character leaves none active until the player marks one.
+`campaigns/assignments:setActive` switches freely, returning `SWITCHED`, unless the Active Character is an unfrozen,
+non-GM-removed actor in an ACTIVE Run (`readFightingRun`); then it stores the player's one open
+`campaignActiveCharacterRequests` row (a new ask replaces it) and returns `REQUESTED`. The player reads and cancels
+their own request (`campaigns/activeCharacterRequests:mine`, `cancel`); the GM lists, approves and declines
+(`list`, `approve`, `decline`). Approval re-reads the Characters, refuses a request that no longer matches them and
+switches as a free switch does. A free switch, either Character's departure and the Run's completion in checkpoint
+ingestion delete the request. Every switch swaps the Run actor of the benched Character in place
+([replaceRunCharacterActor](../../packages/encounter-persistence/src/actorCharacterReplacement.ts)) in each open
+Run no room holds, when the actor is between turns with nothing pending; the room swaps the Runs it holds (see
+Active Character swaps in [live sessions](live-sessions.md)). The actor keeps its id, side, initiative,
+concealment, controllers and token binding, takes the new Character's identity with reset resources and no open
+consequence offers, and in an ACTIVE Run first ends the old Character's Run effects and Concentration. A GM-only
+`CHARACTER_REPLACED` timeline entry records it. The row also stores the GM's Character control grants as an optional `controllerUserIds` (SCENE-5.1, D162): other
 active Campaign players the GM lets act for the assigned Character. The grants are the only source for Campaign
 grants, read live (never copied into a Run actor), and the assigned player always keeps control. Grant and revoke are
 GM-only (`campaigns/characterControllers:setControllers`), bump the CAMPAIGN and PLAY revisions and take effect in

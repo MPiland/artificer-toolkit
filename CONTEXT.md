@@ -28,6 +28,13 @@ The character play surface. It exposes mutable play-state interaction through co
 
 The private aggregate for one table, whether its format is a one-shot or ongoing game. It owns tone and maturity policy as well as membership, collaboration, preparation, sessions, and play state. An owner may copy reusable Campaign preparation into a fresh aggregate without copying cohort or run state.
 
+### Active Character
+
+The one Character a player plays in a Campaign (D236). A player may attach several Characters; the
+others are benched. Benched Characters stay attached, keeping inventory, controller and departure rules,
+but are not offered to new Encounters. Switching outside a fight is immediate; during a fight it is a
+request the GM approves, and approval replaces the player's Character actor in place.
+
 ### Live table
 
 The Campaign's live play room: the Session Durable Object in `apps/session-worker` plus

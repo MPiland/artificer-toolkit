@@ -38,15 +38,20 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 
 import worker from '../src/index.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { ACCOUNT_BUCKETS, ROOM_LIMITS } from '../src/roomLimits.js'
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
 import { publishPending } from './publishPendingFixture.js'
-import { characterSheetInputsFixture } from './characterSheetInputsFixture.js'
+import { characterRoomInputs, characterSheetInputsFixture } from './characterSheetInputsFixture.js'
 import { darkvisionDefinition } from './srdSenseInputsFixture.js'
-import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
+import {
+  ROOM_AUTHORIZATION_PATH,
+  roomAuthorizationResponse,
+  type RoomAuthorizationAssignment
+} from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
 import { roomStub } from './roomTeardown.js'
 import { accessJwks, authSubjectOf, JWKS_PATH, signVerifiedAccessToken } from './liveRoomFixture.js'
@@ -85,6 +90,8 @@ async function sheetRoom(
     }
     /** Whose Character the room's one assigned Character is; the GM may play one too (CAMPAIGN-7). */
     characterOwner?: 'PLAYER' | 'GM'
+    /** The owner also keeps a second Character on the bench, in no Run (D236). */
+    benched?: boolean
   } = {}
 ) {
   const campaignId = crypto.randomUUID()
@@ -102,7 +109,13 @@ async function sheetRoom(
   ]
   let members = everyone
   const characterUserId = options.characterOwner === 'GM' ? gmId : ownerId
-  let assignments = [{ characterId, userId: characterUserId }]
+  const benchedCharacterId = crypto.randomUUID()
+  let assignments: RoomAuthorizationAssignment[] = [
+    { characterId, userId: characterUserId },
+    ...(options.benched
+      ? [{ characterId: benchedCharacterId, userId: characterUserId, active: false }]
+      : [])
+  ]
   let characterDeleted = false
   const checkpoints: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>[] = []
   const chatCheckpoints: ReturnType<typeof liveSessionChatCheckpointInputSchema.parse>[] = []
@@ -119,6 +132,14 @@ async function sheetRoom(
     ownerUserId: characterUserId,
     darkvision: true
   })
+  const benched = options.benched
+    ? await characterRoomInputs({
+        campaignId,
+        characterId: benchedCharacterId,
+        ownerUserId: characterUserId
+      })
+    : null
+  const benchedParts = benched?.parts ?? []
   let characterEdited = false
   /**
    * How many Character reads still report a Campaign revision the System read disagrees with: a GM
@@ -166,9 +187,10 @@ async function sheetRoom(
           ownerUserId: gmId,
           members,
           assignments,
-          characterInputs: characterEdited
-            ? { ...inputs.characterInputs, parts: edited.characterInputs.parts }
-            : inputs.characterInputs,
+          characterInputs: {
+            ...inputs.characterInputs,
+            parts: [...(characterEdited ? edited : inputs).characterInputs.parts, ...benchedParts]
+          },
           definitions: [darkvisionDefinition]
         })
         if (response.kind !== 'CHARACTERS' || tornCharacterReads <= 0)
@@ -200,8 +222,12 @@ async function sheetRoom(
               {
                 characterId,
                 revision: characterEdited ? edited.characterRevision : inputs.characterRevision
-              }
-            ],
+              },
+              // Convex reports every attached Character, benched ones included, by id.
+              ...(benched
+                ? [{ characterId: benchedCharacterId, revision: benched.characterRevision }]
+                : [])
+            ].sort((left, right) => left.characterId.localeCompare(right.characterId)),
             play: {
               encounter:
                 options.run?.status === 'PREPARED'
@@ -437,6 +463,14 @@ async function sheetRoom(
     assignments = []
   }
 
+  /** Convex commits the owner's switch to the benched Character; the Run's Character goes to the bench. */
+  function commitActiveSwitch() {
+    assignments = assignments.map((assignment) => ({
+      ...assignment,
+      active: assignment.characterId === benchedCharacterId
+    }))
+  }
+
   /** Convex commits a GM edit that grants the Character Darkvision. */
   function commitCharacterEdit() {
     characterEdited = true
@@ -482,6 +516,8 @@ async function sheetRoom(
     commitStrangerRemoval,
     strangerId,
     commitUnassignment,
+    commitActiveSwitch,
+    benchedCharacterId,
     ...inputs
   }
 }
@@ -711,6 +747,135 @@ it('keeps a GM-removed Character in the held Run, out of initiative, and still p
   )
   await settled(returnId)
   expect(await actorState()).toMatchObject({ absence: null })
+})
+
+/** The held Run, its Character actor and its initiative, as the room stores them. */
+const heldRun = (room: SheetRoom) =>
+  runInDurableObject(room.stub, (_instance, state) => {
+    const store = new RoomEncounterStore(state.storage)
+    const run = store.documents('encounterRuns').find(({ id }) => id === room.encounterId)
+    const row = store.documents('encounterRunActors').find(({ id }) => id === room.actorId)
+    if (!run || !row) throw new Error('Missing held Run.')
+    const { actorIds, currentActorId, round } = readRunState(run)
+    return {
+      actorIds,
+      currentActorId,
+      round,
+      actor: readStoredRunActor(row),
+      initiative: store
+        .documents('encounterInitiativeParticipants')
+        .map(({ actorId }) => actorId)
+        .sort(),
+      pending: store
+        .documents('encounterRuleOccurrences')
+        .filter((occurrence) => occurrence.state === 'PENDING').length
+    }
+  })
+
+/** Convex reports the owner's switch to their benched Character; the room settles the swap (D236). */
+async function switchToBenched(room: SheetRoom) {
+  room.commitActiveSwitch()
+  expect((await control(room, { type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] })).status).toBe(
+    200
+  )
+  await vi.waitFor(async () =>
+    expect((await heldRun(room)).actor).toMatchObject({ sourceId: room.benchedCharacterId })
+  )
+}
+
+it("swaps the owner's new Active Character into the Run actor in place, before acknowledging (D236)", async () => {
+  const room = await sheetRoom({ benched: true })
+  const before = await heldRun(room)
+  expect(before.actor).toMatchObject({ kind: 'CHARACTER', sourceId: room.characterId })
+
+  await switchToBenched(room)
+
+  const after = await heldRun(room)
+  expect(after).toMatchObject({
+    actorIds: before.actorIds,
+    currentActorId: before.currentActorId,
+    round: before.round,
+    initiative: before.initiative
+  })
+  expect(after.actor).toMatchObject({
+    id: room.actorId,
+    kind: 'CHARACTER',
+    sourceId: room.benchedCharacterId,
+    sideId: before.actor.sideId,
+    frozenState: null,
+    resources: {}
+  })
+  // The swap is checkpointed before its receipt, so Convex holds the new Character's actor.
+  await vi.waitFor(() =>
+    expect(
+      room.checkpoints.some(({ records }) =>
+        records.changes.some(
+          (change) =>
+            change.table === 'encounterRunActors' &&
+            change.key.includes(room.actorId) &&
+            change.nextChecksum !== null
+        )
+      )
+    ).toBe(true)
+  )
+})
+
+it("ends the actor's turn once when its Character is swapped on its turn (D236)", async () => {
+  const room = await sheetRoom({ benched: true, run: { actor: { current: true } } })
+  const before = await heldRun(room)
+  expect(before.currentActorId).toBe(room.actorId)
+
+  await switchToBenched(room)
+
+  // The lone actor's turn ends and the next round starts with it; the swap ends no second turn.
+  await vi.waitFor(async () => expect((await heldRun(room)).round).toBe(before.round + 1))
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  expect(await heldRun(room)).toMatchObject({
+    round: before.round + 1,
+    currentActorId: room.actorId,
+    actor: { id: room.actorId, sourceId: room.benchedCharacterId }
+  })
+})
+
+it('keeps the Character in the Run while it owes a decision a void cannot settle (D236)', async () => {
+  const room = await sheetRoom({ benched: true, run: { pendingDecision: true } })
+  expect((await heldRun(room)).pending).toBe(1)
+
+  room.commitActiveSwitch()
+  expect((await control(room, { type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] })).status).toBe(
+    200
+  )
+  // A GM command orders behind the notice's reload and swap step; the held decision refuses it.
+  const advanceId = crypto.randomUUID()
+  room.gm.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'ADVANCE_TURN',
+          encounterId: room.encounterId,
+          commandId: advanceId,
+          expectedVersion: 1
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      room.gm.messages.find(
+        (message) =>
+          (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+          message.commandId === advanceId
+      )
+    ).toMatchObject({ type: 'COMMAND_REJECTED' })
+  )
+
+  expect(await heldRun(room)).toMatchObject({
+    pending: 1,
+    actor: { id: room.actorId, sourceId: room.characterId }
+  })
 })
 
 it('refuses a Sheet command from a player who does not own the Character', async () => {

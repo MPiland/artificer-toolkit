@@ -59,6 +59,7 @@ import { RoomStorageAuthority } from './roomStorageAuthority.js'
 import { journalInputReload, loadRoomAggregate, reloadRoomAggregate } from './roomAggregateLoad.js'
 import { endBrokenRelationships, reconcileActorDepartures } from './roomActorSweeps.js'
 import { settleRoomReactionTimeouts } from './roomReactionTimeout.js'
+import { settleRoomActiveCharacterSwaps } from './roomActiveCharacterSwap.js'
 import { readFrozenCharacterIds } from './roomActorReconcile.js'
 import { restoreLocalPlayAuthorization } from './roomLocalPlayAuthorization.js'
 import { RoomSceneCommandRefusal } from './roomSceneEdits.js'
@@ -928,7 +929,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const recheckFrozenCharacters = this.#recheckFrozenCharacters
     this.#recheckFrozenCharacters = false
     try {
-      await reconcileActorDepartures(this.#host, current, recheckFrozenCharacters)
+      // A swap's void or turn end queues this step again; its replacement journals first (D236).
+      await settleRoomActiveCharacterSwaps(this.#host, current)
+    } catch (error) {
+      console.error('Live Session Active Character swap failed.', error)
+    }
+    try {
+      const head = this.#journal.readCurrent()
+      if (head?.status === 'ACTIVE')
+        await reconcileActorDepartures(this.#host, head, recheckFrozenCharacters)
     } catch (error) {
       // A failed reconcile keeps the pending re-read for the next trigger.
       this.#recheckFrozenCharacters ||= recheckFrozenCharacters

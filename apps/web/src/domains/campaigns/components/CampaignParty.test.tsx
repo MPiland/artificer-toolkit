@@ -11,7 +11,9 @@ import { CampaignParty } from './CampaignParty'
 
 const names = {
   basics: getFunctionName(convexApi.campaigns.characterBasics.get),
-  sheetSlice: getFunctionName(convexApi.characters.sheetSlices.get)
+  sheetSlice: getFunctionName(convexApi.characters.sheetSlices.get),
+  requests: getFunctionName(convexApi.campaigns.activeCharacterRequests.list),
+  myRequest: getFunctionName(convexApi.campaigns.activeCharacterRequests.mine)
 }
 
 const mocks = vi.hoisted(() => ({
@@ -38,6 +40,9 @@ const mocks = vi.hoisted(() => ({
   assign: vi.fn(),
   unassign: vi.fn(),
   setActive: vi.fn(),
+  cancelRequest: vi.fn(),
+  approveRequest: vi.fn(),
+  declineRequest: vi.fn(),
   setControllers: vi.fn(),
   remove: vi.fn(),
   personalSheet: vi.fn(),
@@ -60,6 +65,12 @@ vi.mock('convex/react', async (importOriginal) => ({
         return mocks.unassign
       case getFunctionName(convexApi.campaigns.assignments.setActive):
         return mocks.setActive
+      case getFunctionName(convexApi.campaigns.activeCharacterRequests.cancel):
+        return mocks.cancelRequest
+      case getFunctionName(convexApi.campaigns.activeCharacterRequests.approve):
+        return mocks.approveRequest
+      case getFunctionName(convexApi.campaigns.activeCharacterRequests.decline):
+        return mocks.declineRequest
       case getFunctionName(convexApi.campaigns.characterControllers.setControllers):
         return mocks.setControllers
       case getFunctionName(convexApi.campaigns.membershipDeparture.removeMember):
@@ -72,7 +83,19 @@ vi.mock('convex/react', async (importOriginal) => ({
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
   useQueries: ({ queries }: { queries: { queryKey: unknown[] }[] }) =>
-    queries.map((query) => ({ data: mocks.queryData(query.queryKey) }))
+    queries.map((query) => ({ data: mocks.queryData(query.queryKey) })),
+  useQuery: (query: { queryKey: unknown[]; enabled?: boolean }) => ({
+    data: query.enabled === false ? undefined : mocks.queryData(query.queryKey)
+  })
+}))
+vi.mock('#app/data/campaigns/queries', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('#app/data/campaigns/queries')>()),
+  getCampaignActiveCharacterRequests: (campaignId: string) => ({
+    queryKey: [names.requests, { campaignId }]
+  }),
+  getMyCampaignActiveCharacterRequest: (campaignId: string) => ({
+    queryKey: [names.myRequest, { campaignId }]
+  })
 }))
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@convex-dev/react-query')>()),
@@ -134,7 +157,10 @@ describe('CampaignParty native transport', () => {
     mocks.characters.isLoading = false
     mocks.assign.mockResolvedValue({ ok: true })
     mocks.unassign.mockResolvedValue({ ok: true })
-    mocks.setActive.mockResolvedValue({ ok: true })
+    mocks.setActive.mockResolvedValue({ status: 'SWITCHED' })
+    mocks.cancelRequest.mockResolvedValue(null)
+    mocks.approveRequest.mockResolvedValue(null)
+    mocks.declineRequest.mockResolvedValue(null)
     mocks.setControllers.mockResolvedValue({ ok: true })
     mocks.uuid.mockReturnValue('77777777-7777-4777-8777-777777777777')
     vi.spyOn(crypto, 'randomUUID').mockImplementation(mocks.uuid)
@@ -608,6 +634,82 @@ describe('CampaignParty native transport', () => {
         characterId: borin.id
       })
     )
+  })
+
+  describe('a swap requested while the Active Character fights (D236)', () => {
+    const aria = {
+      id: 'character-1',
+      publicId: 'aria',
+      label: 'Aria',
+      systemId: campaign.gameSystemId
+    }
+    const borin = {
+      id: 'character-2',
+      publicId: 'borin',
+      label: 'Borin',
+      systemId: campaign.gameSystemId
+    }
+    const request = {
+      id: '88888888-8888-4888-8888-888888888888',
+      campaignId: campaign.id,
+      userId: playerId,
+      fromCharacterId: aria.id,
+      fromCharacterName: 'Aria',
+      toCharacterId: borin.id,
+      toCharacterName: 'Borin',
+      encounterId: '99999999-9999-4999-8999-999999999999',
+      requestedAt: '2026-09-04T00:00:00.000Z'
+    }
+    const memberships = [{ ...playerMembership, activeCharacter: aria, benchedCharacters: [borin] }]
+
+    it('shows the player the waiting request with Cancel instead of Mark active', async () => {
+      const user = userEvent.setup()
+      mocks.queryData.mockImplementation(([name]) =>
+        name === names.myRequest ? request : undefined
+      )
+      renderWithAppProviders(
+        <CampaignParty
+          onLeave={onLeave}
+          campaign={{ ...playerCampaign, memberships }}
+          currentUserId={playerId}
+        />
+      )
+      const benched = screen.getByText('Borin').closest('article')!
+      expect(within(benched).getByText('Requested, waiting for the GM')).toBeVisible()
+      expect(within(benched).queryByRole('button', { name: 'Mark active' })).not.toBeInTheDocument()
+      await user.click(within(benched).getByRole('button', { name: 'Cancel request' }))
+      await waitFor(() =>
+        expect(mocks.cancelRequest).toHaveBeenCalledWith({ campaignId: campaign.id })
+      )
+    })
+
+    it.each([
+      ['Approve', 'approveRequest'],
+      ['Decline', 'declineRequest']
+    ] as const)('lets the GM %s it on the requested Character card', async (label, mock) => {
+      const user = userEvent.setup()
+      mocks.queryData.mockImplementation(([name]) =>
+        name === names.requests ? [request] : undefined
+      )
+      renderWithAppProviders(
+        <CampaignParty
+          onLeave={onLeave}
+          campaign={{ ...campaign, memberships }}
+          currentUserId='owner-1'
+        />
+      )
+      const active = screen.getByText('Aria').closest('article')!
+      expect(within(active).queryByRole('button', { name: label })).not.toBeInTheDocument()
+      const benched = screen.getByText('Borin').closest('article')!
+      expect(within(benched).getByText('Swap Aria for Borin?')).toBeVisible()
+      await user.click(within(benched).getByRole('button', { name: label }))
+      await waitFor(() =>
+        expect(mocks[mock]).toHaveBeenCalledWith({
+          campaignId: campaign.id,
+          requestId: request.id
+        })
+      )
+    })
   })
 
   it('lets only the GM grant and revoke control of an assigned Character (SCENE-5.1)', async () => {

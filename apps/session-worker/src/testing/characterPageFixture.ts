@@ -339,7 +339,8 @@ export function characterOwnerRowFor({
   return characterStoredRowSchema.parse(
     encodeCharacterRecord(
       {
-        _id: 'fixture:character',
+        // Per-Character ids, so a room holding several fixture Characters keeps each row.
+        _id: `fixture:character:${character.id}`,
         _creationTime: Date.parse(updatedAt),
         id: character.id,
         userId: character.userId,
@@ -351,7 +352,7 @@ export function characterOwnerRowFor({
         documentJson: JSON.stringify(character),
         checksum: checksumRuleDocument(character),
         play: {
-          _id: 'fixture:character-play',
+          _id: `fixture:character-play:${character.id}`,
           _creationTime: Date.parse(updatedAt),
           characterId: character.id,
           userId: character.userId,

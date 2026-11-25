@@ -8,6 +8,7 @@ import {
   sceneTokenMovementCommandInputDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
+  encounterCharacterReplacedInputSchema,
   encounterConcentrationDroppedOutsideInputSchema,
   encounterRelationshipsEndedInputSchema,
   encounterSummonsEndedInputSchema,
@@ -39,7 +40,9 @@ function commandTimelineMetadata(command: StoredCommand) {
                 ? encounterSummonsEndedInputSchema.parse(JSON.parse(command.commandJson))
                 : command.commandType === 'RETURNED_TO_PLAY'
                   ? encounterReturnedToPlayInputSchema.parse(JSON.parse(command.commandJson))
-                  : encounterCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
+                  : command.commandType === 'CHARACTER_REPLACED'
+                    ? encounterCharacterReplacedInputSchema.parse(JSON.parse(command.commandJson))
+                    : encounterCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
   if (
     input !== null &&
     (input.type !== command.commandType ||
@@ -140,7 +143,8 @@ export function presentTimelineEntry(
       command.commandType === 'RELATIONSHIPS_ENDED' ||
       command.commandType === 'SUMMONS_ENDED' ||
       command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE' ||
-      command.commandType === 'RETURNED_TO_PLAY'
+      command.commandType === 'RETURNED_TO_PLAY' ||
+      command.commandType === 'CHARACTER_REPLACED'
         ? command.label
         : null,
     ruleOverrides:

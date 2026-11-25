@@ -7,6 +7,7 @@ import { liveCharacterHoldSchema } from '@artificer-toolkit/schema/projections/l
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   campaignStoredAssignmentSchema,
+  campaignStoredActiveCharacterRequestSchema,
   campaignStoredMembershipSchema,
   campaignStoredRecordSchema,
   campaignStoredRevisionSchema,
@@ -317,6 +318,11 @@ export const campaignTables = {
     .index('by_campaignId_userId_active', ['campaignId', 'userId', 'active'])
     .index('by_campaignId', ['campaignId'])
     .index('by_characterId', ['characterId']),
+  campaignActiveCharacterRequests: defineTable(
+    zodToConvexFields(campaignStoredActiveCharacterRequestSchema.shape)
+  )
+    .index('by_campaignId_userId', ['campaignId', 'userId'])
+    .index('by_campaignId', ['campaignId']),
   campaignPlaySettings: defineTable(zodToConvexFields(campaignPlaySettingsDtoSchema.shape)).index(
     'by_campaignId',
     ['campaignId']

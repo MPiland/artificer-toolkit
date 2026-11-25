@@ -2,13 +2,16 @@ import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   assignCampaignCharacterInputSchema,
   setActiveCampaignCharacterInputSchema,
+  setActiveCampaignCharacterResultSchema,
   unassignCampaignCharacterInputSchema,
   campaignAssignmentResultSchema
 } from '@artificer-toolkit/schema/api/campaignCore'
-import { campaignStoredAssignmentSchema } from '@artificer-toolkit/schema/projections/campaignPersistence'
+import {
+  campaignStoredActiveCharacterRequestSchema,
+  campaignStoredAssignmentSchema
+} from '@artificer-toolkit/schema/projections/campaignPersistence'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import type { MutationCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { readCharacterRecord } from '../characters/documents'
@@ -16,8 +19,11 @@ import { readCharacterRow } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../characters/characterWrites'
 import { prepareCharacterBuilder } from '../characters/builderPreparation'
 import { readCharacterSourceAccessLoss } from '../characters/sourceAccessLoss'
-import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { encounterWriteTransaction } from '../encounters/encounterPorts'
+import {
+  deleteActiveCharacterRequests,
+  readFightingRun,
+  switchActiveCharacter
+} from './activeCharacterSwitch'
 import { readCampaignAttachedCharacter } from './assignedCharacter'
 import { requireCampaignAuthority } from './authority'
 import { requireCampaignCharacterAuthority, readCampaignCharacterState } from './characterState'
@@ -103,7 +109,7 @@ export const assign = mutation({
 
 export const setActive = mutation({
   args: () => zodToConvexFields(setActiveCampaignCharacterInputSchema.shape),
-  returns: () => zodToConvex(campaignAssignmentResultSchema),
+  returns: () => zodToConvex(setActiveCampaignCharacterResultSchema),
   handler: async (ctx, args) => {
     const input = setActiveCampaignCharacterInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
@@ -115,34 +121,40 @@ export const setActive = mutation({
     )
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (assignment.userId !== userId) throw new Error('Assigned Character not found.')
-    if (assignment.active) return { ok: true as const }
+    if (assignment.active) return { status: 'SWITCHED' as const }
     const current = await ctx.db
       .query('campaignCharacterAssignments')
       .withIndex('by_campaignId_userId_active', (q) =>
         q.eq('campaignId', campaign.id).eq('userId', userId).eq('active', true)
       )
       .unique()
-    // Mid-fight the GM decides; a Prepared Run swaps freely (D236).
-    if (current && (await isInRunningEncounter(ctx, campaign.id, current.characterId)))
-      throw new Error('Ask the GM: your Character is in a running Encounter.')
-    if (current) await ctx.db.patch(current._id, { active: false })
-    await ctx.db.patch(assignment._id, { active: true })
-    return { ok: true as const }
+    // Mid-fight the GM decides; a Prepared Run swaps freely (D236). A newer ask replaces the open one.
+    const fighting = current && (await readFightingRun(ctx, campaign.id, current.characterId))
+    if (current && fighting) {
+      await deleteActiveCharacterRequests(ctx, campaign.id, userId)
+      await ctx.db.insert(
+        'campaignActiveCharacterRequests',
+        campaignStoredActiveCharacterRequestSchema.parse({
+          id: crypto.randomUUID(),
+          campaignId: campaign.id,
+          userId,
+          fromCharacterId: current.characterId,
+          toCharacterId: assignment.characterId,
+          encounterId: fighting.id,
+          requestedAt: new Date().toISOString()
+        })
+      )
+      return { status: 'REQUESTED' as const }
+    }
+    await switchActiveCharacter(ctx, {
+      campaignId: campaign.id,
+      userId,
+      from: current,
+      to: assignment
+    })
+    return { status: 'SWITCHED' as const }
   }
 })
-
-async function isInRunningEncounter(ctx: MutationCtx, campaignId: string, characterId: string) {
-  const runs = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_campaignId_status', (q) => q.eq('campaignId', campaignId).eq('status', 'ACTIVE'))
-    .collect()
-  for (const run of runs) {
-    const actors = await readRunActors(encounterWriteTransaction(ctx), readRunState(run))
-    if (actors.some((actor) => actor.kind === 'CHARACTER' && actor.sourceId === characterId))
-      return true
-  }
-  return false
-}
 
 export const unassign = mutation({
   args: () => zodToConvexFields(unassignCampaignCharacterInputSchema.shape),

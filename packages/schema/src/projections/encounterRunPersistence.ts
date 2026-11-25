@@ -119,6 +119,22 @@ export const encounterReturnedToPlayInputSchema = lazySchema(() =>
 )
 
 /**
+ * The stored input of a Run command that swaps a player's Character actor for their new Active
+ * Character in place (D236): the actor keeps its id, turn order and token. Never sent by a client,
+ * so it stays outside the Encounter command union.
+ */
+export const encounterCharacterReplacedInputSchema = lazySchema(() =>
+  z.strictObject({
+    type: z.literal('CHARACTER_REPLACED'),
+    commandId: postgresUuidSchema,
+    encounterId: postgresUuidSchema,
+    actorId: postgresUuidSchema,
+    fromCharacterId: postgresUuidSchema,
+    toCharacterId: postgresUuidSchema
+  })
+)
+
+/**
  * The stored input of a Run command the room writes when relationships end on their own (D152): a
  * source that can't act, or a held creature moved beyond the sealed reach. Never sent by a client,
  * so it stays outside the Encounter command union.
@@ -783,6 +799,11 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       /** `RETURN_SPACE_OCCUPIED`: the GM timeline badges it. No Scene token is moved (D184). */
       ruleOverrides: encounterRuleWarningsDtoSchema
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('CHARACTER_REPLACED'),
+      /** The GM-only notice: "<old Character> swapped for <new Character>". */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('VOID_RULE_OCCURRENCE'),
