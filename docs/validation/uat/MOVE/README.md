@@ -6,19 +6,19 @@ Proves a player can move only their own token, that the table stops illegal move
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                    | Title                                              |
-| ------------- | ----- | --------------------------- | -------------------------------------------------- |
-| 66            | 2     | [UAT-MOVE-5](UAT-MOVE-5.md) | Moving outside an Encounter and in a sandbox       |
-| 67            | 2     | [UAT-MOVE-6](UAT-MOVE-6.md) | Peers converge, reload and departure               |
-| 106           | 3     | [UAT-MOVE-1](UAT-MOVE-1.md) | A player moves their own token                     |
-| 107           | 3     | [UAT-MOVE-3](UAT-MOVE-3.md) | Opportunity attack pauses the move                 |
-| 108           | 3     | [UAT-MOVE-4](UAT-MOVE-4.md) | Undo last token move                               |
-| 109           | 3     | [UAT-MOVE-7](UAT-MOVE-7.md) | Overrun, Shove Aside and Tumble                    |
-| 130           | 3     | [UAT-MOVE-2](UAT-MOVE-2.md) | Refusals at walls, hostile spaces and the map edge |
-| 131           | 3     | [UAT-MOVE-8](UAT-MOVE-8.md) | Hidden hazards, traps and auras                    |
-| 132           | 3     | [UAT-MOVE-9](UAT-MOVE-9.md) | Climb onto a larger creature                       |
+| Path position | Level | Scenario                    | Title                                              | Status  |
+| ------------- | ----- | --------------------------- | -------------------------------------------------- | ------- |
+| 66            | 2     | [UAT-MOVE-5](UAT-MOVE-5.md) | Moving outside an Encounter and in a sandbox       | NOT RUN |
+| 67            | 2     | [UAT-MOVE-6](UAT-MOVE-6.md) | Peers converge, reload and departure               | NOT RUN |
+| 106           | 3     | [UAT-MOVE-1](UAT-MOVE-1.md) | A player moves their own token                     | NOT RUN |
+| 107           | 3     | [UAT-MOVE-3](UAT-MOVE-3.md) | Opportunity attack pauses the move                 | NOT RUN |
+| 108           | 3     | [UAT-MOVE-4](UAT-MOVE-4.md) | Undo last token move                               | NOT RUN |
+| 109           | 3     | [UAT-MOVE-7](UAT-MOVE-7.md) | Overrun, Shove Aside and Tumble                    | NOT RUN |
+| 130           | 3     | [UAT-MOVE-2](UAT-MOVE-2.md) | Refusals at walls, hostile spaces and the map edge | NOT RUN |
+| 131           | 3     | [UAT-MOVE-8](UAT-MOVE-8.md) | Hidden hazards, traps and auras                    | NOT RUN |
+| 132           | 3     | [UAT-MOVE-9](UAT-MOVE-9.md) | Climb onto a larger creature                       | NOT RUN |
 
 ## Covered elsewhere
 

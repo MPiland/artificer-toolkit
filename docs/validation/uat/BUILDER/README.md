@@ -6,18 +6,18 @@ Proves a player can build a Character from choices, save and resume drafts, comm
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                          | Title                                                         |
-| ------------- | ----- | --------------------------------- | ------------------------------------------------------------- |
-| 33            | 1     | [UAT-BUILDER-1](UAT-BUILDER-1.md) | Build a Character, save, resume and commit                    |
-| 34            | 1     | [UAT-BUILDER-2](UAT-BUILDER-2.md) | Two windows on one draft cannot overwrite each other          |
-| 35            | 1     | [UAT-BUILDER-3](UAT-BUILDER-3.md) | Choice-heavy builds — multiclass and spellcaster              |
-| 36            | 1     | [UAT-BUILDER-7](UAT-BUILDER-7.md) | Build the Characters P2 and P3 will use in The Campaign       |
-| 37            | 1     | [UAT-BUILDER-4](UAT-BUILDER-4.md) | Removing content a Character uses repairs the Character       |
-| 38            | 1     | [UAT-BUILDER-6](UAT-BUILDER-6.md) | Imported custom items keep their kind, properties and damage  |
-| 54            | 2     | [UAT-BUILDER-5](UAT-BUILDER-5.md) | Withdrawing shared content reconciles assigned Characters     |
-| 70            | 2     | [UAT-BUILDER-8](UAT-BUILDER-8.md) | Permanently delete a Character that is in a running Encounter |
+| Path position | Level | Scenario                          | Title                                                         | Status  |
+| ------------- | ----- | --------------------------------- | ------------------------------------------------------------- | ------- |
+| 33            | 1     | [UAT-BUILDER-1](UAT-BUILDER-1.md) | Build a Character, save, resume and commit                    | NOT RUN |
+| 34            | 1     | [UAT-BUILDER-2](UAT-BUILDER-2.md) | Two windows on one draft cannot overwrite each other          | NOT RUN |
+| 35            | 1     | [UAT-BUILDER-3](UAT-BUILDER-3.md) | Choice-heavy builds — multiclass and spellcaster              | NOT RUN |
+| 36            | 1     | [UAT-BUILDER-7](UAT-BUILDER-7.md) | Build the Characters P2 and P3 will use in The Campaign       | NOT RUN |
+| 37            | 1     | [UAT-BUILDER-4](UAT-BUILDER-4.md) | Removing content a Character uses repairs the Character       | NOT RUN |
+| 38            | 1     | [UAT-BUILDER-6](UAT-BUILDER-6.md) | Imported custom items keep their kind, properties and damage  | NOT RUN |
+| 54            | 2     | [UAT-BUILDER-5](UAT-BUILDER-5.md) | Withdrawing shared content reconciles assigned Characters     | NOT RUN |
+| 70            | 2     | [UAT-BUILDER-8](UAT-BUILDER-8.md) | Permanently delete a Character that is in a running Encounter | NOT RUN |
 
 ## Covered elsewhere
 

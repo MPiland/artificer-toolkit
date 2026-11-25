@@ -6,14 +6,14 @@ This file proves the live map shows each token's identity, conditions, facing an
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                        | Title                                                 |
-| ------------- | ----- | ------------------------------- | ----------------------------------------------------- |
-| 120           | 3     | [UAT-VTT_UI-1](UAT-VTT_UI-1.md) | Token identity, status rings, facing and system state |
-| 121           | 3     | [UAT-VTT_UI-2](UAT-VTT_UI-2.md) | Previews, footprints, large tokens and dragging       |
-| 122           | 3     | [UAT-VTT_UI-4](UAT-VTT_UI-4.md) | Keyboard, screen reader and low zoom                  |
-| 145           | 3     | [UAT-VTT_UI-3](UAT-VTT_UI-3.md) | Light, fog, senses and the GM's view preview          |
+| Path position | Level | Scenario                        | Title                                                 | Status  |
+| ------------- | ----- | ------------------------------- | ----------------------------------------------------- | ------- |
+| 120           | 3     | [UAT-VTT_UI-1](UAT-VTT_UI-1.md) | Token identity, status rings, facing and system state | NOT RUN |
+| 121           | 3     | [UAT-VTT_UI-2](UAT-VTT_UI-2.md) | Previews, footprints, large tokens and dragging       | NOT RUN |
+| 122           | 3     | [UAT-VTT_UI-4](UAT-VTT_UI-4.md) | Keyboard, screen reader and low zoom                  | NOT RUN |
+| 145           | 3     | [UAT-VTT_UI-3](UAT-VTT_UI-3.md) | Light, fog, senses and the GM's view preview          | NOT RUN |
 
 ## Covered elsewhere
 

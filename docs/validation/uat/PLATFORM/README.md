@@ -6,15 +6,15 @@ PLATFORM is mostly infrastructure. What a tester can see is: the SRD content is 
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                            | Title                                                  |
-| ------------- | ----- | ----------------------------------- | ------------------------------------------------------ |
-| 15            | 1     | [UAT-PLATFORM-1](UAT-PLATFORM-1.md) | SRD content is present and browsable                   |
-| 16            | 1     | [UAT-PLATFORM-2](UAT-PLATFORM-2.md) | Upload, replace and remove an avatar                   |
-| 17            | 1     | [UAT-PLATFORM-3](UAT-PLATFORM-3.md) | Artwork is private to its owner until shared           |
-| 18            | 1     | [UAT-PLATFORM-4](UAT-PLATFORM-4.md) | Password reset email is requested from the app         |
-| 165           | 4     | [UAT-PLATFORM-5](UAT-PLATFORM-5.md) | A Concentration save shows its result on the roll card |
+| Path position | Level | Scenario                            | Title                                                  | Status  |
+| ------------- | ----- | ----------------------------------- | ------------------------------------------------------ | ------- |
+| 15            | 1     | [UAT-PLATFORM-1](UAT-PLATFORM-1.md) | SRD content is present and browsable                   | NOT RUN |
+| 16            | 1     | [UAT-PLATFORM-2](UAT-PLATFORM-2.md) | Upload, replace and remove an avatar                   | NOT RUN |
+| 17            | 1     | [UAT-PLATFORM-3](UAT-PLATFORM-3.md) | Artwork is private to its owner until shared           | NOT RUN |
+| 18            | 1     | [UAT-PLATFORM-4](UAT-PLATFORM-4.md) | Password reset email is requested from the app         | NOT RUN |
+| 165           | 4     | [UAT-PLATFORM-5](UAT-PLATFORM-5.md) | A Concentration save shows its result on the roll card | NOT RUN |
 
 ## Covered elsewhere
 

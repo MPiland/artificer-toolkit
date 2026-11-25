@@ -8,21 +8,21 @@ This file proves a GM and up to three players can fight at the same time: each p
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                          | Title                                                               |
-| ------------- | ----- | --------------------------------- | ------------------------------------------------------------------- |
-| 95            | 3     | [UAT-ATTACK-1](UAT-ATTACK-1.md)   | Effects, movement, reactions and the turn lifecycle pass end to end |
-| 96            | 3     | [UAT-ATTACK-2](UAT-ATTACK-2.md)   | Players control only their own actors                               |
-| 97            | 3     | [UAT-ATTACK-5](UAT-ATTACK-5.md)   | Targeting, hidden creatures and private roll cards                  |
-| 98            | 3     | [UAT-ATTACK-6](UAT-ATTACK-6.md)   | Hiding, invisibility and unseen attackers                           |
-| 99            | 3     | [UAT-ATTACK-8](UAT-ATTACK-8.md)   | Grapple, shove and basic actions                                    |
-| 100           | 3     | [UAT-ATTACK-10](UAT-ATTACK-10.md) | Multiattack and SRD monster attacks                                 |
-| 137           | 3     | [UAT-ATTACK-7](UAT-ATTACK-7.md)   | Optional combat rules in play                                       |
-| 138           | 3     | [UAT-ATTACK-9](UAT-ATTACK-9.md)   | Class features in play                                              |
-| 139           | 3     | [UAT-ATTACK-11](UAT-ATTACK-11.md) | Weapons in hand, loadouts and Disarm                                |
-| 151           | 4     | [UAT-ATTACK-3](UAT-ATTACK-3.md)   | Assisted warnings and "Do it anyway"                                |
-| 152           | 4     | [UAT-ATTACK-4](UAT-ATTACK-4.md)   | Undo last action and its refusals                                   |
+| Path position | Level | Scenario                          | Title                                                               | Status  |
+| ------------- | ----- | --------------------------------- | ------------------------------------------------------------------- | ------- |
+| 95            | 3     | [UAT-ATTACK-1](UAT-ATTACK-1.md)   | Effects, movement, reactions and the turn lifecycle pass end to end | NOT RUN |
+| 96            | 3     | [UAT-ATTACK-2](UAT-ATTACK-2.md)   | Players control only their own actors                               | NOT RUN |
+| 97            | 3     | [UAT-ATTACK-5](UAT-ATTACK-5.md)   | Targeting, hidden creatures and private roll cards                  | NOT RUN |
+| 98            | 3     | [UAT-ATTACK-6](UAT-ATTACK-6.md)   | Hiding, invisibility and unseen attackers                           | NOT RUN |
+| 99            | 3     | [UAT-ATTACK-8](UAT-ATTACK-8.md)   | Grapple, shove and basic actions                                    | NOT RUN |
+| 100           | 3     | [UAT-ATTACK-10](UAT-ATTACK-10.md) | Multiattack and SRD monster attacks                                 | NOT RUN |
+| 137           | 3     | [UAT-ATTACK-7](UAT-ATTACK-7.md)   | Optional combat rules in play                                       | NOT RUN |
+| 138           | 3     | [UAT-ATTACK-9](UAT-ATTACK-9.md)   | Class features in play                                              | NOT RUN |
+| 139           | 3     | [UAT-ATTACK-11](UAT-ATTACK-11.md) | Weapons in hand, loadouts and Disarm                                | NOT RUN |
+| 151           | 4     | [UAT-ATTACK-3](UAT-ATTACK-3.md)   | Assisted warnings and "Do it anyway"                                | NOT RUN |
+| 152           | 4     | [UAT-ATTACK-4](UAT-ATTACK-4.md)   | Undo last action and its refusals                                   | NOT RUN |
 
 ## Covered elsewhere
 

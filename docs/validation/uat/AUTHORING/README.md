@@ -6,25 +6,25 @@ Proves a GM or player can browse the SRD, copy any locked SRD record into their 
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                                | Title                                                                 |
-| ------------- | ----- | --------------------------------------- | --------------------------------------------------------------------- |
-| 19            | 1     | [UAT-AUTHORING-1](UAT-AUTHORING-1.md)   | Browse Game Systems and Rules Catalogues                              |
-| 20            | 1     | [UAT-AUTHORING-2](UAT-AUTHORING-2.md)   | SRD records are locked but can be copied into an owned draft          |
-| 21            | 1     | [UAT-AUTHORING-3](UAT-AUTHORING-3.md)   | Background lifecycle — create, save, publish, replace, export, delete |
-| 22            | 1     | [UAT-AUTHORING-10](UAT-AUTHORING-10.md) | Another account cannot see or edit your drafts                        |
-| 23            | 1     | [UAT-AUTHORING-4](UAT-AUTHORING-4.md)   | Author, publish and filter a homebrew Spell with artwork              |
-| 24            | 1     | [UAT-AUTHORING-5](UAT-AUTHORING-5.md)   | Author a Class and see the Spell guard                                |
-| 25            | 1     | [UAT-AUTHORING-7](UAT-AUTHORING-7.md)   | Equipment variants, inheritance and item names                        |
-| 26            | 1     | [UAT-AUTHORING-8](UAT-AUTHORING-8.md)   | Author a Feat, a Race and a Vehicle                                   |
-| 27            | 1     | [UAT-AUTHORING-9](UAT-AUTHORING-9.md)   | Reusable effects, grants and modifiers on a System                    |
-| 28            | 1     | [UAT-AUTHORING-12](UAT-AUTHORING-12.md) | Option descriptions and adding a Check and a DC                       |
-| 29            | 1     | [UAT-AUTHORING-13](UAT-AUTHORING-13.md) | Author a Fire Bolt-like cantrip from scratch                          |
-| 30            | 1     | [UAT-AUTHORING-14](UAT-AUTHORING-14.md) | Author a Fireball-like spell from scratch                             |
-| 31            | 1     | [UAT-AUTHORING-15](UAT-AUTHORING-15.md) | Author an Empowered Spell-like feature that spends a resource pool    |
-| 53            | 2     | [UAT-AUTHORING-11](UAT-AUTHORING-11.md) | Share homebrew with a Campaign, then withdraw it                      |
-| 94            | 3     | [UAT-AUTHORING-6](UAT-AUTHORING-6.md)   | Creature copy, computed AC and the item loadout                       |
+| Path position | Level | Scenario                                | Title                                                                 | Status  |
+| ------------- | ----- | --------------------------------------- | --------------------------------------------------------------------- | ------- |
+| 19            | 1     | [UAT-AUTHORING-1](UAT-AUTHORING-1.md)   | Browse Game Systems and Rules Catalogues                              | NOT RUN |
+| 20            | 1     | [UAT-AUTHORING-2](UAT-AUTHORING-2.md)   | SRD records are locked but can be copied into an owned draft          | NOT RUN |
+| 21            | 1     | [UAT-AUTHORING-3](UAT-AUTHORING-3.md)   | Background lifecycle — create, save, publish, replace, export, delete | NOT RUN |
+| 22            | 1     | [UAT-AUTHORING-10](UAT-AUTHORING-10.md) | Another account cannot see or edit your drafts                        | NOT RUN |
+| 23            | 1     | [UAT-AUTHORING-4](UAT-AUTHORING-4.md)   | Author, publish and filter a homebrew Spell with artwork              | NOT RUN |
+| 24            | 1     | [UAT-AUTHORING-5](UAT-AUTHORING-5.md)   | Author a Class and see the Spell guard                                | NOT RUN |
+| 25            | 1     | [UAT-AUTHORING-7](UAT-AUTHORING-7.md)   | Equipment variants, inheritance and item names                        | NOT RUN |
+| 26            | 1     | [UAT-AUTHORING-8](UAT-AUTHORING-8.md)   | Author a Feat, a Race and a Vehicle                                   | NOT RUN |
+| 27            | 1     | [UAT-AUTHORING-9](UAT-AUTHORING-9.md)   | Reusable effects, grants and modifiers on a System                    | NOT RUN |
+| 28            | 1     | [UAT-AUTHORING-12](UAT-AUTHORING-12.md) | Option descriptions and adding a Check and a DC                       | NOT RUN |
+| 29            | 1     | [UAT-AUTHORING-13](UAT-AUTHORING-13.md) | Author a Fire Bolt-like cantrip from scratch                          | NOT RUN |
+| 30            | 1     | [UAT-AUTHORING-14](UAT-AUTHORING-14.md) | Author a Fireball-like spell from scratch                             | NOT RUN |
+| 31            | 1     | [UAT-AUTHORING-15](UAT-AUTHORING-15.md) | Author an Empowered Spell-like feature that spends a resource pool    | NOT RUN |
+| 53            | 2     | [UAT-AUTHORING-11](UAT-AUTHORING-11.md) | Share homebrew with a Campaign, then withdraw it                      | NOT RUN |
+| 94            | 3     | [UAT-AUTHORING-6](UAT-AUTHORING-6.md)   | Creature copy, computed AC and the item loadout                       | NOT RUN |
 
 ## Authoring feedback
 

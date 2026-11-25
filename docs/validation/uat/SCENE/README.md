@@ -6,19 +6,19 @@ Proves a GM can upload and calibrate a map, build and present a Scene with token
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                      | Title                                       |
-| ------------- | ----- | ----------------------------- | ------------------------------------------- |
-| 59            | 2     | [UAT-SCENE-1](UAT-SCENE-1.md) | Upload a map, calibrate and create a Scene  |
-| 60            | 2     | [UAT-SCENE-2](UAT-SCENE-2.md) | Map upload refusals                         |
-| 61            | 2     | [UAT-SCENE-3](UAT-SCENE-3.md) | Present a Scene and build it live           |
-| 62            | 2     | [UAT-SCENE-4](UAT-SCENE-4.md) | Fog of war off, shared and per player       |
-| 63            | 2     | [UAT-SCENE-5](UAT-SCENE-5.md) | Doors                                       |
-| 64            | 2     | [UAT-SCENE-6](UAT-SCENE-6.md) | Offline edits recover                       |
-| 65            | 2     | [UAT-SCENE-9](UAT-SCENE-9.md) | One shared table screen for several players |
-| 72            | 2     | [UAT-SCENE-7](UAT-SCENE-7.md) | Map ownership and deletion                  |
-| 150           | 4     | [UAT-SCENE-8](UAT-SCENE-8.md) | GM loot tables                              |
+| Path position | Level | Scenario                      | Title                                       | Status  |
+| ------------- | ----- | ----------------------------- | ------------------------------------------- | ------- |
+| 59            | 2     | [UAT-SCENE-1](UAT-SCENE-1.md) | Upload a map, calibrate and create a Scene  | NOT RUN |
+| 60            | 2     | [UAT-SCENE-2](UAT-SCENE-2.md) | Map upload refusals                         | NOT RUN |
+| 61            | 2     | [UAT-SCENE-3](UAT-SCENE-3.md) | Present a Scene and build it live           | NOT RUN |
+| 62            | 2     | [UAT-SCENE-4](UAT-SCENE-4.md) | Fog of war off, shared and per player       | NOT RUN |
+| 63            | 2     | [UAT-SCENE-5](UAT-SCENE-5.md) | Doors                                       | NOT RUN |
+| 64            | 2     | [UAT-SCENE-6](UAT-SCENE-6.md) | Offline edits recover                       | NOT RUN |
+| 65            | 2     | [UAT-SCENE-9](UAT-SCENE-9.md) | One shared table screen for several players | NOT RUN |
+| 72            | 2     | [UAT-SCENE-7](UAT-SCENE-7.md) | Map ownership and deletion                  | NOT RUN |
+| 150           | 4     | [UAT-SCENE-8](UAT-SCENE-8.md) | GM loot tables                              | NOT RUN |
 
 ## Covered elsewhere
 

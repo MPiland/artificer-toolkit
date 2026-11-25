@@ -6,23 +6,23 @@ These scenarios prove that a dropped connection, a double click, a page refresh,
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                                    | Title                                                                |
-| ------------- | ----- | ------------------------------------------- | -------------------------------------------------------------------- |
-| 71            | 2     | [UAT-RELIABILITY-4](UAT-RELIABILITY-4.md)   | A new Scene measures lengths correctly in every unit                 |
-| 124           | 3     | [UAT-RELIABILITY-1](UAT-RELIABILITY-1.md)   | Privacy, replay, rollback, concurrency and performance hold together |
-| 125           | 3     | [UAT-RELIABILITY-2](UAT-RELIABILITY-2.md)   | Two users act at the same moment                                     |
-| 126           | 3     | [UAT-RELIABILITY-3](UAT-RELIABILITY-3.md)   | The room closes after everyone leaves and reopens with state intact  |
-| 127           | 3     | [UAT-RELIABILITY-6](UAT-RELIABILITY-6.md)   | A contested passage holds, then spends once                          |
-| 128           | 3     | [UAT-RELIABILITY-8](UAT-RELIABILITY-8.md)   | The Sheet shows correct rests, ability checks and hit points         |
-| 143           | 3     | [UAT-RELIABILITY-7](UAT-RELIABILITY-7.md)   | Authored speed and sense bonuses use the right length unit           |
-| 144           | 3     | [UAT-RELIABILITY-9](UAT-RELIABILITY-9.md)   | Roll reasons and initiative read the right source                    |
-| 186           | 5     | [UAT-RELIABILITY-5](UAT-RELIABILITY-5.md)   | Forms and sign-out recover without silent data loss                  |
-| 187           | 5     | [UAT-RELIABILITY-10](UAT-RELIABILITY-10.md) | Builder and party inventory values are right                         |
-| 188           | 5     | [UAT-RELIABILITY-11](UAT-RELIABILITY-11.md) | Authoring selects, labels and lists                                  |
-| 189           | 5     | [UAT-RELIABILITY-12](UAT-RELIABILITY-12.md) | Core pages open with their data                                      |
-| 192           | 5     | [UAT-RELIABILITY-13](UAT-RELIABILITY-13.md) | Account deletion closes the live table                               |
+| Path position | Level | Scenario                                    | Title                                                                | Status  |
+| ------------- | ----- | ------------------------------------------- | -------------------------------------------------------------------- | ------- |
+| 71            | 2     | [UAT-RELIABILITY-4](UAT-RELIABILITY-4.md)   | A new Scene measures lengths correctly in every unit                 | NOT RUN |
+| 124           | 3     | [UAT-RELIABILITY-1](UAT-RELIABILITY-1.md)   | Privacy, replay, rollback, concurrency and performance hold together | NOT RUN |
+| 125           | 3     | [UAT-RELIABILITY-2](UAT-RELIABILITY-2.md)   | Two users act at the same moment                                     | NOT RUN |
+| 126           | 3     | [UAT-RELIABILITY-3](UAT-RELIABILITY-3.md)   | The room closes after everyone leaves and reopens with state intact  | NOT RUN |
+| 127           | 3     | [UAT-RELIABILITY-6](UAT-RELIABILITY-6.md)   | A contested passage holds, then spends once                          | NOT RUN |
+| 128           | 3     | [UAT-RELIABILITY-8](UAT-RELIABILITY-8.md)   | The Sheet shows correct rests, ability checks and hit points         | NOT RUN |
+| 143           | 3     | [UAT-RELIABILITY-7](UAT-RELIABILITY-7.md)   | Authored speed and sense bonuses use the right length unit           | NOT RUN |
+| 144           | 3     | [UAT-RELIABILITY-9](UAT-RELIABILITY-9.md)   | Roll reasons and initiative read the right source                    | NOT RUN |
+| 186           | 5     | [UAT-RELIABILITY-5](UAT-RELIABILITY-5.md)   | Forms and sign-out recover without silent data loss                  | NOT RUN |
+| 187           | 5     | [UAT-RELIABILITY-10](UAT-RELIABILITY-10.md) | Builder and party inventory values are right                         | NOT RUN |
+| 188           | 5     | [UAT-RELIABILITY-11](UAT-RELIABILITY-11.md) | Authoring selects, labels and lists                                  | NOT RUN |
+| 189           | 5     | [UAT-RELIABILITY-12](UAT-RELIABILITY-12.md) | Core pages open with their data                                      | NOT RUN |
+| 192           | 5     | [UAT-RELIABILITY-13](UAT-RELIABILITY-13.md) | Account deletion closes the live table                               | NOT RUN |
 
 ## Covered elsewhere
 

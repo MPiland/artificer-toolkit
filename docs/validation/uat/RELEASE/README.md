@@ -6,11 +6,11 @@ These scenarios check the alpha play guide against the running build and record 
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                          | Title                              |
-| ------------- | ----- | --------------------------------- | ---------------------------------- |
-| 193           | 5     | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
+| Path position | Level | Scenario                          | Title                              | Status  |
+| ------------- | ----- | --------------------------------- | ---------------------------------- | ------- |
+| 193           | 5     | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance | NOT RUN |
 
 ## Covered elsewhere
 

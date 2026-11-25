@@ -6,15 +6,15 @@ The rules engine is mostly invisible. A tester sees it in two places: authored f
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                      | Title                                                                        |
-| ------------- | ----- | ----------------------------- | ---------------------------------------------------------------------------- |
-| 32            | 1     | [UAT-RULES-1](UAT-RULES-1.md) | Authoring forms show, hide and require fields as choices change              |
-| 118           | 3     | [UAT-RULES-3](UAT-RULES-3.md) | A reaction pauses a hit; answering resumes it; privacy of the pause          |
-| 119           | 3     | [UAT-RULES-4](UAT-RULES-4.md) | Healing keeps its dice and modifier visible in the roll card                 |
-| 153           | 4     | [UAT-RULES-2](UAT-RULES-2.md) | A started Encounter pauses for answers and resumes with nothing half-applied |
-| 154           | 4     | [UAT-RULES-5](UAT-RULES-5.md) | An attack with two damage parts keeps each part visible                      |
+| Path position | Level | Scenario                      | Title                                                                        | Status  |
+| ------------- | ----- | ----------------------------- | ---------------------------------------------------------------------------- | ------- |
+| 32            | 1     | [UAT-RULES-1](UAT-RULES-1.md) | Authoring forms show, hide and require fields as choices change              | NOT RUN |
+| 118           | 3     | [UAT-RULES-3](UAT-RULES-3.md) | A reaction pauses a hit; answering resumes it; privacy of the pause          | NOT RUN |
+| 119           | 3     | [UAT-RULES-4](UAT-RULES-4.md) | Healing keeps its dice and modifier visible in the roll card                 | NOT RUN |
+| 153           | 4     | [UAT-RULES-2](UAT-RULES-2.md) | A started Encounter pauses for answers and resumes with nothing half-applied | NOT RUN |
+| 154           | 4     | [UAT-RULES-5](UAT-RULES-5.md) | An attack with two damage parts keeps each part visible                      | NOT RUN |
 
 ## Covered elsewhere
 

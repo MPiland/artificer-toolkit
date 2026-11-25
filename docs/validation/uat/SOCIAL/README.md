@@ -6,16 +6,16 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                        | Title                                            |
-| ------------- | ----- | ------------------------------- | ------------------------------------------------ |
-| 51            | 2     | [UAT-SOCIAL-1](UAT-SOCIAL-1.md) | Create a listing, apply, accept and fill a table |
-| 52            | 2     | [UAT-SOCIAL-2](UAT-SOCIAL-2.md) | Invitations and Social Hub navigation            |
-| 155           | 4     | [UAT-SOCIAL-3](UAT-SOCIAL-3.md) | Blocks and what they do                          |
-| 156           | 4     | [UAT-SOCIAL-4](UAT-SOCIAL-4.md) | Private profiles and masking                     |
-| 157           | 4     | [UAT-SOCIAL-5](UAT-SOCIAL-5.md) | Notification feed, read state and preferences    |
-| 191           | 5     | [UAT-SOCIAL-6](UAT-SOCIAL-6.md) | Plan limits and capacity                         |
+| Path position | Level | Scenario                        | Title                                            | Status  |
+| ------------- | ----- | ------------------------------- | ------------------------------------------------ | ------- |
+| 51            | 2     | [UAT-SOCIAL-1](UAT-SOCIAL-1.md) | Create a listing, apply, accept and fill a table | NOT RUN |
+| 52            | 2     | [UAT-SOCIAL-2](UAT-SOCIAL-2.md) | Invitations and Social Hub navigation            | NOT RUN |
+| 155           | 4     | [UAT-SOCIAL-3](UAT-SOCIAL-3.md) | Blocks and what they do                          | NOT RUN |
+| 156           | 4     | [UAT-SOCIAL-4](UAT-SOCIAL-4.md) | Private profiles and masking                     | NOT RUN |
+| 157           | 4     | [UAT-SOCIAL-5](UAT-SOCIAL-5.md) | Notification feed, read state and preferences    | NOT RUN |
+| 191           | 5     | [UAT-SOCIAL-6](UAT-SOCIAL-6.md) | Plan limits and capacity                         | NOT RUN |
 
 ## Covered elsewhere
 

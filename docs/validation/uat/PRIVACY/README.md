@@ -6,19 +6,19 @@ Proves that at a live table the GM sees everything, each player sees only what t
 
 ## Scenarios
 
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
+One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in. Set the Status column to the same result (PASSED, FAILED, BLOCKED or SKIPPED) so you can see where you left off.
 
-| Path position | Level | Scenario                          | Title                                                |
-| ------------- | ----- | --------------------------------- | ---------------------------------------------------- |
-| 101           | 3     | [UAT-PRIVACY-1](UAT-PRIVACY-1.md) | What a player sees of the Encounter                  |
-| 102           | 3     | [UAT-PRIVACY-2](UAT-PRIVACY-2.md) | GM private rolls and monster rolls                   |
-| 103           | 3     | [UAT-PRIVACY-5](UAT-PRIVACY-5.md) | Reloads and replays do not leak                      |
-| 104           | 3     | [UAT-PRIVACY-6](UAT-PRIVACY-6.md) | Health display settings                              |
-| 105           | 3     | [UAT-PRIVACY-7](UAT-PRIVACY-7.md) | Other players' Sheets and Campaign roster            |
-| 123           | 3     | [UAT-PRIVACY-9](UAT-PRIVACY-9.md) | A hidden Concentration source stays hidden           |
-| 133           | 3     | [UAT-PRIVACY-4](UAT-PRIVACY-4.md) | Ownership transfer changes who sees what             |
-| 135           | 3     | [UAT-PRIVACY-3](UAT-PRIVACY-3.md) | Non-members, removed players and signed-out visitors |
-| 136           | 3     | [UAT-PRIVACY-8](UAT-PRIVACY-8.md) | Campaign content stays hidden until revealed         |
+| Path position | Level | Scenario                          | Title                                                | Status  |
+| ------------- | ----- | --------------------------------- | ---------------------------------------------------- | ------- |
+| 101           | 3     | [UAT-PRIVACY-1](UAT-PRIVACY-1.md) | What a player sees of the Encounter                  | NOT RUN |
+| 102           | 3     | [UAT-PRIVACY-2](UAT-PRIVACY-2.md) | GM private rolls and monster rolls                   | NOT RUN |
+| 103           | 3     | [UAT-PRIVACY-5](UAT-PRIVACY-5.md) | Reloads and replays do not leak                      | NOT RUN |
+| 104           | 3     | [UAT-PRIVACY-6](UAT-PRIVACY-6.md) | Health display settings                              | NOT RUN |
+| 105           | 3     | [UAT-PRIVACY-7](UAT-PRIVACY-7.md) | Other players' Sheets and Campaign roster            | NOT RUN |
+| 123           | 3     | [UAT-PRIVACY-9](UAT-PRIVACY-9.md) | A hidden Concentration source stays hidden           | NOT RUN |
+| 133           | 3     | [UAT-PRIVACY-4](UAT-PRIVACY-4.md) | Ownership transfer changes who sees what             | NOT RUN |
+| 135           | 3     | [UAT-PRIVACY-3](UAT-PRIVACY-3.md) | Non-members, removed players and signed-out visitors | NOT RUN |
+| 136           | 3     | [UAT-PRIVACY-8](UAT-PRIVACY-8.md) | Campaign content stays hidden until revealed         | NOT RUN |
 
 ## Covered elsewhere
 
