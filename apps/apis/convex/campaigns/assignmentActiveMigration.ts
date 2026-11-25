@@ -14,9 +14,7 @@ const migrations = new Migrations(components.migrations, {
 
 export const markAssignmentsActive = migrations.define({
   table: 'campaignCharacterAssignments',
-  migrateOne: async (ctx, assignment) => {
-    if (!('active' in assignment)) await ctx.db.patch(assignment._id, { active: true })
-  }
+  migrateOne: (_ctx, assignment) => (assignment.active === undefined ? { active: true } : undefined)
 })
 
 export const run = migrations.runner([
