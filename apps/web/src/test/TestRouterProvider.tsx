@@ -69,6 +69,7 @@ function createTestRouter(
     createStaticRoute('/auth/confirmed', getParentRoute),
     createStaticRoute('/home', getParentRoute),
     createStaticRoute('/characters', getParentRoute),
+    createStaticRoute('/campaigns/$campaignPublicId/$campaignSlug', getParentRoute),
     createStaticRoute('/settings', getParentRoute),
     createStaticRoute('/settings/profile', getParentRoute),
     createStaticRoute('/settings/preferences', getParentRoute),

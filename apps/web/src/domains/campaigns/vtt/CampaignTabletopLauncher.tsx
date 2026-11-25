@@ -1,6 +1,7 @@
 import { Button, Group, Text } from '@mantine/core'
 import { ExternalLink, Gamepad2 } from 'lucide-react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { useTabletopSupported } from '#ui'
 import {
   buildTabletopHref,
   openAuxiliaryWindow,
@@ -9,6 +10,9 @@ import {
 import * as styles from '../campaignSessions.css'
 
 export function CampaignTabletopLauncher({ campaign }: { campaign: CampaignDetailDto }) {
+  const tabletopSupported = useTabletopSupported()
+  if (!tabletopSupported) return null
+
   const href = buildTabletopHref(campaign.publicId)
 
   return (

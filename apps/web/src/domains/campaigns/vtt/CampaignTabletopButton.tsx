@@ -2,6 +2,7 @@ import { ActionIcon, Tooltip } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { Gamepad2 } from 'lucide-react'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
+import { useTabletopSupported } from '#ui'
 import {
   buildTabletopHref,
   openAuxiliaryWindow,
@@ -10,7 +11,8 @@ import {
 
 export function CampaignTabletopButton({ campaignId }: { campaignId: string }) {
   const campaignDetail = useQuery(getCampaignDetail(campaignId)).data
-  if (!campaignDetail) return null
+  const tabletopSupported = useTabletopSupported()
+  if (!campaignDetail || !tabletopSupported) return null
 
   const href = buildTabletopHref(campaignDetail.publicId)
   return (
