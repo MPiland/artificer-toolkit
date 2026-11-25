@@ -4,28 +4,6 @@ Feature `ACCOUNTS` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 Proves a GM and players can sign in and out safely, that signing out ends every tab of your own account and nobody else's, that strangers cannot sign up or read private profiles, and that usernames and account deletion follow the rules. Accounts here: see [README](../README.md#roles-and-accounts).
 
-## Scenarios
-
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
-
-| Path position | Level | Scenario                              | Title                                                                  |
-| ------------- | ----- | ------------------------------------- | ---------------------------------------------------------------------- |
-| 2             | 1     | [UAT-ACCOUNTS-1](UAT-ACCOUNTS-1.md)   | Sign in, reload, sign out, sign back in by username                    |
-| 3             | 1     | [UAT-ACCOUNTS-2](UAT-ACCOUNTS-2.md)   | Wrong password and unknown account are refused                         |
-| 4             | 1     | [UAT-ACCOUNTS-4](UAT-ACCOUNTS-4.md)   | Public sign-up is closed                                               |
-| 5             | 1     | [UAT-ACCOUNTS-6](UAT-ACCOUNTS-6.md)   | Create an account from an invitation                                   |
-| 6             | 1     | [UAT-ACCOUNTS-5](UAT-ACCOUNTS-5.md)   | Reset a forgotten password (wrong code, mismatch, then success)        |
-| 7             | 1     | [UAT-ACCOUNTS-14](UAT-ACCOUNTS-14.md) | Change your password in Account Settings                               |
-| 8             | 1     | [UAT-ACCOUNTS-15](UAT-ACCOUNTS-15.md) | Change your email in Account Settings                                  |
-| 9             | 1     | [UAT-ACCOUNTS-7](UAT-ACCOUNTS-7.md)   | Choose, change and protect a username                                  |
-| 10            | 1     | [UAT-ACCOUNTS-13](UAT-ACCOUNTS-13.md) | Campaign text follows the same language rules as usernames             |
-| 11            | 1     | [UAT-ACCOUNTS-8](UAT-ACCOUNTS-8.md)   | Private profiles stay private; Public profiles show only public fields |
-| 12            | 1     | [UAT-ACCOUNTS-3](UAT-ACCOUNTS-3.md)   | Sign-out ends every tab of your account and nobody else's              |
-| 13            | 1     | [UAT-ACCOUNTS-9](UAT-ACCOUNTS-9.md)   | Ordinary users cannot use superadmin tools                             |
-| 14            | 1     | [UAT-ACCOUNTS-10](UAT-ACCOUNTS-10.md) | Superadmin moderation                                                  |
-| 190           | 5     | [UAT-ACCOUNTS-11](UAT-ACCOUNTS-11.md) | Refused account deletions                                              |
-| 195           | 5     | [UAT-ACCOUNTS-12](UAT-ACCOUNTS-12.md) | Delete my account, shared history survives                             |
-
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.

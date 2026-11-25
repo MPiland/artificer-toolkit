@@ -4,18 +4,6 @@ Feature `PLATFORM` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 PLATFORM is mostly infrastructure. What a tester can see is: the SRD content is present and browsable, images can be uploaded, viewed and removed with the right privacy, and account emails are requested from the app. Everything else is proved by its ledger tests and is listed under Covered elsewhere.
 
-## Scenarios
-
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
-
-| Path position | Level | Scenario                            | Title                                                  |
-| ------------- | ----- | ----------------------------------- | ------------------------------------------------------ |
-| 15            | 1     | [UAT-PLATFORM-1](UAT-PLATFORM-1.md) | SRD content is present and browsable                   |
-| 16            | 1     | [UAT-PLATFORM-2](UAT-PLATFORM-2.md) | Upload, replace and remove an avatar                   |
-| 17            | 1     | [UAT-PLATFORM-3](UAT-PLATFORM-3.md) | Artwork is private to its owner until shared           |
-| 18            | 1     | [UAT-PLATFORM-4](UAT-PLATFORM-4.md) | Password reset email is requested from the app         |
-| 165           | 4     | [UAT-PLATFORM-5](UAT-PLATFORM-5.md) | A Concentration save shows its result on the roll card |
-
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.

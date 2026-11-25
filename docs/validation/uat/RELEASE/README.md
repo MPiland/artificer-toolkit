@@ -4,14 +4,6 @@ Feature `RELEASE` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 These scenarios check the alpha play guide against the running build and record the owner's UI review sign-off. Staging and production steps are not local UAT.
 
-## Scenarios
-
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
-
-| Path position | Level | Scenario                          | Title                              |
-| ------------- | ----- | --------------------------------- | ---------------------------------- |
-| 193           | 5     | [UAT-RELEASE-1](UAT-RELEASE-1.md) | Exact cleanup and final acceptance |
-
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.

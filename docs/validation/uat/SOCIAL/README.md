@@ -4,19 +4,6 @@ Feature `SOCIAL` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 Proves players can find a table, apply, be accepted or refused, block and be blocked, receive notifications they chose, and that plan limits stop over-use without destroying data. Accounts: [README](../README.md#roles-and-accounts). Record results: [TESTERS](../TESTERS.md#recording-results). Read email as [Reading email](../TESTERS.md#reading-email) describes.
 
-## Scenarios
-
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
-
-| Path position | Level | Scenario                        | Title                                            |
-| ------------- | ----- | ------------------------------- | ------------------------------------------------ |
-| 51            | 2     | [UAT-SOCIAL-1](UAT-SOCIAL-1.md) | Create a listing, apply, accept and fill a table |
-| 52            | 2     | [UAT-SOCIAL-2](UAT-SOCIAL-2.md) | Invitations and Social Hub navigation            |
-| 155           | 4     | [UAT-SOCIAL-3](UAT-SOCIAL-3.md) | Blocks and what they do                          |
-| 156           | 4     | [UAT-SOCIAL-4](UAT-SOCIAL-4.md) | Private profiles and masking                     |
-| 157           | 4     | [UAT-SOCIAL-5](UAT-SOCIAL-5.md) | Notification feed, read state and preferences    |
-| 191           | 5     | [UAT-SOCIAL-6](UAT-SOCIAL-6.md) | Plan limits and capacity                         |
-
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.

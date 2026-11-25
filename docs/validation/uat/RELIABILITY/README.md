@@ -4,26 +4,6 @@ Feature `RELIABILITY` in the [phase ledger](../../../roadmap/08-phase-ledger.jso
 
 These scenarios prove that a dropped connection, a double click, a page refresh, two people acting at the same instant, and a closed-and-reopened room never lose a decision, apply an action twice, or leak private information. Accounts and several-window setup are in the README: [accounts](../README.md#roles-and-accounts), [running several users side by side](../README.md#role-setup-for-the-owner). To drop a connection on purpose, open the browser's developer tools, go to the Network panel and set throttling to "Offline" (set it back to "No throttling" to reconnect), or close the tab and reopen the live table.
 
-## Scenarios
-
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
-
-| Path position | Level | Scenario                                    | Title                                                                |
-| ------------- | ----- | ------------------------------------------- | -------------------------------------------------------------------- |
-| 71            | 2     | [UAT-RELIABILITY-4](UAT-RELIABILITY-4.md)   | A new Scene measures lengths correctly in every unit                 |
-| 124           | 3     | [UAT-RELIABILITY-1](UAT-RELIABILITY-1.md)   | Privacy, replay, rollback, concurrency and performance hold together |
-| 125           | 3     | [UAT-RELIABILITY-2](UAT-RELIABILITY-2.md)   | Two users act at the same moment                                     |
-| 126           | 3     | [UAT-RELIABILITY-3](UAT-RELIABILITY-3.md)   | The room closes after everyone leaves and reopens with state intact  |
-| 127           | 3     | [UAT-RELIABILITY-6](UAT-RELIABILITY-6.md)   | A contested passage holds, then spends once                          |
-| 128           | 3     | [UAT-RELIABILITY-8](UAT-RELIABILITY-8.md)   | The Sheet shows correct rests, ability checks and hit points         |
-| 143           | 3     | [UAT-RELIABILITY-7](UAT-RELIABILITY-7.md)   | Authored speed and sense bonuses use the right length unit           |
-| 144           | 3     | [UAT-RELIABILITY-9](UAT-RELIABILITY-9.md)   | Roll reasons and initiative read the right source                    |
-| 186           | 5     | [UAT-RELIABILITY-5](UAT-RELIABILITY-5.md)   | Forms and sign-out recover without silent data loss                  |
-| 187           | 5     | [UAT-RELIABILITY-10](UAT-RELIABILITY-10.md) | Builder and party inventory values are right                         |
-| 188           | 5     | [UAT-RELIABILITY-11](UAT-RELIABILITY-11.md) | Authoring selects, labels and lists                                  |
-| 189           | 5     | [UAT-RELIABILITY-12](UAT-RELIABILITY-12.md) | Core pages open with their data                                      |
-| 192           | 5     | [UAT-RELIABILITY-13](UAT-RELIABILITY-13.md) | Account deletion closes the live table                               |
-
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
