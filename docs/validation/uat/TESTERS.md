@@ -57,7 +57,7 @@ Each scenario's **Prerequisites** say what must come first. If one is missing, m
 
 - Mark every step as you go: `[P]` passed, `[F]` failed, `[-]` not reached.
 - Fill in the **Result** block at the end of the scenario's file: **Status** (NOT RUN, PASSED, FAILED, BLOCKED or SKIPPED), **Date**, **Build**, **Tester** (your name), **Failure details** (which step, expected vs actual, exact message text, whether it repeats) and **Notes**. The scenario ID is the file name, so every note stays tied to its context.
-- Then tick the scenario in the [tracker](TRACKER.md) and set the same status there.
+- Then set the same status in the scenario's row of the [tracker](TRACKER.md).
 - **PASSED** means every Expected line held and the owner has run its "Other users see" or "Cross-role check" lines. Take at least one screenshot per scenario of its final state, named with the scenario ID; for Group scenarios, one per role window.
 - A behaviour listed in the play guide's [known gaps](../../guides/alpha-play-guide.md#known-gaps) is not a failure; note it only if it hurt the session.
 - When the owner accepts a feature, the orchestrator sets each of its ledger `uat` items to PASSED with the tracker as evidence.
