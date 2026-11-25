@@ -71,6 +71,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Status:** NOT RUN (change to PASSED, FAILED, BLOCKED or SKIPPED)
 - **Date:**
 - **Build:**
+- **Device:** (desktop, tablet or phone; browser; real device or emulated width)
 - **Tester:**
 - **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
 - **Notes:**
