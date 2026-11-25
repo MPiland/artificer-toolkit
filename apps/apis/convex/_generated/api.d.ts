@@ -307576,36 +307576,6 @@ export declare const internal: {
         null
       >;
     };
-    assignmentActiveMigration: {
-      markAssignmentsActive: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
-      run: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
-    };
     characterReconcileSteps: {
       run: FunctionReference<
         "mutation",
