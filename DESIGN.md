@@ -124,7 +124,7 @@ The Character Sheet is the runtime counterpart: modern, compact, and play-first.
 
 The visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. On native clients, Forge identity maps through platform-native color roles, typography, navigation, controls, materials, and motion rather than recreating web components. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.
 
-This system explicitly rejects the anti-references captured in [PRODUCT.md](PRODUCT.md): Azure DevOps form clutter, D&D Beyond content-creation brittleness, and any UI that treats responsive support as secondary. Desktop and mobile are equal citizens.
+This system explicitly rejects the anti-references captured in [PRODUCT.md](PRODUCT.md): Azure DevOps form clutter, D&D Beyond content-creation brittleness, and any UI that treats responsive support as secondary. Desktop and mobile are equal citizens; the one exception is the live tabletop, which needs a large tablet or a computer (D237).
 
 **Key Characteristics:**
 

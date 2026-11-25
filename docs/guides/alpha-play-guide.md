@@ -15,6 +15,12 @@ A plain-language guide to the live table for alpha players and GMs. It describes
 
 ## For everyone
 
+### Supported devices
+
+- **The live tabletop** needs a large tablet (an iPad in landscape, any iPad Pro) or a computer: a screen whose longer side is at least 1024 px. On a phone or small tablet the buttons that open it are hidden, and the tabletop address says it needs a larger screen.
+- On a large tablet held in portrait, or in a computer window narrower than 1024 px, a prompt asks you to turn to landscape or widen the window. The tabletop returns as soon as it fits, with no reload.
+- **Everything else** (accounts, the Builder, Sheets, Campaigns, Social and authoring) works on any device.
+
 ### Joining the live table
 
 1. Open the Campaign's session page and choose **Open tabletop window** in the **Live tabletop** panel. You can also use **Open live tabletop window** on a Character Sheet.
