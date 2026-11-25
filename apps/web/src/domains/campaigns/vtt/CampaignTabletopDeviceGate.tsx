@@ -28,9 +28,13 @@ export function CampaignTabletopDeviceGate({
           this device.
         </Text>
         <Button
-          component={Link}
-          params={campaignRouteParams}
-          to='/campaigns/$campaignPublicId/$campaignSlug'
+          renderRoot={(props) => (
+            <Link
+              {...props}
+              params={campaignRouteParams}
+              to='/campaigns/$campaignPublicId/$campaignSlug'
+            />
+          )}
         >
           Back to the Campaign
         </Button>
