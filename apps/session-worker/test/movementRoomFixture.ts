@@ -1,4 +1,4 @@
-import { runInDurableObject } from 'cloudflare:test'
+import { runInDurableObject, SELF } from 'cloudflare:test'
 import { vi } from 'vitest'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
@@ -10,7 +10,11 @@ import {
   liveRoomInputsInputSchema,
   type LiveRoomInputsResponse
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
-import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
+import {
+  LIVE_SESSION_CONTROL_PATH,
+  LIVE_SESSION_CONTROL_SECRET_HEADER,
+  type LiveSessionWebSocketServerMessageDto
+} from '@artificer-toolkit/schema/api/liveSessions'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { encounterSceneBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import {
@@ -72,9 +76,14 @@ import {
   fixture,
   ROOM_REPLY_WAIT,
   routeEncounterRequests,
+  secret,
   synchronizeScene
 } from './liveRoomFixture.js'
-import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
+import {
+  ROOM_AUTHORIZATION_PATH,
+  roomAuthorizationResponse,
+  type RoomAuthorizationAssignment
+} from './roomAuthorizationFixture.js'
 import { readPendingActionDecision } from './roomHistoryReads.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
 
@@ -268,6 +277,8 @@ export interface MovementRoomConfig {
   secondCharacter?: SeatedCharacter
   /** A third Character of the Run, owned by a third player (two creatures react to one cast). */
   thirdCharacter?: SeatedCharacter
+  /** A Character the Run Character's owner keeps on the bench: attached, in no Run (D236). */
+  benchedCharacterId?: string
   /** The next dice results (see `rigDice`); `fallbackRoll` serves every roll after them. */
   rolls?: readonly number[]
   fallbackRoll?: number
@@ -467,7 +478,11 @@ export async function movementRoom(config: MovementRoomConfig) {
       : null
   const secondCharacterPage = await seatedPage(config.secondCharacter, base.otherPlayerId)
   const thirdCharacterPage = await seatedPage(config.thirdCharacter, thirdPlayerId)
-  const assignments = [
+  const benchedCharacterPage = await seatedPage(
+    config.benchedCharacterId ? { characterId: config.benchedCharacterId } : undefined,
+    runCharacterOwnerId
+  )
+  let assignments: RoomAuthorizationAssignment[] = [
     ...(characterId ? [{ characterId, userId: runCharacterOwnerId }] : []),
     ...(config.outsideCasterCharacterId
       ? [{ characterId: config.outsideCasterCharacterId, userId: base.playerId }]
@@ -477,6 +492,9 @@ export async function movementRoom(config: MovementRoomConfig) {
       : []),
     ...(config.thirdCharacter
       ? [{ characterId: config.thirdCharacter.characterId, userId: thirdPlayerId }]
+      : []),
+    ...(config.benchedCharacterId
+      ? [{ characterId: config.benchedCharacterId, userId: runCharacterOwnerId, active: false }]
       : [])
   ]
 
@@ -637,6 +655,10 @@ export async function movementRoom(config: MovementRoomConfig) {
       ...(thirdCharacterPage?.parts ?? []).map((part) => ({
         part: withOwnRowIds(part, 'third'),
         partCharacterId: config.thirdCharacter?.characterId
+      })),
+      ...(benchedCharacterPage?.parts ?? []).map((part) => ({
+        part: withOwnRowIds(part, 'benched'),
+        partCharacterId: config.benchedCharacterId
       }))
     ].map(({ part, partCharacterId }) => {
       if (part.status !== 'ASSIGNED') throw new Error('The Character fixture part is not assigned.')
@@ -727,6 +749,14 @@ export async function movementRoom(config: MovementRoomConfig) {
                   {
                     characterId: config.thirdCharacter!.characterId,
                     revision: thirdCharacterPage.characterRevision
+                  }
+                ]
+              : []),
+            ...(benchedCharacterPage
+              ? [
+                  {
+                    characterId: config.benchedCharacterId!,
+                    revision: benchedCharacterPage.characterRevision
                   }
                 ]
               : [])
@@ -1023,6 +1053,29 @@ export async function movementRoom(config: MovementRoomConfig) {
     scene,
     moverTokenId,
     ...commandsOn(base),
+    /**
+     * Convex commits the owner's switch to `benchedCharacterId` and notifies the room, which settles
+     * the swap on its command chain (D236).
+     */
+    async switchToBenchedCharacter() {
+      assignments = assignments.map((assignment) =>
+        assignment.userId === runCharacterOwnerId
+          ? { ...assignment, active: assignment.characterId === config.benchedCharacterId }
+          : assignment
+      )
+      const response = await SELF.fetch(`https://session.test${LIVE_SESSION_CONTROL_PATH}`, {
+        body: JSON.stringify({
+          campaignId,
+          operation: { type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] }
+        }),
+        headers: {
+          'content-type': 'application/json',
+          [LIVE_SESSION_CONTROL_SECRET_HEADER]: secret
+        },
+        method: 'POST'
+      })
+      if (!response.ok) throw new Error('The room refused the Campaign notice.')
+    },
     /**
      * The same commands sent on the socket of the room's player (`PLAYER`) or its second player
      * (`OTHER_PLAYER`), whom the room's admission and actor control judge as any other player.

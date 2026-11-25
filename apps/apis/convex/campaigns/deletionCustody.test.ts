@@ -515,7 +515,7 @@ describe('native Campaign custody deletion', () => {
         .spyOn(deletionState, 'removeCampaignState')
         .mockImplementation(async (ctx, captured) => {
           const progress = await original(ctx, captured)
-          if (captured.phase !== 20) return progress
+          if (captured.phase !== 21) return progress
           const eventsAfterWrite = await ctx.db
             .query('campaignEvents')
             .withIndex('by_campaignId_id', (q) => q.eq('campaignId', target.id))

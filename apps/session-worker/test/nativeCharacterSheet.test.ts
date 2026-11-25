@@ -132,15 +132,14 @@ async function sheetRoom(
     ownerUserId: characterUserId,
     darkvision: true
   })
-  const benchedParts = options.benched
-    ? (
-        await characterRoomInputs({
-          campaignId,
-          characterId: benchedCharacterId,
-          ownerUserId: characterUserId
-        })
-      ).parts
-    : []
+  const benched = options.benched
+    ? await characterRoomInputs({
+        campaignId,
+        characterId: benchedCharacterId,
+        ownerUserId: characterUserId
+      })
+    : null
+  const benchedParts = benched?.parts ?? []
   let characterEdited = false
   /**
    * How many Character reads still report a Campaign revision the System read disagrees with: a GM
@@ -223,8 +222,12 @@ async function sheetRoom(
               {
                 characterId,
                 revision: characterEdited ? edited.characterRevision : inputs.characterRevision
-              }
-            ],
+              },
+              // Convex reports every attached Character, benched ones included, by id.
+              ...(benched
+                ? [{ characterId: benchedCharacterId, revision: benched.characterRevision }]
+                : [])
+            ].sort((left, right) => left.characterId.localeCompare(right.characterId)),
             play: {
               encounter:
                 options.run?.status === 'PREPARED'
@@ -834,13 +837,45 @@ it("ends the actor's turn once when its Character is swapped on its turn (D236)"
   })
 })
 
-it('voids a decision the swapped actor owes before swapping it (D236)', async () => {
+it('keeps the Character in the Run while it owes a decision a void cannot settle (D236)', async () => {
   const room = await sheetRoom({ benched: true, run: { pendingDecision: true } })
   expect((await heldRun(room)).pending).toBe(1)
 
-  await switchToBenched(room)
+  room.commitActiveSwitch()
+  expect((await control(room, { type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] })).status).toBe(
+    200
+  )
+  // A GM command orders behind the notice's reload and swap step; the held decision refuses it.
+  const advanceId = crypto.randomUUID()
+  room.gm.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'ADVANCE_TURN',
+          encounterId: room.encounterId,
+          commandId: advanceId,
+          expectedVersion: 1
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      room.gm.messages.find(
+        (message) =>
+          (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+          message.commandId === advanceId
+      )
+    ).toMatchObject({ type: 'COMMAND_REJECTED' })
+  )
 
-  expect(await heldRun(room)).toMatchObject({ pending: 0, actor: { id: room.actorId } })
+  expect(await heldRun(room)).toMatchObject({
+    pending: 1,
+    actor: { id: room.actorId, sourceId: room.characterId }
+  })
 })
 
 it('refuses a Sheet command from a player who does not own the Character', async () => {

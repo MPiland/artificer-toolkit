@@ -294,7 +294,6 @@ Candidate, not yet registered. From the first real users on, every stored-shape 
 - **Spell-scoped damage modifiers (SPELLS-31.T5i1):**
   - An untyped spell damage bonus adds once on each damage path, so a spell with both an attack path and a save path could show it on both. No SRD spell does this.
   - Room roll-mode, critical and trait checks know only the spell's id, so a school, level or damage type condition there fails closed (the bonus is not offered). Damage bonuses, the case the SRD needs, read the full spell.
-- **Creature form on an Active Character swap (D236):** the in-place swap writes the actor from the incoming Character's own stats, so a creature form (Wild Shape, Polymorph) that benched Character still carried from earlier play is dropped. A benched Character rarely holds a form. Fix if seen: carry the incoming Character's form effect into the swapped actor.
 - **Active Character request on a deleted Run (D236):** a switch request stays open when the GM deletes the Run it waits on, until the GM approves or declines it or the player cancels it. Fix if seen: delete the Run's requests in the Run deletion transaction.
 
 ### Enlarge/Reduce size change (D156)

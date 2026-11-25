@@ -1,4 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { systemTriggerCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import {
   characterActor,
@@ -488,6 +489,29 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
     const restored = await readRoomHistory(room.room.base.stub)
     expect(restored.characterEffects).toEqual([])
     expect(restored.actors).toEqual(before.actors)
+  })
+
+  it('cancels the Bite the Character owes a reaction choice on, then swaps in its owner’s new Active Character (D236)', async () => {
+    const benchedCharacterId = testUuid(0x7d3)
+    const room = await shieldRoom({ benchedCharacterId })
+    await strike(room, 0)
+    await offeredReaction(room)
+
+    await room.room.switchToBenchedCharacter()
+
+    const heldActor = () =>
+      runInDurableObject(room.room.base.stub, (_instance, state) => {
+        const row = new RoomEncounterStore(state.storage)
+          .documents('encounterRunActors')
+          .find(({ id }) => id === CHARACTER_ACTOR_ID)
+        if (!row) throw new Error('The Run lost the Character actor.')
+        return readStoredRunActor(row)
+      })
+    await vi.waitFor(async () =>
+      expect(await heldActor()).toMatchObject({ sourceId: benchedCharacterId })
+    )
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await readSpellSlots(room)).toEqual([])
   })
 
   it('keeps the hit when the roll still beats the armor class the reaction raised', async () => {
