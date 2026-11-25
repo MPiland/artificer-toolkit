@@ -4,18 +4,6 @@ Feature `RULES` in the [phase ledger](../../../roadmap/08-phase-ledger.json). Ev
 
 The rules engine is mostly invisible. A tester sees it in two places: authored forms that show, hide and require fields as the author's choices change, and live-table decisions that pause the game until someone answers and then resume exactly where they left off. These scenarios tie to those visible flows; the engine's internals are listed under Covered elsewhere.
 
-## Scenarios
-
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
-
-| Path position | Level | Scenario                      | Title                                                                        |
-| ------------- | ----- | ----------------------------- | ---------------------------------------------------------------------------- |
-| 32            | 1     | [UAT-RULES-1](UAT-RULES-1.md) | Authoring forms show, hide and require fields as choices change              |
-| 118           | 3     | [UAT-RULES-3](UAT-RULES-3.md) | A reaction pauses a hit; answering resumes it; privacy of the pause          |
-| 119           | 3     | [UAT-RULES-4](UAT-RULES-4.md) | Healing keeps its dice and modifier visible in the roll card                 |
-| 153           | 4     | [UAT-RULES-2](UAT-RULES-2.md) | A started Encounter pauses for answers and resumes with nothing half-applied |
-| 154           | 4     | [UAT-RULES-5](UAT-RULES-5.md) | An attack with two damage parts keeps each part visible                      |
-
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.

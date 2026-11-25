@@ -4,23 +4,6 @@ Feature `ROOM` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 Proves the GM and three players can all join the same live table, see each other, talk, share notes and maps, plan Sessions, survive a dropped connection, lose access when removed, and that the table keeps its state when everyone leaves and comes back. Accounts: [README](../README.md#roles-and-accounts). Record results: [TESTERS](../TESTERS.md#recording-results). "Tabletop window" means the window opened with **Open tabletop window** in the **Live tabletop** panel of the Campaign's session page (or **Open live tabletop window** on a Character Sheet).
 
-## Scenarios
-
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
-
-| Path position | Level | Scenario                      | Title                                     |
-| ------------- | ----- | ----------------------------- | ----------------------------------------- |
-| 75            | 3     | [UAT-ROOM-1](UAT-ROOM-1.md)   | GM and three players join at once         |
-| 76            | 3     | [UAT-ROOM-2](UAT-ROOM-2.md)   | Previews and pings                        |
-| 77            | 3     | [UAT-ROOM-4](UAT-ROOM-4.md)   | Chat — Table, Party and Direct            |
-| 78            | 3     | [UAT-ROOM-5](UAT-ROOM-5.md)   | Rolls, private GM rolls and chat limits   |
-| 79            | 3     | [UAT-ROOM-6](UAT-ROOM-6.md)   | Notes — private and shared                |
-| 80            | 3     | [UAT-ROOM-8](UAT-ROOM-8.md)   | Plan and log Sessions                     |
-| 81            | 3     | [UAT-ROOM-9](UAT-ROOM-9.md)   | Live play commands go through the room    |
-| 82            | 3     | [UAT-ROOM-7](UAT-ROOM-7.md)   | Show a map to players without presenting  |
-| 90            | 3     | [UAT-ROOM-10](UAT-ROOM-10.md) | Archiving a Campaign closes its live room |
-| 134           | 3     | [UAT-ROOM-3](UAT-ROOM-3.md)   | Reconnect after a dropped connection      |
-
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.

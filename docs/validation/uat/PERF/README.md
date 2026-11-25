@@ -4,15 +4,6 @@ Feature `PERF` in the [phase ledger](../../../roadmap/08-phase-ledger.json).
 
 These scenarios give testers a human feel for responsiveness at a table of four. The numeric budgets are measured by harnesses elsewhere; nothing here replaces them, and nothing here is evidence of normal play. The managed run needs staging credentials and is not a local test.
 
-## Scenarios
-
-One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
-
-| Path position | Level | Scenario                    | Title                                                                                                   |
-| ------------- | ----- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 129           | 3     | [UAT-PERF-2](UAT-PERF-2.md) | Four people at a local table feel responsive                                                            |
-| 194           | 5     | [UAT-PERF-1](UAT-PERF-1.md) | Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke) |
-
 ## Covered elsewhere
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
