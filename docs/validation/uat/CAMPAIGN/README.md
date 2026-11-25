@@ -8,21 +8,21 @@ Proves a GM can create, run, copy, archive and delete a Campaign, bring players 
 
 One file per scenario, listed in the order the [tracker](../TRACKER.md) runs them. Each file ends with a Result block to fill in.
 
-| Path position | Level | Scenario                            | Title                                              |
-| ------------- | ----- | ----------------------------------- | -------------------------------------------------- |
-| 47            | 2     | [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md) | Create, edit, copy, archive and delete a Campaign  |
-| 48            | 2     | [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md) | Invite, accept, leave, remove, rejoin and transfer |
-| 49            | 2     | [UAT-CAMPAIGN-9](UAT-CAMPAIGN-9.md) | Seat the whole party in The Campaign               |
-| 50            | 2     | [UAT-CAMPAIGN-10](UAT-CAMPAIGN-10.md) | Bench a second Character and mark it active      |
-| 55            | 2     | [UAT-CAMPAIGN-4](UAT-CAMPAIGN-4.md) | Campaign content, sources and removals             |
-| 56            | 2     | [UAT-CAMPAIGN-5](UAT-CAMPAIGN-5.md) | Party inventory and Vehicles                       |
-| 57            | 2     | [UAT-CAMPAIGN-7](UAT-CAMPAIGN-7.md) | The GM plays a Character                           |
-| 58            | 2     | [UAT-CAMPAIGN-6](UAT-CAMPAIGN-6.md) | Announcements                                      |
-| 73            | 3     | [UAT-CAMPAIGN-8](UAT-CAMPAIGN-8.md) | Not a member                                       |
-| 74            | 3     | [UAT-CAMPAIGN-3](UAT-CAMPAIGN-3.md) | Players see only what the GM made visible          |
-| 112           | 3     | [UAT-CAMPAIGN-11](UAT-CAMPAIGN-11.md) | Mid-fight Character swap needs the GM's approval |
-| 113           | 3     | [UAT-CAMPAIGN-12](UAT-CAMPAIGN-12.md) | Character swap on the player's own turn          |
-| 114           | 3     | [UAT-CAMPAIGN-13](UAT-CAMPAIGN-13.md) | Swap in a Prepared Encounter needs no request    |
+| Path position | Level | Scenario                              | Title                                              |
+| ------------- | ----- | ------------------------------------- | -------------------------------------------------- |
+| 47            | 2     | [UAT-CAMPAIGN-1](UAT-CAMPAIGN-1.md)   | Create, edit, copy, archive and delete a Campaign  |
+| 48            | 2     | [UAT-CAMPAIGN-2](UAT-CAMPAIGN-2.md)   | Invite, accept, leave, remove, rejoin and transfer |
+| 49            | 2     | [UAT-CAMPAIGN-9](UAT-CAMPAIGN-9.md)   | Seat the whole party in The Campaign               |
+| 50            | 2     | [UAT-CAMPAIGN-10](UAT-CAMPAIGN-10.md) | Bench a second Character and mark it active        |
+| 55            | 2     | [UAT-CAMPAIGN-4](UAT-CAMPAIGN-4.md)   | Campaign content, sources and removals             |
+| 56            | 2     | [UAT-CAMPAIGN-5](UAT-CAMPAIGN-5.md)   | Party inventory and Vehicles                       |
+| 57            | 2     | [UAT-CAMPAIGN-7](UAT-CAMPAIGN-7.md)   | The GM plays a Character                           |
+| 58            | 2     | [UAT-CAMPAIGN-6](UAT-CAMPAIGN-6.md)   | Announcements                                      |
+| 73            | 3     | [UAT-CAMPAIGN-8](UAT-CAMPAIGN-8.md)   | Not a member                                       |
+| 74            | 3     | [UAT-CAMPAIGN-3](UAT-CAMPAIGN-3.md)   | Players see only what the GM made visible          |
+| 112           | 3     | [UAT-CAMPAIGN-11](UAT-CAMPAIGN-11.md) | Mid-fight Character swap needs the GM's approval   |
+| 113           | 3     | [UAT-CAMPAIGN-12](UAT-CAMPAIGN-12.md) | Character swap on the player's own turn            |
+| 114           | 3     | [UAT-CAMPAIGN-13](UAT-CAMPAIGN-13.md) | Swap in a Prepared Encounter needs no request      |
 
 ## Covered elsewhere
 
