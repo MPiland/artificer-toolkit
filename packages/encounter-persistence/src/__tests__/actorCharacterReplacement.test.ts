@@ -2,6 +2,7 @@ import {
   characterActor,
   testUuid
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { describe, expect, it } from 'vitest'
 
 import { selectRunCharacterSwaps } from '../actorCharacterReplacement.js'
@@ -47,9 +48,8 @@ describe('selectRunCharacterSwaps (D236)', () => {
   })
 
   it('leaves a frozen actor as it stands', () => {
-    expect(selectRunCharacterSwaps([{ ...aria, frozenState: frozen }, cora], assignments)).toEqual(
-      []
-    )
+    const frozenAria = encounterRunActorStateSchema.parse({ ...aria, frozenState: frozen })
+    expect(selectRunCharacterSwaps([frozenAria, cora], assignments)).toEqual([])
   })
 
   it("swaps only a player's first benched actor in the Run", () => {
