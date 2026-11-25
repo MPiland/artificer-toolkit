@@ -229,6 +229,22 @@ When you finish a scenario, whatever the outcome, change its Status from NOT RUN
 | 194 | [UAT-PERF-1](PERF/UAT-PERF-1.md)                        | Managed three-user live-room journey (needs managed credentials; run only on an approved staging smoke) | PERF        | Group | GM, P1, P2         | NOT RUN |
 | 195 | [UAT-ACCOUNTS-12](ACCOUNTS/UAT-ACCOUNTS-12.md)          | Delete my account, shared history survives                                                              | ACCOUNTS    | Group | OWN, P3            | NOT RUN |
 
+## Device pass (9 scenarios: 7 Solo, 2 Group)
+
+Runs after Level 3 and before [UAT-ACCOUNTS-12](ACCOUNTS/UAT-ACCOUNTS-12.md) (the last row above), on a phone and a tablet, using the existing accounts and data and no OWN account. D1 to D9 are not part of the 195-position path. D9 needs a build containing VTT_UI-6 and is BLOCKED otherwise. How to run: [DEVICES](DEVICES/README.md).
+
+| #   | Scenario                                  | Title                                                        | Feature | Mode  | Who        | Status  |
+| --- | ----------------------------------------- | ------------------------------------------------------------ | ------- | ----- | ---------- | ------- |
+| D1  | [UAT-DEVICES-1](DEVICES/UAT-DEVICES-1.md) | Sign in, account menu, Settings and sign out on a phone      | DEVICES | Solo  | P1         | NOT RUN |
+| D2  | [UAT-DEVICES-2](DEVICES/UAT-DEVICES-2.md) | Mobile footer, search drawer and Library menu                | DEVICES | Solo  | P1         | NOT RUN |
+| D3  | [UAT-DEVICES-3](DEVICES/UAT-DEVICES-3.md) | Character Builder on a phone: create, draft, resume, commit  | DEVICES | Solo  | P1         | NOT RUN |
+| D4  | [UAT-DEVICES-4](DEVICES/UAT-DEVICES-4.md) | Campaigns on a phone: invitation, Party and Active Character | DEVICES | Group | GM, P5, P1 | NOT RUN |
+| D5  | [UAT-DEVICES-5](DEVICES/UAT-DEVICES-5.md) | Campaign chat on a phone                                     | DEVICES | Group | P1, GM     | NOT RUN |
+| D6  | [UAT-DEVICES-6](DEVICES/UAT-DEVICES-6.md) | Social Hub on a phone                                        | DEVICES | Solo  | P1         | NOT RUN |
+| D7  | [UAT-DEVICES-7](DEVICES/UAT-DEVICES-7.md) | Authoring editor on a phone                                  | DEVICES | Solo  | P1         | NOT RUN |
+| D8  | [UAT-DEVICES-8](DEVICES/UAT-DEVICES-8.md) | Library lists and authored detail pages on a phone           | DEVICES | Solo  | P1         | NOT RUN |
+| D9  | [UAT-DEVICES-9](DEVICES/UAT-DEVICES-9.md) | Tabletop limits on a phone and a tablet                      | DEVICES | Solo  | P1         | NOT RUN |
+
 # Owner follow-ups: cross-role checks (11)
 
 The tester's Solo run does not cover what the other roles see. After the tester finishes the scenario, the owner signs in as the listed role and runs the scenario's Cross-role check section.

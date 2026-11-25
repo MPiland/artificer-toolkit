@@ -29,6 +29,8 @@ Generated from the scenario files' "ACs covered" sections and the ledger: every 
 
 Scenarios counted are the scripted ones (187); the orientation scenario and the 7 exploratory tasks (run in the middle of Level 3) cover no AC. [UAT-CAMPAIGN-10](CAMPAIGN/UAT-CAMPAIGN-10.md) to [UAT-CAMPAIGN-13](CAMPAIGN/UAT-CAMPAIGN-13.md) cover decision D236 (the Active Character and bench model, and the GM-approved mid-fight swap), which has no ledger AC, so they add no row to the AC counts.
 
+The [DEVICES](DEVICES/README.md) device pass (9 scenarios, run on a phone and a tablet) is not counted in the table. Eight of its scenarios are not tied to an AC. [UAT-DEVICES-9](DEVICES/UAT-DEVICES-9.md) covers VTT_UI-6.1 to VTT_UI-6.3 and needs a build that contains VTT_UI-6, so it is BLOCKED on earlier builds.
+
 ## AC map
 
 "(blocked)" means every scenario that covers the AC needs managed staging credentials (PERF-1, run only on an approved staging smoke).

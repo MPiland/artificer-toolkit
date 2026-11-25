@@ -49,14 +49,15 @@ Run your Solo scenarios once, in [tracker](TRACKER.md) order, level by level. Th
 4. The rest of Level 1 in tracker order, from [UAT-ACCOUNTS-13](ACCOUNTS/UAT-ACCOUNTS-13.md) to [UAT-SHEET-10](SHEET/UAT-SHEET-10.md).
 5. Level 2 starts with [UAT-CAMPAIGN-1](CAMPAIGN/UAT-CAMPAIGN-1.md). [UAT-SCENE-1](SCENE/UAT-SCENE-1.md), [UAT-SCENE-2](SCENE/UAT-SCENE-2.md) and [UAT-RELIABILITY-4](RELIABILITY/UAT-RELIABILITY-4.md) need earlier scenarios to have built the Campaign, Scene and Encounter they use; follow their Prerequisites.
 6. Level 3: [UAT-SHEET-5](SHEET/UAT-SHEET-5.md), [UAT-AUTHORING-6](AUTHORING/UAT-AUTHORING-6.md), [UAT-RELIABILITY-8](RELIABILITY/UAT-RELIABILITY-8.md).
-7. Last of all, [UAT-ACCOUNTS-12](ACCOUNTS/UAT-ACCOUNTS-12.md) deletes OWN. Run nothing on OWN after it.
+7. The [device pass](DEVICES/README.md) runs after Level 3 and before [UAT-ACCOUNTS-12](ACCOUNTS/UAT-ACCOUNTS-12.md): use a real phone where you can, otherwise the browser device toolbar at 375 px.
+8. Last of all, [UAT-ACCOUNTS-12](ACCOUNTS/UAT-ACCOUNTS-12.md) deletes OWN. Run nothing on OWN after it.
 
 Each scenario's **Prerequisites** say what must come first. If one is missing, mark the scenario BLOCKED and move on. A scenario that changes shared state ends with restore steps (R1, R2 …); run them even when the scenario failed ([One pass](README.md#one-pass)).
 
 ## Recording results
 
 - Mark every step as you go: `[P]` passed, `[F]` failed, `[-]` not reached.
-- Fill in the **Result** block at the end of the scenario's file: **Status** (NOT RUN, PASSED, FAILED, BLOCKED or SKIPPED), **Date**, **Build**, **Tester** (your name), **Failure details** (which step, expected vs actual, exact message text, whether it repeats) and **Notes**. The scenario ID is the file name, so every note stays tied to its context.
+- Fill in the **Result** block at the end of the scenario's file: **Status** (NOT RUN, PASSED, FAILED, BLOCKED or SKIPPED), **Date**, **Build**, **Device** (desktop, tablet or phone; the browser; a real device or an emulated width), **Tester** (your name), **Failure details** (which step, expected vs actual, exact message text, whether it repeats) and **Notes**. The scenario ID is the file name, so every note stays tied to its context.
 - Then set the same status in the scenario's row of the [tracker](TRACKER.md).
 - **PASSED** means every Expected line held and the owner has run its "Other users see" or "Cross-role check" lines. Take at least one screenshot per scenario of its final state, named with the scenario ID; for Group scenarios, one per role window.
 - A behaviour listed in the play guide's [known gaps](../../guides/alpha-play-guide.md#known-gaps) is not a failure; note it only if it hurt the session.

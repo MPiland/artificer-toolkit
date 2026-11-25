@@ -32,6 +32,7 @@ UAT is not tracked work: there are no PBIs or tasks for it. The ledger holds one
 - **Level 3, Core play:** The live table with several people: rooms, attacks, movement, privacy, reactions and reliability, plus the open-ended exploratory tasks that test whether the product explains itself (read no scenario file first for those).
 - **Level 4, Advanced play:** Encounter lifecycle and optional rules, then the long spell and rules journeys that replace the party's Characters.
 - **Level 5, Reliability, performance and release:** Plan limits, the release checklist and performance, ending with deleting your own account.
+- **Device pass:** [DEVICES](DEVICES/README.md), nine short scenarios that run the main flows on a phone-width screen and check the tabletop's device limits. It runs after Level 3 and before the final account deletion, and is listed in its own tracker table.
 
 ## Roles and accounts
 

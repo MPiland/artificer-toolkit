@@ -44,6 +44,7 @@ Fill this in after the run. Leave the other scenarios' blocks alone.
 - **Status:** PASSED
 - **Date:**
 - **Build:**
+- **Device:** (desktop, tablet or phone; browser; real device or emulated width)
 - **Tester:**
 - **Failure details:** N/A
 - **Notes:**
