@@ -66,13 +66,14 @@ export function CampaignParty({
   // One card per attached Character, the Active Character first; a member with none gets one card.
   const rosterEntries = rosterMembers.flatMap((member) => {
     const attached = attachedCharacters(member)
-    return attached.length
-      ? attached.map((character) => ({
-          member,
-          character,
-          active: character.id === member.activeCharacter?.id
-        }))
-      : [{ member, character: null, active: false }]
+    const cards: ReadonlyArray<(typeof attached)[number] | null> = attached.length
+      ? attached
+      : [null]
+    return cards.map((character) => ({
+      member,
+      character,
+      active: character !== null && character.id === member.activeCharacter?.id
+    }))
   })
   const attachedEntries = rosterEntries.flatMap(({ member, character }) =>
     character ? [{ member, character }] : []
