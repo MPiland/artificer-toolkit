@@ -17,10 +17,10 @@ Level 1 (Single-user basics) · Feature ACCOUNTS · Mode: Solo (any one role) ·
 
 Mark each step: `[P]` passed, `[F]` failed, `[-]` not reached. Leave `[ ]` until run.
 
-1. [ ] Open `<STAGING_URL>/sign-up`.
-2. [ ] Read the page title and message.
-3. [ ] Look for any form that lets you choose a username and password.
-4. [ ] Try to fill and submit it if one is present.
+1. [P] Open `<STAGING_URL>/sign-up`.
+2. [P] Read the page title and message.
+3. [P] Look for any form that lets you choose a username and password.
+4. [P] Try to fill and submit it if one is present.
 
 ## Expected
 
@@ -39,10 +39,10 @@ ACCOUNTS-2.1, ACCOUNTS-2.2
 
 Fill this in after the run. Leave the other scenarios' blocks alone.
 
-- **Status:** NOT RUN (change to PASSED, FAILED, BLOCKED or SKIPPED)
-- **Date:**
-- **Build:**
+- **Status:** PASSED
+- **Date:** 2026-11-25
+- **Build:** 0.1.0
 - **Device:** (desktop, tablet or phone; browser; real device or emulated width)
-- **Tester:**
-- **Failure details:** (which step, expected vs actual, exact message text, does it repeat)
+- **Tester:** Mark
+- **Failure details:** N/A
 - **Notes:**
